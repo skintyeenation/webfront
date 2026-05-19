@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.DS_Store
+
+# Scraped artifacts — large, regenerable
+scraped/raw/
+scraped/media/
+scraped/manifest.json
+
+# WordPress runtime data
+wp-data/
+wp-content-uploads/
+db-data/
