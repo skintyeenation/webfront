@@ -44,6 +44,13 @@ services:
       db:
         condition: service_healthy
     user: "33:33"  # www-data, matches the wordpress image
+    # wp-config.php uses getenv_docker(); these must match the wordpress service
+    # or `wp` runs from this container will fall back to the default 'mysql' host.
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_NAME: skintyee
+      WORDPRESS_DB_USER: skintyee
+      WORDPRESS_DB_PASSWORD: skintyee
     volumes:
       - ./wp-data:/var/www/html
       - ./scraped:/scraped:ro
