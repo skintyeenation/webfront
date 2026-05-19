@@ -10,7 +10,9 @@
 
 declare(strict_types=1);
 
-// page_slug => new short title
+// page_slug => new short title.
+// 'news' is included so it lands in $slug_to_id and can be referenced by the
+// footer menu below — the page itself is created earlier by setup-news.php.
 $renames = [
     'about-our-community'         => 'About',
     'our-history'                 => 'History',
@@ -22,6 +24,7 @@ $renames = [
     'stay-informed'               => 'Stay Informed',
     'gallery'                     => 'Gallery',
     'q-a'                         => 'Q&A',
+    'news'                        => 'News',
 ];
 
 $slug_to_id = [];
@@ -77,6 +80,7 @@ build_menu('primary', [
 ], $slug_to_id, 'primary');
 
 build_menu('footer', [
+    'news',
     'announcements',
     'stay-informed',
     'gallery',

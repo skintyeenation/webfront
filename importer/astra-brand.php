@@ -81,10 +81,12 @@ $mods = [
 
     // Header logo size (px). Keeps the thunderbird small enough to sit
     // proportionally next to the site title without dominating the header.
+    // The skintyee-grid mu-plugin also caps via CSS (max-height 40px) since
+    // Astra's responsive control doesn't always win against intrinsic size.
     'ast-header-responsive-logo-width' => [
-        'desktop' => 64,
-        'tablet'  => 56,
-        'mobile'  => 48,
+        'desktop' => 40,
+        'tablet'  => 36,
+        'mobile'  => 32,
     ],
 
     'header-main-rt-section'   => 'menu',
