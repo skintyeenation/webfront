@@ -35,7 +35,17 @@ else
   $WP theme activate twentytwentyone
 fi
 
-# 4. Hand off to the PHP importer running inside the wpcli container.
+# 4. Install the skintyee-grid mu-plugin so the imported Bootstrap-style
+#    grid classes actually render multi-column.
+mkdir -p wp-data/wp-content/mu-plugins
+cp -r wp-plugins/skintyee-grid wp-data/wp-content/mu-plugins/
+# Loader stub at the mu-plugins root (WP only auto-loads top-level .php files there).
+cat > wp-data/wp-content/mu-plugins/skintyee-grid-loader.php <<'PHP'
+<?php
+require_once __DIR__ . '/skintyee-grid/skintyee-grid.php';
+PHP
+
+# 5. Hand off to the PHP importer running inside the wpcli container.
 #    The importer reads the manifest, calls `wp media import` and `wp post create`,
 #    and patches {{MEDIA:...}} placeholders with the uploaded attachment URLs.
 docker compose run --rm \
