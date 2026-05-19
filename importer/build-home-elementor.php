@@ -20,6 +20,7 @@
 
 declare(strict_types=1);
 
+const LOGO_SHA       = '48facf18c1a083b1df0535f7f59ed091a0c39d2c';  // thunderbird, header logo
 const HERO_SHA       = '7e8ebbafda693524c7e2e203a95f6348a69233ba';
 const BC_MAP_SHA     = '7ccd337afb24f226ec96d6bc25fff792ea3d0064';
 const SIDEBAR_SHAS   = [
@@ -116,6 +117,14 @@ $home = get_page_by_path('home');
 if (!$home) { echo "[elementor] no home page\n"; exit(1); }
 
 global $wpdb;
+// Site identity: set the header logo to the thunderbird image. Attachment IDs
+// are re-assigned by MySQL on each fresh install, so we have to look up by sha.
+$logo = attachment_by_sha(LOGO_SHA);
+if ($logo) {
+    set_theme_mod('custom_logo', $logo['id']);
+    echo "[site] header logo set to attachment #{$logo['id']}\n";
+}
+
 $hero = attachment_by_sha(HERO_SHA);
 $bc   = attachment_by_sha(BC_MAP_SHA);
 $sidebar = array_filter(array_map('attachment_by_sha', SIDEBAR_SHAS));

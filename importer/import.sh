@@ -35,14 +35,21 @@ else
   $WP theme activate "$THEME"
 fi
 
-# 4. Install the skintyee-grid mu-plugin so the imported Bootstrap-style
-#    grid classes actually render multi-column.
+# 4. Install all skintyee mu-plugins:
+#    - skintyee-grid: Bootstrap-grid CSS shim for imported markup
+#    - skintyee-cli-fix: pre-loads is_plugin_active() so Elementor 4.x doesn't
+#      fatal-error every time wp-cli runs (known Elementor bug)
 mkdir -p wp-data/wp-content/mu-plugins
 cp -r wp-plugins/skintyee-grid wp-data/wp-content/mu-plugins/
-# Loader stub at the mu-plugins root (WP only auto-loads top-level .php files there).
+cp -r wp-plugins/skintyee-cli-fix wp-data/wp-content/mu-plugins/
+# Loader stubs at the mu-plugins root (WP only auto-loads top-level .php there).
 cat > wp-data/wp-content/mu-plugins/skintyee-grid-loader.php <<'PHP'
 <?php
 require_once __DIR__ . '/skintyee-grid/skintyee-grid.php';
+PHP
+cat > wp-data/wp-content/mu-plugins/skintyee-cli-fix-loader.php <<'PHP'
+<?php
+require_once __DIR__ . '/skintyee-cli-fix/skintyee-cli-fix.php';
 PHP
 
 # 5. Apply Astra brand customization (colors, typography, header layout) so the
@@ -51,9 +58,44 @@ docker compose run --rm \
   --entrypoint /usr/local/bin/php \
   wpcli -r 'require_once("/var/www/html/wp-load.php"); require("/importer/astra-brand.php");'
 
-# 6. Hand off to the PHP importer running inside the wpcli container.
+# 6. Install Astra Sites (Starter Templates) + Elementor. Elementor is required
+#    by build-home-elementor.php below. Astra Sites is optional but lets the
+#    user install design demos from wp-admin if they want a fuller template.
+for plugin in elementor astra-sites; do
+  if ! $WP plugin is-installed "$plugin" 2>/dev/null; then
+    $WP plugin install "$plugin" --activate
+  else
+    $WP plugin activate "$plugin"
+  fi
+done
+
+# 7. Hand off to the PHP importer running inside the wpcli container.
 #    The importer reads the manifest, calls `wp media import` and `wp post create`,
 #    and patches {{MEDIA:...}} placeholders with the uploaded attachment URLs.
 docker compose run --rm \
   --entrypoint /usr/local/bin/php \
   wpcli /importer/import.php
+
+# 8. Rename pages to short titles + rebuild the two menus (header + footer).
+#    Depends on import.php having created the source pages.
+docker compose run --rm \
+  --entrypoint /usr/local/bin/php \
+  wpcli -r 'require_once("/var/www/html/wp-load.php"); require("/importer/rename-and-menus.php");'
+
+# 9. Populate Astra's Main Sidebar with two poster image widgets. Used by any
+#    page configured with a right-sidebar layout (the Elementor home below
+#    deliberately does NOT use the sidebar — its posters are a column instead).
+docker compose run --rm \
+  --entrypoint /usr/local/bin/php \
+  wpcli -r 'require_once("/var/www/html/wp-load.php"); require("/importer/set-home-sidebar.php");'
+
+# 10. Rebuild the home page as native Elementor widgets (hero / 2-col body /
+#     testimonial). This clears the home's post_content; _elementor_data is the
+#     single source of truth from here on.
+docker compose run --rm \
+  --entrypoint /usr/local/bin/php \
+  wpcli -r 'require_once("/var/www/html/wp-load.php"); require("/importer/build-home-elementor.php");'
+
+echo ""
+echo "[done] http://localhost:8080/"
+echo "       admin: http://localhost:8080/wp-admin/  (admin / admin)"
