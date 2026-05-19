@@ -85,6 +85,17 @@
     .entry-content .col-lg-12 { width: 100%; }
 }
 
+/* Header logo: Astra's theme_mod for logo width can be overridden by
+ * intrinsic image size on some themes/breakpoints. Cap it here at low
+ * specificity so the Customizer can still bump it up if needed. */
+.site-header .custom-logo,
+.ast-site-identity .custom-logo,
+.site-logo-img img,
+.ast-site-identity img.custom-logo {
+    max-height: 40px;
+    width: auto;
+}
+
 /* Gallery shim: the source uses Flickity + isotope; we just lay out as a flex grid */
 .entry-content .gallery-images-container {
     display: flex;

@@ -76,29 +76,29 @@ docker compose run --rm \
   --entrypoint /usr/local/bin/php \
   wpcli /importer/import.php
 
-# 8. Rename pages to short titles + rebuild the two menus (header + footer).
-#    Depends on import.php having created the source pages.
-docker compose run --rm \
-  --entrypoint /usr/local/bin/php \
-  wpcli -r 'require_once("/var/www/html/wp-load.php"); require("/importer/rename-and-menus.php");'
-
-# 9. Populate Astra's Main Sidebar with two poster image widgets. Used by any
-#    page configured with a right-sidebar layout (the Elementor home below
-#    deliberately does NOT use the sidebar — its posters are a column instead).
-docker compose run --rm \
-  --entrypoint /usr/local/bin/php \
-  wpcli -r 'require_once("/var/www/html/wp-load.php"); require("/importer/set-sidebar-widgets.php");'
-
-# 9b. Create a /news/ page and designate it as WordPress's Posts page so the
-#     blog archive renders there. The Elementor home below also references
-#     /news/ as the "View all" button URL.
+# 8. Create the /news/ page first so step 9 can reference it from the footer
+#    menu. WP's page_for_posts option points here so the post archive renders
+#    at /news/ automatically.
 docker compose run --rm \
   --entrypoint /usr/local/bin/php \
   wpcli -r 'require_once("/var/www/html/wp-load.php"); require("/importer/setup-news.php");'
 
-# 10. Rebuild the home page as native Elementor widgets (hero / 2-col body /
-#     testimonial). This clears the home's post_content; _elementor_data is the
-#     single source of truth from here on.
+# 9. Rename pages to short titles + rebuild the two menus (header + footer).
+#    Footer menu includes /news/ which step 8 created above.
+docker compose run --rm \
+  --entrypoint /usr/local/bin/php \
+  wpcli -r 'require_once("/var/www/html/wp-load.php"); require("/importer/rename-and-menus.php");'
+
+# 10. Populate Astra's Main Sidebar with two poster image widgets. Used by any
+#     page configured with a right-sidebar layout (the Elementor home below
+#     deliberately does NOT use the sidebar — its posters are a column instead).
+docker compose run --rm \
+  --entrypoint /usr/local/bin/php \
+  wpcli -r 'require_once("/var/www/html/wp-load.php"); require("/importer/set-sidebar-widgets.php");'
+
+# 11. Rebuild the home page as native Elementor widgets (hero / 2-col body /
+#     news / testimonial). This clears the home's post_content; _elementor_data
+#     is the single source of truth from here on.
 docker compose run --rm \
   --entrypoint /usr/local/bin/php \
   wpcli -r 'require_once("/var/www/html/wp-load.php"); require("/importer/build-home-elementor.php");'
