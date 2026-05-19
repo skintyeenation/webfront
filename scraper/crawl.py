@@ -68,6 +68,9 @@ STRIP_SELECTORS = [
     "[data-s123-edit]",
 ]
 
+# Background-image URLs hidden inside `style="background-image:url(...)"`.
+BG_URL_RE = re.compile(r"background-image\s*:\s*url\(\s*['\"]?([^'\")]+)['\"]?\s*\)", re.I)
+
 # Treat these extensions as media we want to mirror locally.
 MEDIA_EXTS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".pdf", ".mp4", ".mp3"}
 
@@ -185,6 +188,19 @@ class Crawler:
             for el in content.select(sel):
                 el.decompose()
 
+        # Site123 puts hero/section images as inline background-image styles on
+        # empty <div>s. Without Site123's CSS those divs are 0px tall, so the
+        # image never renders. Promote each to a real <img>.
+        for el in content.find_all(True):
+            if not isinstance(el, Tag) or not el.get("style"):
+                continue
+            m = BG_URL_RE.search(el["style"])
+            if not m:
+                continue
+            img = soup.new_tag("img", src=m.group(1))
+            img["loading"] = "lazy"
+            el.insert(0, img)
+
         # Rewrite media references inside the content block.
         page_media: list[dict] = []
         for tag in content.find_all(["img", "a", "source", "video", "audio"]):
@@ -202,6 +218,42 @@ class Crawler:
                 placeholder = self.maybe_mirror(val, page_media)
                 if placeholder:
                     tag.attrs[attr] = placeholder
+
+        # Strip Site123-specific class names + all data-* attrs + inline styles +
+        # HTML comments, then drop empty layout divs. This is a markup tidy pass;
+        # text content and real links/images survive.
+        for el in content.find_all(True):
+            if not isinstance(el, Tag):
+                continue
+            classes = [c for c in el.get("class", []) if not c.startswith(("s123-", "m-h-", "hpm-", "aos-"))
+                       and c not in {"container-fluid", "headers-text-orders", "headers-container",
+                                     "headers-text-wrap", "headers-text-resize-container",
+                                     "headers-img-wrap", "headers-carousel-deactivated",
+                                     "carousel-inner", "headers-item", "headers-image",
+                                     "headers-text-separator", "header-spacer", "item active",
+                                     "one-item", "carousel", "slide", "carousel-fade",
+                                     "header-modules-header-font", "custom-font-settings",
+                                     "weight700"}]
+            if classes:
+                el["class"] = classes
+            else:
+                el.attrs.pop("class", None)
+            for k in list(el.attrs):
+                if k.startswith("data-") or k in {"style", "id"}:
+                    del el.attrs[k]
+        # Drop HTML comments
+        from bs4 import Comment
+        for c in content.find_all(string=lambda s: isinstance(s, Comment)):
+            c.extract()
+        # Collapse divs/sections that have no text and no descendant img/a/video.
+        for el in list(content.find_all(["div", "section", "span"])):
+            if not isinstance(el, Tag):
+                continue
+            if el.find(["img", "a", "video", "audio", "iframe"]):
+                continue
+            if el.get_text(strip=True):
+                continue
+            el.decompose()
 
         # Rewrite internal page links to relative WP slugs.
         for a in content.find_all("a", href=True):
