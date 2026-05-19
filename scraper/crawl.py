@@ -66,6 +66,8 @@ STRIP_SELECTORS = [
     ".s123-share-buttons",
     ".s123-comments",
     "[data-s123-edit]",
+    "input[type=hidden]",   # Site123 layout config blobs
+    ".items-categories-container-wrapper",  # gallery filter widget ("All / Album")
 ]
 
 # Background-image URLs hidden inside `style="background-image:url(...)"`.
@@ -202,27 +204,47 @@ class Crawler:
             el.insert(0, img)
 
         # Rewrite media references inside the content block.
+        # Site123 lazy-loads images via several data-* attrs (data-flickity-lazyload
+        # for galleries, data-src / data-original / data-bg elsewhere). The src
+        # attribute is empty on these. Harvest from all of them, but always write
+        # the resolved URL into `src` — the cleanup pass below strips data-* attrs,
+        # so leaving the URL in a data-* attr would lose it.
         page_media: list[dict] = []
+        lazy_src_attrs = ("src", "data-src", "data-original", "data-flickity-lazyload", "data-bg")
         for tag in content.find_all(["img", "a", "source", "video", "audio"]):
-            for attr in ("src", "href", "data-src", "data-original", "srcset"):
-                if not isinstance(tag, Tag) or attr not in tag.attrs:
+            if not isinstance(tag, Tag):
+                continue
+            # Resolve a media URL from whichever attr it lives in.
+            resolved: str | None = None
+            for attr in lazy_src_attrs:
+                if attr not in tag.attrs:
                     continue
-                val = tag.attrs[attr]
-                if attr == "srcset":
-                    # srcset is "url 1x, url 2x" — rewrite the first url only, drop the rest
-                    first = val.split(",")[0].strip().split(" ")[0]
-                    placeholder = self.maybe_mirror(first, page_media)
-                    if placeholder:
-                        tag.attrs[attr] = placeholder
-                    continue
-                placeholder = self.maybe_mirror(val, page_media)
+                placeholder = self.maybe_mirror(tag.attrs[attr], page_media)
                 if placeholder:
-                    tag.attrs[attr] = placeholder
+                    resolved = placeholder
+                    break  # first hit wins
+            if resolved and tag.name in ("img", "source", "video", "audio"):
+                tag.attrs["src"] = resolved
+            elif resolved and tag.name == "a":
+                tag.attrs["href"] = resolved
+            # srcset gets its own treatment (multi-url string).
+            if "srcset" in tag.attrs:
+                first = tag.attrs["srcset"].split(",")[0].strip().split(" ")[0]
+                placeholder = self.maybe_mirror(first, page_media)
+                if placeholder:
+                    tag.attrs["srcset"] = placeholder
+            # Plain hrefs on <a> (not lazy-loaded — handled above only if first attr was href).
+            if tag.name == "a" and "href" in tag.attrs and not resolved:
+                placeholder = self.maybe_mirror(tag.attrs["href"], page_media)
+                if placeholder:
+                    tag.attrs["href"] = placeholder
 
         # Strip Site123-specific class names + all data-* attrs + inline styles +
         # HTML comments, then drop empty layout divs. This is a markup tidy pass;
         # text content and real links/images survive.
-        for el in content.find_all(True):
+        # find_all(True) returns descendants only — include `content` itself so its
+        # wrapper class / id get cleaned too.
+        for el in [content, *content.find_all(True)]:
             if not isinstance(el, Tag):
                 continue
             classes = [c for c in el.get("class", []) if not c.startswith(("s123-", "m-h-", "hpm-", "aos-"))
