@@ -49,8 +49,15 @@ RAW_DIR = OUT_DIR / "raw"
 MEDIA_DIR = OUT_DIR / "media"
 MANIFEST_PATH = OUT_DIR / "manifest.json"
 
-# Content-area selector for Site123 pages (verified against /our-history).
-CONTENT_SELECTOR = "div.s123-content-area.s123-modules-container"
+# Content-area selectors for Site123 pages — different page types use different wrappers:
+#   - standard pages (e.g. /our-history):     .s123-content-area.s123-modules-container
+#   - sub-pages     (e.g. /announcements/...): .s123-content-area.s123-page-container
+#   - homepage:                                 .s123-modules-container (no s123-content-area)
+# Listed in priority order; first match wins.
+CONTENT_SELECTORS = [
+    "div.s123-content-area",
+    "div.s123-modules-container",
+]
 
 # Strip these UI chrome elements from the extracted content.
 STRIP_SELECTORS = [
@@ -91,19 +98,33 @@ def hash_url(url: str) -> str:
 
 
 def guess_ext(url: str, content_type: str | None) -> str:
+    """Determine the on-disk extension for a media response.
+
+    Content-Type wins over URL extension: Site123's CDN returns HTML error pages
+    (with Content-Type: text/html) at URLs ending in .pdf when the asset is
+    missing. Trusting the URL would save a 404 page as a "PDF" that WP then
+    rejects as a MIME mismatch.
+    """
+    ct_map = {
+        "image/jpeg": ".jpg",
+        "image/jpg": ".jpg",
+        "image/png": ".png",
+        "image/gif": ".gif",
+        "image/webp": ".webp",
+        "image/svg+xml": ".svg",
+        "application/pdf": ".pdf",
+        "video/mp4": ".mp4",
+        "audio/mpeg": ".mp3",
+    }
+    if content_type:
+        ct = content_type.split(";")[0].strip().lower()
+        if ct in ct_map:
+            return ct_map[ct]
+        if ct.startswith("text/") or ct == "application/xhtml+xml":
+            return ""  # error page masquerading as media
     path_ext = Path(urlparse(url).path).suffix.lower()
     if path_ext in MEDIA_EXTS:
         return path_ext
-    if content_type:
-        ct = content_type.split(";")[0].strip().lower()
-        return {
-            "image/jpeg": ".jpg",
-            "image/png": ".png",
-            "image/gif": ".gif",
-            "image/webp": ".webp",
-            "image/svg+xml": ".svg",
-            "application/pdf": ".pdf",
-        }.get(ct, "")
     return ""
 
 
@@ -151,7 +172,11 @@ class Crawler:
         # Site123 titles look like "Page - Site Name - tagline..."; keep the first segment.
         title = title.split(" - ")[0].strip() or url
 
-        content = soup.select_one(CONTENT_SELECTOR)
+        content = None
+        for sel in CONTENT_SELECTORS:
+            content = soup.select_one(sel)
+            if content:
+                break
         if not content:
             print(f"  [no-content] {url}", file=sys.stderr)
             return None

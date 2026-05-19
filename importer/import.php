@@ -44,11 +44,12 @@ function find_attachment_by_sha1(string $sha1): ?array {
     return $rows[0] ?? null;
 }
 
-function find_post_by_slug(string $slug): ?array {
+function find_post_by_slug(string $slug, int $parent_id = 0): ?array {
     $rows = wp_cli_json([
         'post', 'list',
         '--post_type=page',
         '--name=' . $slug,
+        '--post_parent=' . $parent_id,
         '--fields=ID',
         '--posts_per_page=1',
     ]);
@@ -85,7 +86,10 @@ function import_media(array $entry): string {
     return trim($guid);
 }
 
-function upsert_page(array $page, array $media_url_map, array $slug_to_id): int {
+/**
+ * @return array{0:int,1:int} [post_id, parent_id]
+ */
+function upsert_page(array $page, array $media_url_map, array $slug_to_id): array {
     $content = $page['html'];
     // Replace {{MEDIA:sha1.ext}} placeholders with uploaded URLs.
     $content = preg_replace_callback('/\{\{MEDIA:([a-f0-9]+)(\.[a-z0-9]+)\}\}/i',
@@ -96,7 +100,14 @@ function upsert_page(array $page, array $media_url_map, array $slug_to_id): int 
         $content
     );
 
-    $existing = find_post_by_slug($page['slug']);
+    $parent_id = 0;
+    if (!empty($page['parent_slug']) && isset($slug_to_id[$page['parent_slug']])) {
+        $parent_id = $slug_to_id[$page['parent_slug']];
+    }
+    // Disambiguate by parent: WP allows duplicate slugs across different parents,
+    // and the source site uses the same leaf slug under multiple sections (e.g.
+    // /youth/how-to-pick-... vs /official-band-general-meeting-minutes/how-to-pick-...).
+    $existing = find_post_by_slug($page['slug'], $parent_id);
     $args = [
         'post', $existing ? 'update' : 'create',
     ];
@@ -107,8 +118,8 @@ function upsert_page(array $page, array $media_url_map, array $slug_to_id): int 
     $args[] = '--post_status=publish';
     $args[] = '--post_title=' . $page['title'];
     $args[] = '--post_name=' . $page['slug'];
-    if (!empty($page['parent_slug']) && isset($slug_to_id[$page['parent_slug']])) {
-        $args[] = '--post_parent=' . $slug_to_id[$page['parent_slug']];
+    if ($parent_id > 0) {
+        $args[] = '--post_parent=' . $parent_id;
     }
     // Pipe content via stdin so we don't blow up the argv length.
     $tmp = tempnam(sys_get_temp_dir(), 'sk_');
@@ -119,9 +130,10 @@ function upsert_page(array $page, array $media_url_map, array $slug_to_id): int 
     unlink($tmp);
     if ($code !== 0) {
         fwrite(STDERR, "  [post-fail] {$page['slug']}: " . implode("\n", $out) . "\n");
-        return 0;
+        return [0, $parent_id];
     }
-    return $existing ? (int) $existing['ID'] : (int) trim(end($out));
+    $id = $existing ? (int) $existing['ID'] : (int) trim(end($out));
+    return [$id, $parent_id];
 }
 
 // ---------------------------------------------------------------------------
@@ -151,13 +163,22 @@ foreach ($media as $entry) {
 // Phase 2: pages in two passes so parents exist before children.
 usort($pages, fn($a, $b) => (int) !empty($a['parent_slug']) <=> (int) !empty($b['parent_slug']));
 
+// $slug_to_id maps top-level slugs to WP IDs so child pages can resolve their parents.
+// We deliberately do NOT overwrite when a child page shares its slug with a top-level
+// page (e.g. there's a top-level "how-to-pick-..." nested under /youth and /official-band-...).
 $slug_to_id = [];
+$imported = 0;
 foreach ($pages as $page) {
-    $id = upsert_page($page, $media_url_map, $slug_to_id);
-    if ($id) {
-        $slug_to_id[$page['slug']] = $id;
-        echo "  [page] {$page['slug']} -> #$id\n";
+    [$id, $parent_id] = upsert_page($page, $media_url_map, $slug_to_id);
+    if (!$id) {
+        continue;
     }
+    $imported++;
+    if (empty($page['parent_slug']) && !isset($slug_to_id[$page['slug']])) {
+        $slug_to_id[$page['slug']] = $id;
+    }
+    $parent_note = $parent_id ? " (parent #$parent_id)" : "";
+    echo "  [page] {$page['slug']} -> #$id$parent_note\n";
 }
 
-echo "[done] " . count($slug_to_id) . " pages imported.\n";
+echo "[done] $imported pages imported.\n";
