@@ -25,7 +25,17 @@ fi
 # 2. Pretty permalinks so the imported slugs become real URLs.
 $WP rewrite structure '/%postname%/' --hard
 
-# 3. Hand off to the Python importer running inside the wpcli container.
+# 3. Activate a classic theme that registers a "primary" menu location.
+#    The bundled block themes (twentytwentyfive etc.) don't have classic menu
+#    locations, so the navigation menu the importer builds would have nowhere to
+#    attach. Install twentytwentyone on first run.
+if ! $WP theme is-installed twentytwentyone 2>/dev/null; then
+  $WP theme install twentytwentyone --activate
+else
+  $WP theme activate twentytwentyone
+fi
+
+# 4. Hand off to the PHP importer running inside the wpcli container.
 #    The importer reads the manifest, calls `wp media import` and `wp post create`,
 #    and patches {{MEDIA:...}} placeholders with the uploaded attachment URLs.
 docker compose run --rm \

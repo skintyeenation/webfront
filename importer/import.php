@@ -182,3 +182,51 @@ foreach ($pages as $page) {
 }
 
 echo "[done] $imported pages imported.\n";
+
+// --- Front page ---
+if (!empty($slug_to_id['home'])) {
+    wp_cli(['option', 'update', 'show_on_front', 'page']);
+    wp_cli(['option', 'update', 'page_on_front', (string) $slug_to_id['home']]);
+    echo "[front-page] set to #{$slug_to_id['home']} (home)\n";
+}
+
+// Remove WP's stub pages so the site nav isn't polluted.
+foreach (['sample-page', 'privacy-policy'] as $stub) {
+    $row = find_post_by_slug($stub);
+    if ($row) {
+        wp_cli(['post', 'delete', (string) $row['ID'], '--force']);
+        echo "[cleanup] removed stub /$stub/\n";
+    }
+}
+
+// --- Primary navigation ---
+// Build a menu from the top-level imported pages, in the order they were imported
+// (which mirrors the source site's homepage nav). Idempotent: drops + recreates.
+$menu_name = 'primary';
+$menus = wp_cli_json(['menu', 'list', '--fields=term_id,name']);
+foreach ($menus as $menu) {
+    if ($menu['name'] === $menu_name) {
+        wp_cli(['menu', 'delete', $menu_name]);
+        break;
+    }
+}
+wp_cli(['menu', 'create', $menu_name]);
+$nav_order = ['about-our-community', 'our-history', 'cultural-heritage',
+              'skin-tyee-nation-leadership', 'administration-operations',
+              'major-projects', 'announcements', 'stay-informed',
+              'gallery', 'q-a'];
+foreach ($nav_order as $slug) {
+    if (!empty($slug_to_id[$slug])) {
+        wp_cli(['menu', 'item', 'add-post', $menu_name, (string) $slug_to_id[$slug]]);
+    }
+}
+// Assign to whichever location the active theme calls 'primary' (most themes do).
+$locations = wp_cli_json(['menu', 'location', 'list']);
+foreach ($locations as $loc) {
+    if (in_array($loc['location'], ['primary', 'primary-menu', 'main-menu', 'header-menu'], true)) {
+        wp_cli(['menu', 'location', 'assign', $menu_name, $loc['location']]);
+        echo "[nav] menu assigned to location '{$loc['location']}'\n";
+        break;
+    }
+}
+echo "[nav] menu '$menu_name' built with " . count(array_intersect_key($slug_to_id, array_flip($nav_order))) . " items\n";
