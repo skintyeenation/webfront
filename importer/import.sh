@@ -45,7 +45,13 @@ cat > wp-data/wp-content/mu-plugins/skintyee-grid-loader.php <<'PHP'
 require_once __DIR__ . '/skintyee-grid/skintyee-grid.php';
 PHP
 
-# 5. Hand off to the PHP importer running inside the wpcli container.
+# 5. Apply Astra brand customization (colors, typography, header layout) so the
+#    imported content reads like a designed site instead of vanilla Astra defaults.
+docker compose run --rm \
+  --entrypoint /usr/local/bin/php \
+  wpcli -r 'require_once("/var/www/html/wp-load.php"); require("/importer/astra-brand.php");'
+
+# 6. Hand off to the PHP importer running inside the wpcli container.
 #    The importer reads the manifest, calls `wp media import` and `wp post create`,
 #    and patches {{MEDIA:...}} placeholders with the uploaded attachment URLs.
 docker compose run --rm \
