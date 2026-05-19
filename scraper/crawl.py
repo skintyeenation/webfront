@@ -68,6 +68,8 @@ STRIP_SELECTORS = [
     "[data-s123-edit]",
     "input[type=hidden]",   # Site123 layout config blobs
     ".items-categories-container-wrapper",  # gallery filter widget ("All / Album")
+    ".page-header-wrap",    # Site123 repeats the page title — WP theme already shows it
+    ".modulesTitle",        # same: section/page-level title wrapper repeated by Site123
 ]
 
 # Background-image URLs hidden inside `style="background-image:url(...)"`.
@@ -248,7 +250,7 @@ class Crawler:
             if not isinstance(el, Tag):
                 continue
             classes = [c for c in el.get("class", []) if not c.startswith(("s123-", "m-h-", "hpm-", "aos-"))
-                       and c not in {"container-fluid", "headers-text-orders", "headers-container",
+                       and c not in {"headers-text-orders", "headers-container",
                                      "headers-text-wrap", "headers-text-resize-container",
                                      "headers-img-wrap", "headers-carousel-deactivated",
                                      "carousel-inner", "headers-item", "headers-image",
@@ -276,6 +278,18 @@ class Crawler:
             if el.get_text(strip=True):
                 continue
             el.decompose()
+
+        # Site123 galleries with a filter widget render each image twice (once
+        # inside data-filter="...-show-all", once inside data-filter="<category>").
+        # The filter buttons we already stripped above. Now also drop duplicate
+        # gallery-images-container siblings within the same isotope-gallery-container.
+        for gallery in content.select(".isotope-gallery-container"):
+            seen_first = False
+            for child in list(gallery.find_all("div", class_="gallery-images-container", recursive=False)):
+                if seen_first:
+                    child.decompose()
+                else:
+                    seen_first = True
 
         # Rewrite internal page links to relative WP slugs.
         for a in content.find_all("a", href=True):
@@ -372,5 +386,62 @@ class Crawler:
         print(f"Manifest: {MANIFEST_PATH}")
 
 
+def reextract_from_cache() -> None:
+    """Re-build manifest.json from the cached raw HTML, reusing existing media.
+
+    Useful while iterating on extract()/cleanup logic — no network calls, runs
+    in seconds instead of minutes. Media on disk is keyed by sha1 of content
+    so existing files are reused automatically.
+    """
+    if not MANIFEST_PATH.exists():
+        print("no prior manifest — run a full crawl first", file=sys.stderr)
+        sys.exit(1)
+    prior = json.loads(MANIFEST_PATH.read_text())
+    c = Crawler()
+    # Pre-populate seen_media so maybe_mirror short-circuits and we never fetch.
+    for entry in prior.get("media", []):
+        c.seen_media[entry["original_url"]] = entry
+
+    # Monkey-patch download_media so an unexpected miss is logged loudly instead
+    # of silently hitting the network.
+    def _no_fetch(url):
+        if url in c.seen_media:
+            e = c.seen_media[url]
+            return f"{{{{MEDIA:{e['sha1']}{e['ext']}}}}}"
+        print(f"  [from-cache miss] {url}", file=sys.stderr)
+        return None
+    c.download_media = _no_fetch  # type: ignore[method-assign]
+
+    for raw_path in sorted(RAW_DIR.glob("*.html")):
+        # filename is <hash>_<slug>.html — recover URL from the prior manifest
+        slug_guess = raw_path.stem.split("_", 1)[1]
+        match = next((p for p in prior["pages"] if p["slug"] == slug_guess), None)
+        if not match:
+            continue
+        url = match["url"]
+        record = c.extract(url, raw_path.read_text(encoding="utf-8"))
+        if record:
+            c.records.append(record)
+            print(f"  -> {record['slug']!r} ({len(record['media'])} media)")
+
+    MANIFEST_PATH.write_text(
+        json.dumps(
+            {
+                "source": BASE_URL,
+                "crawled_at": prior["crawled_at"],
+                "reextracted_at": datetime.now(timezone.utc).isoformat(),
+                "pages": c.records,
+                "media": list(c.seen_media.values()),
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    print(f"\nDone (from cache). {len(c.records)} pages, {len(c.seen_media)} media.")
+
+
 if __name__ == "__main__":
-    Crawler().run()
+    if len(sys.argv) > 1 and sys.argv[1] == "--from-cache":
+        reextract_from_cache()
+    else:
+        Crawler().run()
