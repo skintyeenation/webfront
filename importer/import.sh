@@ -25,14 +25,14 @@ fi
 # 2. Pretty permalinks so the imported slugs become real URLs.
 $WP rewrite structure '/%postname%/' --hard
 
-# 3. Activate a classic theme that registers a "primary" menu location.
-#    The bundled block themes (twentytwentyfive etc.) don't have classic menu
-#    locations, so the navigation menu the importer builds would have nowhere to
-#    attach. Install twentytwentyone on first run.
-if ! $WP theme is-installed twentytwentyone 2>/dev/null; then
-  $WP theme install twentytwentyone --activate
+# 3. Activate Astra (clean, flexible, classic 'primary' menu location, widely used
+#    for community / non-profit sites). The bundled block themes don't register
+#    classic menu locations, so the nav we build needs a classic-theme target.
+THEME="${SKINTYEE_THEME:-astra}"
+if ! $WP theme is-installed "$THEME" 2>/dev/null; then
+  $WP theme install "$THEME" --activate
 else
-  $WP theme activate twentytwentyone
+  $WP theme activate "$THEME"
 fi
 
 # 4. Install the skintyee-grid mu-plugin so the imported Bootstrap-style

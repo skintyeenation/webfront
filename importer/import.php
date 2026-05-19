@@ -17,6 +17,11 @@ const MANIFEST_PATH = '/scraped/manifest.json';
 const MEDIA_DIR     = '/scraped/media';
 const META_KEY      = '_skintyee_sha1';
 
+// Parent slugs whose children should become WP posts (with the parent slug as a
+// category) instead of orphan pages. These read more like timely content than
+// evergreen pages on the source site.
+const POST_PARENTS  = ['announcements', 'stay-informed'];
+
 function wp_cli(array $args): array {
     $cmd = 'wp --allow-root ' . implode(' ', array_map('escapeshellarg', $args));
     exec($cmd . ' 2>&1', $out, $code);
@@ -44,16 +49,36 @@ function find_attachment_by_sha1(string $sha1): ?array {
     return $rows[0] ?? null;
 }
 
-function find_post_by_slug(string $slug, int $parent_id = 0): ?array {
-    $rows = wp_cli_json([
+function find_post_by_slug(string $slug, int $parent_id = 0, string $post_type = 'page'): ?array {
+    $args = [
         'post', 'list',
-        '--post_type=page',
+        '--post_type=' . $post_type,
         '--name=' . $slug,
-        '--post_parent=' . $parent_id,
         '--fields=ID',
         '--posts_per_page=1',
-    ]);
+    ];
+    if ($post_type === 'page') {
+        $args[] = '--post_parent=' . $parent_id;
+    }
+    $rows = wp_cli_json($args);
     return $rows[0] ?? null;
+}
+
+function ensure_category(string $slug, string $name): int {
+    $rows = wp_cli_json([
+        'term', 'list', 'category',
+        '--slug=' . $slug,
+        '--fields=term_id',
+    ]);
+    if (!empty($rows)) {
+        return (int) $rows[0]['term_id'];
+    }
+    [$code, $out] = wp_cli([
+        'term', 'create', 'category', $name,
+        '--slug=' . $slug,
+        '--porcelain',
+    ]);
+    return $code === 0 ? (int) trim($out) : 0;
 }
 
 function import_media(array $entry): string {
@@ -101,25 +126,37 @@ function upsert_page(array $page, array $media_url_map, array $slug_to_id): arra
     );
 
     $parent_id = 0;
-    if (!empty($page['parent_slug']) && isset($slug_to_id[$page['parent_slug']])) {
-        $parent_id = $slug_to_id[$page['parent_slug']];
+    $parent_slug = $page['parent_slug'] ?? null;
+    if ($parent_slug && isset($slug_to_id[$parent_slug])) {
+        $parent_id = $slug_to_id[$parent_slug];
     }
-    // Disambiguate by parent: WP allows duplicate slugs across different parents,
-    // and the source site uses the same leaf slug under multiple sections (e.g.
-    // /youth/how-to-pick-... vs /official-band-general-meeting-minutes/how-to-pick-...).
-    $existing = find_post_by_slug($page['slug'], $parent_id);
+    $is_post = $parent_slug && in_array($parent_slug, POST_PARENTS, true);
+    $post_type = $is_post ? 'post' : 'page';
+
+    // Disambiguate by parent for pages; posts are looked up by slug only (WP
+    // enforces global slug uniqueness for posts, so disambiguation is unneeded).
+    $existing = find_post_by_slug($page['slug'], $parent_id, $post_type);
     $args = [
         'post', $existing ? 'update' : 'create',
     ];
     if ($existing) {
         $args[] = (string) $existing['ID'];
     }
-    $args[] = '--post_type=page';
+    $args[] = '--post_type=' . $post_type;
     $args[] = '--post_status=publish';
     $args[] = '--post_title=' . $page['title'];
     $args[] = '--post_name=' . $page['slug'];
-    if ($parent_id > 0) {
+    if ($post_type === 'page' && $parent_id > 0) {
         $args[] = '--post_parent=' . $parent_id;
+    }
+    if ($is_post) {
+        // Map the source-site parent ("announcements") to a WP category of the
+        // same slug, creating it on demand.
+        $cat_name = ucwords(str_replace('-', ' ', $parent_slug));
+        $cat_id = ensure_category($parent_slug, $cat_name);
+        if ($cat_id > 0) {
+            $args[] = '--post_category=' . $cat_id;
+        }
     }
     // Pipe content via stdin so we don't blow up the argv length.
     $tmp = tempnam(sys_get_temp_dir(), 'sk_');
@@ -178,7 +215,8 @@ foreach ($pages as $page) {
         $slug_to_id[$page['slug']] = $id;
     }
     $parent_note = $parent_id ? " (parent #$parent_id)" : "";
-    echo "  [page] {$page['slug']} -> #$id$parent_note\n";
+    $type_label = $post_type === 'post' ? 'post' : 'page';
+    echo "  [$type_label] {$page['slug']} -> #$id$parent_note\n";
 }
 
 echo "[done] $imported pages imported.\n";
@@ -190,13 +228,19 @@ if (!empty($slug_to_id['home'])) {
     echo "[front-page] set to #{$slug_to_id['home']} (home)\n";
 }
 
-// Remove WP's stub pages so the site nav isn't polluted.
+// Remove WP's stub pages + the default "Hello world!" post so they don't
+// pollute the imported nav / archive.
 foreach (['sample-page', 'privacy-policy'] as $stub) {
-    $row = find_post_by_slug($stub);
+    $row = find_post_by_slug($stub, 0, 'page');
     if ($row) {
         wp_cli(['post', 'delete', (string) $row['ID'], '--force']);
-        echo "[cleanup] removed stub /$stub/\n";
+        echo "[cleanup] removed stub page /$stub/\n";
     }
+}
+$hello = find_post_by_slug('hello-world', 0, 'post');
+if ($hello) {
+    wp_cli(['post', 'delete', (string) $hello['ID'], '--force']);
+    echo "[cleanup] removed stub post /hello-world/\n";
 }
 
 // --- Primary navigation ---
