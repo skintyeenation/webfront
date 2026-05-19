@@ -291,6 +291,34 @@ class Crawler:
                 else:
                     seen_first = True
 
+        # Source structures team-member layouts as one-row-per-member, which
+        # collapses to a vertical stack. Merge consecutive .team-item-row siblings
+        # under the same parent into a single .row with col-md-4 children so the
+        # cards lay out 3-across on desktop.
+        team_category = content.select_one(".team-category")
+        if team_category:
+            merged_row = None
+            for row in list(team_category.find_all("div", class_="team-item-row", recursive=False)):
+                member = row.find("div", class_="team-member-container")
+                if not member:
+                    continue
+                # normalize the member's col-* classes to col-xs-12 col-sm-6 col-md-4
+                member_classes = [c for c in member.get("class", [])
+                                  if not c.startswith("col-")]
+                member_classes += ["col-xs-12", "col-sm-6", "col-md-4"]
+                member["class"] = member_classes
+                if merged_row is None:
+                    merged_row = row
+                    # strip everything but the one member, keep .row class
+                    merged_row["class"] = ["row", "team-item-row"]
+                    for sibling in list(merged_row.children):
+                        if sibling is not member:
+                            if hasattr(sibling, "decompose"):
+                                sibling.decompose()
+                else:
+                    merged_row.append(member)
+                    row.decompose()
+
         # Rewrite internal page links to relative WP slugs.
         for a in content.find_all("a", href=True):
             href = a["href"]

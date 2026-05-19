@@ -29,10 +29,28 @@ The local WP site lives at <http://localhost:8080>. Admin credentials: `admin` /
 Once the local site looks right, export a WXR file you can import into the production WordPress at skintyee.ca:
 
 ```bash
-docker compose run --rm wpcli export --dir=/var/www/html/exports
+./export.sh
 ```
 
-The WXR file will appear in `wp-data/exports/`.
+Writes `exports/skintyee-export.xml`. Then on the target server:
+
+1. Upload `wp-data/wp-content/uploads/` to the production server's matching directory.
+2. In production WP admin: **Tools → Import → WordPress** (install the importer if prompted), then upload `exports/skintyee-export.xml`.
+3. Run a search-replace on the imported content to swap `http://localhost:8080` for `https://skintyee.ca` (the "Better Search Replace" plugin handles this cleanly).
+
+## Theming
+
+The importer activates the **Astra** theme by default. Override with the `SKINTYEE_THEME` env var:
+
+```bash
+SKINTYEE_THEME=kadence ./importer/import.sh
+```
+
+The theme must be installable via `wp theme install` and should register a classic `primary` menu location for the imported nav to attach.
+
+## Content split: pages vs posts
+
+Most imported content lands as WordPress **pages** (hierarchical, no archive). Children of `/announcements/` and `/stay-informed/` are imported as **posts** with the parent slug as a category, so they get the date archive + category-archive listing treatment. Adjust `POST_PARENTS` in `importer/import.php` to change this.
 
 ## Layout
 
