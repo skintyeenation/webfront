@@ -89,6 +89,13 @@ docker compose run --rm \
   --entrypoint /usr/local/bin/php \
   wpcli -r 'require_once("/var/www/html/wp-load.php"); require("/importer/set-sidebar-widgets.php");'
 
+# 9b. Create a /news/ page and designate it as WordPress's Posts page so the
+#     blog archive renders there. The Elementor home below also references
+#     /news/ as the "View all" button URL.
+docker compose run --rm \
+  --entrypoint /usr/local/bin/php \
+  wpcli -r 'require_once("/var/www/html/wp-load.php"); require("/importer/setup-news.php");'
+
 # 10. Rebuild the home page as native Elementor widgets (hero / 2-col body /
 #     testimonial). This clears the home's post_content; _elementor_data is the
 #     single source of truth from here on.

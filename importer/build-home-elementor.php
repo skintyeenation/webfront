@@ -273,7 +273,149 @@ $body_section = section([
     'padding' => ['unit' => 'px', 'top' => 70, 'right' => 32, 'bottom' => 70, 'left' => 32, 'isLinked' => false],
 ], [$main_col, $sidebar_col]);
 
-// --- 3. Testimonial section ------------------------------------------------
+// --- 3. Latest News section (between body + testimonial) ------------------
+// Fetches the 3 most recent published posts, builds a "featured + 2 small"
+// layout, and links to /news/ for the full archive.
+
+$news_posts = get_posts([
+    'post_type'   => 'post',
+    'numberposts' => 3,
+    'orderby'     => 'date',
+    'order'       => 'DESC',
+    'post_status' => 'publish',
+]);
+
+function post_card_data($p): array {
+    $img = '';
+    if (preg_match('/<img[^>]+src=[\'"]([^\'"]+)[\'"]/', $p->post_content, $m)) {
+        $img = $m[1];
+    }
+    $excerpt = $p->post_excerpt ?: wp_trim_words(strip_tags(strip_shortcodes($p->post_content)), 28);
+    return [
+        'title'   => $p->post_title,
+        'url'     => get_permalink($p->ID),
+        'image'   => $img,
+        'excerpt' => $excerpt,
+        'date'    => get_the_date('M j, Y', $p),
+    ];
+}
+
+function news_card_widgets(array $card, bool $featured): array {
+    $widgets = [];
+    if ($card['image']) {
+        $widgets[] = widget('image', [
+            'image' => ['url' => $card['image']],
+            'image_size' => $featured ? 'large' : 'medium',
+            'link_to' => 'custom',
+            'link' => ['url' => $card['url']],
+            '_margin' => ['unit' => 'px', 'top' => 0, 'right' => 0, 'bottom' => 12, 'left' => 0, 'isLinked' => false],
+        ]);
+    }
+    $widgets[] = heading($card['title'], $featured ? 'h3' : 'h4', [
+        'link' => ['url' => $card['url']],
+        'typography_typography' => 'custom',
+        'typography_font_family' => 'Lora',
+        'typography_font_weight' => '600',
+        'typography_font_size' => ['unit' => 'px', 'size' => $featured ? 26 : 18, 'sizes' => []],
+        '_margin' => ['unit' => 'px', 'top' => 0, 'right' => 0, 'bottom' => 4, 'left' => 0, 'isLinked' => false],
+    ]);
+    $widgets[] = heading($card['date'], 'p', [
+        'title_color' => '#6b7280',
+        'typography_typography' => 'custom',
+        'typography_font_size' => ['unit' => 'px', 'size' => 12, 'sizes' => []],
+        'typography_text_transform' => 'uppercase',
+        'typography_letter_spacing' => ['unit' => 'px', 'size' => 1.5, 'sizes' => []],
+        '_margin' => ['unit' => 'px', 'top' => 0, 'right' => 0, 'bottom' => 10, 'left' => 0, 'isLinked' => false],
+    ]);
+    $widgets[] = paragraph($card['excerpt'] . '&hellip;', [
+        'typography_typography' => 'custom',
+        'typography_font_size' => ['unit' => 'px', 'size' => $featured ? 16 : 14, 'sizes' => []],
+        'typography_line_height' => ['unit' => 'em', 'size' => 1.55],
+    ]);
+    return $widgets;
+}
+
+$news_section = null;
+if (!empty($news_posts)) {
+    $cards = array_map('post_card_data', $news_posts);
+    $featured = array_shift($cards);
+    $small = $cards;  // 0–2 more cards
+
+    $card_col_style = [
+        '_padding' => ['unit' => 'px', 'top' => 20, 'right' => 20, 'bottom' => 20, 'left' => 20, 'isLinked' => false],
+        '_background_background' => 'classic',
+        '_background_color' => '#ffffff',
+        '_border_radius' => ['unit' => 'px', 'top' => 8, 'right' => 8, 'bottom' => 8, 'left' => 8, 'isLinked' => true],
+        '_box_shadow_box_shadow_type' => 'yes',
+        '_box_shadow_box_shadow' => ['horizontal' => 0, 'vertical' => 4, 'blur' => 16, 'spread' => 0, 'color' => 'rgba(31,67,65,0.08)'],
+    ];
+
+    $featured_col = column(60, news_card_widgets($featured, true), $card_col_style);
+
+    // Right column: inner section with 2 stacked smaller card columns.
+    $small_cols = [];
+    foreach ($small as $s) {
+        $small_cols[] = column(100, news_card_widgets($s, false), $card_col_style);
+    }
+    while (count($small_cols) < 2) {
+        $small_cols[] = column(100, [paragraph('More to come.')]);
+    }
+
+    $right_inner = section([
+        'structure' => '10',  // single column = stack
+        'gap' => 'extended',
+    ], [$small_cols[0]], true);
+    $right_inner2 = section([
+        'structure' => '10',
+        'gap' => 'extended',
+    ], [$small_cols[1]], true);
+
+    $small_col = column(40, [$right_inner, $right_inner2]);
+
+    $news_label = heading('Latest News', 'h2', [
+        'align' => 'center',
+        'typography_typography' => 'custom',
+        'typography_font_family' => 'Lora',
+        'typography_font_weight' => '600',
+        '_margin' => ['unit' => 'px', 'top' => 0, 'right' => 0, 'bottom' => 8, 'left' => 0, 'isLinked' => false],
+    ]);
+    $news_subtitle = heading('Stay informed with announcements + community news', 'p', [
+        'align' => 'center',
+        'title_color' => '#4b5563',
+        'typography_typography' => 'custom',
+        'typography_font_style' => 'italic',
+        'typography_font_size' => ['unit' => 'px', 'size' => 16, 'sizes' => []],
+        '_margin' => ['unit' => 'px', 'top' => 0, 'right' => 0, 'bottom' => 32, 'left' => 0, 'isLinked' => false],
+    ]);
+    $view_all = widget('button', [
+        'text' => 'View all news →',
+        'link' => ['url' => home_url('/news/')],
+        'align' => 'center',
+        'button_text_color' => '#ffffff',
+        'background_color' => '#2c5f5d',
+        'hover_color' => '#ffffff',
+        'button_background_hover_color' => '#1f4341',
+        'border_radius' => ['unit' => 'px', 'top' => 6, 'right' => 6, 'bottom' => 6, 'left' => 6, 'isLinked' => true],
+        '_margin' => ['unit' => 'px', 'top' => 32, 'right' => 0, 'bottom' => 0, 'left' => 0, 'isLinked' => false],
+    ]);
+
+    $news_row = section([
+        'structure' => '4060',
+        'gap' => 'extended',
+    ], [$featured_col, $small_col], true);
+
+    $news_section = section([
+        'stretch_section' => 'section-stretched',
+        'content_width' => ['unit' => 'px', 'size' => 1280, 'sizes' => []],
+        'background_background' => 'classic',
+        'background_color' => '#e2efe8',
+        'padding' => ['unit' => 'px', 'top' => 80, 'right' => 32, 'bottom' => 80, 'left' => 32, 'isLinked' => false],
+    ], [
+        column(100, [$news_label, $news_subtitle, $news_row, $view_all]),
+    ]);
+}
+
+// --- 4. Testimonial section ------------------------------------------------
 
 $testimonial_section = section([
     'stretch_section' => 'section-stretched',
@@ -307,7 +449,7 @@ $testimonial_section = section([
 
 // --- assemble + save -------------------------------------------------------
 
-$data = [$hero_section, $body_section, $testimonial_section];
+$data = array_values(array_filter([$hero_section, $body_section, $news_section, $testimonial_section]));
 $json = wp_json_encode($data);
 if ($json === false) { echo "[elementor] json encode failed\n"; exit(1); }
 
