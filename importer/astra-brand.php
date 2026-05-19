@@ -79,6 +79,14 @@ $mods = [
     'header-main-layout-width' => 'content',
     'site-content-width'       => 1200,
 
+    // Header logo size (px). Keeps the thunderbird small enough to sit
+    // proportionally next to the site title without dominating the header.
+    'ast-header-responsive-logo-width' => [
+        'desktop' => 64,
+        'tablet'  => 56,
+        'mobile'  => 48,
+    ],
+
     'header-main-rt-section'   => 'menu',
     'site-title-color'         => $brand['heading'],
     'site-title-hover-color'   => $brand['primary'],
