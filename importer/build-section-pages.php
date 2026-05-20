@@ -27,6 +27,86 @@ const HERO_HISTORY  = '4e021393cbdb4abb419a5d837192b52259a5cf1a';  // newspaper 
 const HERO_CULTURE  = 'c7d52d04ae668bcb0713d8a597b330d45946f14f';  // elder by traditional log structure
 const HERO_PROJECTS = '853998762684b825f764d28cfde841a1cdbc70c7';  // territory hub: food hampers + community programs
 
+// --- People (3 leadership + 6 admin staff + 1 IT) -------------------------
+// Photos are matched by sha1 of the original Site123 image; resolved at
+// runtime against the imported media library.
+
+const LEADERSHIP_PEOPLE = [
+    [
+        'sha'     => '7bf7a1ee3ba34745c5def58518d14b3de3010d85',
+        'name'    => 'Gabriel Tom',
+        'role'    => 'Councillor',
+        'note'    => 'Elected to the Skin Tyee First Nation Council April 8, 2024.',
+        'contact' => 'tel:+12502513085|+1-250-251-3085',
+    ],
+    [
+        'sha'     => '63c82a62e4e5a0803b0cd0702adc62d903e01573',
+        'name'    => 'Shirley Wilson',
+        'role'    => 'Councillor',
+        'note'    => 'Elected to the Skin Tyee First Nation Council April 8, 2024.',
+        'contact' => '',
+    ],
+    [
+        'sha'     => '7f266b3e16e1cfecc55ac39a5cc47587afcb7e27',
+        'name'    => 'Vacant',
+        'role'    => 'Chief Councillor',
+        'note'    => 'Position will be filled via By-Election.',
+        'contact' => '',
+    ],
+];
+
+const ADMIN_PEOPLE = [
+    [
+        'sha'     => '54473dcf247d3681bd26ba79637e43d405196c91',
+        'name'    => 'Gabriel Tom',
+        'role'    => 'Band Manager',
+        'note'    => '',
+        'contact' => 'mailto:STFN_BandManager@outlook.com|STFN_BandManager@outlook.com',
+    ],
+    [
+        'sha'     => 'b57b55dd993db8f8b78c338596ddbaeeafe4f83b',
+        'name'    => 'Kim Pike',
+        'role'    => 'Finance Assistant',
+        'note'    => '',
+        'contact' => '',
+    ],
+    [
+        'sha'     => '92e7fe0dc57d8fb74246d7f19daf578ad4cd936b',
+        'name'    => 'Shirley Wilson',
+        'role'    => 'Environmental Stewardship',
+        'note'    => '',
+        'contact' => '',
+    ],
+    [
+        'sha'     => '7f2e23feb6000a9b2b4e88da82fee92bc5a59fd9',
+        'name'    => 'Martin Tom',
+        'role'    => 'Head of Security',
+        'note'    => '',
+        'contact' => '',
+    ],
+    [
+        'sha'     => '65a99f9efc9f2026b82374ea0a09c7b66615d62f',
+        'name'    => 'Melissa Dyck',
+        'role'    => 'Administration',
+        'note'    => '',
+        'contact' => '',
+    ],
+    [
+        'sha'     => '1422bb853b6c405f7bd6e86ea966197e87de5bf2',
+        'name'    => 'Helen Michelle',
+        'role'    => 'Elders Committee Representative',
+        'note'    => '',
+        'contact' => '',
+    ],
+    [
+        'sha'     => '',  // no photo — LinkedIn images aren't fetchable
+        'name'    => 'Lucas Lopatka',
+        'role'    => 'IT Administration',
+        'note'    => '',
+        'contact' => 'https://www.linkedin.com/in/lucaslopatka/|LinkedIn',
+    ],
+];
+
 // --- Shared building blocks -----------------------------------------------
 
 function hero_section(array $att, string $title, string $subtitle = ''): array {
@@ -96,6 +176,98 @@ function title_section(string $title, string $intro = ''): array {
         'content_width' => ['unit' => 'px', 'size' => 860, 'sizes' => []],
         'padding' => ['unit' => 'px', 'top' => 60, 'right' => 24, 'bottom' => 30, 'left' => 24, 'isLinked' => false],
     ], [skintyee_column(100, $col)]);
+}
+
+/**
+ * Build one person card column.
+ * Each card: circular photo (or initials placeholder), name, role, optional
+ * note, and optional contact link (formatted as "URL|label" in the data).
+ */
+function person_card_column(array $p): array {
+    $widgets = [];
+    if (!empty($p['sha'])) {
+        $att = skintyee_attachment_by_sha($p['sha']);
+        if ($att) {
+            $widgets[] = skintyee_image_widget($att, [
+                'image_size' => 'medium',
+                'align' => 'center',
+                '_css_classes' => 'st-leader-portrait',
+                '_margin' => ['unit' => 'px', 'top' => 0, 'right' => 0, 'bottom' => 12, 'left' => 0, 'isLinked' => false],
+            ]);
+        }
+    }
+    $widgets[] = skintyee_heading($p['name'], 'h4', [
+        'align' => 'center',
+        'typography_typography' => 'custom',
+        'typography_font_family' => 'Lora',
+        'typography_font_weight' => '600',
+        'typography_font_size' => ['unit' => 'px', 'size' => 20, 'sizes' => []],
+        '_margin' => ['unit' => 'px', 'top' => 0, 'right' => 0, 'bottom' => 4, 'left' => 0, 'isLinked' => false],
+    ]);
+    $widgets[] = skintyee_heading($p['role'], 'p', [
+        'align' => 'center',
+        'title_color' => '#6b7280',
+        'typography_typography' => 'custom',
+        'typography_font_style' => 'italic',
+        'typography_font_size' => ['unit' => 'px', 'size' => 14, 'sizes' => []],
+        '_margin' => ['unit' => 'px', 'top' => 0, 'right' => 0, 'bottom' => 8, 'left' => 0, 'isLinked' => false],
+    ]);
+    if (!empty($p['note'])) {
+        $widgets[] = skintyee_paragraph($p['note'], [
+            'align' => 'center',
+            'typography_typography' => 'custom',
+            'typography_font_size' => ['unit' => 'px', 'size' => 13, 'sizes' => []],
+        ]);
+    }
+    if (!empty($p['contact'])) {
+        [$url, $label] = array_pad(explode('|', $p['contact'], 2), 2, '');
+        $widgets[] = skintyee_widget('button', [
+            'text'  => $label ?: 'Contact',
+            'link'  => ['url' => $url],
+            'align' => 'center',
+            'size'  => 'xs',
+            'button_text_color' => '#2c5f5d',
+            'background_color'  => '#e2efe8',
+            'border_border'     => 'solid',
+            'border_width' => ['unit' => 'px', 'top' => 1, 'right' => 1, 'bottom' => 1, 'left' => 1, 'isLinked' => true],
+            'border_color' => '#2c5f5d',
+            'border_radius' => ['unit' => 'px', 'top' => 4, 'right' => 4, 'bottom' => 4, 'left' => 4, 'isLinked' => true],
+            'text_padding' => ['unit' => 'px', 'top' => 6, 'right' => 12, 'bottom' => 6, 'left' => 12, 'isLinked' => false],
+            'typography_typography' => 'custom',
+            'typography_font_size'  => ['unit' => 'px', 'size' => 12, 'sizes' => []],
+            '_margin' => ['unit' => 'px', 'top' => 4, 'right' => 0, 'bottom' => 0, 'left' => 0, 'isLinked' => false],
+        ]);
+    }
+    return skintyee_column(33, $widgets, [
+        '_padding' => ['unit' => 'px', 'top' => 20, 'right' => 16, 'bottom' => 20, 'left' => 16, 'isLinked' => false],
+        '_background_background' => 'classic',
+        '_background_color' => '#ffffff',
+        '_border_radius' => ['unit' => 'px', 'top' => 10, 'right' => 10, 'bottom' => 10, 'left' => 10, 'isLinked' => true],
+        '_box_shadow_box_shadow_type' => 'yes',
+        '_box_shadow_box_shadow' => ['horizontal' => 0, 'vertical' => 4, 'blur' => 16, 'spread' => 0, 'color' => 'rgba(31,67,65,0.08)'],
+    ]);
+}
+
+/**
+ * Build a row (or several rows) of 3-per-row person cards.
+ * Returns an array of inner sections — caller appends them as separate
+ * inner-sections inside the page's main column.
+ */
+function people_grid(array $people): array {
+    $rows = [];
+    foreach (array_chunk($people, 3) as $chunk) {
+        // Pad to 3 with empty columns so the row stays aligned
+        while (count($chunk) < 3) $chunk[] = null;
+        $cols = array_map(function ($p) {
+            return $p ? person_card_column($p) : skintyee_column(33, []);
+        }, $chunk);
+        $rows[] = skintyee_section([
+            'structure' => '30',
+            'gap' => 'extended',
+            '_margin' => ['unit' => 'px', 'top' => 0, 'right' => 0, 'bottom' => 20, 'left' => 0, 'isLinked' => false],
+        ], $cols, true);
+    }
+    return $rows;
 }
 
 /**
@@ -174,26 +346,13 @@ $pages = [
         ],
     ],
 
-    // ---- LEADERSHIP (no hero) ----
+    // ---- LEADERSHIP (combined: Chief & Council + Administration) ----
+    // No hero per user spec. Renders title + intro, then a 3-card Council
+    // grid, then an Administration section heading + intro + contact + a
+    // 3-per-row grid of admin staff (built below from LEADERSHIP_PEOPLE +
+    // ADMIN_PEOPLE).
     'skin-tyee-nation-leadership' => [
-        'title_only' => true,
-        'h1'      => 'Skin Tyee Nation Leadership',
-        'intro'   => 'Skin Tyee First Nation is governed by Chief and Council under a Custom Electoral System. The current Council was elected to the Skin Tyee First Nation Council on April 8, 2024. The Chief Councillor position is currently vacant and will be filled by by-election.',
-        'eyebrow' => '',
-        'paragraphs' => [],
-    ],
-
-    // ---- ADMINISTRATION (no hero) ----
-    'administration-operations' => [
-        'title_only' => true,
-        'h1'      => 'Administration &amp; Operations',
-        'intro'   => 'The Skin Tyee Band Administration runs the day-to-day operations of the Nation &mdash; member services, finance, lands and environmental stewardship, security, food security, and community programs &mdash; from the Band Administration office in Southbank.',
-        'eyebrow' => 'Contact',
-        'paragraphs' => [
-            '<strong>Band Manager:</strong> Gabriel Tom &mdash; <a href="mailto:STFN_BandManager@outlook.com">STFN_BandManager@outlook.com</a> &middot; +1-250-251-3085',
-            '<strong>Mailing address:</strong> P.O. Box 131, Southbank, BC V0J 2P0',
-            '<strong>Departments &amp; staff:</strong> Finance (Kim Pike), Environmental Stewardship (Shirley Wilson), Security (Martin Tom), Administration (Melissa Dyck), Elders Committee Representative (Helen Michelle).',
-        ],
+        'combined_leadership' => true,
     ],
 
     // ---- PROJECTS ----
@@ -217,10 +376,34 @@ foreach ($pages as $slug => $cfg) {
     $page = get_page_by_path($slug);
     if (!$page) { echo "[section] skip $slug (page missing)\n"; continue; }
 
-    if (!empty($cfg['title_only'])) {
+    if (!empty($cfg['combined_leadership'])) {
         $sections = [
-            title_section($cfg['h1'], $cfg['intro'] ?? ''),
+            title_section(
+                'Leadership',
+                'Skin Tyee First Nation is governed by Chief and Council under a Custom Electoral System. The current Council was elected on April 8, 2024. The Chief Councillor position is currently vacant and will be filled by by-election.'
+            ),
         ];
+        // Leadership team grid (Council + Chief)
+        foreach (people_grid(LEADERSHIP_PEOPLE) as $row) $sections[] = $row;
+
+        // Administration section heading + intro + contact
+        $sections[] = content_section(
+            'Administration &amp; Operations',
+            [
+                'The Skin Tyee Band Administration runs the day-to-day operations of the Nation &mdash; member services, finance, lands and environmental stewardship, security, food security, IT, and community programs &mdash; from the Band Administration office in Southbank.',
+                '<strong>Mailing address:</strong> P.O. Box 131, Southbank, BC V0J 2P0 &middot; <strong>Band Manager:</strong> <a href="mailto:STFN_BandManager@outlook.com">STFN_BandManager@outlook.com</a> &middot; +1-250-251-3085',
+            ]
+        );
+        // Administration staff grid
+        foreach (people_grid(ADMIN_PEOPLE) as $row) $sections[] = $row;
+
+        skintyee_save_elementor_page($page->ID, $sections);
+        echo "[section] $slug (#{$page->ID}): combined leadership+admin (" . count($sections) . " sections)\n";
+        continue;
+    }
+
+    if (!empty($cfg['title_only'])) {
+        $sections = [title_section($cfg['h1'], $cfg['intro'] ?? '')];
         if (!empty($cfg['paragraphs'])) {
             $sections[] = content_section($cfg['eyebrow'] ?? '', $cfg['paragraphs']);
         }
@@ -235,6 +418,27 @@ foreach ($pages as $slug => $cfg) {
 
     skintyee_save_elementor_page($page->ID, $sections);
     echo "[section] $slug (#{$page->ID}): " . count($sections) . " section(s)\n";
+}
+
+// --- Administration page: delete + remove from nav --------------------------
+// The combined Leadership page above absorbs everything that used to live at
+// /administration-operations/. Drop the standalone admin page so it doesn't
+// 404-by-existing-with-no-content or compete with the new Leadership page.
+$admin = get_page_by_path('administration-operations');
+if ($admin) {
+    wp_delete_post($admin->ID, true);
+    echo "[section] removed /administration-operations/ page (#{$admin->ID}) — merged into Leadership\n";
+    // Rebuild primary menu without the admin entry: drop it from any menu it's in.
+    $menus = wp_get_nav_menus();
+    foreach ($menus as $menu) {
+        $items = wp_get_nav_menu_items($menu->term_id);
+        foreach ($items as $item) {
+            if ((int) $item->object_id === (int) $admin->ID) {
+                wp_delete_post($item->ID, true);
+                echo "[section] removed admin entry from menu '{$menu->name}'\n";
+            }
+        }
+    }
 }
 
 if (class_exists('\Elementor\Plugin')) {

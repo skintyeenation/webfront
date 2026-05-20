@@ -70,12 +70,13 @@ function build_menu(string $name, array $page_slugs, array $slug_to_id, string $
     echo "  [menu] '$name' built with " . count($page_slugs) . " items -> location '$location'\n";
 }
 
+// Note: administration-operations is intentionally NOT in the primary nav —
+// build-section-pages.php folds Administration into the Leadership page.
 build_menu('primary', [
     'about-our-community',
     'our-history',
     'cultural-heritage',
     'skin-tyee-nation-leadership',
-    'administration-operations',
     'major-projects',
 ], $slug_to_id, 'primary');
 
