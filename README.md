@@ -38,6 +38,15 @@ Writes a timestamped pair to `./backups/`:
 
 Old backups are pruned to the last 20 of each kind. `backups/` is gitignored.
 
+**Auto-backup:** `./importer/import.sh` runs `./backup.sh` first if WP is already installed (skips on fresh installs). `./restore.sh` and `./wipe.sh` snapshot the current state before destroying it.
+
+Start-fresh:
+
+```bash
+./wipe.sh                  # snapshots current state, then wipes wp-data + db-data
+./importer/import.sh       # rebuild
+```
+
 Restore from a snapshot:
 
 ```bash

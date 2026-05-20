@@ -45,6 +45,14 @@ echo "[restore] wp:   $(du -h $WP_FILE | cut -f1)  $WP_FILE"
 read -r -p "this will wipe wp-data + db-data. continue? [y/N] " confirm
 [[ "$confirm" == "y" || "$confirm" == "Y" ]] || { echo "cancelled"; exit 1; }
 
+# Safety net: snapshot the CURRENT live state before destroying it. If
+# the user picked the wrong backup to restore, this gives them a way back.
+if docker compose ps db 2>/dev/null | grep -q "Up"; then
+  echo "[restore] taking emergency snapshot of current state before destroy..."
+  ./backup.sh
+  echo ""
+fi
+
 echo "[restore] stopping containers"
 docker compose down -v
 
