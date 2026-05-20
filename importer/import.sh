@@ -10,6 +10,17 @@ cd "$(dirname "$0")/.."
 
 WP="docker compose run --rm wpcli"
 
+# 0. Auto-backup before doing anything potentially destructive.
+#    Several scripts below modify post_content / theme_mods / menus
+#    in-place; if the user has made manual edits in wp-admin since the
+#    last script run, this snapshot is their rollback. Skipped on fresh
+#    installs (nothing to back up yet).
+if $WP core is-installed >/dev/null 2>&1; then
+  echo "[setup] taking pre-import backup..."
+  ./backup.sh
+  echo ""
+fi
+
 # 1. Install WordPress if it hasn't been already.
 if ! $WP core is-installed >/dev/null 2>&1; then
   echo "[setup] installing WordPress..."
