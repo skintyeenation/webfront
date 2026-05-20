@@ -86,7 +86,6 @@ build_menu('primary', [
 build_menu('footer', [
     'news',
     'announcements',
-    'stay-informed',
     'gallery',
     'q-a',
 ], $slug_to_id, 'footer_menu');

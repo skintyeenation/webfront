@@ -132,7 +132,13 @@ docker compose run --rm \
   --entrypoint /usr/local/bin/php \
   wpcli -r 'require_once("/var/www/html/wp-load.php"); require("/importer/split-fnha-news.php");'
 
-# 10f. Set up hierarchical category taxonomy (Events / Programs / News /
+# 10f. Convert specific event/program pages to posts so they appear in the
+#      Events / Programs category archives.
+docker compose run --rm \
+  --entrypoint /usr/local/bin/php \
+  wpcli -r 'require_once("/var/www/html/wp-load.php"); require("/importer/convert-pages-to-posts.php");'
+
+# 10g. Set up hierarchical category taxonomy (Events / Programs / News /
 #      Announcements with sub-cats) and assign posts to multiple categories.
 docker compose run --rm \
   --entrypoint /usr/local/bin/php \

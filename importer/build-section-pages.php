@@ -551,13 +551,15 @@ foreach ($pages as $slug => $cfg) {
              'desc'  => 'A grassroots movement of Indigenous and non-Indigenous men committed to ending violence against women and children.'],
         ]);
 
-        // Announcements — most recent 3 published posts
+        // Announcements — most recent 3 posts in the Announcements category
+        // (or any of its sub-categories: Health / Safety / Council).
         $announce_posts = get_posts([
-            'post_type'   => 'post',
-            'numberposts' => 3,
-            'orderby'     => 'date',
-            'order'       => 'DESC',
-            'post_status' => 'publish',
+            'post_type'    => 'post',
+            'numberposts'  => 3,
+            'orderby'      => 'date',
+            'order'        => 'DESC',
+            'post_status'  => 'publish',
+            'category_name'=> 'announcements',
         ]);
         $announce_cards = [];
         foreach ($announce_posts as $p) {
