@@ -240,23 +240,43 @@ $news_posts = get_posts([
 ]);
 
 function post_card_data($p): array {
-    $img = '';
+    // Extract first <img> from post content; if its URL contains a sha1
+    // filename we can route through the cropped 'skintyee_card' attachment
+    // size so card images line up. Falls back to the raw URL if no sha match.
+    $img_url = '';
+    $img_sha = '';
     if (preg_match('/<img[^>]+src=[\'"]([^\'"]+)[\'"]/', $p->post_content, $m)) {
-        $img = $m[1];
+        $img_url = $m[1];
+        if (preg_match('~/([a-f0-9]{40})(?:-\d+x\d+)?\.(?:jpg|jpeg|png|gif|webp)~i', $img_url, $sm)) {
+            $img_sha = $sm[1];
+        }
     }
     $excerpt = $p->post_excerpt ?: wp_trim_words(strip_tags(strip_shortcodes($p->post_content)), 28);
     return [
-        'title'   => $p->post_title,
-        'url'     => get_permalink($p->ID),
-        'image'   => $img,
-        'excerpt' => $excerpt,
-        'date'    => get_the_date('M j, Y', $p),
+        'title'     => $p->post_title,
+        'url'       => get_permalink($p->ID),
+        'image'     => $img_url,
+        'image_sha' => $img_sha,
+        'excerpt'   => $excerpt,
+        'date'      => get_the_date('M j, Y', $p),
     ];
 }
 
 function news_card_widgets(array $card, bool $featured): array {
     $widgets = [];
-    if ($card['image']) {
+    // Prefer attachment lookup by sha so the cropped 'skintyee_card' size is
+    // used. Falls back to raw URL if we couldn't extract a sha from the
+    // filename for some reason (e.g. external image).
+    $att = $card['image_sha'] ? attachment_by_sha($card['image_sha']) : null;
+    if ($att) {
+        $widgets[] = widget('image', [
+            'image' => ['id' => $att['id'], 'url' => $att['url']],
+            'image_size' => $featured ? 'large' : 'skintyee_card',
+            'link_to' => 'custom',
+            'link' => ['url' => $card['url']],
+            '_margin' => ['unit' => 'px', 'top' => 0, 'right' => 0, 'bottom' => 12, 'left' => 0, 'isLinked' => false],
+        ]);
+    } elseif ($card['image']) {
         $widgets[] = widget('image', [
             'image' => ['url' => $card['image']],
             'image_size' => $featured ? 'large' : 'medium',

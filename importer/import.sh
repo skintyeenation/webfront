@@ -121,6 +121,23 @@ docker compose run --rm \
   --entrypoint /usr/local/bin/php \
   wpcli -r 'require_once("/var/www/html/wp-load.php"); require("/importer/normalize-titles.php");'
 
+# 10d. Rename ugly Site123 post slugs (e.g. "9-steps-to-starting-a-business")
+#      to slugs that match the post title.
+docker compose run --rm \
+  --entrypoint /usr/local/bin/php \
+  wpcli -r 'require_once("/var/www/html/wp-load.php"); require("/importer/fix-post-slugs.php");'
+
+# 10e. Split the combined FNHA News post into two single-topic posts.
+docker compose run --rm \
+  --entrypoint /usr/local/bin/php \
+  wpcli -r 'require_once("/var/www/html/wp-load.php"); require("/importer/split-fnha-news.php");'
+
+# 10f. Set up hierarchical category taxonomy (Events / Programs / News /
+#      Announcements with sub-cats) and assign posts to multiple categories.
+docker compose run --rm \
+  --entrypoint /usr/local/bin/php \
+  wpcli -r 'require_once("/var/www/html/wp-load.php"); require("/importer/setup-categories.php");'
+
 # 11. Rebuild the home page as native Elementor widgets (hero / 2-col body /
 #     news / testimonial). This clears the home's post_content; _elementor_data
 #     is the single source of truth from here on.
