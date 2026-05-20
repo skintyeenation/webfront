@@ -29,7 +29,18 @@ const SIDEBAR_SHAS   = [
     '5ea7046d786a33e55c97eca0c9091d0928474ab7',
     'd9c203ca983a5705c3a7b1ae69474c738b7b0eb4',
 ];
+// Same order + placeholder treatment as the Leadership page: Chief Councillor
+// first (silhouette since vacant), then the two elected Councillors with their
+// real portraits. The placeholder URL matches build-section-pages.php.
+const PLACEHOLDER_PORTRAIT_URL = 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&s=300';
 const LEADERSHIP = [
+    [
+        'sha'         => '',
+        'placeholder' => true,
+        'name'        => 'Vacant',
+        'role'        => 'Chief Councillor',
+        'note'        => 'Position will be filled via By-Election',
+    ],
     [
         'sha'  => '7bf7a1ee3ba34745c5def58518d14b3de3010d85',
         'name' => 'Gabriel Tom',
@@ -41,12 +52,6 @@ const LEADERSHIP = [
         'name' => 'Shirley Wilson',
         'role' => 'Councillor',
         'note' => 'Elected to the Skin Tyee First Nation Council April 8, 2024',
-    ],
-    [
-        'sha'  => '7f266b3e16e1cfecc55ac39a5cc47587afcb7e27',
-        'name' => 'Vacant',
-        'role' => 'Chief Councillor',
-        'note' => 'Position will be filled via By-Election',
     ],
 ];
 const ABOUT_BODY = 'Our community is dedicated to fostering connections, empowerment, and support among members. We believe in the power of unity and work tirelessly to create a welcoming environment where everyone can thrive. Come join us and be a part of something special!';
@@ -72,6 +77,11 @@ $bc   = attachment_by_sha(BC_MAP_SHA);
 $sidebar = array_filter(array_map('attachment_by_sha', SIDEBAR_SHAS));
 $leaders = [];
 foreach (LEADERSHIP as $L) {
+    if (!empty($L['placeholder'])) {
+        // Synthetic attachment shape so downstream code can image_widget() it
+        $leaders[] = array_merge($L, ['att' => ['id' => '', 'url' => PLACEHOLDER_PORTRAIT_URL]]);
+        continue;
+    }
     $att = attachment_by_sha($L['sha']);
     if ($att) $leaders[] = array_merge($L, ['att' => $att]);
 }
