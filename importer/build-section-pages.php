@@ -506,88 +506,41 @@ foreach ($pages as $slug => $cfg) {
     }
 
     if (!empty($cfg['community_sections'])) {
+        // The /community/ page is rendered by the skintyee-news-filter mu-plugin
+        // (community-template.php), which reads the page's featured image as
+        // its hero and the_content() as the intro, then injects live Events /
+        // Programs / Announcements card grids below.
         $att = skintyee_attachment_by_sha($cfg['hero']);
         if (!$att) { echo "[section] skip $slug (hero missing)\n"; continue; }
-        $sections = [hero_section($att, $cfg['h1'])];
 
-        // Intro paragraphs (kept from the previous Community page)
-        $sections[] = content_section('Events, observances, and programs', [
-            'Skin Tyee community life is shaped by year-round gatherings and observances that bring members together &mdash; from annual events like the <strong>STN Christmas Community Dinner</strong>, <strong>Orange Shirt Day</strong> and <strong>Red Dress Day</strong>, to community meetings and skills workshops held throughout the year.',
-            '<strong>Programs and services.</strong> The Nation runs ongoing programs supporting members across food security, youth and post-secondary education (including scholarships and learning funds), the Moose Hide Campaign, elders support through the Elders Committee, and environmental stewardship.',
-            '<strong>Stay connected.</strong> Watch the <a href="/news/">News</a> page for the latest announcements, or contact the Band Administration office in Southbank for member services and event details.',
+        $intro_html = '<p>Skin Tyee community life is shaped by year-round gatherings and observances that bring members together &mdash; from annual events like the <strong>STN Christmas Community Dinner</strong>, <strong>Orange Shirt Day</strong> and <strong>Red Dress Day</strong>, to community meetings and skills workshops held throughout the year.</p>'
+                    . '<p><strong>Programs and services.</strong> The Nation runs ongoing programs supporting members across food security, youth and post-secondary education (including scholarships and learning funds), the Moose Hide Campaign, elders support through the Elders Committee, and environmental stewardship.</p>'
+                    . '<p><strong>Stay connected.</strong> Watch the <a href="/news/">News</a> page for the latest announcements, or contact the Band Administration office in Southbank for member services and event details.</p>';
+
+        wp_update_post([
+            'ID'           => $page->ID,
+            'post_content' => $intro_html,
         ]);
+        // Drop any leftover Elementor data so the_content() doesn't double up
+        // with the legacy hero/cards built into _elementor_data on prior runs.
+        // Also reset the page template — Elementor's "Elementor Full Width"
+        // template (_wp_page_template = elementor_header_footer) hijacks
+        // template_include before our mu-plugin can swap it.
+        delete_post_meta($page->ID, '_elementor_data');
+        delete_post_meta($page->ID, '_elementor_edit_mode');
+        delete_post_meta($page->ID, '_elementor_template_type');
+        delete_post_meta($page->ID, '_elementor_version');
+        update_post_meta($page->ID, '_wp_page_template', 'default');
+        // Astra layout meta: full-width page-builder mode (no .entry-content
+        // wrapper / no max-width), no sidebar. Mu-plugin template renders
+        // edge-to-edge using its own .st-cat-* containers.
+        update_post_meta($page->ID, 'site-content-layout', 'page-builder');
+        update_post_meta($page->ID, 'site-sidebar-layout', 'no-sidebar');
+        update_post_meta($page->ID, 'ast-site-content-layout', 'page-builder');
+        update_post_meta($page->ID, 'ast-site-sidebar-layout', 'no-sidebar');
+        set_post_thumbnail($page->ID, $att['id']);
 
-        // Events (3 cards, with images where available)
-        $sections[] = section_with_cards('Events', [
-            ['title' => 'Kia Ora &mdash; Skin Tyee Nation Community Meeting',
-             'url'   => '',
-             'image_sha' => '5ea7046d786a33e55c97eca0c9091d0928474ab7',
-             'desc'  => 'You&rsquo;re invited to a community meeting at the Tseze Steamboating Camp in Burns Lake. Doors open 5:00 PM.'],
-            ['title' => 'Ribbon Skirt &amp; Ribbon Shirt-making Workshop',
-             'url'   => '',
-             'image_sha' => 'd9c203ca983a5705c3a7b1ae69474c738b7b0eb4',
-             'desc'  => 'A hands-on workshop for community members. Materials and guidance provided &mdash; please RSVP through the Band Office.'],
-            ['title' => 'STN Christmas Community Dinner',
-             'url'   => '/stn-christmas-community-dinner/',
-             'image_sha' => '0410d8b2797f6aeeb89fa7ed7fc9304da565bf23',
-             'desc'  => 'The annual community gathering held each December at the Skin Tyee community centre.'],
-        ]);
-
-        // Programs (3 cards). All program pages have an image in their imported
-        // post_content — sha1s were located by inspecting the first <img src=>
-        // of each page's content.
-        $sections[] = section_with_cards('Programs', [
-            ['title' => 'Youth Employment &amp; Education',
-             'url'   => '/category/programs/youth/',
-             'image_sha' => '8df3615768722634b5452c2936888e7ac681697c',
-             'desc'  => 'The Outland Youth Employment Program (OYEP) for Indigenous youth aged 16&ndash;18, plus the MCFD Learning Fund for young adults.'],
-            ['title' => 'Scholarships',
-             'url'   => '/scholarships/',
-             'image_sha' => '511e929e2e9aa4f478ca44cc7d03e62cd77050e7',
-             'desc'  => 'Post-secondary scholarships and learning supports for Skin Tyee members &mdash; including the TC Energy Scholarships and other listed opportunities.'],
-            ['title' => 'The Moose Hide Campaign',
-             'url'   => '/the-moose-hide-campaign/',
-             'image_sha' => 'fc456831406743e26569f8fa53a7be24e45f34a6',
-             'desc'  => 'A grassroots movement of Indigenous and non-Indigenous men committed to ending violence against women and children.'],
-        ]);
-
-        // Announcements — most recent 3 posts in the Announcements category
-        // (or any of its sub-categories: Health / Safety / Council).
-        $announce_posts = get_posts([
-            'post_type'    => 'post',
-            'numberposts'  => 3,
-            'orderby'      => 'date',
-            'order'        => 'DESC',
-            'post_status'  => 'publish',
-            'category_name'=> 'announcements',
-        ]);
-        $announce_cards = [];
-        foreach ($announce_posts as $p) {
-            $excerpt = $p->post_excerpt ?: wp_trim_words(strip_tags(strip_shortcodes($p->post_content)), 18);
-            $card = [
-                'title' => $p->post_title,
-                'url'   => get_permalink($p->ID),
-                'desc'  => $excerpt,
-            ];
-            // Extract the first <img> src from post_content and recover its
-            // sha1 (the imported filename is "<sha1>-...-<size>.<ext>"). With
-            // the sha we can reference the attachment by 'image_sha' so the
-            // card renders the cropped skintyee_card thumbnail like the others.
-            if (preg_match('~<img[^>]+src=["\']([^"\']+)["\']~', $p->post_content, $m)) {
-                if (preg_match('~/([a-f0-9]{40})(?:-\d+x\d+)?\.(?:jpg|jpeg|png|gif|webp)~i', $m[1], $sm)) {
-                    $card['image_sha'] = $sm[1];
-                } else {
-                    $card['image_url'] = $m[1];
-                }
-            }
-            $announce_cards[] = $card;
-        }
-        if (!empty($announce_cards)) {
-            $sections[] = section_with_cards('Announcements', $announce_cards);
-        }
-
-        skintyee_save_elementor_page($page->ID, $sections);
-        echo "[section] $slug (#{$page->ID}): community 3x3 (" . count($sections) . " sections)\n";
+        echo "[section] $slug (#{$page->ID}): community (hero + intro; cards via mu-plugin)\n";
         continue;
     }
 
