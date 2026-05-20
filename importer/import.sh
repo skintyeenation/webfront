@@ -164,6 +164,13 @@ docker compose run --rm \
   --entrypoint /usr/local/bin/php \
   wpcli -r 'require_once("/var/www/html/wp-load.php"); require("/importer/split-burns-lake-news.php");'
 
+# 10i. Backfill featured images for posts that don't have one yet by picking
+#      the first <img> from post_content. The /news/ grouped template and any
+#      Astra archive views rely on the_post_thumbnail() being populated.
+docker compose run --rm \
+  --entrypoint /usr/local/bin/php \
+  wpcli -r 'require_once("/var/www/html/wp-load.php"); require("/importer/set-featured-images.php");'
+
 # 11. Rebuild the home page as native Elementor widgets (hero / 2-col body /
 #     news / testimonial). This clears the home's post_content; _elementor_data
 #     is the single source of truth from here on.
