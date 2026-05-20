@@ -506,41 +506,35 @@ foreach ($pages as $slug => $cfg) {
     }
 
     if (!empty($cfg['community_sections'])) {
-        // The /community/ page is rendered by the skintyee-news-filter mu-plugin
-        // (community-template.php), which reads the page's featured image as
-        // its hero and the_content() as the intro, then injects live Events /
-        // Programs / Announcements card grids below.
+        // /community/ is a full Elementor page like About / History / Projects:
+        // hero_section() for the banner, content_section() for the intro, and
+        // a shortcode widget that injects the live Events / Programs /
+        // Announcements card grids via [skintyee_category_sections] (rendered
+        // by the skintyee-news-filter mu-plugin).
         $att = skintyee_attachment_by_sha($cfg['hero']);
         if (!$att) { echo "[section] skip $slug (hero missing)\n"; continue; }
 
-        $intro_html = '<p>Skin Tyee community life is shaped by year-round gatherings and observances that bring members together &mdash; from annual events like the <strong>STN Christmas Community Dinner</strong>, <strong>Orange Shirt Day</strong> and <strong>Red Dress Day</strong>, to community meetings and skills workshops held throughout the year.</p>'
-                    . '<p><strong>Programs and services.</strong> The Nation runs ongoing programs supporting members across food security, youth and post-secondary education (including scholarships and learning funds), the Moose Hide Campaign, elders support through the Elders Committee, and environmental stewardship.</p>'
-                    . '<p><strong>Stay connected.</strong> Watch the <a href="/news/">News</a> page for the latest announcements, or contact the Band Administration office in Southbank for member services and event details.</p>';
-
-        wp_update_post([
-            'ID'           => $page->ID,
-            'post_content' => $intro_html,
-        ]);
-        // Drop any leftover Elementor data so the_content() doesn't double up
-        // with the legacy hero/cards built into _elementor_data on prior runs.
-        // Also reset the page template — Elementor's "Elementor Full Width"
-        // template (_wp_page_template = elementor_header_footer) hijacks
-        // template_include before our mu-plugin can swap it.
-        delete_post_meta($page->ID, '_elementor_data');
-        delete_post_meta($page->ID, '_elementor_edit_mode');
-        delete_post_meta($page->ID, '_elementor_template_type');
-        delete_post_meta($page->ID, '_elementor_version');
-        update_post_meta($page->ID, '_wp_page_template', 'default');
-        // Astra layout meta: full-width page-builder mode (no .entry-content
-        // wrapper / no max-width), no sidebar. Mu-plugin template renders
-        // edge-to-edge using its own .st-cat-* containers.
-        update_post_meta($page->ID, 'site-content-layout', 'page-builder');
-        update_post_meta($page->ID, 'site-sidebar-layout', 'no-sidebar');
-        update_post_meta($page->ID, 'ast-site-content-layout', 'page-builder');
-        update_post_meta($page->ID, 'ast-site-sidebar-layout', 'no-sidebar');
+        $sections = [
+            hero_section($att, $cfg['h1']),
+            content_section('Events, observances, and programs', [
+                'Skin Tyee community life is shaped by year-round gatherings and observances that bring members together &mdash; from annual events like the <strong>STN Christmas Community Dinner</strong>, <strong>Orange Shirt Day</strong> and <strong>Red Dress Day</strong>, to community meetings and skills workshops held throughout the year.',
+                '<strong>Programs and services.</strong> The Nation runs ongoing programs supporting members across food security, youth and post-secondary education (including scholarships and learning funds), the Moose Hide Campaign, elders support through the Elders Committee, and environmental stewardship.',
+                '<strong>Stay connected.</strong> Watch the <a href="/news/">News</a> page for the latest announcements, or contact the Band Administration office in Southbank for member services and event details.',
+            ]),
+            skintyee_section([
+                'content_width' => ['unit' => 'px', 'size' => 1200, 'sizes' => []],
+                'padding' => ['unit' => 'px', 'top' => 10, 'right' => 0, 'bottom' => 40, 'left' => 0, 'isLinked' => false],
+            ], [
+                skintyee_column(100, [
+                    skintyee_widget('shortcode', [
+                        'shortcode' => '[skintyee_category_sections groups="events,programs,announcements" limit="3"]',
+                    ]),
+                ]),
+            ]),
+        ];
+        skintyee_save_elementor_page($page->ID, $sections);
         set_post_thumbnail($page->ID, $att['id']);
-
-        echo "[section] $slug (#{$page->ID}): community (hero + intro; cards via mu-plugin)\n";
+        echo "[section] $slug (#{$page->ID}): community Elementor (" . count($sections) . " sections)\n";
         continue;
     }
 
