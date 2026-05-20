@@ -1,12 +1,8 @@
 <?php
 /**
- * Add prose content to event posts that imported as image-only.
- *
- * Red Dress Day (#111) and STN Christmas Community Dinner (#124) came
- * across from Site123 with just the poster image inside a wrapper div.
- * This script prepends a written description above the existing image
- * markup so the post page reads like an actual article, not a gallery
- * thumbnail.
+ * Add prose content to posts that imported as image-only — the original
+ * Site123 page rendered the message as a graphic, so the imported HTML
+ * has just an <img> with no readable copy.
  *
  * Run via:  wp eval-file /importer/add-event-post-content.php
  * Idempotent: detects an existing "st-event-intro" marker and skips.
@@ -28,6 +24,16 @@ HTML,
 <p>The <strong>Skin Tyee Nation Family Christmas Dinner</strong> is one of our most-anticipated gatherings of the year &mdash; a chance for members on and off reserve, Elders, families, and friends to come together for a shared meal, fellowship, and celebration before the holidays.</p>
 <p>The dinner is held each <strong>December at the Island Gospel Church</strong> (Hwy 35, Burns Lake), with doors open from <strong>10:00 AM to 3:00 PM</strong>. Hot food, dessert, and refreshments are provided. The afternoon includes time for visiting, traditional gift exchanges for the children, music, and a visit from Santa for the younger members.</p>
 <p>This is a family-friendly event open to all Skin Tyee members and invited guests. If you'd like to help with set-up, food preparation, or hosting on the day, please reach out to the Band Administration office in Southbank &mdash; volunteers are always welcome.</p>
+</div>
+HTML,
+
+    'to-our-k-12-and-post-secondary-students-of-stn' => <<<'HTML'
+<div class="st-event-intro">
+<h2>Congratulations</h2>
+<p>To all our graduates, from kindergarten to Grade 12 &mdash; <strong>congratulations!</strong></p>
+<p>On behalf of the entire community, we celebrate your dedication, perseverance, and growth. Whether you&rsquo;re stepping into a new grade or embarking on new adventures beyond school, the STN Councillors and Band Members are incredibly proud of you.</p>
+<p>Take pride in this achievement and move forward with confidence. Your future is bright, and we know you&rsquo;ll make it shine. Keep dreaming, keep learning, and most of all, keep believing in yourself!</p>
+<p><em>&mdash; STN Councillors &amp; Band Members</em></p>
 </div>
 HTML,
 ];
