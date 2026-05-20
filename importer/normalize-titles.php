@@ -56,6 +56,8 @@ foreach ($types as $type) {
     foreach ($posts as $p) {
         $scanned++;
         $new = st_smart_title_case($p->post_title);
+        // Strip trailing punctuation that's stylistic at best in a title.
+        $new = rtrim($new, " \t\n\r:;,.");
         if ($new !== $p->post_title) {
             wp_update_post(['ID' => $p->ID, 'post_title' => $new]);
             echo "[titles] $type #{$p->ID}: \"{$p->post_title}\" -> \"$new\"\n";

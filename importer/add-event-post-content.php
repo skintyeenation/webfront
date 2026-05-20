@@ -27,6 +27,42 @@ HTML,
 </div>
 HTML,
 
+    'tsleil-waututh-nation-skills-centre-employment-training' => <<<'HTML'
+<div class="st-event-intro">
+<h2>Business Administration &mdash; Program for Aboriginal Peoples</h2>
+<p>The <strong>Tsleil-Waututh Nation Skills Centre</strong>, in partnership with the Province of British Columbia and Prime Learning Group, is offering a free Business Administration program for Aboriginal peoples. A business administration career is versatile, with opportunities in marketing, finance, human resources, and management across many industries &mdash; including healthcare, technology, and retail.</p>
+<p>Join the program to build your confidence, master essential skills, and connect with like-minded individuals on a journey toward personal and professional growth.</p>
+<h3>What you&rsquo;ll learn</h3>
+<p><strong>Core training:</strong></p>
+<ul>
+    <li>Business Administration &amp; Operations</li>
+    <li>Human Resources Foundations</li>
+    <li>Governance, Leadership &amp; Indigenous Administration</li>
+    <li>AI for Business &amp; Digital Fluency</li>
+    <li>Customer Service Excellence</li>
+    <li>Communication &amp; Professional Writing</li>
+    <li>Project Management Foundations</li>
+    <li>Career Preparation</li>
+</ul>
+<p><strong>Workplace readiness:</strong></p>
+<ul>
+    <li>Communication &amp; Professional Foundations</li>
+    <li>Empowerment, Self-Management &amp; Workplace Professionalism</li>
+    <li>Problem Solving, Critical Thinking &amp; Decision Making</li>
+    <li>Digital Literacy</li>
+    <li>Career Development &amp; Employment Readiness</li>
+    <li>Conflict Resolution &amp; De-escalation</li>
+</ul>
+<h3>Key dates</h3>
+<ul>
+    <li><strong>Program start:</strong> January 12, 2026</li>
+    <li><strong>Schedule:</strong> Monday &ndash; Friday, 9:00 AM &ndash; 4:00 PM</li>
+    <li><strong>Application deadline:</strong> December 11, 2025</li>
+</ul>
+<p><strong>Register online:</strong> <a href="https://www.twnskillscentre.com/register" target="_blank" rel="noopener">twnskillscentre.com/register</a></p>
+</div>
+HTML,
+
     'to-our-k-12-and-post-secondary-students-of-stn' => <<<'HTML'
 <div class="st-event-intro">
 <h2>Congratulations</h2>
