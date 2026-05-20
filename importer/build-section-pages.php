@@ -24,7 +24,7 @@ require_once __DIR__ . '/elementor-helpers.php';
 // --- Hero image picks (sha1 of imported media) ----------------------------
 const HERO_ABOUT     = '7dc82a8a178c0be6f11f2b4bb7cb2db122c554a6';  // community group hike
 const HERO_HISTORY   = '4e021393cbdb4abb419a5d837192b52259a5cf1a';  // newspaper "Upcountry" trapping article
-const HERO_COMMUNITY = '7e8ebbafda693524c7e2e203a95f6348a69233ba';  // François Lake aerial (same as home hero — Skin Tyee territory)
+const HERO_COMMUNITY = '7a26333bc0d41b341bd0630ab64cedd4915f72cb';
 const HERO_PROJECTS  = '853998762684b825f764d28cfde841a1cdbc70c7';  // territory hub: food hampers + community programs
 
 // --- People (3 leadership + 6 admin staff + 1 IT) -------------------------
