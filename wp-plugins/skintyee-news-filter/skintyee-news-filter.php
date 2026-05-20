@@ -1,12 +1,13 @@
 <?php
 /**
  * Plugin Name: Skintyee Category Sections
- * Description: Custom templates for the /news/ and /community/ pages that
- *              render top-level WP categories as grouped 3-up card grids
- *              with "View all" links.
- *              - /news/      : News + Announcements
- *              - /community/ : Events + Programs + Announcements
- * Version: 0.3.0
+ * Description: - /news/      : custom template that renders News + Announcements
+ *                              category sections as 3-up card grids.
+ *              - shortcode   : [skintyee_category_sections groups="events,programs,announcements" limit="3"]
+ *                              Used by the Elementor-built /community/ page so
+ *                              its hero matches About / History / Projects but
+ *                              the body still renders live category cards.
+ * Version: 0.4.0
  */
 
 // Slugs of the categories rendered on each page, in display order.
@@ -15,24 +16,19 @@ const SKINTYEE_COMMUNITY_GROUPS = ['events', 'programs', 'announcements'];
 const SKINTYEE_NEWS_LIMIT       = 6;
 const SKINTYEE_COMMUNITY_LIMIT  = 3;
 
-// Swap in our templates for the blog index and the /community/ page.
+// /news/ (blog index) still uses our template — it can't be Elementor.
 add_filter('template_include', function ($template) {
     if (is_admin()) return $template;
     if (is_home()) {
         $t = __DIR__ . '/news-grouped-template.php';
         return file_exists($t) ? $t : $template;
     }
-    if (is_page('community')) {
-        $t = __DIR__ . '/community-template.php';
-        return file_exists($t) ? $t : $template;
-    }
     return $template;
 });
 
-// Shared inline styles (loaded on both pages so they stay consistent).
-add_action('wp_enqueue_scripts', function () {
-    if (!(is_home() || is_page('community'))) return;
-    wp_register_style('skintyee-cat-sections', false, [], '0.3.0');
+function skintyee_enqueue_cat_sections_css(): void {
+    if (wp_style_is('skintyee-cat-sections', 'enqueued')) return;
+    wp_register_style('skintyee-cat-sections', false, [], '0.4.0');
     wp_enqueue_style('skintyee-cat-sections');
     wp_add_inline_style('skintyee-cat-sections', <<<CSS
 /* .st-cat-page wraps everything so Astra's .ast-container (display:flex)
@@ -71,6 +67,11 @@ add_action('wp_enqueue_scripts', function () {
 .st-cat-card-excerpt { font-size: .9rem; color: #555; margin: 0; }
 .st-cat-empty { color: #888; font-style: italic; }
 CSS);
+}
+
+// Always enqueue on /news/ (template uses it directly).
+add_action('wp_enqueue_scripts', function () {
+    if (is_home()) skintyee_enqueue_cat_sections_css();
 });
 
 /**
@@ -138,3 +139,26 @@ function skintyee_render_cat_section(string $term_slug, int $limit): void {
     </section>
     <?php
 }
+
+// [skintyee_category_sections groups="events,programs,announcements" limit="3"]
+// Renders the same card grids the /news/ template uses, from any page —
+// notably the Elementor-built /community/ page.
+add_shortcode('skintyee_category_sections', function ($atts) {
+    $atts = shortcode_atts([
+        'groups' => implode(',', SKINTYEE_COMMUNITY_GROUPS),
+        'limit'  => (string) SKINTYEE_COMMUNITY_LIMIT,
+    ], $atts, 'skintyee_category_sections');
+
+    $slugs = array_filter(array_map('trim', explode(',', (string) $atts['groups'])));
+    $limit = max(1, (int) $atts['limit']);
+
+    skintyee_enqueue_cat_sections_css();
+
+    ob_start();
+    echo '<div class="st-cat-wrap">';
+    foreach ($slugs as $slug) {
+        skintyee_render_cat_section($slug, $limit);
+    }
+    echo '</div>';
+    return ob_get_clean();
+});
