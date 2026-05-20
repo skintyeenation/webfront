@@ -107,6 +107,13 @@ docker compose run --rm \
   --entrypoint /usr/local/bin/php \
   wpcli -r 'require_once("/var/www/html/wp-load.php"); require("/importer/set-sidebar-widgets.php");'
 
+# 10b. Strip Site123 breadcrumbs + related-article blocks from imported post
+#      content so the home news cards' excerpts read cleanly and individual
+#      post pages don't render a redundant top breadcrumb.
+docker compose run --rm \
+  --entrypoint /usr/local/bin/php \
+  wpcli -r 'require_once("/var/www/html/wp-load.php"); require("/importer/clean-post-content.php");'
+
 # 11. Rebuild the home page as native Elementor widgets (hero / 2-col body /
 #     news / testimonial). This clears the home's post_content; _elementor_data
 #     is the single source of truth from here on.
