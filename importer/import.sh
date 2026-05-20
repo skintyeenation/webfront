@@ -114,6 +114,13 @@ docker compose run --rm \
   --entrypoint /usr/local/bin/php \
   wpcli -r 'require_once("/var/www/html/wp-load.php"); require("/importer/clean-post-content.php");'
 
+# 10c. Normalize ALL-CAPS imported titles to title case (Site123 had many
+#      pages with screaming titles). Acronyms like FNHA / STN / OYEP stay
+#      uppercase via the KEEP_UPPER list in the script.
+docker compose run --rm \
+  --entrypoint /usr/local/bin/php \
+  wpcli -r 'require_once("/var/www/html/wp-load.php"); require("/importer/normalize-titles.php");'
+
 # 11. Rebuild the home page as native Elementor widgets (hero / 2-col body /
 #     news / testimonial). This clears the home's post_content; _elementor_data
 #     is the single source of truth from here on.
