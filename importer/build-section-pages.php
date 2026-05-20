@@ -31,79 +31,90 @@ const HERO_PROJECTS = '853998762684b825f764d28cfde841a1cdbc70c7';  // territory 
 // Photos are matched by sha1 of the original Site123 image; resolved at
 // runtime against the imported media library.
 
+// Chief Councillor is listed first (most senior position), even though
+// currently vacant. The previous red "VACANT" sign image from the source
+// is swapped for a neutral silhouette placeholder so the layout reads as
+// a person card, not an alert.
+const PLACEHOLDER_PORTRAIT_URL = 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&s=300';
+
 const LEADERSHIP_PEOPLE = [
+    [
+        'sha'     => '',  // use PLACEHOLDER_PORTRAIT_URL — see person_card_column
+        'name'    => 'Vacant',
+        'role'    => 'Chief Councillor',
+        'note'    => 'Position will be filled via By-Election.',
+        'contact' => '',
+        'placeholder' => true,
+    ],
     [
         'sha'     => '7bf7a1ee3ba34745c5def58518d14b3de3010d85',
         'name'    => 'Gabriel Tom',
         'role'    => 'Councillor',
         'note'    => 'Elected to the Skin Tyee First Nation Council April 8, 2024.',
-        'contact' => 'tel:+12502513085|+1-250-251-3085',
+        'contact' => 'mailto:gabriel.tom@skintyee.ca|gabriel.tom@skintyee.ca',
     ],
     [
         'sha'     => '63c82a62e4e5a0803b0cd0702adc62d903e01573',
         'name'    => 'Shirley Wilson',
         'role'    => 'Councillor',
         'note'    => 'Elected to the Skin Tyee First Nation Council April 8, 2024.',
-        'contact' => '',
-    ],
-    [
-        'sha'     => '7f266b3e16e1cfecc55ac39a5cc47587afcb7e27',
-        'name'    => 'Vacant',
-        'role'    => 'Chief Councillor',
-        'note'    => 'Position will be filled via By-Election.',
-        'contact' => '',
+        'contact' => 'mailto:shirley.wilson@skintyee.ca|shirley.wilson@skintyee.ca',
     ],
 ];
 
+// Every staff member uses a firstname.lastname@skintyee.ca alias. Personal
+// phone numbers are intentionally NOT on individual cards — only the band's
+// main contact line in the Administration intro shows a number.
 const ADMIN_PEOPLE = [
     [
         'sha'     => '54473dcf247d3681bd26ba79637e43d405196c91',
         'name'    => 'Gabriel Tom',
         'role'    => 'Band Manager',
         'note'    => '',
-        'contact' => 'mailto:STFN_BandManager@outlook.com|STFN_BandManager@outlook.com',
+        'contact' => 'mailto:gabriel.tom@skintyee.ca|gabriel.tom@skintyee.ca',
     ],
     [
         'sha'     => 'b57b55dd993db8f8b78c338596ddbaeeafe4f83b',
         'name'    => 'Kim Pike',
         'role'    => 'Finance Assistant',
         'note'    => '',
-        'contact' => '',
+        'contact' => 'mailto:kim.pike@skintyee.ca|kim.pike@skintyee.ca',
     ],
     [
         'sha'     => '92e7fe0dc57d8fb74246d7f19daf578ad4cd936b',
         'name'    => 'Shirley Wilson',
         'role'    => 'Environmental Stewardship',
         'note'    => '',
-        'contact' => '',
+        'contact' => 'mailto:shirley.wilson@skintyee.ca|shirley.wilson@skintyee.ca',
     ],
     [
         'sha'     => '7f2e23feb6000a9b2b4e88da82fee92bc5a59fd9',
         'name'    => 'Martin Tom',
         'role'    => 'Head of Security',
         'note'    => '',
-        'contact' => '',
+        'contact' => 'mailto:martin.tom@skintyee.ca|martin.tom@skintyee.ca',
     ],
     [
         'sha'     => '65a99f9efc9f2026b82374ea0a09c7b66615d62f',
         'name'    => 'Melissa Dyck',
         'role'    => 'Administration',
         'note'    => '',
-        'contact' => '',
+        'contact' => 'mailto:melissa.dyck@skintyee.ca|melissa.dyck@skintyee.ca',
     ],
     [
         'sha'     => '1422bb853b6c405f7bd6e86ea966197e87de5bf2',
         'name'    => 'Helen Michelle',
         'role'    => 'Elders Committee Representative',
         'note'    => '',
-        'contact' => '',
+        'contact' => 'mailto:helen.michelle@skintyee.ca|helen.michelle@skintyee.ca',
     ],
     [
-        'sha'     => '',  // no photo — LinkedIn images aren't fetchable
+        'sha'     => '',
+        'photo_url' => 'https://media.licdn.com/dms/image/v2/D5603AQELeN0d3ajYeA/profile-displayphoto-shrink_800_800/B56ZVWh42wHEAc-/0/1740913480995?e=1781136000&v=beta&t=REbzVw7rpikmLX9Q2DsEfExtjM2zUxg0w4mTARmgekk',
         'name'    => 'Lucas Lopatka',
         'role'    => 'IT Administration',
         'note'    => '',
-        'contact' => 'https://www.linkedin.com/in/lucaslopatka/|LinkedIn',
+        'contact' => 'mailto:lucas.lopatka@skintyee.ca|lucas.lopatka@skintyee.ca',
     ],
 ];
 
@@ -195,6 +206,26 @@ function person_card_column(array $p): array {
                 '_margin' => ['unit' => 'px', 'top' => 0, 'right' => 0, 'bottom' => 12, 'left' => 0, 'isLinked' => false],
             ]);
         }
+    } elseif (!empty($p['placeholder'])) {
+        // Use an external placeholder URL directly (no attachment lookup).
+        // Elementor's image widget accepts a plain URL via the image.url key.
+        $widgets[] = skintyee_widget('image', [
+            'image' => ['url' => PLACEHOLDER_PORTRAIT_URL, 'id' => ''],
+            'image_size' => 'full',
+            'align' => 'center',
+            '_css_classes' => 'st-leader-portrait',
+            '_margin' => ['unit' => 'px', 'top' => 0, 'right' => 0, 'bottom' => 12, 'left' => 0, 'isLinked' => false],
+        ]);
+    } elseif (!empty($p['photo_url'])) {
+        // External photo URL (e.g. LinkedIn profile picture for staff who
+        // don't have a portrait in the imported media library).
+        $widgets[] = skintyee_widget('image', [
+            'image' => ['url' => $p['photo_url'], 'id' => ''],
+            'image_size' => 'full',
+            'align' => 'center',
+            '_css_classes' => 'st-leader-portrait',
+            '_margin' => ['unit' => 'px', 'top' => 0, 'right' => 0, 'bottom' => 12, 'left' => 0, 'isLinked' => false],
+        ]);
     }
     $widgets[] = skintyee_heading($p['name'], 'h4', [
         'align' => 'center',
