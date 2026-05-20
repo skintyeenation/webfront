@@ -50,9 +50,13 @@ fi
 #    - skintyee-grid: Bootstrap-grid CSS shim for imported markup
 #    - skintyee-cli-fix: pre-loads is_plugin_active() so Elementor 4.x doesn't
 #      fatal-error every time wp-cli runs (known Elementor bug)
+#    - skintyee-image-sizes: registers skintyee_card hard-cropped thumbnail
+#    - skintyee-news-filter: restricts /news/ blog index to News-category posts
 mkdir -p wp-data/wp-content/mu-plugins
 cp -r wp-plugins/skintyee-grid wp-data/wp-content/mu-plugins/
 cp -r wp-plugins/skintyee-cli-fix wp-data/wp-content/mu-plugins/
+cp -r wp-plugins/skintyee-image-sizes wp-data/wp-content/mu-plugins/ 2>/dev/null || true
+cp -r wp-plugins/skintyee-news-filter wp-data/wp-content/mu-plugins/
 # Loader stubs at the mu-plugins root (WP only auto-loads top-level .php there).
 cat > wp-data/wp-content/mu-plugins/skintyee-grid-loader.php <<'PHP'
 <?php
@@ -61,6 +65,16 @@ PHP
 cat > wp-data/wp-content/mu-plugins/skintyee-cli-fix-loader.php <<'PHP'
 <?php
 require_once __DIR__ . '/skintyee-cli-fix/skintyee-cli-fix.php';
+PHP
+if [ -f wp-data/wp-content/mu-plugins/skintyee-image-sizes/skintyee-image-sizes.php ]; then
+  cat > wp-data/wp-content/mu-plugins/skintyee-image-sizes-loader.php <<'PHP'
+<?php
+require_once __DIR__ . '/skintyee-image-sizes/skintyee-image-sizes.php';
+PHP
+fi
+cat > wp-data/wp-content/mu-plugins/skintyee-news-filter-loader.php <<'PHP'
+<?php
+require_once __DIR__ . '/skintyee-news-filter/skintyee-news-filter.php';
 PHP
 
 # 5. Apply Astra brand customization (colors, typography, header layout) so the
