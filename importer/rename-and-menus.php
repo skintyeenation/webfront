@@ -13,10 +13,12 @@ declare(strict_types=1);
 // page_slug => new short title.
 // 'news' is included so it lands in $slug_to_id and can be referenced by the
 // footer menu below — the page itself is created earlier by setup-news.php.
+// 'community' is created later by build-section-pages.php if it doesn't exist;
+// the rename here is a no-op on first run but ensures it lands in $slug_to_id.
 $renames = [
     'about-our-community'         => 'About',
     'our-history'                 => 'History',
-    'cultural-heritage'           => 'Culture',
+    'community'                   => 'Community',
     'skin-tyee-nation-leadership' => 'Leadership',
     'administration-operations'   => 'Administration',
     'major-projects'              => 'Projects',
@@ -70,12 +72,13 @@ function build_menu(string $name, array $page_slugs, array $slug_to_id, string $
     echo "  [menu] '$name' built with " . count($page_slugs) . " items -> location '$location'\n";
 }
 
-// Note: administration-operations is intentionally NOT in the primary nav —
-// build-section-pages.php folds Administration into the Leadership page.
+// Note: administration-operations is folded into the Leadership page, and
+// cultural-heritage's content is folded into About — the Culture nav slot
+// is now the new Community page.
 build_menu('primary', [
     'about-our-community',
     'our-history',
-    'cultural-heritage',
+    'community',
     'skin-tyee-nation-leadership',
     'major-projects',
 ], $slug_to_id, 'primary');
