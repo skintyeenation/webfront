@@ -39,9 +39,16 @@ add_action('wp_enqueue_scripts', function () {
    has a single 100% child instead of laying our blocks side-by-side. */
 .st-cat-page { width: 100%; }
 .st-cat-wrap { max-width: 1200px; margin: 0 auto; padding: 2.5rem 1.25rem; }
-.st-cat-hero { position: relative; width: 100%; max-width: 1400px; margin: 0 auto 2rem; aspect-ratio: 3 / 1; overflow: hidden; }
-.st-cat-hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.st-cat-hero h1 { position: absolute; left: 50%; bottom: 1.5rem; transform: translateX(-50%); color: #fff; font-size: clamp(2rem, 4vw, 3rem); margin: 0; text-shadow: 0 2px 8px rgba(0,0,0,.5); }
+/* Matches the Elementor hero spec in importer/build-section-pages.php
+   (hero_section): 360px min-height, dark 50% overlay, centered Lora 48px
+   white title with text-shadow. Keeps community visually consistent with
+   About / History / Projects heroes. */
+.st-cat-hero { position: relative; width: 100%; min-height: 360px; display: flex; align-items: center; justify-content: center; overflow: hidden; margin-bottom: 2.5rem; }
+.st-cat-hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center center; display: block; }
+.st-cat-hero::after { content: ""; position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); }
+.st-cat-hero h1 { position: relative; z-index: 2; max-width: 860px; padding: 0 1.25rem; margin: 0; text-align: center; color: #fff; font-family: "Lora", Georgia, serif; font-weight: 600; font-size: 48px; line-height: 1.2; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.4); }
+@media (max-width: 900px) { .st-cat-hero h1 { font-size: 36px; } }
+@media (max-width: 600px) { .st-cat-hero h1 { font-size: 28px; } }
 .st-cat-intro { max-width: 900px; margin: 0 auto 2.5rem; padding: 0 1.25rem; font-size: 1.05rem; line-height: 1.6; color: #333; }
 .st-cat-intro p { margin: 0 0 1rem; }
 .st-cat-group { margin-bottom: 3rem; }
