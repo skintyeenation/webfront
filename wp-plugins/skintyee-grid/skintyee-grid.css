@@ -85,6 +85,16 @@
     .entry-content .col-lg-12 { width: 100%; }
 }
 
+/* Hide Astra's footer copyright + "Powered by" credit entirely. Astra's HFB
+ * footer reads its credit text from a serialized builder structure, not from
+ * the older footer-sml-section-1 theme_mod we set, so the customizer override
+ * doesn't always win. CSS hide is reliable across Astra versions. */
+.site-footer .ast-footer-copyright,
+.ast-small-footer .ast-footer-copyright,
+.ast-builder-footer-grid-row .ast-footer-copyright {
+    display: none;
+}
+
 /* Header logo: Astra's theme_mod for logo width can be overridden by
  * intrinsic image size on some themes/breakpoints. Cap it here at low
  * specificity so the Customizer can still bump it up if needed. */

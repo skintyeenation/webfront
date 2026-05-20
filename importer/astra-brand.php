@@ -116,6 +116,12 @@ $mods = [
     'footer-color' => '#e2efe8',
     'footer-link-color' => '#ffffff',
     'footer-link-h-color' => $brand['bg'],
+
+    // Footer credit text: drop Astra's default "Powered by Astra WordPress Theme".
+    // Astra's Header Footer Builder reads the credit copy from these two keys
+    // (both names are used across versions); set both to be safe.
+    'footer-sml-section-1' => 'Copyright © [copyright] [current_year] [site_title]',
+    'hfb-footer-column-1-html-section-1' => 'Copyright © [copyright] [current_year] [site_title]',
 ];
 
 foreach ($mods as $key => $value) {

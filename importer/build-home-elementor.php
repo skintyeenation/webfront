@@ -138,11 +138,12 @@ if (!$hero) { echo "[elementor] missing hero attachment\n"; exit(1); }
 // --- 1. Hero section -------------------------------------------------------
 
 $hero_section = section([
-    'stretch_section' => 'section-stretched',
-    'layout' => 'full_width',
+    'stretch_section' => 'section-stretched',  // bg image spans viewport
+    'layout' => 'boxed',                       // but content is boxed-narrow
+    'content_width' => ['unit' => 'px', 'size' => 860, 'sizes' => []],
     'gap' => 'no',
     'height' => 'min-height',
-    'custom_height' => ['unit' => 'px', 'size' => 560],
+    'custom_height' => ['unit' => 'px', 'size' => 520],
     'content_position' => 'middle',
     'background_background' => 'classic',
     'background_image' => ['id' => $hero['id'], 'url' => $hero['url']],
@@ -158,11 +159,11 @@ $hero_section = section([
             'title_color' => '#ffffff',
             'typography_typography' => 'custom',
             'typography_font_family' => 'Lora',
-            'typography_font_size' => ['unit' => 'px', 'size' => 56, 'sizes' => []],
-            'typography_font_size_tablet' => ['unit' => 'px', 'size' => 40, 'sizes' => []],
-            'typography_font_size_mobile' => ['unit' => 'px', 'size' => 28, 'sizes' => []],
+            'typography_font_size' => ['unit' => 'px', 'size' => 44, 'sizes' => []],
+            'typography_font_size_tablet' => ['unit' => 'px', 'size' => 34, 'sizes' => []],
+            'typography_font_size_mobile' => ['unit' => 'px', 'size' => 26, 'sizes' => []],
             'typography_font_weight' => '600',
-            'typography_line_height' => ['unit' => 'em', 'size' => 1.15],
+            'typography_line_height' => ['unit' => 'em', 'size' => 1.2],
             'text_shadow_text_shadow_type' => 'yes',
             'text_shadow_text_shadow' => ['horizontal' => 0, 'vertical' => 2, 'blur' => 6, 'color' => 'rgba(0,0,0,0.4)'],
         ]),
@@ -172,7 +173,7 @@ $hero_section = section([
             'typography_typography' => 'custom',
             'typography_font_size' => ['unit' => 'px', 'size' => 22, 'sizes' => []],
             'typography_font_style' => 'italic',
-            '_margin' => ['unit' => 'px', 'top' => 8, 'right' => 0, 'bottom' => 0, 'left' => 0, 'isLinked' => false],
+            '_margin' => ['unit' => 'px', 'top' => 10, 'right' => 0, 'bottom' => 0, 'left' => 0, 'isLinked' => false],
         ]),
     ]),
 ]);
