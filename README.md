@@ -24,6 +24,29 @@ docker compose up -d
 
 The local WP site lives at <http://localhost:8080>. Admin credentials: `admin` / `admin` (local dev only — rotate before any public deployment).
 
+## Backup / restore
+
+Before any destructive operation (wipe, theme swap, re-import) — take a snapshot:
+
+```bash
+./backup.sh
+```
+
+Writes a timestamped pair to `./backups/`:
+- `db-<ts>.sql`           full MySQL dump (single-transaction)
+- `wp-content-<ts>.tar.gz`  uploads + mu-plugins + themes + plugins
+
+Old backups are pruned to the last 20 of each kind. `backups/` is gitignored.
+
+Restore from a snapshot:
+
+```bash
+./restore.sh latest          # newest snapshot
+./restore.sh 20260519-180532 # specific timestamp
+```
+
+This stops containers, wipes `wp-data` + `db-data`, brings the stack back up, pipes the SQL dump into MySQL, and extracts the tarball into `wp-data/`. Asks for confirmation before destroying anything.
+
 ## Exporting for production (skintyee.ca)
 
 Once the local site looks right, export a WXR file you can import into the production WordPress at skintyee.ca:
