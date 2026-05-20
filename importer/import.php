@@ -244,33 +244,41 @@ if ($hello) {
 }
 
 // --- Primary navigation ---
-// Build a menu from the top-level imported pages, in the order they were imported
-// (which mirrors the source site's homepage nav). Idempotent: drops + recreates.
+// Build a default "everything" menu from the top-level imported pages ONLY if
+// no primary menu exists yet. Later scripts (importer/rename-and-menus.php)
+// rebuild this menu with a curated, shorter list — if we trampled their
+// changes on every re-run of import.php, those customizations would silently
+// reset back to the 10-page firehose every time.
 $menu_name = 'primary';
 $menus = wp_cli_json(['menu', 'list', '--fields=term_id,name']);
+$existing_menu = null;
 foreach ($menus as $menu) {
     if ($menu['name'] === $menu_name) {
-        wp_cli(['menu', 'delete', $menu_name]);
+        $existing_menu = $menu;
         break;
     }
 }
-wp_cli(['menu', 'create', $menu_name]);
-$nav_order = ['about-our-community', 'our-history', 'cultural-heritage',
-              'skin-tyee-nation-leadership', 'administration-operations',
-              'major-projects', 'announcements', 'stay-informed',
-              'gallery', 'q-a'];
-foreach ($nav_order as $slug) {
-    if (!empty($slug_to_id[$slug])) {
-        wp_cli(['menu', 'item', 'add-post', $menu_name, (string) $slug_to_id[$slug]]);
+if ($existing_menu) {
+    echo "[nav] '$menu_name' menu already exists (term_id={$existing_menu['term_id']}) — leaving it alone\n";
+} else {
+    wp_cli(['menu', 'create', $menu_name]);
+    $nav_order = ['about-our-community', 'our-history', 'cultural-heritage',
+                  'skin-tyee-nation-leadership', 'administration-operations',
+                  'major-projects', 'announcements', 'stay-informed',
+                  'gallery', 'q-a'];
+    foreach ($nav_order as $slug) {
+        if (!empty($slug_to_id[$slug])) {
+            wp_cli(['menu', 'item', 'add-post', $menu_name, (string) $slug_to_id[$slug]]);
+        }
     }
-}
-// Assign to whichever location the active theme calls 'primary' (most themes do).
-$locations = wp_cli_json(['menu', 'location', 'list']);
-foreach ($locations as $loc) {
-    if (in_array($loc['location'], ['primary', 'primary-menu', 'main-menu', 'header-menu'], true)) {
-        wp_cli(['menu', 'location', 'assign', $menu_name, $loc['location']]);
-        echo "[nav] menu assigned to location '{$loc['location']}'\n";
-        break;
+    // Assign to whichever location the active theme calls 'primary'.
+    $locations = wp_cli_json(['menu', 'location', 'list']);
+    foreach ($locations as $loc) {
+        if (in_array($loc['location'], ['primary', 'primary-menu', 'main-menu', 'header-menu'], true)) {
+            wp_cli(['menu', 'location', 'assign', $menu_name, $loc['location']]);
+            echo "[nav] menu assigned to location '{$loc['location']}'\n";
+            break;
+        }
     }
+    echo "[nav] menu '$menu_name' built with " . count(array_intersect_key($slug_to_id, array_flip($nav_order))) . " items\n";
 }
-echo "[nav] menu '$menu_name' built with " . count(array_intersect_key($slug_to_id, array_flip($nav_order))) . " items\n";
