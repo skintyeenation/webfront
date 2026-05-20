@@ -171,6 +171,12 @@ docker compose run --rm \
   --entrypoint /usr/local/bin/php \
   wpcli -r 'require_once("/var/www/html/wp-load.php"); require("/importer/set-featured-images.php");'
 
+# 10j. Add written prose to event posts that came in image-only (Red Dress
+#      Day, STN Christmas Community Dinner).
+docker compose run --rm \
+  --entrypoint /usr/local/bin/php \
+  wpcli -r 'require_once("/var/www/html/wp-load.php"); require("/importer/add-event-post-content.php");'
+
 # 11. Rebuild the home page as native Elementor widgets (hero / 2-col body /
 #     news / testimonial). This clears the home's post_content; _elementor_data
 #     is the single source of truth from here on.
