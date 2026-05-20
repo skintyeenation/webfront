@@ -85,12 +85,20 @@
     .entry-content .col-lg-12 { width: 100%; }
 }
 
-/* Card-grid title alignment: when 3 cards sit in a row, titles wrap to
- * different line counts and the description below misaligns. Give the title
- * heading a min-height ~ 2 lines so cards line up regardless of title
- * length. Scoped to Elementor inner-section card rows. */
+/* Card-grid title alignment: force every card title widget to occupy the
+ * same vertical slot so the descriptions below line up across the row.
+ * Scoped to Elementor inner-section card rows; the heading widget wrapper
+ * gets a fixed min-height equal to ~3 lines of text and aligns its inner
+ * h3 to the top of that slot. */
+.elementor-section.elementor-inner-section .elementor-widget-heading {
+    min-height: 4em;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+}
 .elementor-section.elementor-inner-section .elementor-widget-heading h3.elementor-heading-title {
-    min-height: 2.4em;
+    margin: 0;
+    line-height: 1.3;
 }
 
 /* Hide Astra's footer copyright + "Powered by" credit entirely. Astra's HFB
