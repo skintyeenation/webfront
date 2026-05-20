@@ -22,10 +22,10 @@ declare(strict_types=1);
 require_once __DIR__ . '/elementor-helpers.php';
 
 // --- Hero image picks (sha1 of imported media) ----------------------------
-const HERO_ABOUT    = '7dc82a8a178c0be6f11f2b4bb7cb2db122c554a6';  // community group hike
-const HERO_HISTORY  = '4e021393cbdb4abb419a5d837192b52259a5cf1a';  // newspaper "Upcountry" trapping article
-const HERO_CULTURE  = 'c7d52d04ae668bcb0713d8a597b330d45946f14f';  // elder by traditional log structure
-const HERO_PROJECTS = '853998762684b825f764d28cfde841a1cdbc70c7';  // territory hub: food hampers + community programs
+const HERO_ABOUT     = '7dc82a8a178c0be6f11f2b4bb7cb2db122c554a6';  // community group hike
+const HERO_HISTORY   = '4e021393cbdb4abb419a5d837192b52259a5cf1a';  // newspaper "Upcountry" trapping article
+const HERO_COMMUNITY = 'f128d14e485a4d0e6fb9b076e61986807a43b01a';  // Christmas tree at community gala
+const HERO_PROJECTS  = '853998762684b825f764d28cfde841a1cdbc70c7';  // territory hub: food hampers + community programs
 
 // --- People (3 leadership + 6 admin staff + 1 IT) -------------------------
 // Photos are matched by sha1 of the original Site123 image; resolved at
@@ -340,16 +340,11 @@ function content_section(string $eyebrow, array $paragraphs, array $extra_widget
 $sources_footer = '<p style="font-size:13px;color:#6b7280;border-top:1px solid #e2efe8;padding-top:18px;margin-top:32px"><strong>Sources:</strong> <a href="https://www.bcafn.ca/first-nations-bc/nechako/skin-tyee">BC Assembly of First Nations &mdash; Skin Tyee</a>; <a href="https://en.wikipedia.org/wiki/Wet%CA%BCsuwet%CA%BCen">Wikipedia: Wet&rsquo;suwet&rsquo;en</a>.</p>';
 
 $pages = [
-    // ---- ABOUT ----
+    // ---- ABOUT (now includes the Cultural Heritage content folded in) ----
     'about-our-community' => [
         'hero'    => HERO_ABOUT,
         'h1'      => 'About Skin Tyee First Nation',
-        'eyebrow' => 'Our Community',
-        'paragraphs' => [
-            'Skin Tyee First Nation is a Wet&rsquo;suwet&rsquo;en community in the central interior of British Columbia, on the south side of Fran&ccedil;ois Lake near Southbank and Burns Lake. The Nation has approximately 134 members on and off reserve and holds 396.6 hectares of reserve land.',
-            'In the Nation&rsquo;s own words: &ldquo;Our community is dedicated to fostering connections, empowerment, and support among members. We believe in the power of unity and work tirelessly to create a welcoming environment where everyone can thrive. Come join us and be a part of something special!&rdquo;',
-            'The Nation is governed by an elected Council under a Custom Electoral System and operates from its Band Administration office in Southbank. ' . $sources_footer,
-        ],
+        'about_with_culture' => true,
     ],
 
     // ---- HISTORY ----
@@ -364,16 +359,15 @@ $pages = [
         ],
     ],
 
-    // ---- CULTURE ----
-    'cultural-heritage' => [
-        'hero'    => HERO_CULTURE,
-        'h1'      => 'Cultural &amp; Heritage',
-        'eyebrow' => 'Wet&rsquo;suwet&rsquo;en language, clans, and the potlatch',
+    // ---- COMMUNITY (replaces the old Culture page) ----
+    'community' => [
+        'hero'    => HERO_COMMUNITY,
+        'h1'      => 'Community',
+        'eyebrow' => 'Events, observances, and programs',
         'paragraphs' => [
-            '<strong>Language.</strong> Skin Tyee members are Wet&rsquo;suwet&rsquo;en and the community language is Witsuwit&rsquo;en, a dialect of Babine-Witsuwit&rsquo;en in the Athabaskan family. The language is closely related to Carrier (Dakelh) and continues to be spoken and revitalized by community members.',
-            '<strong>Clans and houses.</strong> Wet&rsquo;suwet&rsquo;en society is matrilineal &mdash; clan membership passes from mother to child. The Nation is organized into five clans, subdivided into thirteen house groups. Each house has a hereditary chief (<em>dini ze&rsquo;</em>); female hereditary chiefs are <em>ts&rsquo;ak&euml; ze&rsquo;</em>. House and clan responsibilities shape social, ceremonial, and territorial life.',
-            '<strong>The potlatch.</strong> Social and economic life centers on the potlatch (also called <em>balhats</em> or feast), held to mark births, marriages, deaths, the naming of chiefs, and the transfer of names and territories. It remains the foundational institution of Wet&rsquo;suwet&rsquo;en governance.',
-            '<strong>Oral history.</strong> Wet&rsquo;suwet&rsquo;en oral history (<em>kungax</em>) carries knowledge of the people&rsquo;s ancestral villages and territories, including the village of Dzilke (Dizkle), said to have been abandoned long ago after an omen.' . $sources_footer,
+            'Skin Tyee community life is shaped by year-round gatherings and observances that bring members together. Annual events include the <strong>STN Christmas Community Dinner</strong>, <strong>Orange Shirt Day</strong> (honouring residential school survivors and the children who never came home), <strong>Red Dress Day</strong> (raising awareness for Missing and Murdered Indigenous Women, Girls and Two-Spirit people), and the <strong>Moose Hide Campaign</strong> (a grassroots movement of Indigenous and non-Indigenous men committed to ending violence against women and children).',
+            '<strong>Programs and services.</strong> The Nation runs ongoing programs supporting members across food security, environmental stewardship, youth and post-secondary education (including scholarships and learning funds), elders support through the Elders Committee, and member health information via the Stay Informed channel. The Skin Tyee Nation Territory hub coordinates regular food hamper distribution.',
+            '<strong>Stay connected.</strong> Watch the <a href="/news/">News</a> page for the latest announcements and updates, or contact the Band Administration office in Southbank for member services and event details.',
         ],
     ],
 
@@ -404,8 +398,45 @@ $pages = [
 // --- Build + save each page -----------------------------------------------
 
 foreach ($pages as $slug => $cfg) {
+    // Auto-create the page if missing (e.g. /community/ on first run).
     $page = get_page_by_path($slug);
-    if (!$page) { echo "[section] skip $slug (page missing)\n"; continue; }
+    if (!$page) {
+        $new_id = wp_insert_post([
+            'post_type'   => 'page',
+            'post_status' => 'publish',
+            'post_title'  => $cfg['h1'] ?? ucfirst($slug),
+            'post_name'   => $slug,
+            'post_content'=> '',
+        ]);
+        if (is_wp_error($new_id) || !$new_id) {
+            echo "[section] skip $slug (could not create page)\n";
+            continue;
+        }
+        $page = get_post($new_id);
+        echo "[section] created $slug (#$new_id)\n";
+    }
+
+    if (!empty($cfg['about_with_culture'])) {
+        $att = skintyee_attachment_by_sha($cfg['hero']);
+        if (!$att) { echo "[section] skip $slug (hero missing)\n"; continue; }
+        $sections = [
+            hero_section($att, $cfg['h1']),
+            content_section('Our Community', [
+                'Skin Tyee First Nation is a Wet&rsquo;suwet&rsquo;en community in the central interior of British Columbia, on the south side of Fran&ccedil;ois Lake near Southbank and Burns Lake. The Nation has approximately 134 members on and off reserve and holds 396.6 hectares of reserve land.',
+                'In the Nation&rsquo;s own words: &ldquo;Our community is dedicated to fostering connections, empowerment, and support among members. We believe in the power of unity and work tirelessly to create a welcoming environment where everyone can thrive. Come join us and be a part of something special!&rdquo;',
+                'The Nation is governed by an elected Council under a Custom Electoral System and operates from its Band Administration office in Southbank.',
+            ]),
+            content_section('Cultural Heritage', [
+                '<strong>Language.</strong> Skin Tyee members are Wet&rsquo;suwet&rsquo;en and the community language is Witsuwit&rsquo;en, a dialect of Babine-Witsuwit&rsquo;en in the Athabaskan family. The language is closely related to Carrier (Dakelh) and continues to be spoken and revitalized by community members.',
+                '<strong>Clans and houses.</strong> Wet&rsquo;suwet&rsquo;en society is matrilineal &mdash; clan membership passes from mother to child. The Nation is organized into five clans, subdivided into thirteen house groups. Each house has a hereditary chief (<em>dini ze&rsquo;</em>); female hereditary chiefs are <em>ts&rsquo;ak&euml; ze&rsquo;</em>. House and clan responsibilities shape social, ceremonial, and territorial life.',
+                '<strong>The potlatch.</strong> Social and economic life centers on the potlatch (also called <em>balhats</em> or feast), held to mark births, marriages, deaths, the naming of chiefs, and the transfer of names and territories. It remains the foundational institution of Wet&rsquo;suwet&rsquo;en governance.',
+                '<strong>Oral history.</strong> Wet&rsquo;suwet&rsquo;en oral history (<em>kungax</em>) carries knowledge of the people&rsquo;s ancestral villages and territories, including the village of Dzilke (Dizkle), said to have been abandoned long ago after an omen.' . $sources_footer,
+            ]),
+        ];
+        skintyee_save_elementor_page($page->ID, $sections);
+        echo "[section] $slug (#{$page->ID}): " . count($sections) . " sections (About + Culture merged)\n";
+        continue;
+    }
 
     if (!empty($cfg['combined_leadership'])) {
         $sections = [
@@ -449,6 +480,23 @@ foreach ($pages as $slug => $cfg) {
 
     skintyee_save_elementor_page($page->ID, $sections);
     echo "[section] $slug (#{$page->ID}): " . count($sections) . " section(s)\n";
+}
+
+// --- Cultural Heritage page: delete + remove from nav ----------------------
+// Its content was folded into the About page above; the Culture slot in the
+// nav is now occupied by the new Community page (created above).
+$culture = get_page_by_path('cultural-heritage');
+if ($culture) {
+    wp_delete_post($culture->ID, true);
+    echo "[section] removed /cultural-heritage/ page (#{$culture->ID}) — merged into About\n";
+    foreach (wp_get_nav_menus() as $menu) {
+        foreach ((wp_get_nav_menu_items($menu->term_id) ?: []) as $item) {
+            if ((int) $item->object_id === (int) $culture->ID) {
+                wp_delete_post($item->ID, true);
+                echo "[section] removed culture entry from menu '{$menu->name}'\n";
+            }
+        }
+    }
 }
 
 // --- Administration page: delete + remove from nav --------------------------
