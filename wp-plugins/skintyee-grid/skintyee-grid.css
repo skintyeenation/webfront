@@ -99,17 +99,25 @@
  * Targeted via Elementor's _css_classes ("st-leader-portrait") so it doesn't
  * affect other images on the site. object-fit:cover so the headshots crop
  * cleanly to a perfect circle regardless of original aspect ratio. */
+/* Circular portrait crop. !important is needed because Elementor's per-post
+ * dynamic CSS sets sizing on the same elements at higher cascade depth and
+ * wins without it. Targeted to .st-leader-portrait so only the leadership
+ * cards are affected, not other images on the site. */
+.st-leader-portrait img,
 .st-leader-portrait .elementor-image,
-.st-leader-portrait img {
-    border-radius: 50%;
-    overflow: hidden;
-    aspect-ratio: 1 / 1;
-    object-fit: cover;
-    max-width: 180px;
-    width: 100%;
-    margin-left: auto;
-    margin-right: auto;
-    display: block;
+.elementor-widget-image.st-leader-portrait img {
+    border-radius: 50% !important;
+    aspect-ratio: 1 / 1 !important;
+    object-fit: cover !important;
+    width: 180px !important;
+    height: 180px !important;
+    max-width: 100% !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    display: block !important;
+}
+.st-leader-portrait {
+    text-align: center;
 }
 
 /* Header logo: Astra's theme_mod for logo width can be overridden by
