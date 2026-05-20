@@ -302,6 +302,76 @@ function people_grid(array $people): array {
 }
 
 /**
+ * Build a section with a heading + a 3-column row of cards.
+ * Each card: optional image, title (linked), short description.
+ * Pass 'image_sha' (looked up in media) or 'image_url' (direct URL).
+ */
+function section_with_cards(string $heading, array $cards): array {
+    $card_cols = [];
+    foreach ($cards as $c) {
+        $card_widgets = [];
+        $img_att = null;
+        if (!empty($c['image_sha'])) {
+            $img_att = skintyee_attachment_by_sha($c['image_sha']);
+            if ($img_att) {
+                $card_widgets[] = skintyee_image_widget($img_att, [
+                    'image_size' => 'skintyee_card',
+                    'align' => 'center',
+                    '_margin' => ['unit' => 'px', 'top' => 0, 'right' => 0, 'bottom' => 14, 'left' => 0, 'isLinked' => false],
+                ]);
+            }
+        } elseif (!empty($c['image_url'])) {
+            $card_widgets[] = skintyee_widget('image', [
+                'image' => ['url' => $c['image_url'], 'id' => ''],
+                'image_size' => 'full',
+                'align' => 'center',
+                '_margin' => ['unit' => 'px', 'top' => 0, 'right' => 0, 'bottom' => 14, 'left' => 0, 'isLinked' => false],
+            ]);
+        }
+        $card_widgets[] = skintyee_heading($c['title'], 'h3', [
+            'align' => 'center',
+            'link' => ['url' => $c['url'] ?? ''],
+            'typography_typography' => 'custom',
+            'typography_font_family' => 'Lora',
+            'typography_font_weight' => '600',
+            'typography_font_size' => ['unit' => 'px', 'size' => 19, 'sizes' => []],
+            '_margin' => ['unit' => 'px', 'top' => 0, 'right' => 0, 'bottom' => 10, 'left' => 0, 'isLinked' => false],
+        ]);
+        $card_widgets[] = skintyee_paragraph($c['desc'], [
+            'align' => 'center',
+            'typography_typography' => 'custom',
+            'typography_font_size' => ['unit' => 'px', 'size' => 14, 'sizes' => []],
+            'typography_line_height' => ['unit' => 'em', 'size' => 1.55],
+        ]);
+        $card_cols[] = skintyee_column(33, $card_widgets, [
+            '_padding' => ['unit' => 'px', 'top' => 24, 'right' => 20, 'bottom' => 24, 'left' => 20, 'isLinked' => false],
+            '_background_background' => 'classic',
+            '_background_color' => '#ffffff',
+            '_border_radius' => ['unit' => 'px', 'top' => 10, 'right' => 10, 'bottom' => 10, 'left' => 10, 'isLinked' => true],
+            '_box_shadow_box_shadow_type' => 'yes',
+            '_box_shadow_box_shadow' => ['horizontal' => 0, 'vertical' => 4, 'blur' => 16, 'spread' => 0, 'color' => 'rgba(31,67,65,0.08)'],
+        ]);
+    }
+    $card_row = skintyee_section([
+        'structure' => '30',
+        'gap' => 'extended',
+    ], $card_cols, true);
+
+    $heading_widget = skintyee_heading($heading, 'h2', [
+        'align' => 'center',
+        'typography_typography' => 'custom',
+        'typography_font_family' => 'Lora',
+        'typography_font_weight' => '600',
+        'typography_font_size' => ['unit' => 'px', 'size' => 30, 'sizes' => []],
+        '_margin' => ['unit' => 'px', 'top' => 0, 'right' => 0, 'bottom' => 24, 'left' => 0, 'isLinked' => false],
+    ]);
+    return skintyee_section([
+        'content_width' => ['unit' => 'px', 'size' => 1140, 'sizes' => []],
+        'padding' => ['unit' => 'px', 'top' => 60, 'right' => 24, 'bottom' => 30, 'left' => 24, 'isLinked' => false],
+    ], [skintyee_column(100, [$heading_widget, $card_row])]);
+}
+
+/**
  * Content section with optional eyebrow + body paragraphs.
  * $paragraphs is an array of strings (each becomes its own paragraph widget).
  */
@@ -360,15 +430,12 @@ $pages = [
     ],
 
     // ---- COMMUNITY (replaces the old Culture page) ----
+    // Built below by the 'community_sections' branch — three sections (Events,
+    // Programs, Announcements) each with a 3-card row.
     'community' => [
-        'hero'    => HERO_COMMUNITY,
-        'h1'      => 'Community',
-        'eyebrow' => 'Events, observances, and programs',
-        'paragraphs' => [
-            'Skin Tyee community life is shaped by year-round gatherings and observances that bring members together. Annual events include the <strong>STN Christmas Community Dinner</strong>, <strong>Orange Shirt Day</strong> (honouring residential school survivors and the children who never came home), <strong>Red Dress Day</strong> (raising awareness for Missing and Murdered Indigenous Women, Girls and Two-Spirit people), and the <strong>Moose Hide Campaign</strong> (a grassroots movement of Indigenous and non-Indigenous men committed to ending violence against women and children).',
-            '<strong>Programs and services.</strong> The Nation runs ongoing programs supporting members across food security, environmental stewardship, youth and post-secondary education (including scholarships and learning funds), elders support through the Elders Committee, and member health information via the Stay Informed channel. The Skin Tyee Nation Territory hub coordinates regular food hamper distribution.',
-            '<strong>Stay connected.</strong> Watch the <a href="/news/">News</a> page for the latest announcements and updates, or contact the Band Administration office in Southbank for member services and event details.',
-        ],
+        'hero' => HERO_COMMUNITY,
+        'h1'   => 'Community',
+        'community_sections' => true,
     ],
 
     // ---- LEADERSHIP (combined: Chief & Council + Administration) ----
@@ -435,6 +502,90 @@ foreach ($pages as $slug => $cfg) {
         ];
         skintyee_save_elementor_page($page->ID, $sections);
         echo "[section] $slug (#{$page->ID}): " . count($sections) . " sections (About + Culture merged)\n";
+        continue;
+    }
+
+    if (!empty($cfg['community_sections'])) {
+        $att = skintyee_attachment_by_sha($cfg['hero']);
+        if (!$att) { echo "[section] skip $slug (hero missing)\n"; continue; }
+        $sections = [hero_section($att, $cfg['h1'])];
+
+        // Intro paragraphs (kept from the previous Community page)
+        $sections[] = content_section('Events, observances, and programs', [
+            'Skin Tyee community life is shaped by year-round gatherings and observances that bring members together &mdash; from annual events like the <strong>STN Christmas Community Dinner</strong>, <strong>Orange Shirt Day</strong> and <strong>Red Dress Day</strong>, to community meetings and skills workshops held throughout the year.',
+            '<strong>Programs and services.</strong> The Nation runs ongoing programs supporting members across food security, youth and post-secondary education (including scholarships and learning funds), the Moose Hide Campaign, elders support through the Elders Committee, and environmental stewardship.',
+            '<strong>Stay connected.</strong> Watch the <a href="/news/">News</a> page for the latest announcements, or contact the Band Administration office in Southbank for member services and event details.',
+        ]);
+
+        // Events (3 cards, with images where available)
+        $sections[] = section_with_cards('Events', [
+            ['title' => 'Kia Ora &mdash; Skin Tyee Nation Community Meeting',
+             'url'   => '',
+             'image_sha' => '5ea7046d786a33e55c97eca0c9091d0928474ab7',
+             'desc'  => 'You&rsquo;re invited to a community meeting at the Tseze Steamboating Camp in Burns Lake. Doors open 5:00 PM.'],
+            ['title' => 'Ribbon Skirt &amp; Ribbon Shirt-making Workshop',
+             'url'   => '',
+             'image_sha' => 'd9c203ca983a5705c3a7b1ae69474c738b7b0eb4',
+             'desc'  => 'A hands-on workshop for community members. Materials and guidance provided &mdash; please RSVP through the Band Office.'],
+            ['title' => 'STN Christmas Community Dinner',
+             'url'   => '/stn-christmas-community-dinner/',
+             'image_sha' => '0410d8b2797f6aeeb89fa7ed7fc9304da565bf23',
+             'desc'  => 'The annual community gathering held each December at the Skin Tyee community centre.'],
+        ]);
+
+        // Programs (3 cards). All program pages have an image in their imported
+        // post_content — sha1s were located by inspecting the first <img src=>
+        // of each page's content.
+        $sections[] = section_with_cards('Programs', [
+            ['title' => 'Youth Employment &amp; Education',
+             'url'   => '/youth/',
+             'image_sha' => '8df3615768722634b5452c2936888e7ac681697c',
+             'desc'  => 'The Outland Youth Employment Program (OYEP) for Indigenous youth aged 16&ndash;18, plus the MCFD Learning Fund for young adults.'],
+            ['title' => 'Scholarships',
+             'url'   => '/scholarships/',
+             'image_sha' => '511e929e2e9aa4f478ca44cc7d03e62cd77050e7',
+             'desc'  => 'Post-secondary scholarships and learning supports for Skin Tyee members &mdash; including the TC Energy Scholarships and other listed opportunities.'],
+            ['title' => 'The Moose Hide Campaign',
+             'url'   => '/the-moose-hide-campaign/',
+             'image_sha' => 'fc456831406743e26569f8fa53a7be24e45f34a6',
+             'desc'  => 'A grassroots movement of Indigenous and non-Indigenous men committed to ending violence against women and children.'],
+        ]);
+
+        // Announcements — most recent 3 published posts
+        $announce_posts = get_posts([
+            'post_type'   => 'post',
+            'numberposts' => 3,
+            'orderby'     => 'date',
+            'order'       => 'DESC',
+            'post_status' => 'publish',
+        ]);
+        $announce_cards = [];
+        foreach ($announce_posts as $p) {
+            $excerpt = $p->post_excerpt ?: wp_trim_words(strip_tags(strip_shortcodes($p->post_content)), 18);
+            $card = [
+                'title' => $p->post_title,
+                'url'   => get_permalink($p->ID),
+                'desc'  => $excerpt,
+            ];
+            // Extract the first <img> src from post_content and recover its
+            // sha1 (the imported filename is "<sha1>-...-<size>.<ext>"). With
+            // the sha we can reference the attachment by 'image_sha' so the
+            // card renders the cropped skintyee_card thumbnail like the others.
+            if (preg_match('~<img[^>]+src=["\']([^"\']+)["\']~', $p->post_content, $m)) {
+                if (preg_match('~/([a-f0-9]{40})(?:-\d+x\d+)?\.(?:jpg|jpeg|png|gif|webp)~i', $m[1], $sm)) {
+                    $card['image_sha'] = $sm[1];
+                } else {
+                    $card['image_url'] = $m[1];
+                }
+            }
+            $announce_cards[] = $card;
+        }
+        if (!empty($announce_cards)) {
+            $sections[] = section_with_cards('Announcements', $announce_cards);
+        }
+
+        skintyee_save_elementor_page($page->ID, $sections);
+        echo "[section] $slug (#{$page->ID}): community 3x3 (" . count($sections) . " sections)\n";
         continue;
     }
 

@@ -85,6 +85,14 @@
     .entry-content .col-lg-12 { width: 100%; }
 }
 
+/* Card-grid title alignment: when 3 cards sit in a row, titles wrap to
+ * different line counts and the description below misaligns. Give the title
+ * heading a min-height ~ 2 lines so cards line up regardless of title
+ * length. Scoped to Elementor inner-section card rows. */
+.elementor-section.elementor-inner-section .elementor-widget-heading h3.elementor-heading-title {
+    min-height: 2.4em;
+}
+
 /* Hide Astra's footer copyright + "Powered by" credit entirely. Astra's HFB
  * footer reads its credit text from a serialized builder structure, not from
  * the older footer-sml-section-1 theme_mod we set, so the customizer override
