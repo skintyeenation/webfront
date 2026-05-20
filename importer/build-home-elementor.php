@@ -20,6 +20,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/elementor-helpers.php';
+
 const LOGO_SHA       = '48facf18c1a083b1df0535f7f59ed091a0c39d2c';  // thunderbird, header logo
 const HERO_SHA       = '7e8ebbafda693524c7e2e203a95f6348a69233ba';
 const BC_MAP_SHA     = '7ccd337afb24f226ec96d6bc25fff792ea3d0064';
@@ -50,66 +52,6 @@ const LEADERSHIP = [
 const ABOUT_BODY = 'Our community is dedicated to fostering connections, empowerment, and support among members. We believe in the power of unity and work tirelessly to create a welcoming environment where everyone can thrive. Come join us and be a part of something special!';
 const SLOGAN     = '&ldquo;Enpowering Our Future: Unity, Strength, Prosperity.&rdquo;';
 const SUBTITLE   = 'Building a Brighter Tomorrow Together';
-
-// --- helpers ----------------------------------------------------------------
-
-function el_id(): string { return substr(bin2hex(random_bytes(4)), 0, 7); }
-
-function attachment_by_sha(string $sha): ?array {
-    global $wpdb;
-    $row = $wpdb->get_row($wpdb->prepare(
-        "SELECT p.ID, p.guid FROM {$wpdb->posts} p
-         JOIN {$wpdb->postmeta} m ON m.post_id = p.ID
-         WHERE p.post_type='attachment' AND m.meta_key='_skintyee_sha1' AND m.meta_value=%s LIMIT 1",
-        $sha
-    ));
-    return $row ? ['id' => (int) $row->ID, 'url' => $row->guid] : null;
-}
-
-function widget(string $type, array $settings, array $elements = []): array {
-    return [
-        'id' => el_id(),
-        'elType' => 'widget',
-        'widgetType' => $type,
-        'settings' => $settings,
-        'elements' => $elements,
-    ];
-}
-
-function column(int $size, array $elements, array $extra_settings = []): array {
-    return [
-        'id' => el_id(),
-        'elType' => 'column',
-        'settings' => array_merge(['_column_size' => $size, '_inline_size' => $size], $extra_settings),
-        'elements' => $elements,
-    ];
-}
-
-function section(array $settings, array $columns, bool $inner = false): array {
-    $s = [
-        'id' => el_id(),
-        'elType' => 'section',
-        'settings' => $settings,
-        'elements' => $columns,
-    ];
-    if ($inner) $s['isInner'] = true;
-    return $s;
-}
-
-function heading(string $title, string $size = 'h2', array $extra = []): array {
-    return widget('heading', array_merge(['title' => $title, 'header_size' => $size], $extra));
-}
-
-function paragraph(string $text, array $extra = []): array {
-    return widget('text-editor', array_merge(['editor' => '<p>' . $text . '</p>'], $extra));
-}
-
-function image_widget(array $att, array $extra = []): array {
-    return widget('image', array_merge([
-        'image' => ['id' => $att['id'], 'url' => $att['url']],
-        'image_size' => 'medium_large',
-    ], $extra));
-}
 
 // --- gather attachments ----------------------------------------------------
 
@@ -216,6 +158,7 @@ foreach ($leaders as $L) {
         image_widget($L['att'], [
             'image_size' => 'medium',
             'align' => 'center',
+            '_css_classes' => 'st-leader-portrait',
             '_margin' => ['unit' => 'px', 'top' => 0, 'right' => 0, 'bottom' => 12, 'left' => 0, 'isLinked' => false],
         ]),
         heading($L['name'], 'h4', [

@@ -103,6 +103,13 @@ docker compose run --rm \
   --entrypoint /usr/local/bin/php \
   wpcli -r 'require_once("/var/www/html/wp-load.php"); require("/importer/build-home-elementor.php");'
 
+# 12. Rebuild the 6 main section pages (About / History / Culture / Leadership /
+#     Administration / Projects) with researched content + hero photos for the
+#     non-staff pages.
+docker compose run --rm \
+  --entrypoint /usr/local/bin/php \
+  wpcli -r 'require_once("/var/www/html/wp-load.php"); require("/importer/build-section-pages.php");'
+
 echo ""
 echo "[done] http://localhost:8080/"
 echo "       admin: http://localhost:8080/wp-admin/  (admin / admin)"

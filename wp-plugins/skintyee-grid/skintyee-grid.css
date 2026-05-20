@@ -95,6 +95,23 @@
     display: none;
 }
 
+/* Round portrait crop for the home's leadership cards.
+ * Targeted via Elementor's _css_classes ("st-leader-portrait") so it doesn't
+ * affect other images on the site. object-fit:cover so the headshots crop
+ * cleanly to a perfect circle regardless of original aspect ratio. */
+.st-leader-portrait .elementor-image,
+.st-leader-portrait img {
+    border-radius: 50%;
+    overflow: hidden;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    max-width: 180px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
+}
+
 /* Header logo: Astra's theme_mod for logo width can be overridden by
  * intrinsic image size on some themes/breakpoints. Cap it here at low
  * specificity so the Customizer can still bump it up if needed. */
