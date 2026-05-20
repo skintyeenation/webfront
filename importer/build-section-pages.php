@@ -538,7 +538,7 @@ foreach ($pages as $slug => $cfg) {
         // of each page's content.
         $sections[] = section_with_cards('Programs', [
             ['title' => 'Youth Employment &amp; Education',
-             'url'   => '/youth/',
+             'url'   => '/category/programs/youth/',
              'image_sha' => '8df3615768722634b5452c2936888e7ac681697c',
              'desc'  => 'The Outland Youth Employment Program (OYEP) for Indigenous youth aged 16&ndash;18, plus the MCFD Learning Fund for young adults.'],
             ['title' => 'Scholarships',
