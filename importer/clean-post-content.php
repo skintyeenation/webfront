@@ -44,14 +44,51 @@ foreach ($posts as $p) {
         '',
         $content
     );
-    // Strip the related-article-container row at the bottom — these are
-    // Site123-rendered "related" cards pointing at the original /stay-informed/
-    // post URLs. Match the div + close.
-    $content = preg_replace(
-        '~<div\b[^>]*\brelated-article-container\b[^>]*>.*?</div>\s*</div>\s*</div>~s',
-        '',
+    // Strip the related-article-container div via DOMDocument — regex with
+    // .*? closing on a specific count of </div> doesn't handle the nested
+    // 3-card structure correctly (first attempt left two of the three cards
+    // behind on some posts). DOMDocument removes the entire matching element
+    // and all its descendants in one shot.
+    if (str_contains($content, 'related-article-container')) {
+        $dom = new DOMDocument();
+        $prev = libxml_use_internal_errors(true);
+        $dom->loadHTML('<?xml encoding="UTF-8"?><div id="__st_root">' . $content . '</div>',
+                       LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        libxml_clear_errors();
+        libxml_use_internal_errors($prev);
+        $xp = new DOMXPath($dom);
+        foreach ($xp->query('//div[contains(concat(" ", normalize-space(@class), " "), " related-article-container ")]') as $node) {
+            $node->parentNode->removeChild($node);
+        }
+        $root = $dom->getElementById('__st_root');
+        if ($root) {
+            $new = '';
+            foreach ($root->childNodes as $child) {
+                $new .= $dom->saveHTML($child);
+            }
+            $content = $new;
+        }
+    }
+    // Strip any <h1> whose text matches the post title — Astra (and most
+    // themes) render the post title in the template header already, so a
+    // duplicate h1 inside the body reads as a doubled heading.
+    $title_normalized = strtolower(trim(preg_replace('/\s+/', ' ', strip_tags($p->post_title))));
+    $content = preg_replace_callback(
+        '~<h1\b[^>]*>(.*?)</h1>~is',
+        function ($m) use ($title_normalized) {
+            $heading = strtolower(trim(preg_replace('/\s+/', ' ', strip_tags($m[1]))));
+            // Match if either is a prefix of the other (handles short titles
+            // that got expanded in the imported h1 or vice versa).
+            if ($heading === $title_normalized
+                || str_starts_with($heading, $title_normalized)
+                || str_starts_with($title_normalized, $heading)) {
+                return '';
+            }
+            return $m[0];
+        },
         $content
     );
+
     // Tidy any empty wrappers left behind
     for ($i = 0; $i < 3; $i++) {
         $content = preg_replace('~<(div|section)[^>]*>\s*</\1>~', '', $content);
