@@ -28,6 +28,7 @@ export const routeConfig = {
   notificationCreate: { name: 'notificationCreate', options: { title: 'Post', header: header('Post Notification') } },
   memberCreate: { name: 'memberCreate', options: { title: 'Add member', header: header('Add Member') } },
   timesheetCreate: { name: 'timesheetCreate', options: { title: 'Timesheet', header: header('Add Timesheet') } },
+  meetingCreate: { name: 'meetingCreate', options: { title: 'New meeting', header: header('Schedule Meeting') } },
   // Account / role switcher
   account: { name: 'account', options: { title: 'Account', header: header('Account') } },
 };

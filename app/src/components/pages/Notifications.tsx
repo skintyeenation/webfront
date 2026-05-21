@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
-import { Badge, Card, SegmentedButtons, Text } from 'react-native-paper';
+import { Badge, Button, Card, SegmentedButtons, Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import moment from 'moment';
 import { PageContainer, PageContent, NoContent, MonthCalendar, AdminAddButton } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
-import { loadNotifications } from 'skintyee/store/modules/notifications';
+import { loadNotifications, removeNotification } from 'skintyee/store/modules/notifications';
 import { AppNotification } from 'skintyee/models';
 import { theme } from 'skintyee/styles';
 
@@ -28,7 +28,7 @@ const categoryColor: Record<string, string> = {
 
 const dateKey = (iso: string) => moment(iso).format('YYYY-MM-DD');
 
-function NotificationCard({ item }: { item: AppNotification }) {
+function NotificationCard({ item, isAdmin, onDelete }: { item: AppNotification; isAdmin: boolean; onDelete: () => void }) {
   return (
     <Card
       style={{
@@ -46,6 +46,11 @@ function NotificationCard({ item }: { item: AppNotification }) {
         </View>
         <Text style={{ color: theme.colors.textDarker, marginTop: 4 }}>{item.body}</Text>
         <Text style={{ color: theme.colors.textDarker, marginTop: 6, fontSize: 12 }}>{moment(item.createdAt).format('MMM D, h:mm A')} · {moment(item.createdAt).fromNow()}</Text>
+        {isAdmin ? (
+          <Button compact mode="text" icon="delete" textColor={theme.colors.error} style={{ alignSelf: 'flex-start', marginTop: 6 }} onPress={onDelete}>
+            Delete
+          </Button>
+        ) : null}
       </Card.Content>
     </Card>
   );
@@ -56,6 +61,7 @@ type ViewMode = 'list' | 'calendar';
 export default function Notifications({ navigation }: any) {
   const dispatch = useAppDispatch();
   const { entities, loading, loaded } = useAppSelector((s) => s.notifications);
+  const isAdmin = useAppSelector((s) => s.auth.role) === 'admin';
   const [view, setView] = useState<ViewMode>('list');
 
   useEffect(() => {
@@ -100,7 +106,7 @@ export default function Notifications({ navigation }: any) {
         {entities.length === 0 ? (
           <NoContent loading={loading || !loaded} message="No notifications." />
         ) : view === 'list' ? (
-          entities.map((item) => <NotificationCard key={item._id} item={item} />)
+          entities.map((item) => <NotificationCard key={item._id} item={item} isAdmin={isAdmin} onDelete={() => dispatch(removeNotification(item._id))} />)
         ) : (
           <>
             <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 14 }}>
@@ -112,7 +118,7 @@ export default function Notifications({ navigation }: any) {
             {dayItems.length === 0 ? (
               <NoContent message="No notifications on this day." />
             ) : (
-              dayItems.map((item) => <NotificationCard key={item._id} item={item} />)
+              dayItems.map((item) => <NotificationCard key={item._id} item={item} isAdmin={isAdmin} onDelete={() => dispatch(removeNotification(item._id))} />)
             )}
           </>
         )}

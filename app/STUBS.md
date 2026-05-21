@@ -76,11 +76,15 @@ API Server for data.
 
 ## 2d. Admin authoring (create/manage) — in-memory only
 
-- **What:** admins (role = admin) can add a Community Event, post a Notification,
-  and add/remove a Directory member — via "+ Add" actions on those pages.
-- **Where:** `CreateEvent.tsx`, `PostNotification.tsx`, `AddMember.tsx`, the
-  `addEvent` / `addNotification` / `addMember` / `removeMember` slice actions, and
-  `components/layout/AdminAddButton` (admin-only).
+- **What:** admins can **add / delete / cancel** content in-context:
+  - Events — add, cancel (toggle), delete.
+  - Band Meetings — add, cancel (toggle), delete.
+  - Notifications — post, delete.
+  - Directory — add member, remove member.
+  - Time Keeping — staff/admin add their own timesheet; admins approve.
+- **Where:** `CreateEvent.tsx`, `CreateMeeting.tsx`, `PostNotification.tsx`,
+  `AddMember.tsx`, `AddTimesheet.tsx`; the `add*/remove*/cancel*/approveTimeEntry`
+  slice actions; `components/layout/AdminAddButton` (role-gated).
 - **STUB:** changes are dispatched to the Redux store only — **not persisted**;
   they reset on reload and are not sent to any backend. Wire these to the real
   `ApiService` once it exists.

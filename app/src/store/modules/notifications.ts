@@ -24,8 +24,9 @@ const notificationsSlice = createSlice({
   name: 'notifications',
   initialState: notificationsInitialState,
   reducers: {
-    // Admin: post a new notification to the (in-memory) list.
+    // Admin: post / delete a notification (in-memory).
     addNotification: (state, action) => ({ ...state, entities: [action.payload, ...state.entities] }),
+    removeNotification: (state, action) => ({ ...state, entities: state.entities.filter((n) => n._id !== action.payload) }),
   },
   extraReducers: (builder) => {
     builder.addCase(loadNotifications.pending, reducePendingState());
@@ -34,6 +35,6 @@ const notificationsSlice = createSlice({
   },
 });
 
-export const { addNotification } = notificationsSlice.actions;
+export const { addNotification, removeNotification } = notificationsSlice.actions;
 
 export default notificationsSlice.reducer;
