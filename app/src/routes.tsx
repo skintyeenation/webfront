@@ -27,6 +27,7 @@ export const routeConfig = {
   eventCreate: { name: 'eventCreate', options: { title: 'New event', header: header('New Event') } },
   eventEdit: { name: 'eventEdit', options: { title: 'Edit event', header: header('Edit Event') } },
   notificationCreate: { name: 'notificationCreate', options: { title: 'Post', header: header('Post Notification') } },
+  notificationEdit: { name: 'notificationEdit', options: { title: 'Edit', header: header('Edit Notification') } },
   memberCreate: { name: 'memberCreate', options: { title: 'Add member', header: header('Add Member') } },
   timesheetCreate: { name: 'timesheetCreate', options: { title: 'Timesheet', header: header('Add Timesheet') } },
   meetingCreate: { name: 'meetingCreate', options: { title: 'New meeting', header: header('Schedule Meeting') } },

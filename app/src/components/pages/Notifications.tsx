@@ -28,7 +28,7 @@ const categoryColor: Record<string, string> = {
 
 const dateKey = (iso: string) => moment(iso).format('YYYY-MM-DD');
 
-function NotificationCard({ item, isAdmin, onDelete }: { item: AppNotification; isAdmin: boolean; onDelete: () => void }) {
+function NotificationCard({ item, isAdmin, onEdit, onDelete }: { item: AppNotification; isAdmin: boolean; onEdit: () => void; onDelete: () => void }) {
   return (
     <Card
       style={{
@@ -47,9 +47,14 @@ function NotificationCard({ item, isAdmin, onDelete }: { item: AppNotification; 
         <Text style={{ color: theme.colors.textDarker, marginTop: 4 }}>{item.body}</Text>
         <Text style={{ color: theme.colors.textDarker, marginTop: 6, fontSize: 12 }}>{moment(item.createdAt).format('MMM D, h:mm A')} · {moment(item.createdAt).fromNow()}</Text>
         {isAdmin ? (
-          <Button compact mode="text" icon="delete" textColor={theme.colors.error} style={{ alignSelf: 'flex-start', marginTop: 6 }} onPress={onDelete}>
-            Delete
-          </Button>
+          <View style={{ flexDirection: 'row', marginTop: 6 }}>
+            <Button compact mode="text" icon="pencil" textColor={theme.colors.primary} onPress={onEdit}>
+              Edit
+            </Button>
+            <Button compact mode="text" icon="delete" textColor={theme.colors.error} onPress={onDelete}>
+              Delete
+            </Button>
+          </View>
         ) : null}
       </Card.Content>
     </Card>
@@ -110,7 +115,7 @@ export default function Notifications({ navigation }: any) {
         {entities.length === 0 ? (
           <NoContent loading={loading || !loaded} message="No notifications." />
         ) : view === 'list' ? (
-          entities.map((item) => <NotificationCard key={item._id} item={item} isAdmin={isAdmin} onDelete={() => confirmDelete(item)} />)
+          entities.map((item) => <NotificationCard key={item._id} item={item} isAdmin={isAdmin} onEdit={() => navigation.navigate("notificationEdit", { id: item._id })} onDelete={() => confirmDelete(item)} />)
         ) : (
           <>
             <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 14 }}>
@@ -122,7 +127,7 @@ export default function Notifications({ navigation }: any) {
             {dayItems.length === 0 ? (
               <NoContent message="No notifications on this day." />
             ) : (
-              dayItems.map((item) => <NotificationCard key={item._id} item={item} isAdmin={isAdmin} onDelete={() => confirmDelete(item)} />)
+              dayItems.map((item) => <NotificationCard key={item._id} item={item} isAdmin={isAdmin} onEdit={() => navigation.navigate("notificationEdit", { id: item._id })} onDelete={() => confirmDelete(item)} />)
             )}
           </>
         )}

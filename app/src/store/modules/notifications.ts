@@ -24,8 +24,12 @@ const notificationsSlice = createSlice({
   name: 'notifications',
   initialState: notificationsInitialState,
   reducers: {
-    // Admin: post / delete a notification (in-memory).
+    // Admin: post / edit / delete a notification (in-memory).
     addNotification: (state, action) => ({ ...state, entities: [action.payload, ...state.entities] }),
+    updateNotification: (state, action) => ({
+      ...state,
+      entities: state.entities.map((n) => (n._id === action.payload._id ? { ...n, ...action.payload } : n)),
+    }),
     removeNotification: (state, action) => ({ ...state, entities: state.entities.filter((n) => n._id !== action.payload) }),
   },
   extraReducers: (builder) => {
@@ -35,6 +39,6 @@ const notificationsSlice = createSlice({
   },
 });
 
-export const { addNotification, removeNotification } = notificationsSlice.actions;
+export const { addNotification, updateNotification, removeNotification } = notificationsSlice.actions;
 
 export default notificationsSlice.reducer;

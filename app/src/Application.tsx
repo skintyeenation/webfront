@@ -31,6 +31,7 @@ import Account from 'skintyee/components/pages/Account';
 import CreateEvent from 'skintyee/components/pages/CreateEvent';
 import EditEvent from 'skintyee/components/pages/EditEvent';
 import PostNotification from 'skintyee/components/pages/PostNotification';
+import EditNotification from 'skintyee/components/pages/EditNotification';
 import AddMember from 'skintyee/components/pages/AddMember';
 import AddTimesheet from 'skintyee/components/pages/AddTimesheet';
 import CreateMeeting from 'skintyee/components/pages/CreateMeeting';
@@ -81,6 +82,7 @@ const NotificationsNavigation = () => (
   <NotificationsStack.Navigator>
     <NotificationsStack.Screen {...routeConfig.notifications} component={Notifications} />
     <NotificationsStack.Screen {...routeConfig.notificationCreate} component={PostNotification} />
+    <NotificationsStack.Screen {...routeConfig.notificationEdit} component={EditNotification} />
   </NotificationsStack.Navigator>
 );
 
