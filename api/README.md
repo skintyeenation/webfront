@@ -5,15 +5,28 @@ The backend "API Server" from `SkinTyee.drawio.pdf` (→ Azure Cloud DB). This i
 the contract the app's `ApiService` is written against.
 
 Right now this package ships:
-- **`openapi.yaml`** — the proposed API contract (all app domains + admin CRUD).
-- A **lightweight Express stub server** that serves Swagger UI and returns sample
-  data, so the contract is browsable/runnable today while the real backend is built.
+- **`openapi.yaml`** — the API contract (all app domains + admin CRUD).
+- A working **NestJS implementation** of that contract with an **in-memory data
+  layer**, **role-gated** writes (via an `x-role` header standing in for an Entra
+  ID token), and **Swagger UI** at `/docs`. Persistence (Prisma + PostgreSQL/
+  PostGIS) is the next step — only `data.service.ts` changes.
 
 ```bash
 pnpm install
-pnpm --filter @skintyee/api dev      # http://localhost:4000/docs (Swagger UI)
+pnpm --filter @skintyee/api dev            # http://localhost:4000/docs (Swagger UI); routes under /v1
+pnpm --filter @skintyee/api typecheck
 pnpm --filter @skintyee/api lint:openapi   # validate the spec
+
+# Try it (role via x-role header, POC stand-in for Entra ID):
+curl localhost:4000/v1/events
+curl -H 'x-role: admin' localhost:4000/v1/financials
+curl -H 'x-role: admin' -H 'content-type: application/json' \
+  -d '{"title":"Boil water advisory","category":"Health"}' localhost:4000/v1/notifications
 ```
+
+**Structure:** `src/main.ts` (bootstrap + Swagger), `app.module.ts`,
+`controllers.ts` (one controller per domain), `data.service.ts` (in-memory
+store, seeded from `fixtures.ts`), `roles.ts` (`@Roles` + `RolesGuard`).
 
 Endpoints (see the spec for full detail): `/directory`, `/events`, `/meetings`,
 `/transparency/{expenditures,major-projects}`, `/financials`, `/timekeeping/*`,
@@ -42,9 +55,12 @@ Endpoints (see the spec for full detail): `/directory`, `/events`, `/meetings`,
 typed client from it (e.g. `openapi-typescript`) to replace the hand-written
 `ApiService` interface, and validate the NestJS implementation against it in CI.
 
-**Migration path:** this Express stub stays as the mock/reference server for the
-app and for front-end demos; the NestJS implementation grows alongside it and
-takes over `api.skintyee.ca` in Phase 2 (see `../docs/roadmap.md`).
+**Next steps to production:** swap the in-memory `data.service.ts` for **Prisma
+over Azure PostgreSQL + PostGIS**; replace the `x-role` header with **Entra ID**
+JWT validation in `RolesGuard`; add `class-validator` DTOs (or
+`express-openapi-validator`) to enforce the contract; wire the **Ferrus/Adagio**
+finance sync and **WordPress**/push for notifications; deploy via Docker to
+**Azure Container Apps** (see `../docs/roadmap.md`).
 
-> POC note: the stub does not enforce auth/roles and returns in-memory sample
-> data — see `../app/STUBS.md` for the full list of stubs.
+> POC note: data is in-memory (resets on restart) and roles come from an
+> `x-role` header rather than a verified token — see `../app/STUBS.md`.

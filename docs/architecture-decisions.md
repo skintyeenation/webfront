@@ -90,10 +90,12 @@ Decision record for the Skin Tyee app (`@skintyee/app`, in `app/`). Lives in the
   PITR (the NGO priority) and SQL aligns with the Ferrus/Adagio (Sage 300) data
   flows (ADR-5). The WordPress site stays on **MySQL** (WordPress requires it);
   the API uses Postgres for the GIS needs.
-- **Status:** **proposed.** `api/` currently ships the OpenAPI spec + a
-  lightweight Express **stub** server (Swagger UI + sample data); the NestJS
-  implementation lands in Phase 2 (see [`roadmap.md`](./roadmap.md)). Full
-  rationale + stack table: [`api/README.md`](../api/README.md).
+- **Status:** **NestJS implemented** in `api/` against the spec — all endpoints,
+  role-gated writes (via `x-role` header standing in for Entra ID), Swagger UI,
+  in-memory data layer. **Next:** Prisma + Azure PostgreSQL/PostGIS persistence,
+  real Entra ID JWT validation, and the Ferrus/WordPress integrations (Phase 2,
+  see [`roadmap.md`](./roadmap.md)). Full rationale + stack table:
+  [`api/README.md`](../api/README.md).
 
 ## Summary: ppt → Skin Tyee service swaps
 
@@ -101,7 +103,7 @@ Decision record for the Skin Tyee app (`@skintyee/app`, in `app/`). Lives in the
 |---|---|---|---|
 | Identity | AWS Cognito / Amplify | **Microsoft Entra ID** | stubbed (role switcher) |
 | Object storage | AWS S3 | **Azure Blob Storage** | not implemented |
-| Database / API | Mongo + Nest microservices | **Azure PostgreSQL Flexible Server (PostGIS)** + **NestJS** API (`api.skintyee.ca`) | spec'd (`api/openapi.yaml`) + stub server; mocked in app |
+| Database / API | Mongo + Nest microservices | **Azure PostgreSQL Flexible Server (PostGIS)** + **NestJS** API (`api.skintyee.ca`) | NestJS impl (in-memory) against `api/openapi.yaml`; Prisma/Postgres next; app still on mock |
 | Financial / program data | — | **Ferrus ASAP Suite + Adagio / Sage 300** | mocked (transparency + financials) |
 | Notifications taxonomy | — | **skintyee.ca WordPress categories** | modelled; push + feed stubbed |
 | App packaging | source lib + app-shell submodules | **single self-contained app** | done |
