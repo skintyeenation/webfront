@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
-import { Card, Chip, ProgressBar, Text } from 'react-native-paper';
+import { Card, Chip, ProgressBar, SegmentedButtons, Text } from 'react-native-paper';
 import { PageContainer, PageContent, BarChart, PieChart, colorAt } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { loadExpenditures, loadMajorProjects } from 'skintyee/store/modules/transparency';
@@ -9,8 +9,10 @@ import { loadPolls } from 'skintyee/store/modules/polls';
 import { loadDirectory } from 'skintyee/store/modules/directory';
 import { theme } from 'skintyee/styles';
 
+type Period = 'month' | 'year';
+
 const k = (n: number) => `$${(n / 1000).toFixed(0)}k`;
-const full = (n: number) => `$${n.toLocaleString('en-CA')}`;
+const full = (n: number) => `$${Math.round(n).toLocaleString('en-CA')}`;
 
 const statusColor: Record<string, string> = {
   complete: theme.colors.success,
@@ -37,6 +39,12 @@ export default function Dashboard({ navigation }: any) {
   const polls = useAppSelector((s) => s.polls.entities);
   const members = useAppSelector((s) => s.directory.entities);
 
+  // Reporting period toggle. Annual figures are the source; "month" shows the
+  // monthly run-rate (annual / 12).
+  const [period, setPeriod] = useState<Period>('year');
+  const f = period === 'month' ? 1 / 12 : 1;
+  const periodWord = period === 'month' ? 'this month' : 'this year';
+
   useEffect(() => {
     dispatch(loadExpenditures());
     dispatch(loadMajorProjects());
@@ -45,8 +53,8 @@ export default function Dashboard({ navigation }: any) {
     dispatch(loadDirectory());
   }, [dispatch]);
 
-  const totalSpent = expenditures.reduce((s, e) => s + e.spent, 0);
-  const totalAllocated = expenditures.reduce((s, e) => s + e.budget, 0);
+  const totalSpent = expenditures.reduce((s, e) => s + e.spent, 0) * f;
+  const totalAllocated = expenditures.reduce((s, e) => s + e.budget, 0) * f;
   const pctOfBudget = totalAllocated ? Math.round((totalSpent / totalAllocated) * 100) : 0;
   const avgPerMember = members.length ? totalSpent / members.length : 0;
   const openPolls = polls.filter((p) => !p.closed).length;
@@ -55,15 +63,27 @@ export default function Dashboard({ navigation }: any) {
   return (
     <PageContainer>
       <PageContent>
+        {/* Reporting period toggle */}
+        <SegmentedButtons
+          value={period}
+          onValueChange={(v) => setPeriod(v as Period)}
+          density="small"
+          style={{ marginBottom: 14 }}
+          buttons={[
+            { value: 'month', label: 'Month', icon: 'calendar-month' },
+            { value: 'year', label: 'Year', icon: 'calendar' },
+          ]}
+        />
+
         {/* Budget summary pie at the top */}
         <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
           <Card.Content>
-            <Text style={{ color: theme.colors.text, fontSize: 16, marginBottom: 12 }}>Budget summary · spending by area</Text>
+            <Text style={{ color: theme.colors.text, fontSize: 16, marginBottom: 12 }}>Budget summary · spending by area ({periodWord})</Text>
             {expenditures.length > 0 ? (
               <PieChart
-                data={expenditures.map((e, i) => ({ label: e.area, value: e.spent, color: colorAt(i) }))}
+                data={expenditures.map((e, i) => ({ label: e.area, value: e.spent * f, color: colorAt(i) }))}
                 centerLabel={k(totalSpent)}
-                centerSub="spent"
+                centerSub={periodWord}
                 formatValue={k}
               />
             ) : (
@@ -74,10 +94,10 @@ export default function Dashboard({ navigation }: any) {
 
         <Text style={{ color: theme.colors.text, fontSize: 18, marginBottom: 10 }}>Community at a glance</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4, marginBottom: 12 }}>
-          <Stat label="Spent this year" value={k(totalSpent)} color={theme.colors.success} />
+          <Stat label={`Spent ${periodWord}`} value={k(totalSpent)} color={theme.colors.success} />
           <Stat label={`Spent vs allocated (${pctOfBudget}%)`} value={`${k(totalSpent)} / ${k(totalAllocated)}`} color={theme.colors.accent} />
           <Stat label="Band members" value={String(members.length)} color={theme.colors.primary} />
-          <Stat label="Avg spend / member" value={full(Math.round(avgPerMember))} color={theme.colors.primary} />
+          <Stat label={`Avg spend / member (${periodWord})`} value={full(avgPerMember)} color={theme.colors.primary} />
           <Stat label="Upcoming events" value={String(upcomingEvents)} color={theme.colors.accent} />
           <Stat label="Open polls" value={String(openPolls)} color={theme.colors.primary} />
         </View>
@@ -86,7 +106,7 @@ export default function Dashboard({ navigation }: any) {
         <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
           <Card.Content>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-              <Text style={{ color: theme.colors.text }}>Budget vs actual</Text>
+              <Text style={{ color: theme.colors.text }}>Budget vs actual ({periodWord})</Text>
               <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>{full(totalSpent)} of {full(totalAllocated)}</Text>
             </View>
             <ProgressBar progress={totalAllocated ? totalSpent / totalAllocated : 0} color={theme.colors.success} style={{ height: 8, backgroundColor: theme.colors.secondary }} />
@@ -98,7 +118,7 @@ export default function Dashboard({ navigation }: any) {
             <Card.Content>
               <Text style={{ color: theme.colors.text, marginBottom: 10 }}>Spending by program area (spent vs allocated)</Text>
               {expenditures.length > 0 ? (
-                <BarChart data={expenditures.map((e) => ({ label: e.area, value: e.spent, max: e.budget, color: theme.colors.primary }))} formatValue={full} />
+                <BarChart data={expenditures.map((e) => ({ label: e.area, value: e.spent * f, max: e.budget * f, color: theme.colors.primary }))} formatValue={full} />
               ) : (
                 <Text style={{ color: theme.colors.textDarker }}>Loading…</Text>
               )}
@@ -107,10 +127,10 @@ export default function Dashboard({ navigation }: any) {
           </Card>
         </TouchableOpacity>
 
-        {/* Major projects: allocated vs spent */}
+        {/* Major projects: allocated vs spent (project to date — not period-scaled) */}
         <Card style={{ backgroundColor: theme.colors.darkDefault }}>
           <Card.Content>
-            <Text style={{ color: theme.colors.text, marginBottom: 10 }}>Major projects · allocated vs spent</Text>
+            <Text style={{ color: theme.colors.text, marginBottom: 10 }}>Major projects · allocated vs spent (project to date)</Text>
             {majorProjects.length === 0 ? (
               <Text style={{ color: theme.colors.textDarker }}>Loading…</Text>
             ) : (
