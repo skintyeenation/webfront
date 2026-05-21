@@ -1,6 +1,7 @@
 import React from 'react';
-import { View } from 'react-native';
-import { Avatar, Button, Card, Divider, Text } from 'react-native-paper';
+import { TouchableOpacity, View } from 'react-native';
+import { Avatar, Button, Card, Chip, Divider, Text } from 'react-native-paper';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { PageContainer, PageContent } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { setRole } from 'skintyee/store/modules/auth';
@@ -22,14 +23,56 @@ const ROLES: { role: Role; label: string; desc: string }[] = [
 export default function Account() {
   const dispatch = useAppDispatch();
   const { role, name } = useAppSelector((s) => s.auth);
+  const isAdmin = role === 'admin';
+
+  // No real auth yet — let the profile badge spoof admin in/out for demos.
+  const toggleAdmin = () => dispatch(setRole(isAdmin ? 'member' : 'admin'));
 
   return (
     <PageContainer>
       <PageContent>
-        <View style={{ alignItems: 'center', marginBottom: 20 }}>
-          <Avatar.Icon size={64} icon="account" style={{ backgroundColor: theme.colors.primary }} />
+        <View style={{ alignItems: 'center', marginBottom: 16 }}>
+          {/* Tappable profile badge — spoofs admin in/out (dev only). */}
+          <TouchableOpacity onPress={toggleAdmin} activeOpacity={0.8} style={{ width: 72, height: 72 }}>
+            <Avatar.Icon size={72} icon="account" style={{ backgroundColor: theme.colors.primary }} />
+            <View
+              style={{
+                position: 'absolute',
+                right: -2,
+                bottom: -2,
+                width: 28,
+                height: 28,
+                borderRadius: 14,
+                backgroundColor: isAdmin ? theme.colors.accent : theme.colors.darkDefault,
+                borderWidth: 2,
+                borderColor: theme.colors.background,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <MaterialCommunityIcons name={isAdmin ? 'shield-account' : 'shield-plus-outline'} size={16} color={isAdmin ? '#000' : theme.colors.primary} />
+            </View>
+          </TouchableOpacity>
           <Text style={{ color: theme.colors.text, fontSize: 18, marginTop: 10 }}>{name}</Text>
-          <Text style={{ color: theme.colors.textDarker }}>Current role: {role}</Text>
+          <Chip
+            compact
+            style={{ marginTop: 6, backgroundColor: isAdmin ? theme.colors.accent : theme.colors.secondary }}
+            textStyle={{ color: isAdmin ? '#000' : theme.colors.text, fontSize: 11 }}
+          >
+            {isAdmin ? 'ADMIN (spoofed)' : `role: ${role}`}
+          </Chip>
+          <Button
+            mode={isAdmin ? 'outlined' : 'contained'}
+            icon="shield-account"
+            compact
+            onPress={toggleAdmin}
+            buttonColor={isAdmin ? undefined : theme.colors.accent}
+            textColor={isAdmin ? theme.colors.accent : '#000'}
+            style={{ marginTop: 12, borderColor: theme.colors.accent }}
+          >
+            {isAdmin ? 'Exit admin' : 'Spoof admin'}
+          </Button>
+          <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginTop: 6 }}>No real sign-in yet — tap the badge to spoof admin.</Text>
         </View>
 
         <Text style={{ color: theme.colors.textDarker, marginBottom: 8 }}>Switch role (development only)</Text>
