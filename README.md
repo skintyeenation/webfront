@@ -7,6 +7,15 @@ The site is a self-hosted WordPress install migrated from the previous
 Site123-hosted `skintyeefirstnation.org`. The app is a React Native + Expo
 proof-of-concept built for the proposal.
 
+## Architecture
+
+The platform at a glance — actors (Public / Band Members / Admins & Staff), the
+app and its features, the website, the API server + Azure Cloud DB, and the
+ERP / band-delegation pieces. Full detail in
+[`docs/SkinTyee.drawio.pdf`](docs/SkinTyee.drawio.pdf).
+
+[<img src="docs/SkinTyee.png" width="520">](docs/SkinTyee.drawio.pdf)
+
 ## Visual walkthroughs
 
 **App** — the Skin Tyee community app:
