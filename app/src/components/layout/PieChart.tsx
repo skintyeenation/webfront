@@ -1,5 +1,5 @@
 import React from 'react';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import Svg, { Circle, G } from 'react-native-svg';
 import { theme } from 'skintyee/styles';
@@ -19,15 +19,51 @@ export interface PieChartProps {
   formatValue?: (n: number) => string;
 }
 
-/**
- * Donut chart drawn with react-native-svg (works on web + native). Slices are
- * stroked arcs on a single circle via strokeDasharray. Includes a legend.
- */
-export function PieChart({ data, size = 170, thickness = 26, centerLabel, centerSub, formatValue = (n) => String(n) }: PieChartProps) {
+// Donut on web via CSS conic-gradient (react-native-svg does not render reliably
+// in the webpack web build), and via react-native-svg on native.
+function Donut({ data, size, thickness, centerLabel, centerSub }: Required<Omit<PieChartProps, 'formatValue'>>) {
   const total = data.reduce((s, d) => s + d.value, 0) || 1;
+
+  if (Platform.OS === 'web') {
+    let acc = 0;
+    const stops = data
+      .map((d) => {
+        const start = (acc / total) * 100;
+        acc += d.value;
+        const end = (acc / total) * 100;
+        return `${d.color} ${start}% ${end}%`;
+      })
+      .join(', ');
+    const holeSize = size - thickness * 2;
+    return (
+      <View style={{ width: size, height: size }}>
+        <View
+          // @ts-ignore web-only style
+          style={{ width: size, height: size, borderRadius: size / 2, backgroundImage: `conic-gradient(${stops})` }}
+        />
+        <View
+          style={{
+            position: 'absolute',
+            top: thickness,
+            left: thickness,
+            width: holeSize,
+            height: holeSize,
+            borderRadius: holeSize / 2,
+            backgroundColor: theme.colors.darkDefault,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {centerLabel ? <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '700' }}>{centerLabel}</Text> : null}
+          {centerSub ? <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>{centerSub}</Text> : null}
+        </View>
+      </View>
+    );
+  }
+
+  // Native: react-native-svg
   const radius = (size - thickness) / 2;
   const circumference = 2 * Math.PI * radius;
-
   let offset = 0;
   const segments = data.map((d) => {
     const frac = d.value / total;
@@ -35,37 +71,43 @@ export function PieChart({ data, size = 170, thickness = 26, centerLabel, center
     offset += d.value;
     return seg;
   });
+  return (
+    <View style={{ width: size, height: size }}>
+      <Svg width={size} height={size}>
+        <G rotation={-90} origin={`${size / 2}, ${size / 2}`}>
+          <Circle cx={size / 2} cy={size / 2} r={radius} stroke={theme.colors.secondary} strokeWidth={thickness} fill="none" />
+          {segments.map((seg, i) => (
+            <Circle
+              key={i}
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              stroke={seg.color}
+              strokeWidth={thickness}
+              fill="none"
+              strokeDasharray={`${seg.dash} ${seg.gap}`}
+              strokeDashoffset={-(seg.rotation / 360) * circumference}
+            />
+          ))}
+        </G>
+      </Svg>
+      {centerLabel ? (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '700' }}>{centerLabel}</Text>
+          {centerSub ? <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>{centerSub}</Text> : null}
+        </View>
+      ) : null}
+    </View>
+  );
+}
 
+/**
+ * Donut chart + legend. Renders on web (conic-gradient) and native (svg).
+ */
+export function PieChart({ data, size = 170, thickness = 26, centerLabel = '', centerSub = '', formatValue = (n) => String(n) }: PieChartProps) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-      <View style={{ width: size, height: size }}>
-        <Svg width={size} height={size}>
-          <G rotation={-90} origin={`${size / 2}, ${size / 2}`}>
-            {/* track */}
-            <Circle cx={size / 2} cy={size / 2} r={radius} stroke={theme.colors.secondary} strokeWidth={thickness} fill="none" />
-            {segments.map((seg, i) => (
-              <Circle
-                key={i}
-                cx={size / 2}
-                cy={size / 2}
-                r={radius}
-                stroke={seg.color}
-                strokeWidth={thickness}
-                fill="none"
-                strokeDasharray={`${seg.dash} ${seg.gap}`}
-                strokeDashoffset={-(seg.rotation / 360) * circumference}
-              />
-            ))}
-          </G>
-        </Svg>
-        {centerLabel ? (
-          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '700' }}>{centerLabel}</Text>
-            {centerSub ? <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>{centerSub}</Text> : null}
-          </View>
-        ) : null}
-      </View>
-
+      <Donut data={data} size={size} thickness={thickness} centerLabel={centerLabel} centerSub={centerSub} />
       <View style={{ flex: 1, paddingLeft: 16 }}>
         {data.map((d) => (
           <View key={d.label} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
