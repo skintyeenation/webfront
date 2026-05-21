@@ -18,6 +18,7 @@ export const routeConfig = {
   financials: { name: 'financials', options: { title: 'Finance', header: header('Financial Records') } },
   polls: { name: 'polls', options: { title: 'Polls', header: header('Polling + Surveys') } },
   notifications: { name: 'notifications', options: { title: 'Alerts', header: header('Notifications') } },
+  more: { name: 'more', options: { title: 'More', header: header('More') } },
   // Detail screens
   memberDetail: { name: 'memberDetail', options: { title: 'Member', header: header('Member') } },
   eventDetail: { name: 'eventDetail', options: { title: 'Event', header: header('Event') } },

@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
-import { Card, Chip, ProgressBar, SegmentedButtons, Text } from 'react-native-paper';
+import { Button, Card, Chip, ProgressBar, SegmentedButtons, Text } from 'react-native-paper';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { PageContainer, PageContent, BarChart, PieChart, colorAt } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { loadExpenditures, loadMajorProjects } from 'skintyee/store/modules/transparency';
 import { loadEvents } from 'skintyee/store/modules/events';
 import { loadPolls } from 'skintyee/store/modules/polls';
 import { loadDirectory } from 'skintyee/store/modules/directory';
+import { loadTimeEntries } from 'skintyee/store/modules/timekeeping';
 import { theme } from 'skintyee/styles';
 
 type Period = 'month' | 'year';
@@ -33,11 +35,14 @@ function Stat({ label, value, color }: { label: string; value: string; color: st
 
 export default function Dashboard({ navigation }: any) {
   const dispatch = useAppDispatch();
+  const role = useAppSelector((s) => s.auth.role);
+  const isAdmin = role === 'admin';
   const expenditures = useAppSelector((s) => s.transparency.entities);
   const majorProjects = useAppSelector((s) => s.transparency.majorProjects);
   const events = useAppSelector((s) => s.events.entities);
   const polls = useAppSelector((s) => s.polls.entities);
   const members = useAppSelector((s) => s.directory.entities);
+  const timeEntries = useAppSelector((s) => s.timekeeping.entities);
 
   // Reporting period toggle. Annual figures are the source; "month" shows the
   // monthly run-rate (annual / 12).
@@ -51,7 +56,11 @@ export default function Dashboard({ navigation }: any) {
     dispatch(loadEvents());
     dispatch(loadPolls());
     dispatch(loadDirectory());
+    dispatch(loadTimeEntries());
   }, [dispatch]);
+
+  const pendingApprovals = timeEntries.filter((t) => !t.approved).length;
+  const hoursLogged = timeEntries.reduce((s, t) => s + t.hours, 0);
 
   const totalSpent = expenditures.reduce((s, e) => s + e.spent, 0) * f;
   const totalAllocated = expenditures.reduce((s, e) => s + e.budget, 0) * f;
@@ -74,6 +83,39 @@ export default function Dashboard({ navigation }: any) {
             { value: 'year', label: 'Year', icon: 'calendar' },
           ]}
         />
+
+        {/* Admins get a different home: an admin overview up top. */}
+        {isAdmin ? (
+          <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12, borderLeftWidth: 3, borderLeftColor: theme.colors.accent }}>
+            <Card.Content>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                <MaterialCommunityIcons name="shield-account" size={20} color={theme.colors.accent} style={{ marginRight: 8 }} />
+                <Text style={{ color: theme.colors.text, fontSize: 16 }}>Admin overview</Text>
+              </View>
+              <View style={{ flexDirection: 'row' }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: pendingApprovals > 0 ? theme.colors.accent : theme.colors.success, fontSize: 24 }}>{pendingApprovals}</Text>
+                  <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Time entries to approve</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: theme.colors.primary, fontSize: 24 }}>{hoursLogged}</Text>
+                  <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Hours logged</Text>
+                </View>
+              </View>
+              <Button
+                mode="contained"
+                compact
+                icon="shield-account"
+                buttonColor={theme.colors.accent}
+                textColor="#000"
+                style={{ marginTop: 12, alignSelf: 'flex-start' }}
+                onPress={() => navigation.navigate('Admin')}
+              >
+                Open Admin tools
+              </Button>
+            </Card.Content>
+          </Card>
+        ) : null}
 
         {/* Budget summary pie at the top */}
         <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
