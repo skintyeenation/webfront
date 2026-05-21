@@ -100,8 +100,14 @@ export interface PollOption {
   votes: number;
 }
 
+// 'survey' = informal polling/feedback; 'vote' = a formal vote on an issue
+// (e.g. ratifying a bylaw or community-plan amendment). From the diagram's
+// "Polling + Surveys" vs "Vote on Issues".
+export type PollKind = 'survey' | 'vote';
+
 export interface Poll {
   _id: string;
+  kind: PollKind;
   question: string;
   description: string;
   closesAt: string; // ISO date
