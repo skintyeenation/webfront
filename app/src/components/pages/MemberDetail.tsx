@@ -57,10 +57,23 @@ export default function MemberDetail({ route, navigation }: any) {
 
         {isAdmin ? (
           <Button
+            mode="contained"
+            icon="account-edit"
+            buttonColor={theme.colors.primary}
+            textColor="#000"
+            style={{ marginTop: 16 }}
+            onPress={() => navigation.navigate('memberEdit', { id: selected._id })}
+          >
+            Edit member
+          </Button>
+        ) : null}
+
+        {isAdmin ? (
+          <Button
             mode="outlined"
             icon="account-remove"
             textColor={theme.colors.error}
-            style={{ marginTop: 16, borderColor: theme.colors.error }}
+            style={{ marginTop: 10, borderColor: theme.colors.error }}
             onPress={() =>
               confirm({
                 title: 'Remove member?',
