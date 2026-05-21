@@ -77,8 +77,17 @@ source library + app-shell/git-submodule split (that exists only to white-label
 multiple apps; Skintyee is one app).
 
 **Features** (role-gated for Public / Band Member / Admin+Staff, from
-`docs/SkinTyee.drawio.pdf`): Directory, Community Events, Band Meetings, Public
-Records, Time Keeping, Financial Records, Polling/Surveys.
+`docs/SkinTyee.drawio.pdf`): a charts **Dashboard**, Directory, Community Events,
+**Notifications** (categories mirror the skintyee.ca WordPress taxonomy —
+Health/Safety/Council/Events/Programs/News/Announcements; Events+Notifications
+are centered in the tab bar), Band Meetings, **Public Records → Transparency**
+(band expenditures by program area with drill-down breakdowns of how much was
+spent and where), Time Keeping, Financial Records, Polling/Surveys. Charts use a
+dependency-free in-house `BarChart`.
+
+Financial/program data is sourced (when integrated) from the **Ferrus ASAP Suite
++ Adagio / Sage 300** (program areas map to ASAP modules); notifications from the
+**skintyee.ca WordPress** feed. Both are mocked in the POC.
 
 **This is a proof-of-concept** for a proposal (3-month engagement). All backend
 access is **mocked** behind a typed `ApiService` (`src/services/api/`); auth is a

@@ -47,6 +47,33 @@ API Server for data.
   union (`public | member | admin`) and dispatch the resolved role instead of
   the manual switcher. (ppt used AWS Cognito — intentionally not used here.)
 
+## 2b. Financial / program data — mocked (→ Ferrus ASAP + Adagio / Sage)
+
+- **What:** the **Transparency** view (Public Records → band expenditures by
+  program area, with drill-down breakdowns of how much was spent and where), the
+  **Dashboard** charts, and admin **Financial Records**.
+- **Where:**
+  - `src/services/api/ApiService.ts` — `transparency.expenditures()`, `financials.list()`.
+  - `src/services/api/mock/fixtures.ts` — `expenditures` (areas + breakdowns) and `financials`.
+  - Screens: `PublicRecords.tsx` (transparency + chart), `ExpenditureDetail.tsx`
+    (breakdown), `Dashboard.tsx`, `Financials.tsx`. Charts use `components/layout/BarChart`.
+- **Replace with:** the **Ferrus Computers ASAP Suite** integrated with **Adagio
+  Accounting / Sage 300** (program areas map to ASAP modules: Housing, Income
+  Assistance, Membership, Post-Secondary, Training & Employment, Child & Family
+  Services). Likely surfaced through the API Server. See ADR-5 in
+  `../docs/architecture-decisions.md`.
+
+## 2c. Notifications feed — mocked (→ skintyee.ca WordPress)
+
+- **What:** the in-app Notifications inbox and its categories.
+- **Where:** `src/models` (`NotificationCategory`), `fixtures.ts` (`notifications`),
+  `store/modules/notifications.ts`, `components/pages/Notifications.tsx`.
+- **Categories** mirror the WordPress taxonomy in
+  `../website/importer/setup-categories.php`: Health, Safety, Council, Events,
+  Programs, News, Announcements.
+- **Replace with:** a feed driven by skintyee.ca WordPress posts in those
+  categories (+ real push delivery — see §4). See ADR-6.
+
 ## 3. Object storage — not implemented (→ Azure Blob Storage)
 
 - **What:** no file upload/download. ppt used AWS S3; this app will use
@@ -59,7 +86,10 @@ API Server for data.
 
 From `../docs/SkinTyee.drawio.pdf`, present for completeness but out of scope for
 the POC:
-- **Push notifications** — none wired (would use Expo Notifications / a backend).
+- **Push notifications** — the in-app **Notifications inbox** (tab + screen) is
+  built and reads from the mock `ApiService.notifications`. **Real push
+  delivery** (Expo Notifications + backend triggers / device tokens) is **not**
+  wired — only the in-app list exists.
 - **Auto-publish to skintyee.ca** — meetings/events/staff data are not published
   to the WordPress site; that integration is backend-side.
 - **Write-only automated backup** — backend/infra concern, not in the app.

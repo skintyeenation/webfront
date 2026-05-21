@@ -36,6 +36,37 @@ Decision record for the Skintyee app (`@skintyee/app`, in `app/`). Lives in the
   seam (`app/src/services/api/`), currently served by an in-memory mock. Swap in
   an HTTP implementation when the API exists. See `app/STUBS.md`.
 
+### ADR-5 — Financial data: Ferrus ASAP Suite + Adagio / Sage 300
+- **Decision:** band financial & program data is sourced from the **Ferrus
+  Computers ASAP Suite** (<https://www.ferruscomputers.ca/>) integrated with
+  **Adagio Accounting** / **Sage 300** — the systems already used for First
+  Nations administration (and shown as Adagio/ASAP/Sage in `SkinTyee.drawio.pdf`).
+- **ASAP modules** that map to the app's program areas: Housing & Community
+  Infrastructure, Income Assistance, Membership, Post-Secondary, Training &
+  Employment, Child & Family Services. Ferrus also offers a Microsoft Azure
+  cloud option, consistent with our Azure posture.
+- **Used for:**
+  - **Public Records → Transparency:** public band **expenditures by program
+    area** (Housing, Public Works, Education, Employment & Training, Health,
+    Social Assistance, Child & Family Services, IT, Administration), each with a
+    drill-down breakdown of *how much was spent and where* — supporting
+    **transparent band management**.
+  - **Financial Records** (admin) and the **Dashboard** charts.
+- **Status:** **mocked** behind `ApiService.transparency` / `ApiService.financials`.
+  Replace with a Ferrus/Adagio integration (likely via the API Server). See
+  `app/STUBS.md`.
+
+### ADR-6 — Notifications mirror the WordPress category taxonomy
+- **Decision:** in-app notifications use the **same categories as skintyee.ca**
+  (the WordPress site in `website/`): top-level **Events / Programs / News /
+  Announcements**, with Announcements sub-categories **Health / Safety /
+  Council** (authoritative source: `website/importer/setup-categories.php`).
+- **Why:** when the WordPress integration lands, notifications are driven by
+  posts in these categories — e.g. a **Water Boil Advisory → Health**, a
+  **wildfire notice → Safety** — so the app and site stay consistent.
+- **Status:** categories are modelled now; **real push delivery** and the
+  WordPress feed are **stubbed**. See `app/STUBS.md`.
+
 ### ADR-4 — Single self-contained app (no source-lib / app-shell split)
 - **Decision:** `@skintyee/app` is **one pnpm workspace package**; no shared
   source library and no white-label app-shell/git-submodule wrapper.
@@ -49,4 +80,6 @@ Decision record for the Skintyee app (`@skintyee/app`, in `app/`). Lives in the
 | Identity | AWS Cognito / Amplify | **Microsoft Entra ID** | stubbed (role switcher) |
 | Object storage | AWS S3 | **Azure Blob Storage** | not implemented |
 | Database / API | Mongo + Nest microservices | **Azure Cloud DB** + API Server | mocked behind `ApiService` |
+| Financial / program data | — | **Ferrus ASAP Suite + Adagio / Sage 300** | mocked (transparency + financials) |
+| Notifications taxonomy | — | **skintyee.ca WordPress categories** | modelled; push + feed stubbed |
 | App packaging | source lib + app-shell submodules | **single self-contained app** | done |

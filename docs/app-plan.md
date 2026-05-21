@@ -107,17 +107,37 @@ Actors in the diagram: **Public**, **Band Members**, **Band Admins / Staff**.
 
 | Feature | Public | Member | Admin/Staff |
 |---|:--:|:--:|:--:|
-| Band Member Directory | public fields | full | full |
+| **Dashboard** (stats + charts) | view | view | view |
+| Band Member Directory | — | full | full |
 | Community Events | view | view | manage |
+| **Notifications** (centered with Events) | view | view | manage |
 | Band Meetings | — | view | manage |
-| Public Records (view) | view | view | manage |
+| **Public Records → Transparency** (band expenditures by program area, with drill-down breakdowns) | view | view | manage |
 | Time Keeping (for workers) | — | — | yes |
 | Financial Records | — | — | **admin only** |
-| Polling + Surveys / Vote on Issues | — | vote | manage |
+| Polling + Surveys / Vote on Issues | view results | vote | manage |
+
+**Notifications** are an in-app inbox whose categories mirror the skintyee.ca
+**WordPress taxonomy** — Health, Safety, Council, Events, Programs, News,
+Announcements (e.g. Water Boil Advisory → Health, wildfire alert → Safety). In
+the tab bar, **Events and Notifications are kept centered** for every role.
+
+**Public Records = transparency.** Rather than generic documents, this surfaces
+**where the Nation's money goes** — band expenditures by program area (Housing,
+Public Works, Education, Employment & Training, Health, Social Assistance, Child
+& Family Services, IT, Administration), each drilling into a breakdown of *how
+much was spent and where*. Backed by the **Ferrus ASAP Suite + Adagio / Sage**
+financial integration (mocked for the POC). The **Dashboard** presents the same
+data as charts plus at-a-glance community stats.
 
 Cross-cutting items from the diagram, handled as **documented stubs**:
-Push Notifications, Auto-Publish (Meetings/Events/Staff data) → skintyee.ca
-website, API Server, Azure Cloud DB, and write-only Automated Backup.
+Push delivery for Notifications, Auto-Publish (Meetings/Events/Staff data) →
+skintyee.ca website, API Server, Azure Cloud DB, the Ferrus/Adagio financial
+integration, and write-only Automated Backup. See `app/STUBS.md` and
+[`architecture-decisions.md`](./architecture-decisions.md).
+
+Charts are rendered with a dependency-free in-house `BarChart` (plain Views), so
+they work identically on web and native in the POC.
 
 ---
 

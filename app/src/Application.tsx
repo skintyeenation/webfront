@@ -12,28 +12,34 @@ import { routeConfig } from 'skintyee/routes';
 import { useAppSelector } from 'skintyee/store';
 import { Role } from 'skintyee/models';
 
+import Dashboard from 'skintyee/components/pages/Dashboard';
 import Directory from 'skintyee/components/pages/Directory';
 import MemberDetail from 'skintyee/components/pages/MemberDetail';
 import Events from 'skintyee/components/pages/Events';
 import EventDetail from 'skintyee/components/pages/EventDetail';
 import Meetings from 'skintyee/components/pages/Meetings';
 import PublicRecords from 'skintyee/components/pages/PublicRecords';
+import ExpenditureDetail from 'skintyee/components/pages/ExpenditureDetail';
 import TimeKeeping from 'skintyee/components/pages/TimeKeeping';
 import Financials from 'skintyee/components/pages/Financials';
 import Polls from 'skintyee/components/pages/Polls';
 import PollDetail from 'skintyee/components/pages/PollDetail';
+import Notifications from 'skintyee/components/pages/Notifications';
 import Account from 'skintyee/components/pages/Account';
 
 // Which tabs each actor (role) sees. Derived from the SkinTyee.drawio.pdf diagram.
+// Events + Notifications are kept centered in the tab bar for every role.
 const tabsByRole: Record<Role, string[]> = {
-  public: ['Directory', 'Events', 'Records', 'Polls'],
-  member: ['Directory', 'Events', 'Meetings', 'Records', 'Polls'],
-  admin: ['Directory', 'Events', 'Meetings', 'Records', 'Time', 'Finance', 'Polls'],
+  public: ['Home', 'Events', 'Notifications', 'Records', 'Polls'],
+  member: ['Home', 'Directory', 'Events', 'Notifications', 'Meetings', 'Records', 'Polls'],
+  admin: ['Home', 'Directory', 'Meetings', 'Events', 'Notifications', 'Records', 'Time', 'Finance', 'Polls'],
 };
 
 const tabIcons: Record<string, string> = {
+  Home: 'view-dashboard-outline',
   Directory: 'account-group',
   Events: 'calendar-star',
+  Notifications: 'bell-outline',
   Meetings: 'gavel',
   Records: 'file-document-outline',
   Time: 'clock-outline',
@@ -42,6 +48,13 @@ const tabIcons: Record<string, string> = {
 };
 
 // ---- Per-tab stack navigators (so detail screens keep the shared header) ----
+const DashboardStack = createStackNavigator();
+const DashboardNavigation = () => (
+  <DashboardStack.Navigator>
+    <DashboardStack.Screen {...routeConfig.dashboard} component={Dashboard} />
+  </DashboardStack.Navigator>
+);
+
 const DirectoryStack = createStackNavigator();
 const DirectoryNavigation = () => (
   <DirectoryStack.Navigator>
@@ -69,6 +82,7 @@ const RecordsStack = createStackNavigator();
 const RecordsNavigation = () => (
   <RecordsStack.Navigator>
     <RecordsStack.Screen {...routeConfig.publicRecords} component={PublicRecords} />
+    <RecordsStack.Screen {...routeConfig.expenditureDetail} component={ExpenditureDetail} />
   </RecordsStack.Navigator>
 );
 
@@ -94,9 +108,18 @@ const PollsNavigation = () => (
   </PollsStack.Navigator>
 );
 
+const NotificationsStack = createStackNavigator();
+const NotificationsNavigation = () => (
+  <NotificationsStack.Navigator>
+    <NotificationsStack.Screen {...routeConfig.notifications} component={Notifications} />
+  </NotificationsStack.Navigator>
+);
+
 const tabComponents: Record<string, React.ComponentType<any>> = {
+  Home: DashboardNavigation,
   Directory: DirectoryNavigation,
   Events: EventsNavigation,
+  Notifications: NotificationsNavigation,
   Meetings: MeetingsNavigation,
   Records: RecordsNavigation,
   Time: TimeNavigation,

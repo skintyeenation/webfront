@@ -45,4 +45,10 @@ export const mockApiService: ApiService = {
       return delay(updated);
     },
   },
+  notifications: {
+    list: () => delay(fixtures.notifications),
+  },
+  transparency: {
+    expenditures: () => delay(fixtures.expenditures),
+  },
 };

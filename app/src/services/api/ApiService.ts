@@ -1,4 +1,4 @@
-import { BandMember, BandMeeting, CommunityEvent, FinancialRecord, Poll, PublicRecord, TimeEntry } from 'skintyee/models';
+import { AppNotification, BandMember, BandMeeting, CommunityEvent, Expenditure, FinancialRecord, Poll, PublicRecord, TimeEntry } from 'skintyee/models';
 
 /**
  * ApiService is the single seam between the app and its backend.
@@ -24,6 +24,11 @@ export interface ApiService {
   publicRecords: {
     list(): Promise<PublicRecord[]>;
   };
+  transparency: {
+    // Public band expenditures by program area. STUB: real figures come from the
+    // Ferrus ASAP Suite + Adagio / Sage 300 financial integration. See STUBS.md.
+    expenditures(): Promise<Expenditure[]>;
+  };
   timekeeping: {
     list(): Promise<TimeEntry[]>;
   };
@@ -34,5 +39,10 @@ export interface ApiService {
     list(): Promise<Poll[]>;
     get(id: string): Promise<Poll | undefined>;
     vote(args: { pollId: string; optionId: string }): Promise<Poll>;
+  };
+  notifications: {
+    // In-app notifications inbox. STUB: real push delivery (Expo Notifications +
+    // backend) is not wired; this just lists stored notifications. See STUBS.md.
+    list(): Promise<AppNotification[]>;
   };
 }

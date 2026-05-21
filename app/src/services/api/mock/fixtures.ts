@@ -1,4 +1,4 @@
-import { BandMember, BandMeeting, CommunityEvent, FinancialRecord, Poll, PublicRecord, TimeEntry } from 'skintyee/models';
+import { AppNotification, BandMember, BandMeeting, CommunityEvent, Expenditure, FinancialRecord, Poll, PublicRecord, TimeEntry } from 'skintyee/models';
 
 // STUB DATA. Hand-authored sample content so every screen renders realistically
 // without a backend. Replace with real API responses. See STUBS.md.
@@ -8,6 +8,24 @@ const daysFromNow = (n: number) => {
   d.setDate(d.getDate() + n);
   return d.toISOString();
 };
+
+const hoursAgo = (n: number) => {
+  const d = new Date();
+  d.setHours(d.getHours() - n);
+  return d.toISOString();
+};
+
+// Categories match the skintyee.ca WordPress taxonomy (Health / Safety / Council
+// / Events / Programs / News / Announcements). Examples mirror real posts: a
+// Water Boil Advisory => Health, a wildfire notice => Safety.
+export const notifications: AppNotification[] = [
+  { _id: 'n1', title: 'Water Boil Advisory in effect', body: 'Boil water for at least 1 minute before drinking until further notice.', category: 'Health', createdAt: hoursAgo(2), read: false },
+  { _id: 'n2', title: 'Wildfire evacuation alert', body: 'An evacuation alert is in effect for the north reserve. Be ready to leave.', category: 'Safety', createdAt: hoursAgo(6), read: false },
+  { _id: 'n3', title: 'Council meeting & agenda posted', body: 'Monthly Council Meeting is next week — agenda now available.', category: 'Council', createdAt: hoursAgo(30), read: true },
+  { _id: 'n4', title: 'Community Salmon BBQ', body: 'Join us at the Community Hall this weekend.', category: 'Events', createdAt: hoursAgo(40), read: true },
+  { _id: 'n5', title: 'Summer youth employment program', body: 'Applications are open for the summer youth employment program.', category: 'Programs', createdAt: hoursAgo(54), read: true },
+  { _id: 'n6', title: 'Band office closure', body: 'The Band Office will be closed Friday for staff training.', category: 'Announcements', createdAt: hoursAgo(72), read: true },
+];
 
 export const members: BandMember[] = [
   { _id: 'm1', name: 'Marie Joseph', role: 'Chief', title: 'Chief', email: 'chief@skintyee.ca', phone: '250-555-0101', avatarLetter: 'M' },
@@ -49,6 +67,83 @@ export const financials: FinancialRecord[] = [
   { _id: 'f2', title: 'Q1 Financial Statement', period: 'Q1 FY2024', category: 'Statement', amount: 462300 },
   { _id: 'f3', title: 'Housing Capital Grant', period: 'FY2024', category: 'Grant', amount: 320000, notes: 'ISC capital funding.' },
   { _id: 'f4', title: 'Community Hall Repairs', period: 'Mar 2024', category: 'Expense', amount: 28750 },
+];
+
+// Public, transparent band expenditures by program area (FY2024). Areas mirror
+// the Ferrus ASAP Suite modules + common band departments. Each area drills into
+// a breakdown of how much was spent and where. STUB figures.
+export const expenditures: Expenditure[] = [
+  {
+    _id: 'x1', area: 'Housing', spent: 612000, budget: 700000, fiscalYear: 'FY2024',
+    breakdown: [
+      { label: 'New unit construction (Lots 12–15)', amount: 340000 },
+      { label: 'Renovations & repairs', amount: 168000 },
+      { label: 'Mould remediation program', amount: 64000 },
+      { label: 'Rental subsidies', amount: 40000 },
+    ],
+  },
+  {
+    _id: 'x2', area: 'Public Works', spent: 348000, budget: 400000, fiscalYear: 'FY2024',
+    breakdown: [
+      { label: 'Road grading & gravel', amount: 142000 },
+      { label: 'Water system maintenance', amount: 121000 },
+      { label: 'Waste management contract', amount: 85000 },
+    ],
+  },
+  {
+    _id: 'x3', area: 'Education', spent: 286000, budget: 300000, fiscalYear: 'FY2024',
+    breakdown: [
+      { label: 'Post-secondary sponsorships', amount: 158000 },
+      { label: 'K–12 tutoring & supplies', amount: 78000 },
+      { label: 'Language & culture program', amount: 50000 },
+    ],
+  },
+  {
+    _id: 'x4', area: 'Employment & Training', spent: 154000, budget: 200000, fiscalYear: 'FY2024',
+    breakdown: [
+      { label: 'Skills training partnership', amount: 92000 },
+      { label: 'Summer youth employment', amount: 42000 },
+      { label: 'Job readiness workshops', amount: 20000 },
+    ],
+  },
+  {
+    _id: 'x5', area: 'Health', spent: 198000, budget: 220000, fiscalYear: 'FY2024',
+    breakdown: [
+      { label: 'Community health nurse', amount: 96000 },
+      { label: 'Medical transportation', amount: 58000 },
+      { label: 'Wellness & mental health', amount: 44000 },
+    ],
+  },
+  {
+    _id: 'x6', area: 'Social Assistance', spent: 174000, budget: 180000, fiscalYear: 'FY2024',
+    breakdown: [
+      { label: 'Income assistance payments', amount: 138000 },
+      { label: 'Emergency support', amount: 36000 },
+    ],
+  },
+  {
+    _id: 'x7', area: 'Child & Family Services', spent: 132000, budget: 160000, fiscalYear: 'FY2024',
+    breakdown: [
+      { label: 'Family support workers', amount: 84000 },
+      { label: 'Youth programming', amount: 48000 },
+    ],
+  },
+  {
+    _id: 'x8', area: 'Information Technology', spent: 88000, budget: 120000, fiscalYear: 'FY2024',
+    breakdown: [
+      { label: 'Network & connectivity', amount: 46000 },
+      { label: 'Devices & equipment', amount: 28000 },
+      { label: 'Software & licensing', amount: 14000 },
+    ],
+  },
+  {
+    _id: 'x9', area: 'Administration', spent: 142000, budget: 150000, fiscalYear: 'FY2024',
+    breakdown: [
+      { label: 'Band office operations', amount: 92000 },
+      { label: 'Governance & council', amount: 32000 },
+      { label: 'Audit & professional fees', amount: 18000 },
+    ],
+  },
 ];
 
 export const polls: Poll[] = [
