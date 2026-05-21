@@ -23,12 +23,17 @@ export const notificationsInitialState: NotificationsState = { entities: [], loa
 const notificationsSlice = createSlice({
   name: 'notifications',
   initialState: notificationsInitialState,
-  reducers: {},
+  reducers: {
+    // Admin: post a new notification to the (in-memory) list.
+    addNotification: (state, action) => ({ ...state, entities: [action.payload, ...state.entities] }),
+  },
   extraReducers: (builder) => {
     builder.addCase(loadNotifications.pending, reducePendingState());
     builder.addCase(loadNotifications.rejected, reduceRejectedState());
     builder.addCase(loadNotifications.fulfilled, reduceFulfilledState((state, action) => ({ ...state, entities: action.payload })));
   },
 });
+
+export const { addNotification } = notificationsSlice.actions;
 
 export default notificationsSlice.reducer;

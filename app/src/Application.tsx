@@ -28,6 +28,9 @@ import PollDetail from 'skintyee/components/pages/PollDetail';
 import Notifications from 'skintyee/components/pages/Notifications';
 import MoreMenu from 'skintyee/components/pages/MoreMenu';
 import Account from 'skintyee/components/pages/Account';
+import CreateEvent from 'skintyee/components/pages/CreateEvent';
+import PostNotification from 'skintyee/components/pages/PostNotification';
+import AddMember from 'skintyee/components/pages/AddMember';
 
 // Five fixed tabs keep the bottom bar clean. Overflow features live under the
 // 5th tab — "More" for public/members, "Admin" for admins (admin tools grouped
@@ -56,6 +59,7 @@ const EventsNavigation = () => (
   <EventsStack.Navigator>
     <EventsStack.Screen {...routeConfig.events} component={Events} />
     <EventsStack.Screen {...routeConfig.eventDetail} component={EventDetail} />
+    <EventsStack.Screen {...routeConfig.eventCreate} component={CreateEvent} />
   </EventsStack.Navigator>
 );
 
@@ -71,6 +75,7 @@ const NotificationsStack = createStackNavigator();
 const NotificationsNavigation = () => (
   <NotificationsStack.Navigator>
     <NotificationsStack.Screen {...routeConfig.notifications} component={Notifications} />
+    <NotificationsStack.Screen {...routeConfig.notificationCreate} component={PostNotification} />
   </NotificationsStack.Navigator>
 );
 
@@ -84,6 +89,7 @@ const MoreNavigation = () => {
       <MoreStack.Screen name="more" component={MoreMenu} options={{ header: (props: any) => <AppHeader {...props} options={{ title: moreTitle }} /> }} />
       <MoreStack.Screen {...routeConfig.directory} component={Directory} />
       <MoreStack.Screen {...routeConfig.memberDetail} component={MemberDetail} />
+      <MoreStack.Screen {...routeConfig.memberCreate} component={AddMember} />
       <MoreStack.Screen {...routeConfig.meetings} component={Meetings} />
       <MoreStack.Screen {...routeConfig.polls} component={Polls} />
       <MoreStack.Screen {...routeConfig.pollDetail} component={PollDetail} />

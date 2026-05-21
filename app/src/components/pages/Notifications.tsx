@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { Badge, Card, SegmentedButtons, Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import moment from 'moment';
-import { PageContainer, PageContent, NoContent, MonthCalendar } from 'skintyee/components/layout';
+import { PageContainer, PageContent, NoContent, MonthCalendar, AdminAddButton } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { loadNotifications } from 'skintyee/store/modules/notifications';
 import { AppNotification } from 'skintyee/models';
@@ -53,7 +53,7 @@ function NotificationCard({ item }: { item: AppNotification }) {
 
 type ViewMode = 'list' | 'calendar';
 
-export default function Notifications() {
+export default function Notifications({ navigation }: any) {
   const dispatch = useAppDispatch();
   const { entities, loading, loaded } = useAppSelector((s) => s.notifications);
   const [view, setView] = useState<ViewMode>('list');
@@ -85,6 +85,7 @@ export default function Notifications() {
   return (
     <PageContainer>
       <PageContent>
+        <AdminAddButton label="Post notification" icon="bullhorn" onPress={() => navigation.navigate('notificationCreate')} />
         <SegmentedButtons
           value={view}
           onValueChange={(v) => setView(v as ViewMode)}

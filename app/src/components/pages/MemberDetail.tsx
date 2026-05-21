@@ -1,18 +1,19 @@
 import React, { useEffect } from 'react';
 import { View } from 'react-native';
-import { Avatar, Card, Chip, Text } from 'react-native-paper';
+import { Avatar, Button, Card, Chip, Text } from 'react-native-paper';
 import { PageContainer, PageContent, NoContent } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
-import { loadMember } from 'skintyee/store/modules/directory';
+import { loadMember, removeMember } from 'skintyee/store/modules/directory';
 import { theme } from 'skintyee/styles';
 
-export default function MemberDetail({ route }: any) {
+export default function MemberDetail({ route, navigation }: any) {
   const dispatch = useAppDispatch();
   const id = route?.params?.id;
   const { selected, loading } = useAppSelector((s) => s.directory);
   // Public users do not see contact details; members and admins do.
   const role = useAppSelector((s) => s.auth.role);
   const canSeeContact = role === 'member' || role === 'admin';
+  const isAdmin = role === 'admin';
 
   useEffect(() => {
     if (id) dispatch(loadMember(id));
@@ -52,6 +53,21 @@ export default function MemberDetail({ route }: any) {
             )}
           </Card.Content>
         </Card>
+
+        {isAdmin ? (
+          <Button
+            mode="outlined"
+            icon="account-remove"
+            textColor={theme.colors.error}
+            style={{ marginTop: 16, borderColor: theme.colors.error }}
+            onPress={() => {
+              dispatch(removeMember(selected._id));
+              navigation.goBack();
+            }}
+          >
+            Remove member
+          </Button>
+        ) : null}
       </PageContent>
     </PageContainer>
   );

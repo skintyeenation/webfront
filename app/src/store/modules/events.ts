@@ -34,7 +34,10 @@ export const eventsInitialState: EventsState = {
 const eventsSlice = createSlice({
   name: 'events',
   initialState: eventsInitialState,
-  reducers: {},
+  reducers: {
+    // Admin: add a new event to the (in-memory) list.
+    addEvent: (state, action) => ({ ...state, entities: [action.payload, ...state.entities] }),
+  },
   extraReducers: (builder) => {
     builder.addCase(loadEvents.pending, reducePendingState());
     builder.addCase(loadEvents.rejected, reduceRejectedState());
@@ -44,5 +47,7 @@ const eventsSlice = createSlice({
     builder.addCase(loadEvent.fulfilled, reduceFulfilledState((state, action) => ({ ...state, selected: action.payload })));
   },
 });
+
+export const { addEvent } = eventsSlice.actions;
 
 export default eventsSlice.reducer;
