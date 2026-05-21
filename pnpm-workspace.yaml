@@ -1,0 +1,5 @@
+packages:
+  - app
+  - packages/*
+  # website/ is a WordPress + Docker project (PHP/Python tooling), not an npm
+  # package, so it is intentionally NOT a workspace member.
