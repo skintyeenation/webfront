@@ -50,5 +50,6 @@ export const mockApiService: ApiService = {
   },
   transparency: {
     expenditures: () => delay(fixtures.expenditures),
+    majorProjects: () => delay(fixtures.majorProjects),
   },
 };

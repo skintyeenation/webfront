@@ -127,8 +127,13 @@ the tab bar, **Events and Notifications are kept centered** for every role.
 Public Works, Education, Employment & Training, Health, Social Assistance, Child
 & Family Services, IT, Administration), each drilling into a breakdown of *how
 much was spent and where*. Backed by the **Ferrus ASAP Suite + Adagio / Sage**
-financial integration (mocked for the POC). The **Dashboard** presents the same
-data as charts plus at-a-glance community stats.
+financial integration (mocked for the POC). The **Dashboard** and the **Records**
+page both present this as charts: a **pie** budget summary (spend by area), a
+**budget-vs-actual** bar (allocated vs actual spend per area), and a **Major
+Projects** section tracking each capital project's **allocated budget vs actual
+spend** with status. Dashboard stats include *spent this year*, *spent vs
+allocated*, *band members*, and *average spend per member*. Charts use the
+in-house dependency-free `BarChart` plus a `PieChart` (react-native-svg).
 
 Cross-cutting items from the diagram, handled as **documented stubs**:
 Push delivery for Notifications, Auto-Publish (Meetings/Events/Staff data) →
