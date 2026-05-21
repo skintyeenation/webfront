@@ -24,8 +24,12 @@ const meetingsSlice = createSlice({
   name: 'meetings',
   initialState: meetingsInitialState,
   reducers: {
-    // Admin: add / delete / cancel (toggle) a band meeting (in-memory).
+    // Admin: add / edit / delete / cancel (toggle) a band meeting (in-memory).
     addMeeting: (state, action) => ({ ...state, entities: [action.payload, ...state.entities] }),
+    updateMeeting: (state, action) => ({
+      ...state,
+      entities: state.entities.map((m) => (m._id === action.payload._id ? { ...m, ...action.payload } : m)),
+    }),
     removeMeeting: (state, action) => ({ ...state, entities: state.entities.filter((m) => m._id !== action.payload) }),
     cancelMeeting: (state, action) => ({
       ...state,
@@ -39,6 +43,6 @@ const meetingsSlice = createSlice({
   },
 });
 
-export const { addMeeting, removeMeeting, cancelMeeting } = meetingsSlice.actions;
+export const { addMeeting, updateMeeting, removeMeeting, cancelMeeting } = meetingsSlice.actions;
 
 export default meetingsSlice.reducer;

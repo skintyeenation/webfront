@@ -38,7 +38,10 @@ export default function Meetings({ navigation }: any) {
                 <Text style={{ color: theme.colors.text, marginTop: 8 }}>{item.agenda}</Text>
 
                 {isAdmin ? (
-                  <View style={{ flexDirection: 'row', marginTop: 10 }}>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 10 }}>
+                    <Button compact mode="text" icon="pencil" textColor={theme.colors.primary} onPress={() => navigation.navigate('meetingEdit', { id: item._id })}>
+                      Edit
+                    </Button>
                     <Button compact mode="text" icon={item.cancelled ? 'backup-restore' : 'calendar-remove'} textColor={theme.colors.accent} onPress={() => dispatch(cancelMeeting(item._id))}>
                       {item.cancelled ? 'Restore' : 'Cancel'}
                     </Button>
