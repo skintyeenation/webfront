@@ -108,11 +108,12 @@ Run: `pnpm --filter @skintyee/app start` (Expo). Work on branch `feature/app`.
 
 ## api/ — application backend
 
-`@skintyee/api`, the proposed **API Server** (diagram → Azure Cloud DB).
-**Contract-first:** `api/openapi.yaml` is the source of truth — the contract the
-app's `ApiService` targets (the app currently uses an in-memory mock). The
-package also ships a lightweight **Express stub** server (Swagger UI at
-`/docs` + sample data) so the contract is runnable today.
+`@skintyee/api`, the **API Server** (diagram → Azure Cloud DB). **Contract-first:**
+`api/openapi.yaml` is the source of truth — the contract the app's `ApiService`
+targets (the app currently uses its own in-memory mock). The package ships a
+working **NestJS** implementation of that contract (all endpoints, role-gated
+writes via an `x-role` header standing in for Entra ID, Swagger UI at `/docs`)
+with an **in-memory data layer**.
 
 **Recommended production stack (ADR-7):** **NestJS + Prisma + Azure Database for
 PostgreSQL Flexible Server (PostGIS)**, **Microsoft Entra ID** auth (role guards →
