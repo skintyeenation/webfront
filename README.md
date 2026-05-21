@@ -1,18 +1,19 @@
 # webfront
 
-Web presence for **Skintyee First Nation** — the public website (`skintyee.ca`)
-and a placeholder application, managed together as a pnpm workspace.
+Web presence for **Skin Tyee First Nation** — the public website (`skintyee.ca`)
+and the community **app**, managed together as a pnpm workspace.
 
 The site is a self-hosted WordPress install migrated from the previous
-Site123-hosted `skintyeefirstnation.org`.
+Site123-hosted `skintyeefirstnation.org`. The app is a React Native + Expo
+proof-of-concept built for the proposal.
 
 ## Layout
 
 ```
 .                      # webfront repo root + pnpm workspace
-├── app/               # @skintyee/app — placeholder app package (not yet scaffolded)
+├── app/               # @skintyee/app — Skin Tyee community app (React Native + Expo)
 ├── website/           # WordPress site + migration tooling (git subtree)
-├── docs/              # project docs (hosting costs / decisions)
+├── docs/              # project + app docs, architecture decisions, proposal deck
 ├── package.json       # pnpm workspace root
 └── pnpm-workspace.yaml
 ```
@@ -20,10 +21,44 @@ Site123-hosted `skintyeefirstnation.org`.
 `website/` is vendored as a **git subtree** (not an npm package). Pull/push it
 with `git subtree pull|push --prefix=website <remote> <branch>`.
 
+## app/ — Skin Tyee community app
+
+A React Native + Expo app (iOS, Android, web) that reuses the proven "ppt"
+app stack — **React Native Paper** (Material UI, dark theme), **Redux Toolkit**
+(`createAsyncThunk`), **React Navigation 6**, TypeScript.
+
+**Features** (role-gated for Public / Band Member / Admin+Staff, from
+`docs/SkinTyee.drawio.pdf`):
+
+- **Dashboard** — community stats + budget charts (pie summary, budget-vs-actual,
+  major projects) with a **Month / Year** reporting toggle.
+- **Public Records → Transparency** — public band expenditures by program area
+  (Housing, Public Works, Education, Health, Social Assistance, Child & Family
+  Services, IT, Administration…), with drill-down breakdowns of *how much was
+  spent and where*, and major-project allocated-vs-spent tracking.
+- **Directory** (~150 members), **Community Events**, **Band Meetings**,
+  **Notifications** (categories mirror the skintyee.ca WordPress taxonomy —
+  Health / Safety / Council / Events / Programs / News / Announcements),
+  **Polling + Surveys / Vote on Issues**, **Time Keeping**, **Financial Records**.
+
+> **Proof-of-concept.** Data is mocked behind a typed `ApiService`; auth is a dev
+> role switcher. Intended real services are Azure: **Entra ID** (auth),
+> **Azure Blob Storage** (files), **Azure Cloud DB** + an API Server, with
+> financial data from the **Ferrus ASAP Suite + Adagio / Sage 300** integration.
+> Every stub is catalogued in [`app/STUBS.md`](app/STUBS.md).
+
+```bash
+pnpm --filter @skintyee/app start    # Expo dev server (press w for web)
+pnpm --filter @skintyee/app typecheck
+```
+
 ## Getting started
 
 ```bash
 pnpm install            # install workspace dependencies
+
+# Run the app
+pnpm --filter @skintyee/app start
 
 # Run the WordPress site locally (Docker)
 cd website && docker compose up -d   # http://localhost:8080  (admin/admin, dev only)
@@ -39,9 +74,18 @@ SSH (`develop` → staging, `master` → production), using a **managed Azure
 Database for MySQL – Flexible Server** in production
 ([`website/docker-compose.prod.yml`](website/docker-compose.prod.yml)).
 
+The app distributes via **EAS Build** to **TestFlight** (iOS) and **Google Play**
+(Android) — see [`docs/testing-strategy.md`](docs/testing-strategy.md).
+
 ## Documentation
 
 - [`CLAUDE.md`](CLAUDE.md) — workspace overview, conventions, and decisions
+- [`docs/app-plan.md`](docs/app-plan.md) — app build plan
+- [`docs/architecture-decisions.md`](docs/architecture-decisions.md) — service ADRs (Entra ID, Azure Blob, Ferrus/Adagio, WordPress categories)
+- [`docs/roadmap.md`](docs/roadmap.md) — 3-month engagement timeline
+- [`docs/testing-strategy.md`](docs/testing-strategy.md) — testing + TestFlight/Google Play
+- [`docs/Skintyee-App-Proposal.pptx`](docs/Skintyee-App-Proposal.pptx) — proposal deck
+- [`app/STUBS.md`](app/STUBS.md) — catalogue of POC stubs
 - [`docs/hosting-costs.md`](docs/hosting-costs.md) — hosting cost basis + rationale
 - [`website/README.md`](website/README.md) — WordPress migration tooling
 
