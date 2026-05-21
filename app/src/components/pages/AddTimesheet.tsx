@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button, Text, TextInput } from 'react-native-paper';
 import moment from 'moment';
-import { PageContainer, PageContent } from 'skintyee/components/layout';
+import { PageContainer, PageContent, DateTimeField } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { addTimeEntry } from 'skintyee/store/modules/timekeeping';
 import { theme } from 'skintyee/styles';
@@ -15,7 +15,7 @@ export default function AddTimesheet({ navigation }: any) {
   const authName = useAppSelector((s) => s.auth.name);
   const worker = cleanName(authName) || 'Me';
 
-  const [date, setDate] = useState(moment().format('YYYY-MM-DD'));
+  const [date, setDate] = useState(moment().toISOString());
   const [hours, setHours] = useState('8');
   const [task, setTask] = useState('');
 
@@ -26,7 +26,7 @@ export default function AddTimesheet({ navigation }: any) {
       addTimeEntry({
         _id: `t${Date.now()}`,
         workerName: worker,
-        date: moment(date, 'YYYY-MM-DD').toISOString(),
+        date,
         hours: h,
         task: task.trim(),
         approved: false,
@@ -39,7 +39,7 @@ export default function AddTimesheet({ navigation }: any) {
     <PageContainer>
       <PageContent>
         <Text style={{ color: theme.colors.textDarker, marginBottom: 12 }}>Logging hours as {worker}</Text>
-        <TextInput label="Date (YYYY-MM-DD)" value={date} onChangeText={setDate} mode="outlined" style={{ marginBottom: 10 }} />
+        <DateTimeField label="Date" value={date} onChange={setDate} withTime={false} />
         <TextInput label="Hours" value={hours} onChangeText={setHours} mode="outlined" keyboardType="numeric" style={{ marginBottom: 10 }} />
         <TextInput label="Task / description" value={task} onChangeText={setTask} mode="outlined" multiline numberOfLines={3} style={{ marginBottom: 10 }} />
         <Button mode="contained" onPress={submit} disabled={!task.trim()} buttonColor={theme.colors.primary} textColor="#000" style={{ marginTop: 8 }}>
