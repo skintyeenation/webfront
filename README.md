@@ -12,6 +12,7 @@ proof-of-concept built for the proposal.
 ```
 .                      # webfront repo root + pnpm workspace
 ├── app/               # @skintyee/app — Skin Tyee community app (React Native + Expo)
+├── api/               # @skintyee/api — API contract (OpenAPI) + stub server
 ├── website/           # WordPress site + migration tooling (git subtree)
 ├── docs/              # project + app docs, architecture decisions, proposal deck
 ├── package.json       # pnpm workspace root
@@ -52,6 +53,22 @@ pnpm --filter @skintyee/app start    # Expo dev server (press w for web)
 pnpm --filter @skintyee/app typecheck
 ```
 
+## api/ — Skin Tyee API (proposed)
+
+Contract-first backend (the "API Server" in the diagram). [`api/openapi.yaml`](api/openapi.yaml)
+is the source of truth — the contract the app's `ApiService` targets. `api/`
+also ships a lightweight Express **stub** server (Swagger UI + sample data).
+
+**Recommended stack:** **NestJS + Prisma + Azure Database for PostgreSQL Flexible
+Server (PostGIS)**, **Entra ID** auth (role guards), Dockerized to **Azure
+Container Apps** behind `api.skintyee.ca`, Azure DevOps CI. PostGIS gives
+geospatial support for land allocation / GIS mapping + map pins. Full rationale:
+[`api/README.md`](api/README.md) and ADR-7 in [`docs/architecture-decisions.md`](docs/architecture-decisions.md).
+
+```bash
+pnpm --filter @skintyee/api dev       # http://localhost:4000/docs (Swagger UI)
+```
+
 ## Getting started
 
 ```bash
@@ -59,6 +76,9 @@ pnpm install            # install workspace dependencies
 
 # Run the app
 pnpm --filter @skintyee/app start
+
+# Browse the API contract (Swagger UI)
+pnpm --filter @skintyee/api dev
 
 # Run the WordPress site locally (Docker)
 cd website && docker compose up -d   # http://localhost:8080  (admin/admin, dev only)
@@ -84,6 +104,7 @@ The app distributes via **EAS Build** to **TestFlight** (iOS) and **Google Play*
 - [`docs/architecture-decisions.md`](docs/architecture-decisions.md) — service ADRs (Entra ID, Azure Blob, Ferrus/Adagio, WordPress categories)
 - [`docs/roadmap.md`](docs/roadmap.md) — 3-month engagement timeline
 - [`docs/testing-strategy.md`](docs/testing-strategy.md) — testing + TestFlight/Google Play
+- [`api/openapi.yaml`](api/openapi.yaml) — proposed API contract · [`api/README.md`](api/README.md) — API stack recommendation
 - [`docs/Skintyee-App-Proposal.pptx`](docs/Skintyee-App-Proposal.pptx) — proposal deck
 - [`app/STUBS.md`](app/STUBS.md) — catalogue of POC stubs
 - [`docs/hosting-costs.md`](docs/hosting-costs.md) — hosting cost basis + rationale

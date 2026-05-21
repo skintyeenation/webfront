@@ -1,0 +1,705 @@
+openapi: 3.0.3
+info:
+  title: Skin Tyee API
+  version: 0.1.0
+  description: >
+    Proposed API for the Skin Tyee First Nation app (the "API Server" in
+    SkinTyee.drawio.pdf, backed by Azure Cloud DB). This is the contract the
+    app's `ApiService` is written against; today the app uses an in-memory mock,
+    and this spec defines the real endpoints to implement.
+
+
+    **Auth:** Microsoft Entra ID (Azure AD) via OAuth2/OIDC. Access tokens carry
+    app roles that map to the app's roles: `public` (unauthenticated), `member`,
+    `staff`, `admin`. Required roles are noted per operation.
+
+
+    **Financial data** (transparency, financials) is sourced from the Ferrus
+    ASAP Suite + Adagio / Sage 300 integration. **Notifications** mirror the
+    skintyee.ca WordPress category taxonomy.
+  contact:
+    name: Blue Collar Dev
+    email: info@bluecollardev.com
+servers:
+  - url: https://api.skintyee.ca/v1
+    description: Production
+  - url: http://localhost:4000/v1
+    description: Local development
+
+tags:
+  - name: Directory
+  - name: Events
+  - name: Meetings
+  - name: Transparency
+  - name: Financials
+  - name: Time Keeping
+  - name: Polls
+  - name: Notifications
+  - name: Auth
+
+security:
+  - entraId: []
+
+paths:
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Current user + resolved role
+      responses:
+        '200':
+          description: The signed-in user.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthUser' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /directory:
+    get:
+      tags: [Directory]
+      summary: List band members
+      description: Public sees public fields only; member/staff/admin see contact details.
+      security: []
+      responses:
+        '200':
+          description: Band members.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/BandMember' }
+    post:
+      tags: [Directory]
+      summary: Add a band member
+      description: 'Requires role: admin.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BandMemberInput' }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BandMember' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /directory/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      tags: [Directory]
+      summary: Get a band member
+      security: []
+      responses:
+        '200':
+          description: Member.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BandMember' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Directory]
+      summary: Edit a band member
+      description: 'Requires role: admin.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BandMemberInput' }
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BandMember' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Directory]
+      summary: Remove a band member
+      description: 'Requires role: admin.'
+      responses:
+        '204': { description: Removed. }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /events:
+    get:
+      tags: [Events]
+      summary: List community events
+      description: Public sees public events only.
+      security: []
+      responses:
+        '200':
+          description: Events.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/CommunityEvent' }
+    post:
+      tags: [Events]
+      summary: Create an event
+      description: 'Requires role: admin.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CommunityEventInput' }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CommunityEvent' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /events/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      tags: [Events]
+      summary: Get an event
+      security: []
+      responses:
+        '200':
+          description: Event.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CommunityEvent' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Events]
+      summary: Edit / reschedule / cancel an event
+      description: 'Requires role: admin. Set `cancelled` to cancel/restore.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CommunityEventInput' }
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CommunityEvent' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    delete:
+      tags: [Events]
+      summary: Delete an event
+      description: 'Requires role: admin.'
+      responses:
+        '204': { description: Deleted. }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /meetings:
+    get:
+      tags: [Meetings]
+      summary: List band meetings
+      description: 'Requires role: member, staff, or admin.'
+      responses:
+        '200':
+          description: Meetings.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/BandMeeting' }
+    post:
+      tags: [Meetings]
+      summary: Schedule a meeting
+      description: 'Requires role: admin.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BandMeetingInput' }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BandMeeting' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /meetings/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    patch:
+      tags: [Meetings]
+      summary: Edit / reschedule / cancel a meeting
+      description: 'Requires role: admin. Set `cancelled` to cancel/restore.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BandMeetingInput' }
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BandMeeting' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    delete:
+      tags: [Meetings]
+      summary: Delete a meeting
+      description: 'Requires role: admin.'
+      responses:
+        '204': { description: Deleted. }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /transparency/expenditures:
+    get:
+      tags: [Transparency]
+      summary: Public band expenditures by program area
+      description: Sourced from the Ferrus / Adagio (Sage) financial integration.
+      security: []
+      parameters:
+        - { name: fiscalYear, in: query, schema: { type: string }, example: FY2024 }
+      responses:
+        '200':
+          description: Expenditures with drill-down breakdowns.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Expenditure' }
+  /transparency/major-projects:
+    get:
+      tags: [Transparency]
+      summary: Major capital projects (allocated vs spent)
+      security: []
+      responses:
+        '200':
+          description: Major projects.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/MajorProject' }
+
+  /financials:
+    get:
+      tags: [Financials]
+      summary: Financial records (budgets, statements, grants, expenses)
+      description: 'Requires role: admin.'
+      responses:
+        '200':
+          description: Financial records.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/FinancialRecord' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /timekeeping/entries:
+    get:
+      tags: [Time Keeping]
+      summary: List timesheet entries
+      description: 'Staff see their own entries; admins see all. Requires role: staff or admin.'
+      responses:
+        '200':
+          description: Time entries.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TimeEntry' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Time Keeping]
+      summary: Submit a timesheet entry
+      description: 'Requires role: staff or admin. The worker is the signed-in user.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TimeEntryInput' }
+      responses:
+        '201':
+          description: Created (pending approval).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TimeEntry' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /timekeeping/entries/{id}/approve:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    post:
+      tags: [Time Keeping]
+      summary: Approve a timesheet entry
+      description: 'Requires role: admin.'
+      responses:
+        '200':
+          description: Approved.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TimeEntry' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /polls:
+    get:
+      tags: [Polls]
+      summary: List polls & votes
+      description: Filter by `kind` (survey | vote).
+      security: []
+      parameters:
+        - { name: kind, in: query, schema: { $ref: '#/components/schemas/PollKind' } }
+      responses:
+        '200':
+          description: Polls.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Poll' }
+    post:
+      tags: [Polls]
+      summary: Create a poll or vote
+      description: 'Requires role: admin.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PollInput' }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Poll' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /polls/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      tags: [Polls]
+      summary: Get a poll
+      security: []
+      responses:
+        '200':
+          description: Poll.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Poll' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /polls/{id}/vote:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    post:
+      tags: [Polls]
+      summary: Cast a vote
+      description: 'Requires role: member, staff, or admin. One vote per member.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [optionId]
+              properties:
+                optionId: { type: string }
+      responses:
+        '200':
+          description: Updated poll with new tallies.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Poll' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { description: Already voted. }
+
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: List notifications
+      security: []
+      responses:
+        '200':
+          description: Notifications.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Notification' }
+    post:
+      tags: [Notifications]
+      summary: Post a notification
+      description: 'Requires role: admin. Triggers push delivery + may sync to skintyee.ca.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NotificationInput' }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Notification' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /notifications/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    patch:
+      tags: [Notifications]
+      summary: Edit a notification
+      description: 'Requires role: admin.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NotificationInput' }
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Notification' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    delete:
+      tags: [Notifications]
+      summary: Delete a notification
+      description: 'Requires role: admin.'
+      responses:
+        '204': { description: Deleted. }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+components:
+  securitySchemes:
+    entraId:
+      type: oauth2
+      description: >
+        Microsoft Entra ID (Azure AD). Access tokens carry app roles
+        (member / staff / admin); endpoints with `security: []` are public.
+      flows:
+        authorizationCode:
+          authorizationUrl: https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize
+          tokenUrl: https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token
+          scopes:
+            api://skintyee/access_as_user: Access the Skin Tyee API as the signed-in user
+
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+
+  responses:
+    Unauthorized:
+      description: Authentication required.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Insufficient role.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Not found.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        message: { type: string }
+        code: { type: string }
+    Role:
+      type: string
+      enum: [public, member, staff, admin]
+    AuthUser:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        email: { type: string }
+        role: { $ref: '#/components/schemas/Role' }
+
+    BandMember:
+      type: object
+      required: [_id, name, role]
+      properties:
+        _id: { type: string }
+        name: { type: string }
+        role: { type: string, enum: [Member, Staff, Council, Chief] }
+        title: { type: string, nullable: true }
+        email: { type: string, nullable: true, description: 'Sensitive — omitted for public callers.' }
+        phone: { type: string, nullable: true, description: 'Sensitive — omitted for public callers.' }
+        avatarLetter: { type: string, nullable: true }
+    BandMemberInput:
+      type: object
+      required: [name, role]
+      properties:
+        name: { type: string }
+        role: { type: string, enum: [Member, Staff, Council, Chief] }
+        title: { type: string }
+        email: { type: string }
+        phone: { type: string }
+
+    CommunityEvent:
+      type: object
+      required: [_id, title, startsAt, public]
+      properties:
+        _id: { type: string }
+        title: { type: string }
+        description: { type: string }
+        location: { type: string }
+        startsAt: { type: string, format: date-time }
+        public: { type: boolean }
+        cancelled: { type: boolean }
+        lat: { type: number, format: double, nullable: true }
+        lng: { type: number, format: double, nullable: true }
+    CommunityEventInput:
+      type: object
+      required: [title, startsAt]
+      properties:
+        title: { type: string }
+        description: { type: string }
+        location: { type: string }
+        startsAt: { type: string, format: date-time }
+        public: { type: boolean, default: true }
+        cancelled: { type: boolean }
+        lat: { type: number, format: double }
+        lng: { type: number, format: double }
+
+    BandMeeting:
+      type: object
+      required: [_id, title, startsAt]
+      properties:
+        _id: { type: string }
+        title: { type: string }
+        agenda: { type: string }
+        location: { type: string }
+        startsAt: { type: string, format: date-time }
+        minutesUrl: { type: string, nullable: true }
+        cancelled: { type: boolean }
+        lat: { type: number, format: double, nullable: true }
+        lng: { type: number, format: double, nullable: true }
+    BandMeetingInput:
+      type: object
+      required: [title, startsAt]
+      properties:
+        title: { type: string }
+        agenda: { type: string }
+        location: { type: string }
+        startsAt: { type: string, format: date-time }
+        minutesUrl: { type: string }
+        cancelled: { type: boolean }
+        lat: { type: number, format: double }
+        lng: { type: number, format: double }
+
+    ExpenditureLineItem:
+      type: object
+      properties:
+        label: { type: string }
+        amount: { type: number }
+    Expenditure:
+      type: object
+      required: [_id, area, spent, budget, fiscalYear]
+      properties:
+        _id: { type: string }
+        area: { type: string, example: Housing }
+        spent: { type: number }
+        budget: { type: number }
+        fiscalYear: { type: string, example: FY2024 }
+        breakdown:
+          type: array
+          items: { $ref: '#/components/schemas/ExpenditureLineItem' }
+
+    MajorProject:
+      type: object
+      required: [_id, name, allocated, spent, status]
+      properties:
+        _id: { type: string }
+        name: { type: string }
+        allocated: { type: number }
+        spent: { type: number }
+        status: { type: string, enum: [planned, in_progress, complete] }
+        fiscalYear: { type: string }
+
+    FinancialRecord:
+      type: object
+      required: [_id, title, category, amount]
+      properties:
+        _id: { type: string }
+        title: { type: string }
+        period: { type: string }
+        category: { type: string, enum: [Budget, Statement, Grant, Expense] }
+        amount: { type: number }
+        notes: { type: string, nullable: true }
+
+    TimeEntry:
+      type: object
+      required: [_id, workerName, date, hours, task, approved]
+      properties:
+        _id: { type: string }
+        workerName: { type: string }
+        date: { type: string, format: date-time }
+        hours: { type: number }
+        task: { type: string }
+        approved: { type: boolean }
+    TimeEntryInput:
+      type: object
+      required: [date, hours, task]
+      properties:
+        date: { type: string, format: date-time }
+        hours: { type: number }
+        task: { type: string }
+
+    PollKind:
+      type: string
+      enum: [survey, vote]
+    PollOption:
+      type: object
+      properties:
+        id: { type: string }
+        label: { type: string }
+        votes: { type: integer }
+    Poll:
+      type: object
+      required: [_id, kind, question, options, closed]
+      properties:
+        _id: { type: string }
+        kind: { $ref: '#/components/schemas/PollKind' }
+        question: { type: string }
+        description: { type: string }
+        closesAt: { type: string, format: date-time }
+        closed: { type: boolean }
+        options:
+          type: array
+          items: { $ref: '#/components/schemas/PollOption' }
+    PollInput:
+      type: object
+      required: [kind, question, options]
+      properties:
+        kind: { $ref: '#/components/schemas/PollKind' }
+        question: { type: string }
+        description: { type: string }
+        closesAt: { type: string, format: date-time }
+        options:
+          type: array
+          items: { type: string, description: Option label }
+
+    NotificationCategory:
+      type: string
+      enum: [Health, Safety, Council, Events, Programs, News, Announcements]
+    Notification:
+      type: object
+      required: [_id, title, category, createdAt, read]
+      properties:
+        _id: { type: string }
+        title: { type: string }
+        body: { type: string }
+        category: { $ref: '#/components/schemas/NotificationCategory' }
+        createdAt: { type: string, format: date-time }
+        read: { type: boolean }
+    NotificationInput:
+      type: object
+      required: [title, category]
+      properties:
+        title: { type: string }
+        body: { type: string }
+        category: { $ref: '#/components/schemas/NotificationCategory' }

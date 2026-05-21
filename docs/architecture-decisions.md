@@ -73,13 +73,35 @@ Decision record for the Skin Tyee app (`@skintyee/app`, in `app/`). Lives in the
 - **Why:** the ppt split exists only to white-label multiple apps from one
   source. Skin Tyee is a single app and does not need it.
 
+### ADR-7 — API: NestJS + Prisma + Azure MySQL, contract-first (OpenAPI)
+- **Decision:** build the API Server as **NestJS (TypeScript)** with **Prisma**
+  over **Azure Database for PostgreSQL – Flexible Server** (with the **PostGIS**
+  extension), authenticated by **Microsoft Entra ID** (Nest guards mapping app
+  roles → member/staff/admin), Dockerized to **Azure Container Apps** behind
+  `api.skintyee.ca`, CI via **Azure DevOps**.
+- **Contract-first:** [`api/openapi.yaml`](../api/openapi.yaml) is the source of
+  truth (the contract the app's `ApiService` targets); the app's typed client is
+  generated from it and the implementation is validated against it in CI.
+- **Why NestJS:** same language as the app, matches the ppt platform the team
+  knows, first-class OpenAPI + guards for the role-based access already specified
+  in the spec. **Why PostgreSQL + PostGIS:** first-class **geospatial** support
+  for the diagram's **Land Allocation / GIS mapping** and the meeting/event map
+  pins (lat/lng + spatial queries); managed Postgres still gives auto backups +
+  PITR (the NGO priority) and SQL aligns with the Ferrus/Adagio (Sage 300) data
+  flows (ADR-5). The WordPress site stays on **MySQL** (WordPress requires it);
+  the API uses Postgres for the GIS needs.
+- **Status:** **proposed.** `api/` currently ships the OpenAPI spec + a
+  lightweight Express **stub** server (Swagger UI + sample data); the NestJS
+  implementation lands in Phase 2 (see [`roadmap.md`](./roadmap.md)). Full
+  rationale + stack table: [`api/README.md`](../api/README.md).
+
 ## Summary: ppt → Skin Tyee service swaps
 
 | Concern | ppt (AWS) | Skin Tyee (Azure) | Status |
 |---|---|---|---|
 | Identity | AWS Cognito / Amplify | **Microsoft Entra ID** | stubbed (role switcher) |
 | Object storage | AWS S3 | **Azure Blob Storage** | not implemented |
-| Database / API | Mongo + Nest microservices | **Azure Cloud DB** + API Server | mocked behind `ApiService` |
+| Database / API | Mongo + Nest microservices | **Azure PostgreSQL Flexible Server (PostGIS)** + **NestJS** API (`api.skintyee.ca`) | spec'd (`api/openapi.yaml`) + stub server; mocked in app |
 | Financial / program data | — | **Ferrus ASAP Suite + Adagio / Sage 300** | mocked (transparency + financials) |
 | Notifications taxonomy | — | **skintyee.ca WordPress categories** | modelled; push + feed stubbed |
 | App packaging | source lib + app-shell submodules | **single self-contained app** | done |
