@@ -29,6 +29,7 @@ export const routeConfig = {
   memberCreate: { name: 'memberCreate', options: { title: 'Add member', header: header('Add Member') } },
   timesheetCreate: { name: 'timesheetCreate', options: { title: 'Timesheet', header: header('Add Timesheet') } },
   meetingCreate: { name: 'meetingCreate', options: { title: 'New meeting', header: header('Schedule Meeting') } },
+  meetingEdit: { name: 'meetingEdit', options: { title: 'Edit meeting', header: header('Edit Meeting') } },
   // Account / role switcher
   account: { name: 'account', options: { title: 'Account', header: header('Account') } },
 };
