@@ -65,8 +65,36 @@ over cost**. Cost basis + rationale (kept as tax-claim evidence):
 
 ## app/ — application
 
-`@skintyee/app`, a private pnpm workspace package. Empty placeholder; nothing
-scaffolded yet.
+`@skintyee/app`, a private pnpm workspace package: the Skintyee community mobile
++ web app. **React Native + Expo**, reusing the **ppt (Mediashare / PocketPT)**
+app's stack, theme, and conventions — React Native Paper (Material UI,
+`MD2DarkTheme` cyan/orange dark theme), Redux Toolkit `createAsyncThunk` via the
+`makeActions` snake_case factory, React Navigation 6. Path alias `skintyee/*` →
+`app/src/*`.
+
+It is a **single self-contained package** — there is **no** ppt-style shared
+source library + app-shell/git-submodule split (that exists only to white-label
+multiple apps; Skintyee is one app).
+
+**Features** (role-gated for Public / Band Member / Admin+Staff, from
+`docs/SkinTyee.drawio.pdf`): Directory, Community Events, Band Meetings, Public
+Records, Time Keeping, Financial Records, Polling/Surveys.
+
+**This is a proof-of-concept** for a proposal (3-month engagement). All backend
+access is **mocked** behind a typed `ApiService` (`src/services/api/`); auth is a
+**stubbed dev role switcher** (`src/store/modules/auth.ts` + the Account screen).
+Every stub is catalogued in **`app/STUBS.md`**.
+
+**Intended real services are Azure** (not the AWS services ppt used): Microsoft
+**Entra ID** for auth (not Cognito), **Azure Blob Storage** for files (not S3),
+**Azure Cloud DB** + an API Server. Distribution via **TestFlight** (iOS) and
+**Google Play** (Android) using EAS Build.
+
+**Docs** (`docs/`): `app-plan.md` (build plan), `architecture-decisions.md`
+(service ADRs), `roadmap.md` (3-month timeline), `testing-strategy.md`,
+`Skintyee-App-Proposal.pptx` (proposal deck).
+
+Run: `pnpm --filter @skintyee/app start` (Expo). Work on branch `feature/app`.
 
 ## Git conventions
 
