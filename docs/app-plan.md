@@ -1,8 +1,8 @@
 # `@skintyee/app` — Build Plan
 
-Plan for the Skintyee First Nation mobile/web application, built in
+Plan for the Skin Tyee First Nation mobile/web application, built in
 `skintyee/app/`. The app reuses the **ppt (PocketPT / Mediashare) app's stack,
-theme, and conventions** but implements **Skintyee-specific features and
+theme, and conventions** but implements **Skin Tyee-specific features and
 role-based menus** taken from [`SkinTyee.drawio.pdf`](./SkinTyee.drawio.pdf).
 
 > **This is a proof-of-concept (POC)** supporting a proposal — not production.
@@ -20,7 +20,7 @@ plus thin **app-shell wrappers** (`mediashare-app`, `ppt_mediashare-subscription
 that consume the source as a git submodule. That split exists **only to
 white-label multiple apps from one source**.
 
-**Skintyee does not need this.** We are building **one self-contained app**, not
+**Skin Tyee does not need this.** We are building **one self-contained app**, not
 white-labeling. So:
 
 - `@skintyee/app` is a **single pnpm workspace package** — all code lives in
@@ -94,7 +94,7 @@ The look-and-feel and engineering patterns we deliberately keep:
   ppt-style shared-source-library + git-submodule wrapper split. `skintyee/app`
   is already a pnpm workspace member, so the app is a single package. We keep
   ppt's *internal* folder conventions, not its multi-repo topology.
-- **Features replace media/playlists** with the Skintyee feature set below.
+- **Features replace media/playlists** with the Skin Tyee feature set below.
 - **No AWS Cognito and no OpenAPI/RxJS generated clients.** Auth and data are
   replaced by a typed `ApiService` interface backed by mock fixtures, so the
   future real backend (API Server → Azure Cloud DB) can be dropped in.

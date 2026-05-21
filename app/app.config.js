@@ -1,6 +1,6 @@
 module.exports = {
   expo: {
-    name: 'Skintyee',
+    name: 'Skin Tyee',
     slug: 'skintyee-app',
     scheme: 'skintyee',
     version: '0.0.0',

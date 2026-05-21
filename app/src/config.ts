@@ -10,7 +10,7 @@ const extra = (Constants?.expoConfig?.extra ?? {}) as Record<string, unknown>;
 const Config = {
   // STUB: 'mock' selects the in-memory mock ApiService. Swap for a real base URL.
   apiServer: (extra.apiServer as string) ?? 'mock',
-  appName: 'Skintyee',
+  appName: 'Skin Tyee',
 };
 
 export default Config;
