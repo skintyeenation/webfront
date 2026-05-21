@@ -1,6 +1,6 @@
-# Skintyee App — Roadmap & Timeline
+# Skin Tyee App — Roadmap & Timeline
 
-Delivery timeline for the Skintyee app (`@skintyee/app`). Part of the proposal.
+Delivery timeline for the Skin Tyee app (`@skintyee/app`). Part of the proposal.
 Companion to [`app-plan.md`](./app-plan.md) and
 [`architecture-decisions.md`](./architecture-decisions.md).
 

@@ -1,6 +1,6 @@
-# Skintyee App — Testing Strategy
+# Skin Tyee App — Testing Strategy
 
-Testing approach for the Skintyee app (`@skintyee/app`). Part of the proposal.
+Testing approach for the Skin Tyee app (`@skintyee/app`). Part of the proposal.
 Companion to [`app-plan.md`](./app-plan.md) and [`roadmap.md`](./roadmap.md).
 
 > **Status:** the POC ships the feature scaffold first; the test suites described

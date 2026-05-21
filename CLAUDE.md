@@ -1,6 +1,6 @@
-# Skintyee — webfront
+# Skin Tyee — webfront
 
-Migration and rebuild of the Skintyee First Nation web presence: moving the
+Migration and rebuild of the Skin Tyee First Nation web presence: moving the
 existing Site123-hosted **skintyeefirstnation.org** to a self-hosted stack at
 **skintyee.ca**.
 
@@ -58,14 +58,14 @@ stack over SSH (`develop` → staging, `master` → production).
   DEPLOY_PATH, DB_HOST, DB_NAME, DB_USER, DB_PASSWORD, optional
   AZURE_STORAGE_SAS) and SSH service connection `skintyee-host`.
 
-**Hosting decision:** managed DB chosen because Skintyee is an **NGO** — hosting
+**Hosting decision:** managed DB chosen because Skin Tyee is an **NGO** — hosting
 is a tax-deductible expense, and the priority is **easy backups + auditability
 over cost**. Cost basis + rationale (kept as tax-claim evidence):
 [`docs/hosting-costs.md`](docs/hosting-costs.md).
 
 ## app/ — application
 
-`@skintyee/app`, a private pnpm workspace package: the Skintyee community mobile
+`@skintyee/app`, a private pnpm workspace package: the Skin Tyee community mobile
 + web app. **React Native + Expo**, reusing the **ppt (Mediashare / PocketPT)**
 app's stack, theme, and conventions — React Native Paper (Material UI,
 `MD2DarkTheme` cyan/orange dark theme), Redux Toolkit `createAsyncThunk` via the
@@ -74,7 +74,7 @@ app's stack, theme, and conventions — React Native Paper (Material UI,
 
 It is a **single self-contained package** — there is **no** ppt-style shared
 source library + app-shell/git-submodule split (that exists only to white-label
-multiple apps; Skintyee is one app).
+multiple apps; Skin Tyee is one app).
 
 **Features** (role-gated for Public / Band Member / Admin+Staff, from
 `docs/SkinTyee.drawio.pdf`): a charts **Dashboard**, Directory, Community Events,

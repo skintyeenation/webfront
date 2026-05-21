@@ -108,7 +108,7 @@ s = prs.slides.add_slide(BLANK); bg(s)
 box(s, 0, 0, SW, Inches(0.22), fill=PRIMARY)
 box(s, 0, Inches(0.22), Inches(5), Emu(int(Inches(0.08))), fill=ACCENT)
 txt(s, Inches(0.9), Inches(2.3), Inches(11.5), Inches(1.2),
-    [("Skintyee First Nation", 22, PRIMARY, True)])
+    [("Skin Tyee First Nation", 22, PRIMARY, True)])
 txt(s, Inches(0.9), Inches(3.0), Inches(11.5), Inches(1.6),
     [("Community Mobile App", 52, TEXT, True)])
 txt(s, Inches(0.9), Inches(4.4), Inches(11.5), Inches(0.7),
@@ -122,7 +122,7 @@ txt(s, Inches(0.92), Inches(6.7), Inches(11.5), Inches(0.4),
 s = prs.slides.add_slide(BLANK); bg(s)
 header(s, "Overview", "One app, three audiences")
 bullets(s, Inches(0.7), Inches(1.95), Inches(7.2), Inches(5), [
-    ("Goal:", "a single mobile + web app for the Skintyee First Nation community."),
+    ("Goal:", "a single mobile + web app for the Skin Tyee First Nation community."),
     ("Public:", "community events and public records, open to anyone."),
     ("Band Members:", "directory, band meetings, polling & voting on issues."),
     ("Admins / Staff:", "time keeping and financial records, admin-only."),
@@ -179,7 +179,7 @@ card(s, Inches(8.2), Inches(2.0), Inches(4.5), Inches(4.6), "Why it matters",
 # ---------- Slide 4: Architecture ----------
 s = prs.slides.add_slide(BLANK); bg(s)
 header(s, "Architecture", "Azure end-to-end")
-card(s, Inches(0.7), Inches(2.0), Inches(3.85), Inches(2.0), "Skintyee App",
+card(s, Inches(0.7), Inches(2.0), Inches(3.85), Inches(2.0), "Skin Tyee App",
      "React Native + Expo. iOS, Android, and web from one codebase. "
      "Material UI, role-based menus.", accent=PRIMARY)
 card(s, Inches(4.74), Inches(2.0), Inches(3.85), Inches(2.0), "Microsoft Entra ID",
@@ -260,7 +260,7 @@ box(s, 0, Inches(0.22), Inches(5), Emu(int(Inches(0.08))), fill=ACCENT)
 txt(s, Inches(0.9), Inches(2.6), Inches(11.5), Inches(1.2),
     [("A modern, self-owned platform", 40, TEXT, True)])
 txt(s, Inches(0.92), Inches(3.8), Inches(11.5), Inches(0.8),
-    [("for the Skintyee First Nation community.", 24, PRIMARY, True)])
+    [("for the Skin Tyee First Nation community.", 24, PRIMARY, True)])
 txt(s, Inches(0.92), Inches(5.0), Inches(11.5), Inches(0.6),
     [("Working POC today · production-ready in three months.", 16, MUTED, False)])
 txt(s, Inches(0.92), Inches(6.7), Inches(11.5), Inches(0.4),

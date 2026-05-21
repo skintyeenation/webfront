@@ -102,7 +102,7 @@ the POC:
   - App icon / splash / favicon are **omitted** (Expo defaults used) — no artwork
     yet. Add files to `assets/` and re-add the fields.
 - **Logo (header + splash):** the header (top-left) and the in-app splash show a
-  **placeholder wordmark** — a thunderbird-nod icon + "Skintyee"
+  **placeholder wordmark** — a thunderbird-nod icon + "Skin Tyee"
   (`components/layout/Logo.tsx`, `SplashScreen.tsx`), because no real logo file is
   available. skintyee.ca uses a "thunderbird" logo (WP attachment sha1
   `48facf18…`, see `../website/importer/build-home-elementor.php`) but the local

@@ -1,6 +1,6 @@
-# Architecture Decisions — Skintyee App
+# Architecture Decisions — Skin Tyee App
 
-Decision record for the Skintyee app (`@skintyee/app`, in `app/`). Lives in the
+Decision record for the Skin Tyee app (`@skintyee/app`, in `app/`). Lives in the
 **root webfront repo** docs. Companion to [`app-plan.md`](./app-plan.md).
 
 > **Context:** the app reuses the ppt (Mediashare / PocketPT) app's stack, theme,
@@ -71,11 +71,11 @@ Decision record for the Skintyee app (`@skintyee/app`, in `app/`). Lives in the
 - **Decision:** `@skintyee/app` is **one pnpm workspace package**; no shared
   source library and no white-label app-shell/git-submodule wrapper.
 - **Why:** the ppt split exists only to white-label multiple apps from one
-  source. Skintyee is a single app and does not need it.
+  source. Skin Tyee is a single app and does not need it.
 
-## Summary: ppt → Skintyee service swaps
+## Summary: ppt → Skin Tyee service swaps
 
-| Concern | ppt (AWS) | Skintyee (Azure) | Status |
+| Concern | ppt (AWS) | Skin Tyee (Azure) | Status |
 |---|---|---|---|
 | Identity | AWS Cognito / Amplify | **Microsoft Entra ID** | stubbed (role switcher) |
 | Object storage | AWS S3 | **Azure Blob Storage** | not implemented |
