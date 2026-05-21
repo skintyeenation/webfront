@@ -1,0 +1,14 @@
+{
+  "name": "webfront",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "app": "pnpm --filter @skintyee/app",
+    "website:up": "docker compose -f website/docker-compose.yml up -d",
+    "website:down": "docker compose -f website/docker-compose.yml down"
+  }
+}

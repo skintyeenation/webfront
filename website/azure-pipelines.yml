@@ -1,0 +1,226 @@
+# Azure DevOps pipeline — skintyee.ca WordPress (website/)
+#
+# Deploys the Dockerized WordPress stack in website/ to a remote host over SSH,
+# backed by a MANAGED Azure Database for MySQL – Flexible Server.
+#
+# DATABASE STRATEGY:
+#   - The database is the managed Flexible Server. Azure provides automated
+#     backups + point-in-time restore, so the DB is durable independently of
+#     this pipeline and is NEVER recreated by a routine deploy.
+#   - WordPress runs from docker-compose.prod.yml (no local db container) and
+#     connects to the managed server over TLS.
+#   - Before each deploy the pipeline snapshots wp-content (files) and takes an
+#     optional logical `wp db export` for extra safety.
+#   - Destructive data operations (initial seed from the migration) are gated
+#     behind the `seedDatabase` parameter + environment approval.
+#
+# SETUP REQUIRED:
+#   - Variable group `skintyee-website` with: SSH_HOST, SSH_USER, DEPLOY_PATH,
+#     DB_HOST, DB_NAME, DB_USER, DB_PASSWORD (secret), and optional
+#     AZURE_STORAGE_SAS for off-host backup copies.
+#   - SSH service connection named `skintyee-host`.
+#   - Pipeline environments `skintyee-website-staging` / `-production` with
+#     approvals configured in the ADO UI.
+
+trigger:
+  branches:
+    include:
+      - develop   # -> staging
+      - master    # -> production
+  paths:
+    include:
+      - website/*
+
+parameters:
+  - name: seedDatabase
+    displayName: "DESTRUCTIVE: seed/replace the database from the migration"
+    type: boolean
+    default: false
+  - name: runSearchReplace
+    displayName: "After seed, search-replace localhost URL -> site URL"
+    type: boolean
+    default: true
+
+variables:
+  - group: skintyee-website
+  - ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/master') }}:
+      - name: deployEnvName
+        value: skintyee-website-production
+      - name: siteUrl
+        value: https://skintyee.ca
+  - ${{ else }}:
+      - name: deployEnvName
+        value: skintyee-website-staging
+      - name: siteUrl
+        value: https://staging.skintyee.ca
+  - name: compose
+    value: "docker compose -f docker-compose.prod.yml"
+
+stages:
+  # ---------------------------------------------------------------------------
+  - stage: Validate
+    displayName: "Validate stack"
+    jobs:
+      - job: validate
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - checkout: self
+            fetchDepth: 1
+          - script: |
+              set -euo pipefail
+              cd website
+              docker compose -f docker-compose.yml config -q
+              # prod file references env vars; validate with placeholders
+              DB_HOST=h DB_NAME=n DB_USER=u DB_PASSWORD=p SITE_URL=https://x \
+                docker compose -f docker-compose.prod.yml config -q
+            displayName: "Lint docker-compose (dev + prod)"
+          - script: |
+              set -euo pipefail
+              cd website
+              sudo apt-get update -qq && sudo apt-get install -y shellcheck >/dev/null
+              shellcheck backup.sh restore.sh export.sh wipe.sh importer/*.sh || true
+              for f in importer/*.php; do php -l "$f"; done
+            displayName: "Shellcheck + PHP lint"
+
+  # ---------------------------------------------------------------------------
+  - stage: Deploy
+    displayName: "Deploy"
+    dependsOn: Validate
+    condition: succeeded()
+    jobs:
+      - deployment: deploy
+        displayName: "Deploy WordPress stack"
+        pool:
+          vmImage: ubuntu-latest
+        environment: $(deployEnvName)
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                  fetchDepth: 1
+
+                # 1. Sync code/config to the host (runtime + secret dirs excluded).
+                - task: CopyFilesOverSSH@0
+                  displayName: "Sync website/ to host"
+                  inputs:
+                    sshEndpoint: skintyee-host
+                    sourceFolder: website
+                    contents: |
+                      **
+                      !db-data/**
+                      !wp-data/**
+                      !scraped/**
+                      !backups/**
+                      !.venv/**
+                      !node_modules/**
+                      !.git/**
+                    targetFolder: $(DEPLOY_PATH)
+                    cleanTargetFolder: false
+                    overwrite: true
+
+                # 2. Write the host .env (managed DB connection + site URL).
+                #    DB_PASSWORD is a secret variable; ADO masks it in logs.
+                - task: SSH@0
+                  displayName: "Write .env on host"
+                  inputs:
+                    sshEndpoint: skintyee-host
+                    runOptions: commands
+                    commands: |
+                      set -e
+                      umask 077
+                      cat > "$(DEPLOY_PATH)/.env" <<EOF
+                      DB_HOST=$(DB_HOST)
+                      DB_NAME=$(DB_NAME)
+                      DB_USER=$(DB_USER)
+                      DB_PASSWORD=$(DB_PASSWORD)
+                      SITE_URL=$(siteUrl)
+                      EOF
+
+                # 3. Pre-deploy snapshot: wp-content tarball + optional DB export.
+                #    (Azure Flexible Server already provides automated DB backups
+                #    + PITR; this is belt-and-braces for the app side.)
+                - task: SSH@0
+                  displayName: "Snapshot wp-content (+ logical DB export)"
+                  inputs:
+                    sshEndpoint: skintyee-host
+                    runOptions: commands
+                    commands: |
+                      set -e
+                      cd "$(DEPLOY_PATH)"
+                      mkdir -p backups
+                      ts=$(date +%Y%m%d-%H%M%S)
+                      if [ -d wp-data/wp-content ]; then
+                        tar -czf "backups/wp-content-$ts.tar.gz" --exclude=cache --exclude=upgrade -C wp-data wp-content
+                      fi
+                      # logical DB export via wp-cli against the managed server
+                      $(compose) run --rm wpcli db export "/backups/db-$ts.sql" || echo "db export skipped (fresh install?)"
+                      ls -t backups/db-*.sql 2>/dev/null | tail -n +21 | xargs -r rm
+                      ls -t backups/wp-content-*.tar.gz 2>/dev/null | tail -n +21 | xargs -r rm
+                    readyTimeout: "60000"
+
+                # 3b. (Optional) copy newest snapshot off-host to Azure Storage.
+                - task: SSH@0
+                  displayName: "Archive snapshot to Azure Storage"
+                  condition: and(succeeded(), ne(variables['AZURE_STORAGE_SAS'], ''))
+                  inputs:
+                    sshEndpoint: skintyee-host
+                    runOptions: commands
+                    commands: |
+                      set -e
+                      cd "$(DEPLOY_PATH)/backups"
+                      which azcopy || { curl -sL https://aka.ms/downloadazcopy-v10-linux | tar -xz --strip-components=1 -C /usr/local/bin */azcopy; }
+                      for f in $(ls -t db-*.sql wp-content-*.tar.gz 2>/dev/null | head -2); do
+                        azcopy copy "$f" "$(AZURE_STORAGE_SAS)" --overwrite=true
+                      done
+
+                # 4. Pull images and (re)start the stack.
+                - task: SSH@0
+                  displayName: "docker compose up"
+                  inputs:
+                    sshEndpoint: skintyee-host
+                    runOptions: commands
+                    commands: |
+                      set -e
+                      cd "$(DEPLOY_PATH)"
+                      $(compose) pull
+                      $(compose) up -d --remove-orphans
+                    readyTimeout: "20000"
+
+                # 5. DESTRUCTIVE, opt-in: seed the database from the migration
+                #    importer, then fix URLs. Skipped unless seedDatabase=true.
+                - ${{ if eq(parameters.seedDatabase, true) }}:
+                    - task: SSH@0
+                      displayName: "Seed database (importer)"
+                      inputs:
+                        sshEndpoint: skintyee-host
+                        runOptions: commands
+                        commands: |
+                          set -e
+                          cd "$(DEPLOY_PATH)"
+                          ./importer/import.sh
+                        readyTimeout: "120000"
+                    - ${{ if eq(parameters.runSearchReplace, true) }}:
+                        - task: SSH@0
+                          displayName: "Search-replace localhost -> $(siteUrl)"
+                          inputs:
+                            sshEndpoint: skintyee-host
+                            runOptions: commands
+                            commands: |
+                              set -e
+                              cd "$(DEPLOY_PATH)"
+                              $(compose) run --rm wpcli \
+                                search-replace 'http://localhost:8080' '$(siteUrl)' --all-tables --report-changed-only
+
+                # 6. Smoke check.
+                - task: SSH@0
+                  displayName: "Smoke check"
+                  inputs:
+                    sshEndpoint: skintyee-host
+                    runOptions: commands
+                    commands: |
+                      set -e
+                      code=$(curl -s -o /dev/null -w '%{http_code}' -L '$(siteUrl)' || echo 000)
+                      echo "HTTP $code from $(siteUrl)"
+                      test "$code" = "200"

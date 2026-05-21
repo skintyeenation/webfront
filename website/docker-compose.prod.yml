@@ -1,0 +1,53 @@
+# Production / staging compose — Managed Azure Database for MySQL Flexible Server.
+#
+# Used STANDALONE (not merged with docker-compose.yml):
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# There is no local `db` service here — WordPress connects to the managed
+# Flexible Server. Connection values + the public URL come from a `.env` file
+# the deploy pipeline writes on the host:
+#
+#   DB_HOST=skintyee-mysql.mysql.database.azure.com:3306
+#   DB_NAME=skintyee
+#   DB_USER=skintyee
+#   DB_PASSWORD=********
+#   SITE_URL=https://skintyee.ca
+#
+# Flexible Server enforces TLS, hence MYSQLI_CLIENT_SSL below.
+
+services:
+  wordpress:
+    image: wordpress:6.7-php8.3-apache
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    environment:
+      WORDPRESS_DB_HOST: ${DB_HOST}
+      WORDPRESS_DB_NAME: ${DB_NAME}
+      WORDPRESS_DB_USER: ${DB_USER}
+      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD}
+      WORDPRESS_CONFIG_EXTRA: |
+        define('WP_HOME',    getenv('SITE_URL'));
+        define('WP_SITEURL', getenv('SITE_URL'));
+        define('MYSQL_CLIENT_FLAGS', MYSQLI_CLIENT_SSL);
+      SITE_URL: ${SITE_URL}
+    volumes:
+      - ./wp-data:/var/www/html
+
+  wpcli:
+    image: wordpress:cli-php8.3
+    depends_on:
+      - wordpress
+    user: "33:33"
+    environment:
+      WORDPRESS_DB_HOST: ${DB_HOST}
+      WORDPRESS_DB_NAME: ${DB_NAME}
+      WORDPRESS_DB_USER: ${DB_USER}
+      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - ./wp-data:/var/www/html
+      - ./scraped:/scraped:ro
+      - ./importer:/importer:ro
+      - ./backups:/backups
+    working_dir: /var/www/html
+    entrypoint: ["wp", "--allow-root"]
