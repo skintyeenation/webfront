@@ -11,6 +11,9 @@ const Config = {
   // STUB: 'mock' selects the in-memory mock ApiService. Swap for a real base URL.
   apiServer: (extra.apiServer as string) ?? 'mock',
   appName: 'Skin Tyee',
+  // Google Maps JS API key (web location picker). Read from the environment via
+  // app.config.js — never hardcoded/committed. Empty -> picker shows a fallback.
+  googleMapsApiKey: (extra.googleMapsApiKey as string) ?? '',
 };
 
 export default Config;

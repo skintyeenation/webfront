@@ -11,3 +11,5 @@ export { chartPalette, colorAt } from './palette';
 export { MonthCalendar } from './MonthCalendar';
 export { AdminAddButton } from './AdminAddButton';
 export { DateTimeField } from './DateTimeField';
+export { LocationPicker } from './LocationPicker';
+export type { LatLng } from './LocationPicker';

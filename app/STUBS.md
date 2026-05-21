@@ -89,6 +89,18 @@ API Server for data.
   they reset on reload and are not sent to any backend. Wire these to the real
   `ApiService` once it exists.
 
+## 2e. Maps location picker — needs an API key
+
+- **What:** Schedule Meeting has a Google Maps **draggable-pin** location picker
+  (`components/layout/LocationPicker.tsx`); the chosen lat/lng are saved on the
+  meeting. Web only (native shows a fallback note).
+- **Key:** read from the environment via `app.config.js`
+  (`GOOGLE_MAPS_API_KEY` / `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY`) → `Config.googleMapsApiKey`.
+  **Never commit the key.** Run locally with the var set, e.g.
+  `GOOGLE_MAPS_API_KEY=… pnpm --filter @skintyee/app start`. With no key the
+  picker shows a fallback message. The key may need localhost added to its HTTP
+  referrer allow-list.
+
 ## 3. Object storage — not implemented (→ Azure Blob Storage)
 
 - **What:** no file upload/download. ppt used AWS S3; this app will use

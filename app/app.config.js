@@ -29,6 +29,9 @@ module.exports = {
       // STUB: no real API server yet (diagram: App.SkinTyee.ca → API Server → Azure Cloud DB).
       // The data layer is mocked; see src/services/api and STUBS.md.
       apiServer: process.env.EXPO_PUBLIC_API_SERVER || 'mock',
+      // Google Maps JS API key for the location picker. Read from the env at
+      // startup — keep the real key in an (untracked) .env / shell, not in git.
+      googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '',
     },
   },
 };
