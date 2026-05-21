@@ -1,0 +1,22 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.DS_Store
+.claude/
+
+# Scraped artifacts — large, regenerable
+scraped/raw/
+scraped/media/
+scraped/manifest.json
+
+# WordPress runtime data
+wp-data/
+wp-content-uploads/
+db-data/
+
+# WXR exports (regenerable via ./export.sh)
+exports/
+
+# Database + wp-content snapshots — keep on disk, don't commit to git
+backups/

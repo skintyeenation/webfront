@@ -1,0 +1,60 @@
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: skintyee
+      MYSQL_USER: skintyee
+      MYSQL_PASSWORD: skintyee
+    volumes:
+      - ./db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-prootpass"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  wordpress:
+    image: wordpress:6.7-php8.3-apache
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_NAME: skintyee
+      WORDPRESS_DB_USER: skintyee
+      WORDPRESS_DB_PASSWORD: skintyee
+      WORDPRESS_CONFIG_EXTRA: |
+        define('WP_HOME',    'http://localhost:8080');
+        define('WP_SITEURL', 'http://localhost:8080');
+        define('WP_DEBUG', true);
+    volumes:
+      - ./wp-data:/var/www/html
+      - ./scraped/media:/scraped-media:ro
+
+  wpcli:
+    image: wordpress:cli-php8.3
+    depends_on:
+      wordpress:
+        condition: service_started
+      db:
+        condition: service_healthy
+    user: "33:33"  # www-data, matches the wordpress image
+    # wp-config.php uses getenv_docker(); these must match the wordpress service
+    # or `wp` runs from this container will fall back to the default 'mysql' host.
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_NAME: skintyee
+      WORDPRESS_DB_USER: skintyee
+      WORDPRESS_DB_PASSWORD: skintyee
+    volumes:
+      - ./wp-data:/var/www/html
+      - ./scraped:/scraped:ro
+      - ./importer:/importer:ro
+    working_dir: /var/www/html
+    entrypoint: ["wp", "--allow-root"]
+    command: ["--info"]

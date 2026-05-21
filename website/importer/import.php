@@ -1,0 +1,284 @@
+<?php
+/**
+ * WP-CLI driven importer for the skintyee migration.
+ *
+ * Reads /scraped/manifest.json (mounted into the wpcli container), uploads every
+ * media file via `wp media import`, creates a WP page for every scraped page,
+ * and rewrites {{MEDIA:sha1.ext}} placeholders in the content to the actual
+ * uploaded attachment URLs.
+ *
+ * Idempotent on slug: re-running updates existing posts and skips already-imported
+ * media (matched by the sha1 stored in attachment meta `_skintyee_sha1`).
+ */
+
+declare(strict_types=1);
+
+const MANIFEST_PATH = '/scraped/manifest.json';
+const MEDIA_DIR     = '/scraped/media';
+const META_KEY      = '_skintyee_sha1';
+
+// Parent slugs whose children should become WP posts (with the parent slug as a
+// category) instead of orphan pages. These read more like timely content than
+// evergreen pages on the source site.
+const POST_PARENTS  = ['announcements', 'stay-informed'];
+
+function wp_cli(array $args): array {
+    $cmd = 'wp --allow-root ' . implode(' ', array_map('escapeshellarg', $args));
+    exec($cmd . ' 2>&1', $out, $code);
+    return [$code, implode("\n", $out)];
+}
+
+function wp_cli_json(array $args) {
+    [$code, $out] = wp_cli(array_merge($args, ['--format=json']));
+    if ($code !== 0) {
+        fwrite(STDERR, "wp-cli failed: $out\n");
+        exit(1);
+    }
+    return json_decode($out, true);
+}
+
+function find_attachment_by_sha1(string $sha1): ?array {
+    $rows = wp_cli_json([
+        'post', 'list',
+        '--post_type=attachment',
+        '--meta_key=' . META_KEY,
+        '--meta_value=' . $sha1,
+        '--fields=ID,guid',
+        '--posts_per_page=1',
+    ]);
+    return $rows[0] ?? null;
+}
+
+function find_post_by_slug(string $slug, int $parent_id = 0, string $post_type = 'page'): ?array {
+    $args = [
+        'post', 'list',
+        '--post_type=' . $post_type,
+        '--name=' . $slug,
+        '--fields=ID',
+        '--posts_per_page=1',
+    ];
+    if ($post_type === 'page') {
+        $args[] = '--post_parent=' . $parent_id;
+    }
+    $rows = wp_cli_json($args);
+    return $rows[0] ?? null;
+}
+
+function ensure_category(string $slug, string $name): int {
+    $rows = wp_cli_json([
+        'term', 'list', 'category',
+        '--slug=' . $slug,
+        '--fields=term_id',
+    ]);
+    if (!empty($rows)) {
+        return (int) $rows[0]['term_id'];
+    }
+    [$code, $out] = wp_cli([
+        'term', 'create', 'category', $name,
+        '--slug=' . $slug,
+        '--porcelain',
+    ]);
+    return $code === 0 ? (int) trim($out) : 0;
+}
+
+function import_media(array $entry): string {
+    $sha1 = $entry['sha1'];
+    $ext  = $entry['ext'];
+    $path = MEDIA_DIR . "/$sha1$ext";
+
+    $existing = find_attachment_by_sha1($sha1);
+    if ($existing) {
+        return $existing['guid'];
+    }
+    if (!file_exists($path)) {
+        fwrite(STDERR, "  [media-missing] $path\n");
+        return '';
+    }
+
+    [$code, $out] = wp_cli([
+        'media', 'import', $path,
+        '--title=' . $sha1,
+        '--porcelain',
+    ]);
+    if ($code !== 0) {
+        fwrite(STDERR, "  [media-import-fail] $path: $out\n");
+        return '';
+    }
+    $attachment_id = (int) trim($out);
+    wp_cli(['post', 'meta', 'update', (string) $attachment_id, META_KEY, $sha1]);
+
+    [, $guid] = wp_cli(['post', 'get', (string) $attachment_id, '--field=guid']);
+    return trim($guid);
+}
+
+/**
+ * @return array{0:int,1:int} [post_id, parent_id]
+ */
+function upsert_page(array $page, array $media_url_map, array $slug_to_id): array {
+    $content = $page['html'];
+    // Replace {{MEDIA:sha1.ext}} placeholders with uploaded URLs.
+    $content = preg_replace_callback('/\{\{MEDIA:([a-f0-9]+)(\.[a-z0-9]+)\}\}/i',
+        function ($m) use ($media_url_map) {
+            $key = $m[1] . $m[2];
+            return $media_url_map[$key] ?? $m[0];
+        },
+        $content
+    );
+
+    $parent_id = 0;
+    $parent_slug = $page['parent_slug'] ?? null;
+    if ($parent_slug && isset($slug_to_id[$parent_slug])) {
+        $parent_id = $slug_to_id[$parent_slug];
+    }
+    $is_post = $parent_slug && in_array($parent_slug, POST_PARENTS, true);
+    $post_type = $is_post ? 'post' : 'page';
+
+    // Disambiguate by parent for pages; posts are looked up by slug only (WP
+    // enforces global slug uniqueness for posts, so disambiguation is unneeded).
+    $existing = find_post_by_slug($page['slug'], $parent_id, $post_type);
+    $args = [
+        'post', $existing ? 'update' : 'create',
+    ];
+    if ($existing) {
+        $args[] = (string) $existing['ID'];
+    }
+    $args[] = '--post_type=' . $post_type;
+    $args[] = '--post_status=publish';
+    $args[] = '--post_title=' . $page['title'];
+    $args[] = '--post_name=' . $page['slug'];
+    if ($post_type === 'page' && $parent_id > 0) {
+        $args[] = '--post_parent=' . $parent_id;
+    }
+    if ($is_post) {
+        // Map the source-site parent ("announcements") to a WP category of the
+        // same slug, creating it on demand.
+        $cat_name = ucwords(str_replace('-', ' ', $parent_slug));
+        $cat_id = ensure_category($parent_slug, $cat_name);
+        if ($cat_id > 0) {
+            $args[] = '--post_category=' . $cat_id;
+        }
+    }
+    // Pipe content via stdin so we don't blow up the argv length.
+    $tmp = tempnam(sys_get_temp_dir(), 'sk_');
+    file_put_contents($tmp, $content);
+    $cmd = 'wp --allow-root ' . implode(' ', array_map('escapeshellarg', $args))
+        . ' --post_content="$(cat ' . escapeshellarg($tmp) . ')" --porcelain';
+    exec($cmd . ' 2>&1', $out, $code);
+    unlink($tmp);
+    if ($code !== 0) {
+        fwrite(STDERR, "  [post-fail] {$page['slug']}: " . implode("\n", $out) . "\n");
+        return [0, $parent_id];
+    }
+    $id = $existing ? (int) $existing['ID'] : (int) trim(end($out));
+    return [$id, $parent_id];
+}
+
+// ---------------------------------------------------------------------------
+
+if (!file_exists(MANIFEST_PATH)) {
+    fwrite(STDERR, "manifest not found at " . MANIFEST_PATH . " — run the scraper first.\n");
+    exit(1);
+}
+
+$manifest = json_decode(file_get_contents(MANIFEST_PATH), true);
+$pages = $manifest['pages']   ?? [];
+$media = $manifest['media']   ?? [];
+
+echo "[import] " . count($media) . " media files, " . count($pages) . " pages\n";
+
+// Phase 1: media -> build sha1.ext => attachment URL map.
+$media_url_map = [];
+foreach ($media as $entry) {
+    $key = $entry['sha1'] . $entry['ext'];
+    $url = import_media($entry);
+    if ($url) {
+        $media_url_map[$key] = $url;
+        echo "  [media] $key -> $url\n";
+    }
+}
+
+// Phase 2: pages in two passes so parents exist before children.
+usort($pages, fn($a, $b) => (int) !empty($a['parent_slug']) <=> (int) !empty($b['parent_slug']));
+
+// $slug_to_id maps top-level slugs to WP IDs so child pages can resolve their parents.
+// We deliberately do NOT overwrite when a child page shares its slug with a top-level
+// page (e.g. there's a top-level "how-to-pick-..." nested under /youth and /official-band-...).
+$slug_to_id = [];
+$imported = 0;
+foreach ($pages as $page) {
+    [$id, $parent_id] = upsert_page($page, $media_url_map, $slug_to_id);
+    if (!$id) {
+        continue;
+    }
+    $imported++;
+    if (empty($page['parent_slug']) && !isset($slug_to_id[$page['slug']])) {
+        $slug_to_id[$page['slug']] = $id;
+    }
+    $parent_note = $parent_id ? " (parent #$parent_id)" : "";
+    $type_label = $post_type === 'post' ? 'post' : 'page';
+    echo "  [$type_label] {$page['slug']} -> #$id$parent_note\n";
+}
+
+echo "[done] $imported pages imported.\n";
+
+// --- Front page ---
+if (!empty($slug_to_id['home'])) {
+    wp_cli(['option', 'update', 'show_on_front', 'page']);
+    wp_cli(['option', 'update', 'page_on_front', (string) $slug_to_id['home']]);
+    echo "[front-page] set to #{$slug_to_id['home']} (home)\n";
+}
+
+// Remove WP's stub pages + the default "Hello world!" post so they don't
+// pollute the imported nav / archive.
+foreach (['sample-page', 'privacy-policy'] as $stub) {
+    $row = find_post_by_slug($stub, 0, 'page');
+    if ($row) {
+        wp_cli(['post', 'delete', (string) $row['ID'], '--force']);
+        echo "[cleanup] removed stub page /$stub/\n";
+    }
+}
+$hello = find_post_by_slug('hello-world', 0, 'post');
+if ($hello) {
+    wp_cli(['post', 'delete', (string) $hello['ID'], '--force']);
+    echo "[cleanup] removed stub post /hello-world/\n";
+}
+
+// --- Primary navigation ---
+// Build a default "everything" menu from the top-level imported pages ONLY if
+// no primary menu exists yet. Later scripts (importer/rename-and-menus.php)
+// rebuild this menu with a curated, shorter list — if we trampled their
+// changes on every re-run of import.php, those customizations would silently
+// reset back to the 10-page firehose every time.
+$menu_name = 'primary';
+$menus = wp_cli_json(['menu', 'list', '--fields=term_id,name']);
+$existing_menu = null;
+foreach ($menus as $menu) {
+    if ($menu['name'] === $menu_name) {
+        $existing_menu = $menu;
+        break;
+    }
+}
+if ($existing_menu) {
+    echo "[nav] '$menu_name' menu already exists (term_id={$existing_menu['term_id']}) — leaving it alone\n";
+} else {
+    wp_cli(['menu', 'create', $menu_name]);
+    $nav_order = ['about-our-community', 'our-history', 'cultural-heritage',
+                  'skin-tyee-nation-leadership', 'administration-operations',
+                  'major-projects', 'announcements', 'stay-informed',
+                  'gallery', 'q-a'];
+    foreach ($nav_order as $slug) {
+        if (!empty($slug_to_id[$slug])) {
+            wp_cli(['menu', 'item', 'add-post', $menu_name, (string) $slug_to_id[$slug]]);
+        }
+    }
+    // Assign to whichever location the active theme calls 'primary'.
+    $locations = wp_cli_json(['menu', 'location', 'list']);
+    foreach ($locations as $loc) {
+        if (in_array($loc['location'], ['primary', 'primary-menu', 'main-menu', 'header-menu'], true)) {
+            wp_cli(['menu', 'location', 'assign', $menu_name, $loc['location']]);
+            echo "[nav] menu assigned to location '{$loc['location']}'\n";
+            break;
+        }
+    }
+    echo "[nav] menu '$menu_name' built with " . count(array_intersect_key($slug_to_id, array_flip($nav_order))) . " items\n";
+}
