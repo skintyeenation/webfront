@@ -12,7 +12,7 @@ export default function MemberDetail({ route, navigation }: any) {
   const { selected, loading } = useAppSelector((s) => s.directory);
   // Public users do not see contact details; members and admins do.
   const role = useAppSelector((s) => s.auth.role);
-  const canSeeContact = role === 'member' || role === 'admin';
+  const canSeeContact = role !== 'public'; // members, staff, admins
   const isAdmin = role === 'admin';
 
   useEffect(() => {

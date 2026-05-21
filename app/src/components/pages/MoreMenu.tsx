@@ -22,10 +22,12 @@ const ADMIN_ITEMS: MoreItem[] = [
 
 // General community items.
 const COMMUNITY_ITEMS: MoreItem[] = [
-  { route: 'directory', label: 'Band Member Directory', description: 'Members, council & staff', icon: 'account-group', roles: ['public', 'member', 'admin'] },
-  { route: 'meetings', label: 'Band Meetings', description: 'Agendas, schedules & minutes', icon: 'gavel', roles: ['member', 'admin'] },
-  { route: 'polls', label: 'Polling + Surveys', description: 'Surveys & vote on issues', icon: 'vote-outline', roles: ['public', 'member', 'admin'] },
-  { route: 'Account', label: 'Account & Role', description: 'Profile and role (dev)', icon: 'account-circle', roles: ['public', 'member', 'admin'], root: true },
+  { route: 'directory', label: 'Band Member Directory', description: 'Members, council & staff', icon: 'account-group', roles: ['public', 'member', 'staff', 'admin'] },
+  { route: 'meetings', label: 'Band Meetings', description: 'Agendas, schedules & minutes', icon: 'gavel', roles: ['member', 'staff', 'admin'] },
+  { route: 'polls', label: 'Polling + Surveys', description: 'Surveys & vote on issues', icon: 'vote-outline', roles: ['public', 'member', 'staff', 'admin'] },
+  // Staff submit their own timesheets here; admins use the Time Keeping tool above.
+  { route: 'timekeeping', label: 'My Timesheets', description: 'Submit & view your hours', icon: 'clock-outline', roles: ['staff'] },
+  { route: 'Account', label: 'Account & Role', description: 'Profile and role (dev)', icon: 'account-circle', roles: ['public', 'member', 'staff', 'admin'], root: true },
 ];
 
 function Section({ title, items, role, navigation }: { title?: string; items: MoreItem[]; role: Role; navigation: any }) {
