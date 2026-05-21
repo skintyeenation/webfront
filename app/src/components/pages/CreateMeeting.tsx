@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button, TextInput } from 'react-native-paper';
 import moment from 'moment';
-import { PageContainer, PageContent } from 'skintyee/components/layout';
+import { PageContainer, PageContent, DateTimeField } from 'skintyee/components/layout';
 import { useAppDispatch } from 'skintyee/store';
 import { addMeeting } from 'skintyee/store/modules/meetings';
 import { theme } from 'skintyee/styles';
@@ -11,7 +11,7 @@ export default function CreateMeeting({ navigation }: any) {
   const dispatch = useAppDispatch();
   const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
-  const [date, setDate] = useState(moment().add(7, 'days').format('YYYY-MM-DD'));
+  const [startsAt, setStartsAt] = useState(moment().add(7, 'days').hour(18).minute(0).second(0).toISOString());
   const [agenda, setAgenda] = useState('');
 
   const submit = () => {
@@ -22,7 +22,7 @@ export default function CreateMeeting({ navigation }: any) {
         title: title.trim(),
         agenda: agenda.trim(),
         location: location.trim(),
-        startsAt: moment(date, 'YYYY-MM-DD').toISOString(),
+        startsAt,
       })
     );
     navigation.goBack();
@@ -33,7 +33,7 @@ export default function CreateMeeting({ navigation }: any) {
       <PageContent>
         <TextInput label="Title" value={title} onChangeText={setTitle} mode="outlined" style={{ marginBottom: 10 }} />
         <TextInput label="Location" value={location} onChangeText={setLocation} mode="outlined" style={{ marginBottom: 10 }} />
-        <TextInput label="Date (YYYY-MM-DD)" value={date} onChangeText={setDate} mode="outlined" style={{ marginBottom: 10 }} />
+        <DateTimeField label="Date & time" value={startsAt} onChange={setStartsAt} />
         <TextInput label="Agenda" value={agenda} onChangeText={setAgenda} mode="outlined" multiline numberOfLines={4} style={{ marginBottom: 10 }} />
         <Button mode="contained" onPress={submit} disabled={!title.trim()} buttonColor={theme.colors.primary} textColor="#000" style={{ marginTop: 8 }}>
           Schedule meeting
