@@ -7,11 +7,19 @@ The site is a self-hosted WordPress install migrated from the previous
 Site123-hosted `skintyeefirstnation.org`. The app is a React Native + Expo
 proof-of-concept built for the proposal.
 
-## Visual walkthrough
+## Visual walkthroughs
+
+**App** — the Skin Tyee community app:
 
 [<img src="docs/media/dashboard.png" width="220"> <img src="docs/media/public-records-transparency.png" width="220"> <img src="docs/media/schedule-meeting-map.png" width="220">](docs/walkthrough.md)
 
-📱 **[See the full screen-by-screen walkthrough →](docs/walkthrough.md)** — dashboard & charts, events, notifications (list + calendar), directory, meetings, polls/voting, transparency, time keeping, and the admin tools.
+📱 **[See the full app walkthrough →](docs/walkthrough.md)** — dashboard & charts, events, notifications (list + calendar), directory, meetings, polls/voting, transparency, time keeping, and the admin tools.
+
+**Website** — the skintyee.ca WordPress site:
+
+[<img src="docs/media/website/home.png" width="220"> <img src="docs/media/website/skin-tyee-nation-leadership.png" width="220"> <img src="docs/media/website/news.png" width="220">](docs/website-walkthrough.md)
+
+🌐 **[See the full website walkthrough →](docs/website-walkthrough.md)** — home, about, history, leadership, community, projects, news, announcements, gallery, and more (full-page screenshots of every page).
 
 ## Layout
 
