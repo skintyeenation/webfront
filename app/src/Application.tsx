@@ -29,6 +29,7 @@ import Notifications from 'skintyee/components/pages/Notifications';
 import MoreMenu from 'skintyee/components/pages/MoreMenu';
 import Account from 'skintyee/components/pages/Account';
 import CreateEvent from 'skintyee/components/pages/CreateEvent';
+import EditEvent from 'skintyee/components/pages/EditEvent';
 import PostNotification from 'skintyee/components/pages/PostNotification';
 import AddMember from 'skintyee/components/pages/AddMember';
 import AddTimesheet from 'skintyee/components/pages/AddTimesheet';
@@ -63,6 +64,7 @@ const EventsNavigation = () => (
     <EventsStack.Screen {...routeConfig.events} component={Events} />
     <EventsStack.Screen {...routeConfig.eventDetail} component={EventDetail} />
     <EventsStack.Screen {...routeConfig.eventCreate} component={CreateEvent} />
+    <EventsStack.Screen {...routeConfig.eventEdit} component={EditEvent} />
   </EventsStack.Navigator>
 );
 

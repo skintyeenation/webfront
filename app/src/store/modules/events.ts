@@ -35,8 +35,12 @@ const eventsSlice = createSlice({
   name: 'events',
   initialState: eventsInitialState,
   reducers: {
-    // Admin: add / delete / cancel (toggle) an event (in-memory).
+    // Admin: add / edit / delete / cancel (toggle) an event (in-memory).
     addEvent: (state, action) => ({ ...state, entities: [action.payload, ...state.entities] }),
+    updateEvent: (state, action) => ({
+      ...state,
+      entities: state.entities.map((e) => (e._id === action.payload._id ? { ...e, ...action.payload } : e)),
+    }),
     removeEvent: (state, action) => ({ ...state, entities: state.entities.filter((e) => e._id !== action.payload) }),
     cancelEvent: (state, action) => ({
       ...state,
@@ -53,6 +57,6 @@ const eventsSlice = createSlice({
   },
 });
 
-export const { addEvent, removeEvent, cancelEvent } = eventsSlice.actions;
+export const { addEvent, updateEvent, removeEvent, cancelEvent } = eventsSlice.actions;
 
 export default eventsSlice.reducer;

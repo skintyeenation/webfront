@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 import { Button, Card, Chip, Text } from 'react-native-paper';
 import moment from 'moment';
-import { PageContainer, PageContent, NoContent, AdminAddButton } from 'skintyee/components/layout';
+import { PageContainer, PageContent, NoContent, AdminAddButton, useConfirm } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { loadEvents, cancelEvent, removeEvent } from 'skintyee/store/modules/events';
 import { theme } from 'skintyee/styles';
@@ -12,6 +12,7 @@ export default function Events({ navigation }: any) {
   const { entities, loading, loaded } = useAppSelector((s) => s.events);
   const role = useAppSelector((s) => s.auth.role);
   const isAdmin = role === 'admin';
+  const { confirm, ConfirmHost } = useConfirm();
 
   useEffect(() => {
     dispatch(loadEvents());
@@ -44,11 +45,30 @@ export default function Events({ navigation }: any) {
                   <Text style={{ color: theme.colors.textDarker, marginTop: 2 }}>{item.location}</Text>
 
                   {isAdmin ? (
-                    <View style={{ flexDirection: 'row', marginTop: 10 }}>
-                      <Button compact mode="text" icon={item.cancelled ? 'backup-restore' : 'calendar-remove'} textColor={theme.colors.accent} onPress={() => dispatch(cancelEvent(item._id))}>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 10 }}>
+                      <Button compact mode="text" icon="pencil" textColor={theme.colors.primary} onPress={() => navigation.navigate('eventEdit', { id: item._id })}>
+                        Edit
+                      </Button>
+                      <Button
+                        compact
+                        mode="text"
+                        icon={item.cancelled ? 'backup-restore' : 'calendar-remove'}
+                        textColor={theme.colors.accent}
+                        onPress={() =>
+                          item.cancelled
+                            ? dispatch(cancelEvent(item._id))
+                            : confirm({ title: 'Cancel event?', message: `"${item.title}" will be marked cancelled. You can restore it later.`, confirmLabel: 'Cancel event', destructive: true, onConfirm: () => dispatch(cancelEvent(item._id)) })
+                        }
+                      >
                         {item.cancelled ? 'Restore' : 'Cancel'}
                       </Button>
-                      <Button compact mode="text" icon="delete" textColor={theme.colors.error} onPress={() => dispatch(removeEvent(item._id))}>
+                      <Button
+                        compact
+                        mode="text"
+                        icon="delete"
+                        textColor={theme.colors.error}
+                        onPress={() => confirm({ title: 'Delete event?', message: `"${item.title}" will be permanently deleted.`, confirmLabel: 'Delete', destructive: true, onConfirm: () => dispatch(removeEvent(item._id)) })}
+                      >
                         Delete
                       </Button>
                     </View>
@@ -58,6 +78,7 @@ export default function Events({ navigation }: any) {
             </TouchableOpacity>
           ))
         )}
+        <ConfirmHost />
       </PageContent>
     </PageContainer>
   );

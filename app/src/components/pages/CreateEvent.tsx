@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View } from 'react-native';
 import { Button, Switch, Text, TextInput } from 'react-native-paper';
 import moment from 'moment';
-import { PageContainer, PageContent, DateTimeField } from 'skintyee/components/layout';
+import { PageContainer, PageContent, DateTimeField, LocationPicker, LatLng } from 'skintyee/components/layout';
 import { useAppDispatch } from 'skintyee/store';
 import { addEvent } from 'skintyee/store/modules/events';
 import { theme } from 'skintyee/styles';
@@ -12,6 +12,7 @@ export default function CreateEvent({ navigation }: any) {
   const dispatch = useAppDispatch();
   const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
+  const [coords, setCoords] = useState<LatLng | undefined>(undefined);
   const [startsAt, setStartsAt] = useState(moment().add(7, 'days').hour(12).minute(0).second(0).toISOString());
   const [description, setDescription] = useState('');
   const [isPublic, setIsPublic] = useState(true);
@@ -26,6 +27,8 @@ export default function CreateEvent({ navigation }: any) {
         location: location.trim(),
         startsAt,
         public: isPublic,
+        lat: coords?.lat,
+        lng: coords?.lng,
       })
     );
     navigation.goBack();
@@ -36,6 +39,7 @@ export default function CreateEvent({ navigation }: any) {
       <PageContent>
         <TextInput label="Title" value={title} onChangeText={setTitle} mode="outlined" style={{ marginBottom: 10 }} />
         <TextInput label="Location" value={location} onChangeText={setLocation} mode="outlined" style={{ marginBottom: 10 }} />
+        <LocationPicker value={coords} onChange={setCoords} />
         <DateTimeField label="Date & time" value={startsAt} onChange={setStartsAt} />
         <TextInput label="Description" value={description} onChangeText={setDescription} mode="outlined" multiline numberOfLines={4} style={{ marginBottom: 10 }} />
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: 8 }}>
