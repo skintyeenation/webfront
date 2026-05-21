@@ -23,12 +23,21 @@ export const timekeepingInitialState: TimekeepingState = { entities: [], loading
 const timekeepingSlice = createSlice({
   name: 'timekeeping',
   initialState: timekeepingInitialState,
-  reducers: {},
+  reducers: {
+    // Staff/admins submit a timesheet entry; admins approve.
+    addTimeEntry: (state, action) => ({ ...state, entities: [action.payload, ...state.entities] }),
+    approveTimeEntry: (state, action) => ({
+      ...state,
+      entities: state.entities.map((t) => (t._id === action.payload ? { ...t, approved: true } : t)),
+    }),
+  },
   extraReducers: (builder) => {
     builder.addCase(loadTimeEntries.pending, reducePendingState());
     builder.addCase(loadTimeEntries.rejected, reduceRejectedState());
     builder.addCase(loadTimeEntries.fulfilled, reduceFulfilledState((state, action) => ({ ...state, entities: action.payload })));
   },
 });
+
+export const { addTimeEntry, approveTimeEntry } = timekeepingSlice.actions;
 
 export default timekeepingSlice.reducer;

@@ -13,7 +13,7 @@ export default function Polls({ navigation }: any) {
   const dispatch = useAppDispatch();
   const { entities, loading, loaded } = useAppSelector((s) => s.polls);
   const role = useAppSelector((s) => s.auth.role);
-  const canVote = role === 'member' || role === 'admin';
+  const canVote = role !== 'public'; // members, staff, admins can vote
   // Toggle between informal Surveys and formal Votes (vote on issues).
   const [kind, setKind] = useState<PollKind>('survey');
 

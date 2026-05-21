@@ -35,9 +35,15 @@ const authSlice = createSlice({
   extraReducers: (builder) => {
     builder.addCase(setRole, (state, action) => {
       const role = action.payload;
-      // STUB: derive a display name from the chosen role for demo purposes.
-      const name = role === 'admin' ? 'Sandra Williams (Admin)' : role === 'member' ? 'Rita Thomas (Member)' : 'Guest';
-      return { ...state, role, name };
+      // STUB: derive a display name from the chosen role for demo purposes. The
+      // name doubles as the "logged-in worker" for timesheets (staff).
+      const nameByRole: Record<string, string> = {
+        admin: 'Sandra Williams (Admin)',
+        staff: 'Joseph Alec (Staff)',
+        member: 'Rita Thomas (Member)',
+        public: 'Guest',
+      };
+      return { ...state, role, name: nameByRole[role] ?? 'Guest' };
     });
     builder.addCase(setSignedInName, (state, action) => ({ ...state, name: action.payload }));
   },

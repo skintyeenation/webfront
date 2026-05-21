@@ -3,7 +3,7 @@
 // Financials, Polls). When the real API arrives these should be replaced by / kept
 // in sync with the backend contract (see src/services/api/ApiService.ts).
 
-export type Role = 'public' | 'member' | 'admin';
+export type Role = 'public' | 'member' | 'staff' | 'admin';
 
 export interface BandMember {
   _id: string;

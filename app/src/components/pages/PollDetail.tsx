@@ -13,7 +13,7 @@ export default function PollDetail({ route }: any) {
   const { selected, loading } = useAppSelector((s) => s.polls);
   // Public users can view results but not vote; members and admins can vote.
   const role = useAppSelector((s) => s.auth.role);
-  const canVote = role === 'member' || role === 'admin';
+  const canVote = role !== 'public'; // members, staff, admins can vote
   const [voted, setVoted] = useState<string | null>(null);
 
   useEffect(() => {
