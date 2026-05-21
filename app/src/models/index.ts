@@ -23,6 +23,8 @@ export interface CommunityEvent {
   startsAt: string; // ISO date
   public: boolean;
   cancelled?: boolean;
+  lat?: number; // map pin
+  lng?: number;
 }
 
 export interface BandMeeting {

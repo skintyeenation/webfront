@@ -25,6 +25,7 @@ export const routeConfig = {
   pollDetail: { name: 'pollDetail', options: { title: 'Poll', header: header('Poll') } },
   // Admin create screens
   eventCreate: { name: 'eventCreate', options: { title: 'New event', header: header('New Event') } },
+  eventEdit: { name: 'eventEdit', options: { title: 'Edit event', header: header('Edit Event') } },
   notificationCreate: { name: 'notificationCreate', options: { title: 'Post', header: header('Post Notification') } },
   memberCreate: { name: 'memberCreate', options: { title: 'Add member', header: header('Add Member') } },
   timesheetCreate: { name: 'timesheetCreate', options: { title: 'Timesheet', header: header('Add Timesheet') } },

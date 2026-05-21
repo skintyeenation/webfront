@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { Badge, Button, Card, SegmentedButtons, Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import moment from 'moment';
-import { PageContainer, PageContent, NoContent, MonthCalendar, AdminAddButton } from 'skintyee/components/layout';
+import { PageContainer, PageContent, NoContent, MonthCalendar, AdminAddButton, useConfirm } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { loadNotifications, removeNotification } from 'skintyee/store/modules/notifications';
 import { AppNotification } from 'skintyee/models';
@@ -62,7 +62,11 @@ export default function Notifications({ navigation }: any) {
   const dispatch = useAppDispatch();
   const { entities, loading, loaded } = useAppSelector((s) => s.notifications);
   const isAdmin = useAppSelector((s) => s.auth.role) === 'admin';
+  const { confirm, ConfirmHost } = useConfirm();
   const [view, setView] = useState<ViewMode>('list');
+
+  const confirmDelete = (item: AppNotification) =>
+    confirm({ title: 'Delete notification?', message: `"${item.title}" will be permanently deleted.`, confirmLabel: 'Delete', destructive: true, onConfirm: () => dispatch(removeNotification(item._id)) });
 
   useEffect(() => {
     dispatch(loadNotifications());
@@ -106,7 +110,7 @@ export default function Notifications({ navigation }: any) {
         {entities.length === 0 ? (
           <NoContent loading={loading || !loaded} message="No notifications." />
         ) : view === 'list' ? (
-          entities.map((item) => <NotificationCard key={item._id} item={item} isAdmin={isAdmin} onDelete={() => dispatch(removeNotification(item._id))} />)
+          entities.map((item) => <NotificationCard key={item._id} item={item} isAdmin={isAdmin} onDelete={() => confirmDelete(item)} />)
         ) : (
           <>
             <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 14 }}>
@@ -118,10 +122,11 @@ export default function Notifications({ navigation }: any) {
             {dayItems.length === 0 ? (
               <NoContent message="No notifications on this day." />
             ) : (
-              dayItems.map((item) => <NotificationCard key={item._id} item={item} isAdmin={isAdmin} onDelete={() => dispatch(removeNotification(item._id))} />)
+              dayItems.map((item) => <NotificationCard key={item._id} item={item} isAdmin={isAdmin} onDelete={() => confirmDelete(item)} />)
             )}
           </>
         )}
+        <ConfirmHost />
       </PageContent>
     </PageContainer>
   );

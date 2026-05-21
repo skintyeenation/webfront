@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { View } from 'react-native';
 import { Button, Card, Chip, Text } from 'react-native-paper';
 import moment from 'moment';
-import { PageContainer, PageContent, NoContent, AdminAddButton } from 'skintyee/components/layout';
+import { PageContainer, PageContent, NoContent, AdminAddButton, useConfirm } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { loadMeetings, cancelMeeting, removeMeeting } from 'skintyee/store/modules/meetings';
 import { theme } from 'skintyee/styles';
@@ -11,6 +11,7 @@ export default function Meetings({ navigation }: any) {
   const dispatch = useAppDispatch();
   const { entities, loading, loaded } = useAppSelector((s) => s.meetings);
   const isAdmin = useAppSelector((s) => s.auth.role) === 'admin';
+  const { confirm, ConfirmHost } = useConfirm();
 
   useEffect(() => {
     dispatch(loadMeetings());
@@ -42,10 +43,26 @@ export default function Meetings({ navigation }: any) {
                     <Button compact mode="text" icon="pencil" textColor={theme.colors.primary} onPress={() => navigation.navigate('meetingEdit', { id: item._id })}>
                       Edit
                     </Button>
-                    <Button compact mode="text" icon={item.cancelled ? 'backup-restore' : 'calendar-remove'} textColor={theme.colors.accent} onPress={() => dispatch(cancelMeeting(item._id))}>
+                    <Button
+                      compact
+                      mode="text"
+                      icon={item.cancelled ? 'backup-restore' : 'calendar-remove'}
+                      textColor={theme.colors.accent}
+                      onPress={() =>
+                        item.cancelled
+                          ? dispatch(cancelMeeting(item._id))
+                          : confirm({ title: 'Cancel meeting?', message: `"${item.title}" will be marked cancelled. You can restore it later.`, confirmLabel: 'Cancel meeting', destructive: true, onConfirm: () => dispatch(cancelMeeting(item._id)) })
+                      }
+                    >
                       {item.cancelled ? 'Restore' : 'Cancel'}
                     </Button>
-                    <Button compact mode="text" icon="delete" textColor={theme.colors.error} onPress={() => dispatch(removeMeeting(item._id))}>
+                    <Button
+                      compact
+                      mode="text"
+                      icon="delete"
+                      textColor={theme.colors.error}
+                      onPress={() => confirm({ title: 'Delete meeting?', message: `"${item.title}" will be permanently deleted.`, confirmLabel: 'Delete', destructive: true, onConfirm: () => dispatch(removeMeeting(item._id)) })}
+                    >
                       Delete
                     </Button>
                   </View>
@@ -54,6 +71,7 @@ export default function Meetings({ navigation }: any) {
             </Card>
           ))
         )}
+        <ConfirmHost />
       </PageContent>
     </PageContainer>
   );

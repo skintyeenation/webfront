@@ -13,3 +13,4 @@ export { AdminAddButton } from './AdminAddButton';
 export { DateTimeField } from './DateTimeField';
 export { LocationPicker } from './LocationPicker';
 export type { LatLng } from './LocationPicker';
+export { useConfirm } from './useConfirm';
