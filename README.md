@@ -111,7 +111,9 @@ The app distributes via **EAS Build** to **TestFlight** (iOS) and **Google Play*
 - [`docs/roadmap.md`](docs/roadmap.md) — 3-month engagement timeline
 - [`docs/testing-strategy.md`](docs/testing-strategy.md) — testing + TestFlight/Google Play
 - [`api/openapi.yaml`](api/openapi.yaml) — proposed API contract · [`api/README.md`](api/README.md) — API stack recommendation
-- [`docs/walkthrough.md`](docs/walkthrough.md) — visual screen-by-screen walkthrough
+- [`docs/walkthrough.md`](docs/walkthrough.md) — app visual screen-by-screen walkthrough
+- [`docs/website-walkthrough.md`](docs/website-walkthrough.md) — website (skintyee.ca) page-by-page screenshots
+- [`docs/wordpress-runbook.md`](docs/wordpress-runbook.md) — run / recover / back up the WordPress site
 - [`docs/Skintyee-App-Proposal.pptx`](docs/Skintyee-App-Proposal.pptx) — proposal deck
 - [`app/STUBS.md`](app/STUBS.md) — catalogue of POC stubs
 - [`docs/hosting-costs.md`](docs/hosting-costs.md) — hosting cost basis + rationale

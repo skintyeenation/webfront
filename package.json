@@ -8,7 +8,8 @@
   },
   "scripts": {
     "app": "pnpm --filter @skintyee/app",
-    "website:up": "docker compose -f website/docker-compose.yml up -d",
+    "website:up": "website/recover.sh",
+    "website:recover": "website/recover.sh",
     "website:down": "docker compose -f website/docker-compose.yml down"
   }
 }
