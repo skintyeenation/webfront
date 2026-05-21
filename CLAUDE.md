@@ -11,8 +11,9 @@ workspace** holding the application and the website:
 ```
 skintyee/                  # webfront repo root + pnpm workspace
   package.json             # workspace root (private), pnpm scripts
-  pnpm-workspace.yaml       # members: app, packages/*  (website is NOT a member)
-  app/                     # @skintyee/app — placeholder app package (empty)
+  pnpm-workspace.yaml       # members: app, api, packages/*  (website is NOT a member)
+  app/                     # @skintyee/app — Skin Tyee community app (RN + Expo)
+  api/                     # @skintyee/api — API contract (OpenAPI) + stub server
   website/                 # WordPress site + migration tooling (git subtree)
 ```
 
@@ -104,6 +105,23 @@ Every stub is catalogued in **`app/STUBS.md`**.
 `Skintyee-App-Proposal.pptx` (proposal deck).
 
 Run: `pnpm --filter @skintyee/app start` (Expo). Work on branch `feature/app`.
+
+## api/ — application backend
+
+`@skintyee/api`, the proposed **API Server** (diagram → Azure Cloud DB).
+**Contract-first:** `api/openapi.yaml` is the source of truth — the contract the
+app's `ApiService` targets (the app currently uses an in-memory mock). The
+package also ships a lightweight **Express stub** server (Swagger UI at
+`/docs` + sample data) so the contract is runnable today.
+
+**Recommended production stack (ADR-7):** **NestJS + Prisma + Azure Database for
+PostgreSQL Flexible Server (PostGIS)**, **Microsoft Entra ID** auth (role guards →
+member/staff/admin), Dockerized to **Azure Container Apps** behind
+`api.skintyee.ca`, Azure DevOps CI. PostGIS for land allocation / GIS mapping +
+map pins. (WordPress stays on MySQL.) The stub migrates to NestJS in Phase 2.
+
+Run: `pnpm --filter @skintyee/api dev` → <http://localhost:4000/docs>. Rationale:
+`api/README.md`.
 
 ## Git conventions
 
