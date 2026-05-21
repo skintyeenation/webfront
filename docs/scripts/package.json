@@ -1,0 +1,8 @@
+{
+  "name": "skintyee-docs-scripts",
+  "private": true,
+  "description": "Helper scripts for generating website screenshots.",
+  "dependencies": {
+    "puppeteer-core": "^23.11.1"
+  }
+}

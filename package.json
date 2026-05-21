@@ -10,6 +10,7 @@
     "app": "pnpm --filter @skintyee/app",
     "website:up": "website/recover.sh",
     "website:recover": "website/recover.sh",
+    "website:screenshots": "docs/scripts/shoot-website.sh",
     "website:down": "docker compose -f website/docker-compose.yml down"
   }
 }
