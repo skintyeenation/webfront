@@ -71,7 +71,8 @@ the POC:
   - `ios.bundleIdentifier` / `android.package` = `ca.skintyee.app` (placeholder).
   - App icon / splash / favicon are **omitted** (Expo defaults used) — no artwork
     yet. Add files to `assets/` and re-add the fields.
-- **Fonts:** the ppt theme references CircularStd fonts (`src/styles.tsx`), but
-  the `.otf` files are not bundled, so text falls back to the system font. Add
-  the CircularStd files to `assets/fonts/` and load them via `useFonts` to match
-  ppt exactly.
+- **Fonts:** the app pins a **sans-serif (non-serif) system stack** in
+  `src/styles.tsx` (the ppt CircularStd `.otf` files are not bundled). To match
+  ppt's CircularStd exactly later, add the `.otf` files to `assets/fonts/` and
+  load them via `useFonts` in `Application.tsx`, then point the theme fonts at
+  them. Keep them sans-serif.

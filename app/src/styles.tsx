@@ -2,14 +2,21 @@ import { Platform, StyleSheet } from 'react-native';
 import { MD2DarkTheme as DarkTheme } from 'react-native-paper';
 
 /**
- * Theme copied verbatim from the ppt (Mediashare / PocketPT) app so the look and
- * feel carry over: the cyan/orange dark palette, zero roundness, CircularStd fonts.
+ * Theme copied from the ppt (Mediashare / PocketPT) app so the look and feel
+ * carry over: the cyan/orange dark palette, zero roundness.
  *
- * STUB (fonts): the CircularStd .otf files from ppt are not bundled in this repo,
- * so the fontFamily references below currently fall back to the system font.
- * Drop the CircularStd-*.otf files into assets/fonts/ and load them via useFonts
- * in Application.tsx to match ppt exactly. See STUBS.md.
+ * Fonts: a sans-serif (NON-serif) system stack is used everywhere. The ppt app
+ * used CircularStd (also sans-serif); those .otf files are not bundled here, so
+ * we explicitly pin a sans-serif system stack rather than risk a serif fallback.
+ * To match ppt exactly later, drop the CircularStd-*.otf files into assets/fonts/
+ * and load them via useFonts in Application.tsx. See STUBS.md.
  */
+// Sans-serif everywhere: a system stack on web, the (sans-serif) system font on native.
+const sansSerif =
+  Platform.select({
+    web: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+    default: 'System',
+  }) || 'System';
 const theme = {
   ...DarkTheme,
   roundness: 0,
@@ -30,11 +37,11 @@ const theme = {
     white: '#ffffff',
   },
   fonts: {
-    bold: { fontFamily: 'CircularStd-Bold' },
-    medium: { fontFamily: 'CircularStd-Book' },
-    regular: { fontFamily: 'CircularStd-Light' },
-    light: { fontFamily: 'CircularStd-Light' },
-    thin: { fontFamily: 'CircularStd-Light' },
+    bold: { fontFamily: sansSerif, fontWeight: '700' },
+    medium: { fontFamily: sansSerif, fontWeight: '500' },
+    regular: { fontFamily: sansSerif, fontWeight: '400' },
+    light: { fontFamily: sansSerif, fontWeight: '300' },
+    thin: { fontFamily: sansSerif, fontWeight: '300' },
   },
 } as const;
 

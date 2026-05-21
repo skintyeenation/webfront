@@ -2,7 +2,11 @@
   "compilerOptions": {
     "target": "esnext",
     "module": "commonjs",
-    "lib": ["es6", "es2017", "dom"],
+    "lib": [
+      "es6",
+      "es2017",
+      "dom"
+    ],
     "allowJs": true,
     "jsx": "react-native",
     "noEmit": true,
@@ -16,8 +20,21 @@
     "experimentalDecorators": true,
     "baseUrl": "./",
     "paths": {
-      "skintyee/*": ["src/*"]
-    }
+      "skintyee/*": [
+        "src/*"
+      ]
+    },
+    "types": [
+      "react",
+      "react-native"
+    ]
   },
-  "exclude": ["./node_modules", "babel.config.js", "metro.config.js", "**/*.test.ts", "**/*.test.tsx"]
+  "exclude": [
+    "./node_modules",
+    "babel.config.js",
+    "metro.config.js",
+    "**/*.test.ts",
+    "**/*.test.tsx"
+  ],
+  "extends": "expo/tsconfig.base"
 }
