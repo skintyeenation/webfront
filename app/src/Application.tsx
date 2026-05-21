@@ -1,5 +1,5 @@
 import 'react-native-gesture-handler';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createMaterialBottomTabNavigator } from '@react-navigation/material-bottom-tabs';
@@ -10,6 +10,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { theme } from 'skintyee/styles';
 import { routeConfig } from 'skintyee/routes';
 import { useAppSelector } from 'skintyee/store';
+import { SplashScreen } from 'skintyee/components/layout';
 import { Role } from 'skintyee/models';
 
 import Dashboard from 'skintyee/components/pages/Dashboard';
@@ -157,15 +158,26 @@ const RootStack = createStackNavigator();
 
 export default function Application() {
   const customTheme = { ...theme } as any;
+  // Brief in-app splash on launch (shows the Skintyee logo over the dark bg).
+  const [booting, setBooting] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setBooting(false), 1600);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
     <PaperProvider theme={customTheme} settings={{ icon: (props: any) => <MaterialCommunityIcons {...props} /> }}>
       <StatusBar style="light" />
+      {booting ? (
+        <SplashScreen />
+      ) : (
       <NavigationContainer>
         <RootStack.Navigator>
           <RootStack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
           <RootStack.Screen name="Account" component={Account} options={{ presentation: 'modal', ...routeConfig.account.options }} />
         </RootStack.Navigator>
       </NavigationContainer>
+      )}
     </PaperProvider>
   );
 }

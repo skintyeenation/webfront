@@ -1,5 +1,7 @@
 import React from 'react';
+import { View } from 'react-native';
 import { Appbar } from 'react-native-paper';
+import { Logo } from './Logo';
 import { theme } from 'skintyee/styles';
 
 export interface AppHeaderProps {
@@ -17,8 +19,12 @@ export function AppHeader({ title, navigation, back, options, showAccount = true
   const headerTitle = options?.title ?? title ?? '';
   return (
     <Appbar.Header style={{ backgroundColor: theme.colors.darkDefault }} dark>
+      {/* Skintyee logo, top-left. Back action (when present) sits just after it. */}
+      <View style={{ paddingLeft: 12, paddingRight: 4 }}>
+        <Logo size={26} />
+      </View>
       {back ? <Appbar.BackAction onPress={() => navigation?.goBack()} /> : null}
-      <Appbar.Content title={headerTitle} titleStyle={{ color: theme.colors.text }} />
+      <Appbar.Content title={headerTitle} titleStyle={{ color: theme.colors.text, fontSize: 16 }} />
       {showAccount ? <Appbar.Action icon="account-circle" color={theme.colors.primary} onPress={() => navigation?.navigate?.('Account')} /> : null}
     </Appbar.Header>
   );
