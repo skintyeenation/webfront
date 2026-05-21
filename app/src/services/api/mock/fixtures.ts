@@ -149,6 +149,7 @@ export const expenditures: Expenditure[] = [
 export const polls: Poll[] = [
   {
     _id: 'p1',
+    kind: 'survey',
     question: 'Should we extend community hall hours on weekends?',
     description: 'Council is considering keeping the hall open later on Saturdays.',
     closesAt: daysFromNow(10),
@@ -161,6 +162,7 @@ export const polls: Poll[] = [
   },
   {
     _id: 'p2',
+    kind: 'survey',
     question: 'Priority for next capital project?',
     description: 'Help Council prioritize the next infrastructure investment.',
     closesAt: daysFromNow(25),
@@ -169,6 +171,31 @@ export const polls: Poll[] = [
       { id: 'p2o1', label: 'Water system upgrade', votes: 41 },
       { id: 'p2o2', label: 'New youth centre', votes: 38 },
       { id: 'p2o3', label: 'Road paving', votes: 19 },
+    ],
+  },
+  {
+    _id: 'v1',
+    kind: 'vote',
+    question: 'Ratify the 2024 Community Plan amendment?',
+    description: 'A formal vote on the proposed amendment to the community plan, as presented at the membership meeting.',
+    closesAt: daysFromNow(14),
+    closed: false,
+    options: [
+      { id: 'v1o1', label: 'In favour', votes: 58 },
+      { id: 'v1o2', label: 'Opposed', votes: 21 },
+      { id: 'v1o3', label: 'Abstain', votes: 6 },
+    ],
+  },
+  {
+    _id: 'v2',
+    kind: 'vote',
+    question: 'Approve the Housing Bylaw 2024-02?',
+    description: 'Formal member vote to adopt the updated on-reserve housing bylaw.',
+    closesAt: daysFromNow(-2),
+    closed: true,
+    options: [
+      { id: 'v2o1', label: 'In favour', votes: 94 },
+      { id: 'v2o2', label: 'Opposed', votes: 33 },
     ],
   },
 ];
