@@ -8,3 +8,4 @@ export { SplashScreen } from './SplashScreen';
 export { PieChart } from './PieChart';
 export type { PieDatum } from './PieChart';
 export { chartPalette, colorAt } from './palette';
+export { MonthCalendar } from './MonthCalendar';
