@@ -7,6 +7,74 @@ The site is a self-hosted WordPress install migrated from the previous
 Site123-hosted `skintyeefirstnation.org`. The app is a React Native + Expo
 proof-of-concept built for the proposal.
 
+## Visual walkthrough
+
+A tour of the Skin Tyee app. Screens already captured are shown; the rest are
+listed with the filename to drop into [`docs/media/`](docs/media) — once a PNG is
+added, replace the _pending_ note with `<img src="docs/media/<name>.png" width="240">`.
+
+### Onboarding & navigation
+
+| Screen | Preview | What it shows |
+|---|---|---|
+| Splash | <img src="docs/media/splash.png" width="240"> | Branded launch screen (Skin Tyee · First Nation). |
+| Admin menu | <img src="docs/media/admin-menu.png" width="240"> | Overflow tab for admins — Admin tools (Time Keeping, Financials) + Community. |
+| More menu (non-admin) | 📸 _pending →_ `docs/media/more-menu.png` | The overflow tab for public/members (Directory, Meetings, Polls, Account). |
+| Account & role switcher | 📸 _pending →_ `docs/media/account.png` | Profile + dev role switcher and the spoof-admin badge. |
+
+### Home (Dashboard)
+
+| Screen | Preview | What it shows |
+|---|---|---|
+| Dashboard (Year) | <img src="docs/media/dashboard.png" width="240"> | Admin overview, budget pie, spent-vs-allocated & per-member stats. |
+| Dashboard (Month) | 📸 _pending →_ `docs/media/dashboard-month.png` | Same dashboard with the Month reporting toggle active. |
+
+### Community
+
+| Screen | Preview | What it shows |
+|---|---|---|
+| Community Events | <img src="docs/media/community-events.png" width="240"> | Event list with admin add/edit/cancel/delete. |
+| Event detail | 📸 _pending →_ `docs/media/event-detail.png` | A single event's details. |
+| Create / edit event | 📸 _pending →_ `docs/media/event-form.png` | Event form incl. date/time picker + map pin. |
+| Notifications (list) | <img src="docs/media/notifications.png" width="240"> | Feed with WordPress categories; admin post/edit/delete. |
+| Notifications (calendar) | 📸 _pending →_ `docs/media/notifications-calendar.png` | Month calendar marking days with notifications. |
+| Post / edit notification | 📸 _pending →_ `docs/media/notification-form.png` | Notification form with category chips. |
+| Band Member Directory | 📸 _pending →_ `docs/media/directory.png` | ~150-member directory list. |
+| Member detail | 📸 _pending →_ `docs/media/member-detail.png` | Member contact (member+); admin edit/remove. |
+| Add / edit member | 📸 _pending →_ `docs/media/member-form.png` | Member form (name, role, contact). |
+
+### Governance
+
+| Screen | Preview | What it shows |
+|---|---|---|
+| Band Meetings | <img src="docs/media/band-meetings.png" width="240"> | Meetings with admin add/edit/cancel/delete. |
+| Schedule / edit meeting | <img src="docs/media/schedule-meeting-map.png" width="240"> | Meeting form with draggable map pin + date/time. |
+| Polls (Surveys / Vote) | 📸 _pending →_ `docs/media/polls.png` | Surveys vs Vote-on-Issues toggle. |
+| Poll detail | 📸 _pending →_ `docs/media/poll-detail.png` | Voting + live results bars. |
+
+### Transparency & finance
+
+| Screen | Preview | What it shows |
+|---|---|---|
+| Public Records · Transparency | <img src="docs/media/public-records-transparency.png" width="240"> | Band expenditures by area — pie + spent-vs-budget bars. |
+| Expenditure breakdown | 📸 _pending →_ `docs/media/expenditure-breakdown.png` | Drill-down: how much was spent and where. |
+| Financial Records (admin) | 📸 _pending →_ `docs/media/financials.png` | Budgets, statements, grants, expenses. |
+
+### Workforce (staff / admin)
+
+| Screen | Preview | What it shows |
+|---|---|---|
+| Time Keeping | <img src="docs/media/time-keeping.png" width="240"> | All workers' hours; admin approvals. |
+| Add timesheet | 📸 _pending →_ `docs/media/add-timesheet.png` | Staff/admin log hours (date, hours, task). |
+
+### Shared
+
+| Screen | Preview | What it shows |
+|---|---|---|
+| Confirmation modal | 📸 _pending →_ `docs/media/confirm-modal.png` | Confirm dialog for cancel/delete actions. |
+
+> Screenshots are from the web build; the same screens render on iOS/Android.
+
 ## Layout
 
 ```
