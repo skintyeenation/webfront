@@ -1,4 +1,4 @@
-import { AppNotification, BandMember, BandMeeting, CommunityEvent, Expenditure, FinancialRecord, Poll, PublicRecord, TimeEntry } from 'skintyee/models';
+import { AppNotification, BandMember, BandMeeting, CommunityEvent, Expenditure, FinancialRecord, MajorProject, Poll, PublicRecord, TimeEntry } from 'skintyee/models';
 
 /**
  * ApiService is the single seam between the app and its backend.
@@ -28,6 +28,8 @@ export interface ApiService {
     // Public band expenditures by program area. STUB: real figures come from the
     // Ferrus ASAP Suite + Adagio / Sage 300 financial integration. See STUBS.md.
     expenditures(): Promise<Expenditure[]>;
+    // Major capital projects with allocated budget vs actual spend.
+    majorProjects(): Promise<MajorProject[]>;
   };
   timekeeping: {
     list(): Promise<TimeEntry[]>;

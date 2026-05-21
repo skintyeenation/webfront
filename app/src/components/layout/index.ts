@@ -5,3 +5,6 @@ export { BarChart } from './BarChart';
 export type { BarDatum } from './BarChart';
 export { Logo } from './Logo';
 export { SplashScreen } from './SplashScreen';
+export { PieChart } from './PieChart';
+export type { PieDatum } from './PieChart';
+export { chartPalette, colorAt } from './palette';

@@ -51,6 +51,19 @@ export interface Expenditure {
   breakdown: ExpenditureLineItem[];
 }
 
+// A capital / "Major Projects" initiative (a WordPress category on skintyee.ca),
+// tracked with its allocated budget vs actual spend for transparency.
+export type ProjectStatus = 'planned' | 'in_progress' | 'complete';
+
+export interface MajorProject {
+  _id: string;
+  name: string;
+  allocated: number; // budget allocated
+  spent: number; // actual spend to date
+  status: ProjectStatus;
+  fiscalYear: string;
+}
+
 export interface PublicRecord {
   _id: string;
   title: string;

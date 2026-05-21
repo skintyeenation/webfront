@@ -1,4 +1,4 @@
-import { AppNotification, BandMember, BandMeeting, CommunityEvent, Expenditure, FinancialRecord, Poll, PublicRecord, TimeEntry } from 'skintyee/models';
+import { AppNotification, BandMember, BandMeeting, CommunityEvent, Expenditure, FinancialRecord, MajorProject, Poll, PublicRecord, TimeEntry } from 'skintyee/models';
 
 // STUB DATA. Hand-authored sample content so every screen renders realistically
 // without a backend. Replace with real API responses. See STUBS.md.
@@ -144,6 +144,15 @@ export const expenditures: Expenditure[] = [
       { label: 'Audit & professional fees', amount: 18000 },
     ],
   },
+];
+
+// Major capital projects — allocated budget vs actual spend. STUB figures.
+export const majorProjects: MajorProject[] = [
+  { _id: 'mp1', name: 'Water System Upgrade', allocated: 1200000, spent: 845000, status: 'in_progress', fiscalYear: 'FY2024' },
+  { _id: 'mp2', name: 'New Youth Centre', allocated: 950000, spent: 312000, status: 'in_progress', fiscalYear: 'FY2024' },
+  { _id: 'mp3', name: 'Main Road Paving', allocated: 480000, spent: 467000, status: 'complete', fiscalYear: 'FY2024' },
+  { _id: 'mp4', name: 'Housing Subdivision (Phase 2)', allocated: 1600000, spent: 220000, status: 'planned', fiscalYear: 'FY2024' },
+  { _id: 'mp5', name: 'Health Centre Renovation', allocated: 540000, spent: 528000, status: 'complete', fiscalYear: 'FY2024' },
 ];
 
 export const polls: Poll[] = [
