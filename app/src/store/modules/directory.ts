@@ -35,8 +35,16 @@ const directorySlice = createSlice({
   name: 'directory',
   initialState: directoryInitialState,
   reducers: {
-    // Admin: add / remove a band member (in-memory).
+    // Admin: add / edit / remove a band member (in-memory).
     addMember: (state, action) => ({ ...state, entities: [action.payload, ...state.entities] }),
+    updateMember: (state, action) => {
+      const merged = { ...action.payload };
+      return {
+        ...state,
+        entities: state.entities.map((m) => (m._id === merged._id ? { ...m, ...merged } : m)),
+        selected: state.selected?._id === merged._id ? { ...state.selected, ...merged } : state.selected,
+      };
+    },
     removeMember: (state, action) => ({ ...state, entities: state.entities.filter((m) => m._id !== action.payload) }),
   },
   extraReducers: (builder) => {
@@ -49,6 +57,6 @@ const directorySlice = createSlice({
   },
 });
 
-export const { addMember, removeMember } = directorySlice.actions;
+export const { addMember, updateMember, removeMember } = directorySlice.actions;
 
 export default directorySlice.reducer;

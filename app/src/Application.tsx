@@ -33,6 +33,7 @@ import EditEvent from 'skintyee/components/pages/EditEvent';
 import PostNotification from 'skintyee/components/pages/PostNotification';
 import EditNotification from 'skintyee/components/pages/EditNotification';
 import AddMember from 'skintyee/components/pages/AddMember';
+import EditMember from 'skintyee/components/pages/EditMember';
 import AddTimesheet from 'skintyee/components/pages/AddTimesheet';
 import CreateMeeting from 'skintyee/components/pages/CreateMeeting';
 import EditMeeting from 'skintyee/components/pages/EditMeeting';
@@ -97,6 +98,7 @@ const MoreNavigation = () => {
       <MoreStack.Screen {...routeConfig.directory} component={Directory} />
       <MoreStack.Screen {...routeConfig.memberDetail} component={MemberDetail} />
       <MoreStack.Screen {...routeConfig.memberCreate} component={AddMember} />
+      <MoreStack.Screen {...routeConfig.memberEdit} component={EditMember} />
       <MoreStack.Screen {...routeConfig.meetings} component={Meetings} />
       <MoreStack.Screen {...routeConfig.meetingCreate} component={CreateMeeting} />
       <MoreStack.Screen {...routeConfig.meetingEdit} component={EditMeeting} />
