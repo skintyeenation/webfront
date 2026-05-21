@@ -66,15 +66,17 @@ back without a re-scrape. (Backups stay on disk; they're gitignored.)
 
 Full-page screenshots of every page → [`media/website/`](media/website), embedded
 in [`website-walkthrough.md`](website-walkthrough.md). Posts (news/announcement
-articles) are excluded. Uses puppeteer-core driving the installed Chrome:
+articles) are excluded. **Run this whenever the site changes:**
 
 ```bash
-# 1. list published pages -> /tmp/pages.json (slug + url)
-docker compose -f website/docker-compose.yml run --rm wpcli \
-  post list --post_type=page --post_status=publish --fields=url --format=csv \
-  | tail -n +2 | sort -u | python3 docs/scripts/mklist.py
-# 2. capture full-page PNGs
-node docs/scripts/shoot.mjs
+pnpm website:screenshots          # = docs/scripts/shoot-website.sh
 ```
 
-(Both helper scripts are in [`scripts/`](scripts).)
+One command: ensures the stack is up, lists published pages, installs
+puppeteer-core on first run (drives the installed Chrome — no browser download),
+and captures a full-page PNG of each page. Then review `media/website/`, update
+`website-walkthrough.md` if pages were added/removed, and commit.
+
+> Internals (in [`scripts/`](scripts)): `shoot-website.sh` (driver) →
+> `mklist.py` (page list) → `shoot.mjs` (puppeteer-core capture). Override the
+> browser with `CHROME=/path/to/chrome`.
