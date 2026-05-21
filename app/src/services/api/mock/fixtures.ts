@@ -27,14 +27,30 @@ export const notifications: AppNotification[] = [
   { _id: 'n6', title: 'Band office closure', body: 'The Band Office will be closed Friday for staff training.', category: 'Announcements', createdAt: hoursAgo(72), read: true },
 ];
 
-export const members: BandMember[] = [
+// Named leadership + staff (have contact details).
+const namedMembers: BandMember[] = [
   { _id: 'm1', name: 'Marie Joseph', role: 'Chief', title: 'Chief', email: 'chief@skintyee.ca', phone: '250-555-0101', avatarLetter: 'M' },
   { _id: 'm2', name: 'Daniel Pierre', role: 'Council', title: 'Council Member', email: 'd.pierre@skintyee.ca', phone: '250-555-0102', avatarLetter: 'D' },
   { _id: 'm3', name: 'Sandra Williams', role: 'Staff', title: 'Band Administrator', email: 'admin@skintyee.ca', phone: '250-555-0103', avatarLetter: 'S' },
   { _id: 'm4', name: 'Joseph Alec', role: 'Staff', title: 'Lands Manager', email: 'lands@skintyee.ca', phone: '250-555-0104', avatarLetter: 'J' },
-  { _id: 'm5', name: 'Rita Thomas', role: 'Member', avatarLetter: 'R' },
-  { _id: 'm6', name: 'Albert John', role: 'Member', avatarLetter: 'A' },
+  { _id: 'm5', name: 'Annie Michell', role: 'Council', title: 'Council Member', email: 'a.michell@skintyee.ca', phone: '250-555-0105', avatarLetter: 'A' },
+  { _id: 'm6', name: 'Rita Thomas', role: 'Member', avatarLetter: 'R' },
 ];
+
+// Generate the rest of the roster so reporting reflects the real ~150-member
+// band. Deterministic (no randomness) so the data is stable across reloads.
+const FIRST = ['Albert', 'Bernice', 'Clifford', 'Doreen', 'Edward', 'Florence', 'George', 'Helen', 'Ivan', 'Joanne', 'Kevin', 'Lorraine', 'Melvin', 'Norma', 'Oscar', 'Patricia', 'Quentin', 'Rose', 'Stanley', 'Theresa', 'Victor', 'Wanda', 'Wesley', 'Yvonne'];
+const LAST = ['John', 'Pierre', 'Thomas', 'Joseph', 'Alec', 'William', 'Charlie', 'Mack', 'Tom', 'Michell', 'Patrick', 'Abraham', 'Isaac', 'Jacob', 'Louie', 'Sam'];
+const TOTAL_MEMBERS = 150;
+
+const generatedMembers: BandMember[] = Array.from({ length: TOTAL_MEMBERS - namedMembers.length }, (_, i) => {
+  const first = FIRST[i % FIRST.length];
+  const last = LAST[(i * 7 + 3) % LAST.length];
+  const name = `${first} ${last}`;
+  return { _id: `m${namedMembers.length + i + 1}`, name, role: 'Member' as const, avatarLetter: first[0] };
+});
+
+export const members: BandMember[] = [...namedMembers, ...generatedMembers];
 
 export const events: CommunityEvent[] = [
   { _id: 'e1', title: 'Community Salmon BBQ', description: 'Annual salmon BBQ at the community hall. All welcome.', location: 'Community Hall', startsAt: daysFromNow(5), public: true },
