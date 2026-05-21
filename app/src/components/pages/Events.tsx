@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { FlatList, TouchableOpacity, View } from 'react-native';
 import { Card, Chip, Text } from 'react-native-paper';
 import moment from 'moment';
-import { PageContainer, PageContent, NoContent } from 'skintyee/components/layout';
+import { PageContainer, PageContent, NoContent, AdminAddButton } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { loadEvents } from 'skintyee/store/modules/events';
 import { theme } from 'skintyee/styles';
@@ -22,6 +22,7 @@ export default function Events({ navigation }: any) {
   return (
     <PageContainer>
       <PageContent>
+        <AdminAddButton label="Add event" onPress={() => navigation.navigate('eventCreate')} />
         {visible.length === 0 ? (
           <NoContent loading={loading || !loaded} message="No upcoming events." />
         ) : (

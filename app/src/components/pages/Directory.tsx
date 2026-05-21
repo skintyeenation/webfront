@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { FlatList, TouchableOpacity } from 'react-native';
 import { Avatar, Divider, List } from 'react-native-paper';
-import { PageContainer, PageContent, NoContent } from 'skintyee/components/layout';
+import { PageContainer, PageContent, NoContent, AdminAddButton } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { loadDirectory } from 'skintyee/store/modules/directory';
 import { theme } from 'skintyee/styles';
@@ -17,6 +17,7 @@ export default function Directory({ navigation }: any) {
   return (
     <PageContainer>
       <PageContent>
+        <AdminAddButton label="Add member" onPress={() => navigation.navigate('memberCreate')} />
         {entities.length === 0 ? (
           <NoContent loading={loading || !loaded} message="No band members listed." />
         ) : (

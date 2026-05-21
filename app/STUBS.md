@@ -74,6 +74,17 @@ API Server for data.
 - **Replace with:** a feed driven by skintyee.ca WordPress posts in those
   categories (+ real push delivery — see §4). See ADR-6.
 
+## 2d. Admin authoring (create/manage) — in-memory only
+
+- **What:** admins (role = admin) can add a Community Event, post a Notification,
+  and add/remove a Directory member — via "+ Add" actions on those pages.
+- **Where:** `CreateEvent.tsx`, `PostNotification.tsx`, `AddMember.tsx`, the
+  `addEvent` / `addNotification` / `addMember` / `removeMember` slice actions, and
+  `components/layout/AdminAddButton` (admin-only).
+- **STUB:** changes are dispatched to the Redux store only — **not persisted**;
+  they reset on reload and are not sent to any backend. Wire these to the real
+  `ApiService` once it exists.
+
 ## 3. Object storage — not implemented (→ Azure Blob Storage)
 
 - **What:** no file upload/download. ppt used AWS S3; this app will use

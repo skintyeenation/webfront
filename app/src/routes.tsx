@@ -23,6 +23,10 @@ export const routeConfig = {
   memberDetail: { name: 'memberDetail', options: { title: 'Member', header: header('Member') } },
   eventDetail: { name: 'eventDetail', options: { title: 'Event', header: header('Event') } },
   pollDetail: { name: 'pollDetail', options: { title: 'Poll', header: header('Poll') } },
+  // Admin create screens
+  eventCreate: { name: 'eventCreate', options: { title: 'New event', header: header('New Event') } },
+  notificationCreate: { name: 'notificationCreate', options: { title: 'Post', header: header('Post Notification') } },
+  memberCreate: { name: 'memberCreate', options: { title: 'Add member', header: header('Add Member') } },
   // Account / role switcher
   account: { name: 'account', options: { title: 'Account', header: header('Account') } },
 };

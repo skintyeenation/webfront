@@ -34,7 +34,11 @@ export const directoryInitialState: DirectoryState = {
 const directorySlice = createSlice({
   name: 'directory',
   initialState: directoryInitialState,
-  reducers: {},
+  reducers: {
+    // Admin: add / remove a band member (in-memory).
+    addMember: (state, action) => ({ ...state, entities: [action.payload, ...state.entities] }),
+    removeMember: (state, action) => ({ ...state, entities: state.entities.filter((m) => m._id !== action.payload) }),
+  },
   extraReducers: (builder) => {
     builder.addCase(loadDirectory.pending, reducePendingState());
     builder.addCase(loadDirectory.rejected, reduceRejectedState());
@@ -44,5 +48,7 @@ const directorySlice = createSlice({
     builder.addCase(loadMember.fulfilled, reduceFulfilledState((state, action) => ({ ...state, selected: action.payload })));
   },
 });
+
+export const { addMember, removeMember } = directorySlice.actions;
 
 export default directorySlice.reducer;
