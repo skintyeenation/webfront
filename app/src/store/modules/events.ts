@@ -35,8 +35,13 @@ const eventsSlice = createSlice({
   name: 'events',
   initialState: eventsInitialState,
   reducers: {
-    // Admin: add a new event to the (in-memory) list.
+    // Admin: add / delete / cancel (toggle) an event (in-memory).
     addEvent: (state, action) => ({ ...state, entities: [action.payload, ...state.entities] }),
+    removeEvent: (state, action) => ({ ...state, entities: state.entities.filter((e) => e._id !== action.payload) }),
+    cancelEvent: (state, action) => ({
+      ...state,
+      entities: state.entities.map((e) => (e._id === action.payload ? { ...e, cancelled: !e.cancelled } : e)),
+    }),
   },
   extraReducers: (builder) => {
     builder.addCase(loadEvents.pending, reducePendingState());
@@ -48,6 +53,6 @@ const eventsSlice = createSlice({
   },
 });
 
-export const { addEvent } = eventsSlice.actions;
+export const { addEvent, removeEvent, cancelEvent } = eventsSlice.actions;
 
 export default eventsSlice.reducer;

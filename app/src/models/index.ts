@@ -22,6 +22,7 @@ export interface CommunityEvent {
   location: string;
   startsAt: string; // ISO date
   public: boolean;
+  cancelled?: boolean;
 }
 
 export interface BandMeeting {
@@ -31,6 +32,7 @@ export interface BandMeeting {
   location: string;
   startsAt: string; // ISO date
   minutesUrl?: string;
+  cancelled?: boolean;
 }
 
 // Public, transparent band expenditure by program area. The real figures come

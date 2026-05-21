@@ -32,6 +32,7 @@ import CreateEvent from 'skintyee/components/pages/CreateEvent';
 import PostNotification from 'skintyee/components/pages/PostNotification';
 import AddMember from 'skintyee/components/pages/AddMember';
 import AddTimesheet from 'skintyee/components/pages/AddTimesheet';
+import CreateMeeting from 'skintyee/components/pages/CreateMeeting';
 
 // Five fixed tabs keep the bottom bar clean. Overflow features live under the
 // 5th tab — "More" for public/members, "Admin" for admins (admin tools grouped
@@ -92,6 +93,7 @@ const MoreNavigation = () => {
       <MoreStack.Screen {...routeConfig.memberDetail} component={MemberDetail} />
       <MoreStack.Screen {...routeConfig.memberCreate} component={AddMember} />
       <MoreStack.Screen {...routeConfig.meetings} component={Meetings} />
+      <MoreStack.Screen {...routeConfig.meetingCreate} component={CreateMeeting} />
       <MoreStack.Screen {...routeConfig.polls} component={Polls} />
       <MoreStack.Screen {...routeConfig.pollDetail} component={PollDetail} />
       <MoreStack.Screen {...routeConfig.timekeeping} component={TimeKeeping} />
