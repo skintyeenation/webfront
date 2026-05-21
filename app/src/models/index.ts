@@ -33,6 +33,8 @@ export interface BandMeeting {
   startsAt: string; // ISO date
   minutesUrl?: string;
   cancelled?: boolean;
+  lat?: number; // map pin (set via the location picker)
+  lng?: number;
 }
 
 // Public, transparent band expenditure by program area. The real figures come
