@@ -1,3 +1,11 @@
+// Load a local .env (gitignored) so secrets like the Maps key persist across
+// runs without being committed or passed on the command line.
+try {
+  require('dotenv').config();
+} catch (e) {
+  // dotenv not installed — env must come from the shell instead.
+}
+
 module.exports = {
   expo: {
     name: 'Skin Tyee',
