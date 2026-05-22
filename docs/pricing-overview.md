@@ -1,10 +1,10 @@
-# Pricing overview — recurring costs
+# Pricing overview — software & service costs
 
 **Prepared:** 2026-05-22
-**Purpose:** One-page summary of the recurring software/service costs, each
-linking to its detailed cost record. All are **ordinary operating expenses and
-100% tax-deductible** under Canadian law (current expenses, not capital — see
-each doc; not tax advice).
+**Purpose:** One-page summary of the software/service costs — **recurring**
+(monthly/annual) and **one-time** (setup) — each linking to its detailed cost
+record. All are **ordinary operating expenses and 100% tax-deductible** under
+Canadian law (current expenses, not capital — see each doc; not tax advice).
 
 > Figures are approximate — confirm against the actual invoices. Per-user
 > services scale with headcount; **fill in the real licensed-user count `N`**.
