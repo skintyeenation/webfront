@@ -136,6 +136,17 @@ with reference screenshots and the current mailbox/member list.
 (with Teams) per-user cost, why it's 100% tax-deductible under Canadian law, and
 the rule to **unlicense departed/terminated staff immediately**.
 
+## Password management (1Password)
+
+Credentials and secrets live in **1Password (Business)** — encrypted vaults with
+per-team/role access, so staff never email passwords and access is cut off
+instantly when someone leaves.
+
+🔐 **[1Password setup & user management →](docs/1password/setup.md)** — vaults,
+groups, provisioning users, and offboarding.
+💲 **[1Password pricing & tax →](docs/1password/pricing.md)** — per-user cost,
+100% Canadian tax-deductibility, and immediate deprovisioning of departed staff.
+
 ## Documentation
 
 - [`CLAUDE.md`](CLAUDE.md) — workspace overview, conventions, and decisions
@@ -149,6 +160,8 @@ the rule to **unlicense departed/terminated staff immediately**.
 - [`docs/wordpress-runbook.md`](docs/wordpress-runbook.md) — run / recover / back up the WordPress site
 - [`docs/365/shared-mailboxes.md`](docs/365/shared-mailboxes.md) — Microsoft 365 shared mailbox setup + adding users
 - [`docs/365/pricing.md`](docs/365/pricing.md) — Microsoft 365 per-user pricing, tax deductibility, offboarding
+- [`docs/1password/setup.md`](docs/1password/setup.md) — 1Password vaults, groups, user management
+- [`docs/1password/pricing.md`](docs/1password/pricing.md) — 1Password per-user pricing, tax deductibility, offboarding
 - [`docs/Skintyee-App-Proposal.pptx`](docs/Skintyee-App-Proposal.pptx) — proposal deck
 - [`app/STUBS.md`](app/STUBS.md) — catalogue of POC stubs
 - [`docs/hosting-costs.md`](docs/hosting-costs.md) — hosting cost basis + rationale
