@@ -48,12 +48,17 @@ categorized to match the skintyee.ca website.
 ### Website integration (publish to the public)
 
 The app and the **skintyee.ca** website share data: public-facing content
-entered/managed in the app — **community events, band meetings, public
-records/transparency, and announcements** — is **auto-published to the WordPress
-site** so the general public sees it without needing the app. Notification
-categories already mirror the website's taxonomy (Health / Safety / Council /
-Events / …), so one update reaches both audiences. (The diagram's *Auto-Publish*
-flow — see [`docs/SkinTyee.drawio.pdf`](docs/SkinTyee.drawio.pdf).)
+entered/managed in the app — **community events, band meetings (and notes),
+public records/transparency, and announcements** — is **auto-published to the
+WordPress site** so the general public sees it without needing the app.
+
+**Enter it once.** Staff manage this content in the app and it flows to the
+website automatically — **no separate website updates, no double data entry,
+and no keeping WordPress in sync by hand.** The app is the single source of
+truth; the public site stays current on its own. Notification categories already
+mirror the website's taxonomy (Health / Safety / Council / Events / …), so one
+update reaches both audiences. (The diagram's *Auto-Publish* flow — see
+[`docs/SkinTyee.drawio.pdf`](docs/SkinTyee.drawio.pdf).)
 
 ### NGO priorities
 
