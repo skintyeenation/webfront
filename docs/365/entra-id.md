@@ -89,6 +89,41 @@ The plan is to manage device sign-in with the **same Entra identity**:
   Azure, and apps), **least-privilege** admin roles, optionally **PIM** for
   just-in-time admin elevation, and **device compliance** policies.
 
+## How the app will simplify identity administration (future)
+
+Today, adding a person and giving them the right access means several manual
+steps across the **Entra** and **Microsoft 365** admin centers (create the user,
+assign a license, set group/role membership, add them to shared mailboxes). The
+Skin Tyee app's **Admin** area is the place to fold all of that into **one
+friendly flow** so band admins — not just IT — can manage people.
+
+The app's API (NestJS) calls the **Microsoft Graph API** (with an Entra **app
+registration** + admin-consented permissions) so that app actions drive Entra/365
+behind the scenes:
+
+- **Add a member/staff in the app → provision them in Entra/365:** create the
+  Entra account, **assign the Microsoft 365 license**, set **group membership**
+  (which is what grants role-based access), and add them to the relevant **shared
+  mailboxes** — all from the app's existing *Add member* screen.
+- **Assign / change a role in the app → it maps to an Entra group / app role.**
+  One role change in the app updates **both** the app's access *and* the person's
+  Microsoft 365 / SSO access, because the app reads role from Entra (ADR-1) and
+  writes it back via Graph. No separate "set role here, then there".
+- **Offboard in the app → deprovision everywhere:** an app action **blocks
+  sign-in and removes the license** in Entra (the same immediate-offboarding rule
+  in [`pricing.md`](pricing.md#️-offboarding--unlicense-departed-staff-immediately)),
+  and drops the person from groups/shared mailboxes — one click instead of a
+  checklist.
+
+**Why it matters:** one **friendly UI** for the whole user lifecycle (add → assign
+role → offboard); changes stay **consistent and auditable**; and it removes the
+need for everyone who manages staff to be fluent in the Entra/365 admin centers.
+
+> Requires least-privilege Graph permissions (e.g. `User.ReadWrite.All`,
+> `Group.ReadWrite.All`, license management) on the app's Entra app registration,
+> with admin consent. This builds on the app's current **role gating** and
+> **directory add/edit/remove** (which are mocked today — see `../../app/STUBS.md`).
+
 ## Where things live
 
 | Thing | Where |
