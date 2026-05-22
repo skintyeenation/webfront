@@ -11,7 +11,10 @@ proof-of-concept built for the proposal.
 
 Give Skin Tyee First Nation a **modern, self-owned digital platform** —
 website, community app, email, and admin tooling — built on the Nation's own
-**Microsoft 365 + Azure** tenant rather than rented third-party services.
+**Microsoft 365 + Azure** tenant rather than rented third-party services. The
+goals below guide it.
+
+### One identity for everything
 
 The backbone is **Microsoft Entra ID** (Azure AD): a **single identity** that
 ties together Microsoft 365 (email/Teams/Office), the **Azure** subscription
@@ -19,10 +22,30 @@ ties together Microsoft 365 (email/Teams/Office), the **Azure** subscription
 **workstation and server access** via SSO. One account per person, one place to
 grant or revoke access. (Details: [`docs/365/entra-id.md`](docs/365/entra-id.md).)
 
-A key goal is that the **app becomes the friendly front-end for that identity**:
-band admins add a member, assign a role, or offboard someone **once in the app**,
-and it provisions/deprovisions them across Entra ID and Microsoft 365 (license,
-groups, shared mailboxes) behind the scenes — no admin-center expertise needed.
+### The app as the friendly admin front-end
+
+The **app becomes the front-end for that identity**: band admins add a member,
+assign a role, or offboard someone **once in the app**, and it
+provisions/deprovisions them across Entra ID and Microsoft 365 (license, groups,
+shared mailboxes) behind the scenes — no admin-center expertise needed.
+
+### Transparent band management
+
+The app makes the Nation's finances visible to members: **band expenditures by
+program area** (Housing, Public Works, Education, Health, Social Assistance, …)
+with **budget-vs-actual** and drill-down breakdowns of *how much was spent and
+where*, plus **major capital projects** — sourced from the band's financial
+system (Ferrus ASAP / Adagio / Sage). Open books build trust and accountability.
+
+### Keeping the community informed & engaged
+
+One place for **push notifications** (health & safety alerts like water
+advisories or wildfire notices, and council announcements), **band meetings**
+(agendas, schedules, minutes), **community events**, and **polling & voting on
+issues** — so members hear about what matters and have a say, with notifications
+categorized to match the skintyee.ca website.
+
+### NGO priorities
 
 As an NGO, the priorities are **easy backups, auditability, and clear,
 tax-deductible operating costs** over minimizing spend.
