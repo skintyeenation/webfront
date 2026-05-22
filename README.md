@@ -165,6 +165,7 @@ Canadian tax-deductibility, and "don't lose the domain".
 - [`docs/app-plan.md`](docs/app-plan.md) — app build plan
 - [`docs/architecture-decisions.md`](docs/architecture-decisions.md) — service ADRs (Entra ID, Azure Blob, Ferrus/Adagio, WordPress categories)
 - [`docs/roadmap.md`](docs/roadmap.md) — 3-month engagement timeline
+- [`docs/pricing-overview.md`](docs/pricing-overview.md) — recurring costs summary (M365, 1Password, GoDaddy, Azure) + tax
 - [`docs/testing-strategy.md`](docs/testing-strategy.md) — testing + TestFlight/Google Play
 - [`api/openapi.yaml`](api/openapi.yaml) — proposed API contract · [`api/README.md`](api/README.md) — API stack recommendation
 - [`docs/walkthrough.md`](docs/walkthrough.md) — app visual screen-by-screen walkthrough
