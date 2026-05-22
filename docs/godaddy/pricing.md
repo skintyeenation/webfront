@@ -12,37 +12,28 @@ documentation for business-expense / tax substantiation.
 
 ## What the expense is for
 
-Annual registration of the Nation's domain names — the addresses the public uses
-for the website and email and that the app/ERP run under:
-
-- **`skintyee.ca`** — primary (website, `app.skintyee.ca`, `@skintyee.ca` email)
-- **`skintyeefirstnation.org`** — legacy domain, redirects to `skintyee.ca`
+Annual registration of the Nation's domain names — `skintyee.ca` (primary:
+website, `app.skintyee.ca`, `@skintyee.ca` email) plus `.com`/`.org`/`.net` held
+defensively and forwarded to it.
 
 See [`domains.md`](domains.md) for the DNS/registrar setup.
 
-## Per-domain price
+## Cost basis (GoDaddy renewal, CAD/yr)
 
-| Item | Approx. price (CAD/yr) | Notes |
-|---|--:|---|
-| `.ca` domain (renewal) | **≈ CAD $20–25 / yr** | CIRA `.ca`; intro year is often cheaper than renewal |
-| `.org` domain (renewal) | **≈ CAD $25–30 / yr** | |
-| Domain privacy / protection | often **included free** | confirm on the plan |
+| Domain | Role | Renewal (CAD/yr) |
+|---|---|--:|
+| `skintyee.ca` | **Primary** | **$21.99** |
+| `skintyee.com` | Defensive → redirect | $32.99 |
+| `skintyee.org` | Defensive → redirect | $32.99 |
+| `skintyee.net` | Defensive → redirect | $34.99 |
+| **Total** | | **CAD $122.96 / yr** |
 
-> ⚠️ **Confirm current pricing** — registrar prices (and promo vs renewal rates)
-> change. Authoritative source: the GoDaddy account → renewals/pricing, or
-> [godaddy.com domain pricing](https://www.godaddy.com/en-ca/domains). Watch the
-> **renewal** price, which is usually higher than the first-year promo.
+Domain privacy/protection is included. **Confirm against the GoDaddy invoices**
+each year — renewal rates change and differ from first-year promo prices.
 
-## Cost basis
-
-| Domain | Approx. annual (CAD) |
-|---|--:|
-| `skintyee.ca` | ~$22 |
-| `skintyeefirstnation.org` | ~$28 |
-| **Total** | **≈ CAD $50 / yr** |
-
-*Approximate; replace with the actual amounts from the GoDaddy invoices. Cost is
-small but **mission-critical** — see "don't lose the domain" below.*
+> The `.com`/`.org`/`.net` are held **defensively** (prevent look-alikes,
+> forward to `.ca`). If budget is tight they're the optional ones — but dropping
+> a defensive domain lets someone else register it, so most orgs keep them.
 
 ## ⚠️ Don't lose the domain
 

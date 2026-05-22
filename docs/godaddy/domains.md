@@ -10,11 +10,21 @@ Companion to [`pricing.md`](pricing.md).
 
 ## Domains (keep this current)
 
-| Domain | Registrar | Role | Auto-renew | Expires |
-|---|---|---|---|---|
-| `skintyee.ca` | GoDaddy | Primary — website, app, email | **ON** | _record date_ |
-| `skintyeefirstnation.org` | GoDaddy | Legacy (Site123) — redirect to `skintyee.ca` | **ON** | _record date_ |
+All registered at **GoDaddy** under the "Skin Tyee First Nation" account:
 
+| Domain | Role | Auto-renew | Expires |
+|---|---|---|---|
+| `skintyee.ca` | **Primary** — website, `app.skintyee.ca`, `@skintyee.ca` email | **ON** | _record date_ |
+| `skintyee.com` | Defensive registration → redirect to `skintyee.ca` | **ON** | _record date_ |
+| `skintyee.org` | Defensive registration → redirect to `skintyee.ca` | **ON** | _record date_ |
+| `skintyee.net` | Defensive registration → redirect to `skintyee.ca` | **ON** | _record date_ |
+
+<img src="media/domains-dashboard.png" width="640">
+
+> `.ca` is the primary public domain; `.com`/`.org`/`.net` are held defensively
+> and forwarded to it. (The old Site123 site `skintyeefirstnation.org` is the
+> migration *source* — not one of these GoDaddy domains.)
+>
 > **`.ca` requirement:** `.ca` domains require the registrant to meet **CIRA
 > Canadian Presence Requirements** (a First Nation / band qualifies). Keep the
 > registrant contact accurate.
