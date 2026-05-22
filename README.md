@@ -7,6 +7,26 @@ The site is a self-hosted WordPress install migrated from the previous
 Site123-hosted `skintyeefirstnation.org`. The app is a React Native + Expo
 proof-of-concept built for the proposal.
 
+## Purpose
+
+Give Skin Tyee First Nation a **modern, self-owned digital platform** —
+website, community app, email, and admin tooling — built on the Nation's own
+**Microsoft 365 + Azure** tenant rather than rented third-party services.
+
+The backbone is **Microsoft Entra ID** (Azure AD): a **single identity** that
+ties together Microsoft 365 (email/Teams/Office), the **Azure** subscription
+(website, DNS, database), the **app's** sign-in and roles, and — over time —
+**workstation and server access** via SSO. One account per person, one place to
+grant or revoke access. (Details: [`docs/365/entra-id.md`](docs/365/entra-id.md).)
+
+A key goal is that the **app becomes the friendly front-end for that identity**:
+band admins add a member, assign a role, or offboard someone **once in the app**,
+and it provisions/deprovisions them across Entra ID and Microsoft 365 (license,
+groups, shared mailboxes) behind the scenes — no admin-center expertise needed.
+
+As an NGO, the priorities are **easy backups, auditability, and clear,
+tax-deductible operating costs** over minimizing spend.
+
 ## Architecture
 
 The platform at a glance — actors (Public / Band Members / Admins & Staff), the
