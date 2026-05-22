@@ -132,6 +132,10 @@ how shared mailboxes are created in the M365 admin center and how individual
 (licensed) users are granted access (Full Access / Send As / Send on Behalf),
 with reference screenshots and the current mailbox/member list.
 
+💲 **[Microsoft 365 pricing & tax →](docs/365/pricing.md)** — Business Standard
+(with Teams) per-user cost, why it's 100% tax-deductible under Canadian law, and
+the rule to **unlicense departed/terminated staff immediately**.
+
 ## Documentation
 
 - [`CLAUDE.md`](CLAUDE.md) — workspace overview, conventions, and decisions
@@ -144,6 +148,7 @@ with reference screenshots and the current mailbox/member list.
 - [`docs/website-walkthrough.md`](docs/website-walkthrough.md) — website (skintyee.ca) page-by-page screenshots
 - [`docs/wordpress-runbook.md`](docs/wordpress-runbook.md) — run / recover / back up the WordPress site
 - [`docs/365/shared-mailboxes.md`](docs/365/shared-mailboxes.md) — Microsoft 365 shared mailbox setup + adding users
+- [`docs/365/pricing.md`](docs/365/pricing.md) — Microsoft 365 per-user pricing, tax deductibility, offboarding
 - [`docs/Skintyee-App-Proposal.pptx`](docs/Skintyee-App-Proposal.pptx) — proposal deck
 - [`app/STUBS.md`](app/STUBS.md) — catalogue of POC stubs
 - [`docs/hosting-costs.md`](docs/hosting-costs.md) — hosting cost basis + rationale
