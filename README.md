@@ -169,11 +169,11 @@ pricing, and 100% Canadian tax-deductibility.
 
 ## Costs
 
-💰 **[Pricing overview →](docs/pricing-overview.md)** — all recurring service
-costs in one place (Microsoft 365, 1Password, GoDaddy, Azure, and the
-**Apple/Google app-store** developer accounts), each linking to its detailed cost
-record, with a worked example. All are 100% tax-deductible operating expenses
-under Canadian law.
+💰 **[Pricing overview →](docs/pricing-overview.md)** — all software/service
+costs in one place — recurring and one-time (Microsoft 365, 1Password, GoDaddy,
+Azure, the **Apple/Google app-store** accounts, and developer tools) — each
+linking to its detailed cost record, with a worked example. All are 100%
+tax-deductible operating expenses under Canadian law.
 
 ## Documentation
 
@@ -181,7 +181,7 @@ under Canadian law.
 - [`docs/app-plan.md`](docs/app-plan.md) — app build plan
 - [`docs/architecture-decisions.md`](docs/architecture-decisions.md) — service ADRs (Entra ID, Azure Blob, Ferrus/Adagio, WordPress categories)
 - [`docs/roadmap.md`](docs/roadmap.md) — 3-month engagement timeline
-- [`docs/pricing-overview.md`](docs/pricing-overview.md) — recurring costs summary (M365, 1Password, GoDaddy, Azure, app stores) + tax
+- [`docs/pricing-overview.md`](docs/pricing-overview.md) — software/service costs summary, recurring + one-time (M365, 1Password, GoDaddy, Azure, app stores, dev tools) + tax
 - [`docs/app-distribution-costs.md`](docs/app-distribution-costs.md) — Apple Developer + Google Play costs, tax deductibility
 - [`docs/developer-tools.md`](docs/developer-tools.md) — developer tooling (IntelliJ IDEA Ultimate, Claude Max) + tax
 - [`docs/testing-strategy.md`](docs/testing-strategy.md) — testing + TestFlight/Google Play
