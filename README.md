@@ -147,6 +147,17 @@ groups, provisioning users, and offboarding.
 💲 **[1Password pricing & tax →](docs/1password/pricing.md)** — per-user cost,
 100% Canadian tax-deductibility, and immediate deprovisioning of departed staff.
 
+## Domains (GoDaddy)
+
+Domains are registered at **GoDaddy** (`skintyee.ca`, `skintyeefirstnation.org`)
+with DNS in **Azure DNS** — the foundation for the website, `app.skintyee.ca`,
+and `@skintyee.ca` email.
+
+🌐 **[Domains & DNS →](docs/godaddy/domains.md)** — registrar account, Azure DNS
+delegation, the key records (web, app, M365 email), and renewal/safety.
+💲 **[Domain pricing & tax →](docs/godaddy/pricing.md)** — annual cost, 100%
+Canadian tax-deductibility, and "don't lose the domain".
+
 ## Documentation
 
 - [`CLAUDE.md`](CLAUDE.md) — workspace overview, conventions, and decisions
@@ -162,6 +173,8 @@ groups, provisioning users, and offboarding.
 - [`docs/365/pricing.md`](docs/365/pricing.md) — Microsoft 365 per-user pricing, tax deductibility, offboarding
 - [`docs/1password/setup.md`](docs/1password/setup.md) — 1Password vaults, groups, user management
 - [`docs/1password/pricing.md`](docs/1password/pricing.md) — 1Password per-user pricing, tax deductibility, offboarding
+- [`docs/godaddy/domains.md`](docs/godaddy/domains.md) — GoDaddy domains + Azure DNS records
+- [`docs/godaddy/pricing.md`](docs/godaddy/pricing.md) — domain pricing, tax deductibility
 - [`docs/Skintyee-App-Proposal.pptx`](docs/Skintyee-App-Proposal.pptx) — proposal deck
 - [`app/STUBS.md`](app/STUBS.md) — catalogue of POC stubs
 - [`docs/hosting-costs.md`](docs/hosting-costs.md) — hosting cost basis + rationale
