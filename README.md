@@ -127,6 +127,11 @@ architecture diagram). Role addresses like `info@skintyee.ca`, `admin@skintyee.c
 and `chief@skintyee.ca` are **shared mailboxes** that licensed staff work from
 with their own logins.
 
+🆔 **[Entra ID, admin account & access →](docs/365/entra-id.md)** — the
+`admin@…onmicrosoft.com` break-glass admin (governs 365 + Azure), Entra ID
+Connect (hybrid identity), and how Entra ID drives SSO and workstation/server
+access.
+
 📬 **[Shared mailbox setup & adding users →](docs/365/shared-mailboxes.md)** —
 how shared mailboxes are created in the M365 admin center and how individual
 (licensed) users are granted access (Full Access / Send As / Send on Behalf),
@@ -193,6 +198,7 @@ tax-deductible operating expenses under Canadian law.
 - [`docs/walkthrough.md`](docs/walkthrough.md) — app visual screen-by-screen walkthrough
 - [`docs/website-walkthrough.md`](docs/website-walkthrough.md) — website (skintyee.ca) page-by-page screenshots
 - [`docs/wordpress-runbook.md`](docs/wordpress-runbook.md) — run / recover / back up the WordPress site
+- [`docs/365/entra-id.md`](docs/365/entra-id.md) — Entra ID, the admin account, Entra Connect, SSO + device/server access
 - [`docs/365/shared-mailboxes.md`](docs/365/shared-mailboxes.md) — Microsoft 365 shared mailbox setup + adding users
 - [`docs/365/pricing.md`](docs/365/pricing.md) — Microsoft 365 per-user pricing, tax deductibility, offboarding
 - [`docs/improvmx/README.md`](docs/improvmx/README.md) — ImprovMX email forwarding + pricing
