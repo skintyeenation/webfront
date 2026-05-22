@@ -162,9 +162,10 @@ Canadian tax-deductibility, and "don't lose the domain".
 ## Costs
 
 💰 **[Pricing overview →](docs/pricing-overview.md)** — all recurring service
-costs in one place (Microsoft 365, 1Password, GoDaddy, Azure), each linking to
-its detailed cost record, with a worked example. All are 100% tax-deductible
-operating expenses under Canadian law.
+costs in one place (Microsoft 365, 1Password, GoDaddy, Azure, and the
+**Apple/Google app-store** developer accounts), each linking to its detailed cost
+record, with a worked example. All are 100% tax-deductible operating expenses
+under Canadian law.
 
 ## Documentation
 
@@ -172,7 +173,8 @@ operating expenses under Canadian law.
 - [`docs/app-plan.md`](docs/app-plan.md) — app build plan
 - [`docs/architecture-decisions.md`](docs/architecture-decisions.md) — service ADRs (Entra ID, Azure Blob, Ferrus/Adagio, WordPress categories)
 - [`docs/roadmap.md`](docs/roadmap.md) — 3-month engagement timeline
-- [`docs/pricing-overview.md`](docs/pricing-overview.md) — recurring costs summary (M365, 1Password, GoDaddy, Azure) + tax
+- [`docs/pricing-overview.md`](docs/pricing-overview.md) — recurring costs summary (M365, 1Password, GoDaddy, Azure, app stores) + tax
+- [`docs/app-distribution-costs.md`](docs/app-distribution-costs.md) — Apple Developer + Google Play costs, tax deductibility
 - [`docs/testing-strategy.md`](docs/testing-strategy.md) — testing + TestFlight/Google Play
 - [`api/openapi.yaml`](api/openapi.yaml) — proposed API contract · [`api/README.md`](api/README.md) — API stack recommendation
 - [`docs/walkthrough.md`](docs/walkthrough.md) — app visual screen-by-screen walkthrough
