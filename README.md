@@ -120,6 +120,18 @@ Database for MySQL – Flexible Server** in production
 The app distributes via **EAS Build** to **TestFlight** (iOS) and **Google Play**
 (Android) — see [`docs/testing-strategy.md`](docs/testing-strategy.md).
 
+## Microsoft 365 integration
+
+Email/identity run on **Microsoft 365** (the Outlook Cloud "Email Relay" in the
+architecture diagram). Role addresses like `info@skintyee.ca`, `admin@skintyee.ca`,
+and `chief@skintyee.ca` are **shared mailboxes** that licensed staff work from
+with their own logins.
+
+📬 **[Shared mailbox setup & adding users →](docs/365/shared-mailboxes.md)** —
+how shared mailboxes are created in the M365 admin center and how individual
+(licensed) users are granted access (Full Access / Send As / Send on Behalf),
+with reference screenshots and the current mailbox/member list.
+
 ## Documentation
 
 - [`CLAUDE.md`](CLAUDE.md) — workspace overview, conventions, and decisions
@@ -131,6 +143,7 @@ The app distributes via **EAS Build** to **TestFlight** (iOS) and **Google Play*
 - [`docs/walkthrough.md`](docs/walkthrough.md) — app visual screen-by-screen walkthrough
 - [`docs/website-walkthrough.md`](docs/website-walkthrough.md) — website (skintyee.ca) page-by-page screenshots
 - [`docs/wordpress-runbook.md`](docs/wordpress-runbook.md) — run / recover / back up the WordPress site
+- [`docs/365/shared-mailboxes.md`](docs/365/shared-mailboxes.md) — Microsoft 365 shared mailbox setup + adding users
 - [`docs/Skintyee-App-Proposal.pptx`](docs/Skintyee-App-Proposal.pptx) — proposal deck
 - [`app/STUBS.md`](app/STUBS.md) — catalogue of POC stubs
 - [`docs/hosting-costs.md`](docs/hosting-costs.md) — hosting cost basis + rationale
