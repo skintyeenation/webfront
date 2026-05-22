@@ -21,6 +21,8 @@ each doc; not tax advice).
 | **Azure** hosting | Website infrastructure (VM + managed MySQL + storage) | per month (fixed) | **~US $56/mo** (~CAD $76/mo, ~$915/yr) | [`hosting-costs.md`](hosting-costs.md) |
 | **Apple** Developer Program | Publish the app (TestFlight / App Store) | per year (fixed) | **~US $99/yr** (~CAD $135; **$0** if non-profit waiver) | [`app-distribution-costs.md`](app-distribution-costs.md) |
 | **Google Play** Developer | Publish the app (Android) | one-time | **~US $25** (~CAD $34, setup only) | [`app-distribution-costs.md`](app-distribution-costs.md) |
+| **IntelliJ IDEA Ultimate** | Developer IDE (1 seat) | per year / seat | **~US $599/yr** (~CAD $815, yr 1) | [`developer-tools.md`](developer-tools.md) |
+| **Claude (Anthropic) Max** | AI coding assistant — Claude Code (1 seat) | per month | **~US $100/mo** (~CAD $136) | [`developer-tools.md`](developer-tools.md) |
 
 ## Worked example — 9 licensed users
 
@@ -33,10 +35,13 @@ Replace `9` with the actual count; domains + Azure are fixed regardless of headc
 | GoDaddy domains | ~$10 | $122.96 |
 | Azure hosting (~US $56 → CAD) | ~$76 | ~$915 |
 | Apple Developer Program (~US $99/yr) | ~$11 | ~$135 |
-| **Total (example)** | **~$363 / mo** | **~$4,370 / yr** |
+| IntelliJ IDEA Ultimate (1 seat) | ~$68 | ~$815 |
+| Claude Max (Claude Code, 1 seat) | ~$136 | ~$1,632 |
+| **Total (example)** | **~$567 / mo** | **~$6,817 / yr** |
 
 Plus a **one-time** Google Play registration of ~CAD $34 at setup. Apple's
-~$135/yr is **$0** if the non-profit fee waiver is approved.
+~$135/yr is **$0** if the non-profit fee waiver is approved. Developer tools
+(IntelliJ, Claude) are **per developer** — these assume one developer.
 
 ## Notes
 

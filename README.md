@@ -159,6 +159,14 @@ delegation, the key records (web, app, M365 email), and renewal/safety.
 💲 **[Domain pricing & tax →](docs/godaddy/pricing.md)** — annual cost, 100%
 Canadian tax-deductibility, and "don't lose the domain".
 
+## Developer tools
+
+Tooling used to build/maintain the software: **JetBrains IntelliJ IDEA Ultimate**
+(1 seat) and **Claude (Anthropic) Max** — the Claude Code AI assistant (1 seat).
+
+🛠️ **[Developer tools & cost →](docs/developer-tools.md)** — IDE + AI assistant,
+pricing, and 100% Canadian tax-deductibility.
+
 ## Costs
 
 💰 **[Pricing overview →](docs/pricing-overview.md)** — all recurring service
@@ -175,6 +183,7 @@ under Canadian law.
 - [`docs/roadmap.md`](docs/roadmap.md) — 3-month engagement timeline
 - [`docs/pricing-overview.md`](docs/pricing-overview.md) — recurring costs summary (M365, 1Password, GoDaddy, Azure, app stores) + tax
 - [`docs/app-distribution-costs.md`](docs/app-distribution-costs.md) — Apple Developer + Google Play costs, tax deductibility
+- [`docs/developer-tools.md`](docs/developer-tools.md) — developer tooling (IntelliJ IDEA Ultimate, Claude Max) + tax
 - [`docs/testing-strategy.md`](docs/testing-strategy.md) — testing + TestFlight/Google Play
 - [`api/openapi.yaml`](api/openapi.yaml) — proposed API contract · [`api/README.md`](api/README.md) — API stack recommendation
 - [`docs/walkthrough.md`](docs/walkthrough.md) — app visual screen-by-screen walkthrough
