@@ -159,6 +159,13 @@ delegation, the key records (web, app, M365 email), and renewal/safety.
 💲 **[Domain pricing & tax →](docs/godaddy/pricing.md)** — annual cost, 100%
 Canadian tax-deductibility, and "don't lose the domain".
 
+## Costs
+
+💰 **[Pricing overview →](docs/pricing-overview.md)** — all recurring service
+costs in one place (Microsoft 365, 1Password, GoDaddy, Azure), each linking to
+its detailed cost record, with a worked example. All are 100% tax-deductible
+operating expenses under Canadian law.
+
 ## Documentation
 
 - [`CLAUDE.md`](CLAUDE.md) — workspace overview, conventions, and decisions
