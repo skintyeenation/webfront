@@ -75,6 +75,14 @@ because the project is open source and serves the Nation directly, it gives
 **contribute to** a live project that matters to their own community. The aim is
 to **build capacity in-community**, not just buy software.
 
+> **Not everything is open source — by design.** The **financial / ERP systems
+> (Sage 300, Adagio, Ferrus ASAP)** are intentionally **closed-source**,
+> commercial, First-Nations-specific software, kept that way for **security**
+> around sensitive financial and member data. Open source is embraced for the
+> **public-facing platform** (website + app); the **books run on established,
+> supported, audited systems**, which the app *integrates with* rather than
+> replaces.
+
 ## Architecture
 
 The platform at a glance — actors (Public / Band Members / Admins & Staff), the
