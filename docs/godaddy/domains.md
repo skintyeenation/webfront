@@ -14,10 +14,10 @@ All registered at **GoDaddy** under the "Skin Tyee First Nation" account:
 
 | Domain | Role | Auto-renew | Expires |
 |---|---|---|---|
-| `skintyee.ca` | **Primary** — website, `app.skintyee.ca`, `@skintyee.ca` email | **ON** | _record date_ |
-| `skintyee.com` | Defensive registration → redirect to `skintyee.ca` | **ON** | _record date_ |
-| `skintyee.org` | Defensive registration → redirect to `skintyee.ca` | **ON** | _record date_ |
-| `skintyee.net` | Defensive registration → redirect to `skintyee.ca` | **ON** | _record date_ |
+| `skintyee.ca` | **Primary** — website, `app.skintyee.ca`, `@skintyee.ca` email | **ON** | May 2027 |
+| `skintyee.com` | Defensive registration → redirect to `skintyee.ca` | **ON** | May 2027 |
+| `skintyee.org` | Defensive registration → redirect to `skintyee.ca` | **ON** | May 2027 |
+| `skintyee.net` | Defensive registration → redirect to `skintyee.ca` | **ON** | May 2027 |
 
 <img src="media/domains-dashboard.png" width="640">
 
