@@ -149,9 +149,10 @@ groups, provisioning users, and offboarding.
 
 ## Domains (GoDaddy)
 
-Domains are registered at **GoDaddy** (`skintyee.ca`, `skintyeefirstnation.org`)
-with DNS in **Azure DNS** — the foundation for the website, `app.skintyee.ca`,
-and `@skintyee.ca` email.
+Domains are registered at **GoDaddy** — `skintyee.ca` (primary) plus
+`skintyee.com` / `.org` / `.net` (defensive, forwarded to `.ca`) — with DNS in
+**Azure DNS**. The foundation for the website, `app.skintyee.ca`, and
+`@skintyee.ca` email.
 
 🌐 **[Domains & DNS →](docs/godaddy/domains.md)** — registrar account, Azure DNS
 delegation, the key records (web, app, M365 email), and renewal/safety.
