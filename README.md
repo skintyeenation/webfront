@@ -45,6 +45,16 @@ advisories or wildfire notices, and council announcements), **band meetings**
 issues** — so members hear about what matters and have a say, with notifications
 categorized to match the skintyee.ca website.
 
+### Website integration (publish to the public)
+
+The app and the **skintyee.ca** website share data: public-facing content
+entered/managed in the app — **community events, band meetings, public
+records/transparency, and announcements** — is **auto-published to the WordPress
+site** so the general public sees it without needing the app. Notification
+categories already mirror the website's taxonomy (Health / Safety / Council /
+Events / …), so one update reaches both audiences. (The diagram's *Auto-Publish*
+flow — see [`docs/SkinTyee.drawio.pdf`](docs/SkinTyee.drawio.pdf).)
+
 ### NGO priorities
 
 As an NGO, the priorities are **easy backups, auditability, and clear,
