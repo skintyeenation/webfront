@@ -65,6 +65,16 @@ update reaches both audiences. (The diagram's *Auto-Publish* flow — see
 As an NGO, the priorities are **easy backups, auditability, and clear,
 tax-deductible operating costs** over minimizing spend.
 
+### Education & open source
+
+By embracing **open-source technology** and **partnering with the community and
+local schools**, the platform is also a learning opportunity. Transparent,
+open processes improve **education about band management and governance** — and
+because the project is open source and serves the Nation directly, it gives
+**youth real, hands-on opportunities in tech**: students can learn from and
+**contribute to** a live project that matters to their own community. The aim is
+to **build capacity in-community**, not just buy software.
+
 ## Architecture
 
 The platform at a glance — actors (Public / Band Members / Admins & Staff), the
