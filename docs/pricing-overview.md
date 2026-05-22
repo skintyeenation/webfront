@@ -23,6 +23,8 @@ Canadian law (current expenses, not capital — see each doc; not tax advice).
 | **Google Play** Developer | Publish the app (Android) | one-time | **~US $25** (~CAD $34, setup only) | [`app-distribution-costs.md`](app-distribution-costs.md) |
 | **IntelliJ IDEA Ultimate** | Developer IDE (1 seat) | per year / seat | **~US $599/yr** (~CAD $815, yr 1) | [`developer-tools.md`](developer-tools.md) |
 | **Claude (Anthropic) Max** | AI coding assistant — Claude Code (1 seat) | per month | **~US $100/mo** (~CAD $136) | [`developer-tools.md`](developer-tools.md) |
+| **ImprovMX** | Email forwarding (aliases / secondary domains → M365) | per month | **$0** (Free) — or ~US $9/mo Premium | [`improvmx/`](improvmx/README.md) |
+| **Mailgun** | Transactional / app outbound email | usage-based | **$0** (free/low volume) — or ~US $15–35/mo | [`mailgun/`](mailgun/README.md) |
 
 ## Worked example — 9 licensed users
 
@@ -42,6 +44,8 @@ Replace `9` with the actual count; domains + Azure are fixed regardless of headc
 Plus a **one-time** Google Play registration of ~CAD $34 at setup. Apple's
 ~$135/yr is **$0** if the non-profit fee waiver is approved. Developer tools
 (IntelliJ, Claude) are **per developer** — these assume one developer.
+**ImprovMX** and **Mailgun** are assumed at **$0** (free/low-volume tiers); add
+~CAD $12/mo and ~$20/mo respectively if on paid plans.
 
 ## Notes
 

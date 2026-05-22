@@ -136,6 +136,10 @@ with reference screenshots and the current mailbox/member list.
 (with Teams) per-user cost, why it's 100% tax-deductible under Canadian law, and
 the rule to **unlicense departed/terminated staff immediately**.
 
+Related email services: **[ImprovMX](docs/improvmx/README.md)** (forwarding
+aliases / secondary domains into M365) and **[Mailgun](docs/mailgun/README.md)**
+(transactional / app-sent email).
+
 ## Password management (1Password)
 
 Credentials and secrets live in **1Password (Business)** — encrypted vaults with
@@ -191,6 +195,8 @@ tax-deductible operating expenses under Canadian law.
 - [`docs/wordpress-runbook.md`](docs/wordpress-runbook.md) — run / recover / back up the WordPress site
 - [`docs/365/shared-mailboxes.md`](docs/365/shared-mailboxes.md) — Microsoft 365 shared mailbox setup + adding users
 - [`docs/365/pricing.md`](docs/365/pricing.md) — Microsoft 365 per-user pricing, tax deductibility, offboarding
+- [`docs/improvmx/README.md`](docs/improvmx/README.md) — ImprovMX email forwarding + pricing
+- [`docs/mailgun/README.md`](docs/mailgun/README.md) — Mailgun transactional email + pricing
 - [`docs/1password/setup.md`](docs/1password/setup.md) — 1Password vaults, groups, user management
 - [`docs/1password/pricing.md`](docs/1password/pricing.md) — 1Password per-user pricing, tax deductibility, offboarding
 - [`docs/godaddy/domains.md`](docs/godaddy/domains.md) — GoDaddy domains + Azure DNS records
