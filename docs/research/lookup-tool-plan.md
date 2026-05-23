@@ -12,6 +12,35 @@
 >   `lookup/*` path alias).
 > The earlier "vanilla HTML web UI" plan is superseded; the CLI piece is kept.
 
+### Source scrape strategy (current)
+
+| Source | Strategy | Notes |
+|---|---|---|
+| OrgBook BC | JSON API | `/api/v4/search/topic` |
+| MRAS | JSON API | Solr behind the SPA at `/cbr/srch/api/v1/search` |
+| BC Indigenous Business Listings | CKAN datastore | `/api/3/action/datastore_search` |
+| Open Canada CKAN | CKAN API | `package_search` |
+| BC Open Data CKAN | CKAN API | `package_search` |
+| Open Canada contracts | HTML scrape (fetch + cheerio) | WAF returns 4xx-with-body; selector targets `a[href*="/contracts/record/"]` |
+| Open Canada grants | HTML scrape | same WET layout as contracts |
+| MERX | HTML scrape | open + awarded solicitations |
+| Generic company website | HTML scrape | homepage + /about + /contact for emails/phones |
+| FN FMB | HTML scrape | regex-extract Nation names off the certified-Nations page |
+| **ISC Indigenous Business Directory** | **puppeteer** | needs session via `/REA-IBD/eng/reset`, `#frm1` form post |
+| **CCAB** | **puppeteer** | rebranded to `ccib.ca`; directory is JS-filtered |
+| Corporations Canada, CRA Charities, ISC FN Profiles, WorkSafeBC, BCFSC SAFE, BCCSA COR, CSO, OpenCorporates (free tier), SEDAR+, BC Bid, CivicInfo BC, contracts/grants bulk CSVs | link-only | every other source. Each still emits a deep search URL the user can open. |
+
+Puppeteer is loaded via `puppeteer-core` and drives the user's **installed
+Chrome** (no bundled chromium) — same model as `docs/scripts/shoot.mjs`. The
+helper lives in `lookup/api/src/util/puppet.ts` (singleton browser +
+`withPage<T>` runner).
+
+### End-to-end smoke test
+
+`pnpm --filter @skintyee/lookup-api test:e2e` runs every catalogued source
+against a known-good query and asserts `items.length > 0` (scrapers) or that
+a valid `http(s)` URL is emitted (link-only).
+
 
 **Purpose:** A small dual-mode research tool that automates the lookups in
 [`canadian-business-lookups.md`](canadian-business-lookups.md) using the

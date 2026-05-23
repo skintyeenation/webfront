@@ -8,12 +8,14 @@
     "lookup": "tsx src/cli.ts",
     "sources": "tsx src/cli.ts sources",
     "serve": "tsx src/serve.ts",
+    "test:e2e": "tsx test/e2e-sources.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@inquirer/prompts": "^5.5.0",
     "cheerio": "^1.0.0",
-    "commander": "^12.1.0"
+    "commander": "^12.1.0",
+    "puppeteer-core": "^23.11.1"
   },
   "devDependencies": {
     "@types/node": "^20.16.5",
