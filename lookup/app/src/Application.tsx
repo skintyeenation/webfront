@@ -1,0 +1,88 @@
+import 'react-native-gesture-handler';
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import { createMaterialBottomTabNavigator } from '@react-navigation/material-bottom-tabs';
+import { Provider as PaperProvider } from 'react-native-paper';
+import { StatusBar } from 'expo-status-bar';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+
+import { theme } from 'lookup/styles';
+import { AppHeader } from 'lookup/components/layout';
+
+import Home from 'lookup/components/pages/Home';
+import BusinessLookup from 'lookup/components/pages/BusinessLookup';
+import MoneyLookup from 'lookup/components/pages/MoneyLookup';
+import Run from 'lookup/components/pages/Run';
+import Results from 'lookup/components/pages/Results';
+import History from 'lookup/components/pages/History';
+
+const HomeStack = createStackNavigator();
+const HomeNav = () => (
+  <HomeStack.Navigator screenOptions={{ header: (props) => <AppHeader {...props} /> }}>
+    <HomeStack.Screen name="Home" component={Home} options={{ title: '' }} />
+    <HomeStack.Screen name="Run" component={Run} options={{ title: 'Running…' }} />
+    <HomeStack.Screen name="Results" component={Results} options={{ title: 'Results' }} />
+  </HomeStack.Navigator>
+);
+
+const BusinessStack = createStackNavigator();
+const BusinessNav = () => (
+  <BusinessStack.Navigator screenOptions={{ header: (props) => <AppHeader {...props} /> }}>
+    <BusinessStack.Screen name="Business" component={BusinessLookup} options={{ title: 'Business' }} />
+    <BusinessStack.Screen name="Run" component={Run} options={{ title: 'Running…' }} />
+    <BusinessStack.Screen name="Results" component={Results} options={{ title: 'Results' }} />
+  </BusinessStack.Navigator>
+);
+
+const MoneyStack = createStackNavigator();
+const MoneyNav = () => (
+  <MoneyStack.Navigator screenOptions={{ header: (props) => <AppHeader {...props} /> }}>
+    <MoneyStack.Screen name="Money" component={MoneyLookup} options={{ title: 'Money' }} />
+    <MoneyStack.Screen name="Run" component={Run} options={{ title: 'Running…' }} />
+    <MoneyStack.Screen name="Results" component={Results} options={{ title: 'Results' }} />
+  </MoneyStack.Navigator>
+);
+
+const HistoryStack = createStackNavigator();
+const HistoryNav = () => (
+  <HistoryStack.Navigator screenOptions={{ header: (props) => <AppHeader {...props} /> }}>
+    <HistoryStack.Screen name="HistoryList" component={History} options={{ title: 'History' }} />
+    <HistoryStack.Screen name="Results" component={Results} options={{ title: 'Results' }} />
+  </HistoryStack.Navigator>
+);
+
+const Tabs = createMaterialBottomTabNavigator();
+
+const tabIcons: Record<string, string> = {
+  Home: 'view-dashboard-outline',
+  Business: 'office-building-outline',
+  Money: 'cash-multiple',
+  History: 'history',
+};
+
+export default function Application() {
+  return (
+    <PaperProvider theme={theme as any}>
+      <StatusBar style="light" />
+      <NavigationContainer>
+        <Tabs.Navigator
+          activeColor={theme.colors.primary}
+          inactiveColor={theme.colors.textDarker}
+          barStyle={{ backgroundColor: theme.colors.darkDefault }}
+          shifting={false}
+          screenOptions={({ route }: any) => ({
+            tabBarIcon: ({ color }: any) => (
+              <MaterialCommunityIcons name={tabIcons[route.name] ?? 'circle'} size={22} color={color} />
+            ),
+          })}
+        >
+          <Tabs.Screen name="Home" component={HomeNav} />
+          <Tabs.Screen name="Business" component={BusinessNav} />
+          <Tabs.Screen name="Money" component={MoneyNav} />
+          <Tabs.Screen name="History" component={HistoryNav} />
+        </Tabs.Navigator>
+      </NavigationContainer>
+    </PaperProvider>
+  );
+}

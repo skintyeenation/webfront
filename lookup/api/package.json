@@ -1,0 +1,23 @@
+{
+  "name": "@skintyee/lookup-api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Backend for the Skin Tyee Lookup tool — CLI + HTTP/SSE server with scrapers for Canadian/BC registries, contracts, grants & bids.",
+  "scripts": {
+    "lookup": "tsx src/cli.ts",
+    "sources": "tsx src/cli.ts sources",
+    "serve": "tsx src/serve.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^5.5.0",
+    "cheerio": "^1.0.0",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.16.5",
+    "tsx": "^4.19.1",
+    "typescript": "~5.4.5"
+  }
+}

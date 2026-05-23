@@ -1,4 +1,17 @@
-# `@skintyee/lookup` — tool plan
+# Skin Tyee Lookup — tool plan
+
+> **Plan rev — RN-app pivot (2026-05-23).** Per feedback, the lookup is now a
+> *full app* matching the look & feel of [`@skintyee/app`](../../app), backed by
+> a separate API service. Two pnpm workspaces:
+> - **`lookup/api`** → `@skintyee/lookup-api` — CLI (`commander`) +
+>   HTTP/SSE server + scrapers + report writer.
+> - **`lookup/app`** → `@skintyee/lookup-app` — **React Native + Expo** frontend
+>   mirroring the band app's stack (React Native Paper `MD2DarkTheme`
+>   cyan/orange, Redux Toolkit `makeActions`, React Navigation stack +
+>   `material-bottom-tabs`, same theme tokens / `sansSerif` font stack,
+>   `lookup/*` path alias).
+> The earlier "vanilla HTML web UI" plan is superseded; the CLI piece is kept.
+
 
 **Purpose:** A small dual-mode research tool that automates the lookups in
 [`canadian-business-lookups.md`](canadian-business-lookups.md) using the
@@ -31,60 +44,100 @@ Indigenous-only directories selected by default in business mode).
 
 ---
 
+### Architecture decisions (updated)
+
+- **Minimal new deps.** The webfront workspace already has React (via the RN
+  app). Add only **three new pnpm deps**: `commander`, `@inquirer/prompts`,
+  `cheerio`. Everything else uses Node 20 stdlib (`http`, `fs`, `fetch`).
+- **Server** uses Node's built-in `http` module (no Express, no Vite). It serves
+  static files from `src/web/` and `/api/*` endpoints with **SSE** for progress.
+- **Frontend** is React **without a bundler** — React and `htm` are loaded as
+  ESM modules from a vendored copy or `esm.sh` CDN, written as a single
+  `main.js`. Theme & colors match the Skin Tyee app (cyan/orange dark palette,
+  sans-serif system stack).
+- **No build step required** to use the tool: `pnpm lookup …` runs the CLI via
+  `tsx`; `pnpm lookup:serve` starts the web UI on `http://localhost:5050`.
+
 ## 2. Layout
 
 ```
 lookup/
-├── README.md
-├── package.json            # @skintyee/lookup, bin: "lookup"
-├── tsconfig.json
-├── .gitignore              # out/, node_modules/, .env
-├── src/
-│   ├── cli.ts              # commander entry — `lookup business`, `lookup money`, `lookup serve`, `lookup sources`
-│   ├── serve.ts            # Express server (web UI + /api/run)
-│   ├── runner.ts           # orchestrates scrapers, emits progress events
-│   ├── report.ts           # writes ./out/<slug>/<ts>/
-│   ├── sources/
-│   │   ├── index.ts        # full source catalogue (typed)
-│   │   ├── business/
-│   │   │   ├── orgbook-bc.ts
-│   │   │   ├── opencorporates.ts
-│   │   │   ├── mras.ts
-│   │   │   ├── corporations-canada.ts
-│   │   │   ├── cra-charities.ts
-│   │   │   ├── isc-ibd.ts
-│   │   │   ├── ccab.ts
-│   │   │   ├── bc-indigenous-listings.ts
-│   │   │   ├── worksafebc.ts
-│   │   │   ├── bcfsc-safe.ts
-│   │   │   ├── bccsa-cor.ts
-│   │   │   ├── cso.ts                  # link-only
-│   │   │   └── fn-profiles.ts
-│   │   └── money/
-│   │       ├── open-canada-contracts.ts
-│   │       ├── open-canada-grants.ts
-│   │       ├── open-canada-ckan.ts
-│   │       ├── bc-open-data-ckan.ts
-│   │       ├── bc-bid.ts               # link-only (no JSON API)
-│   │       ├── merx.ts
-│   │       ├── civicinfo-bc.ts
-│   │       ├── contracts-csv.ts        # bulk CSV scan
-│   │       └── grants-csv.ts           # bulk CSV scan
-│   ├── util/
-│   │   ├── http.ts         # fetch wrapper, retry, UA, polite delay
-│   │   ├── cheerio.ts      # html → typed extracts
-│   │   ├── csv.ts          # streaming CSV scan (large files)
-│   │   ├── slug.ts
-│   │   ├── fs.ts
-│   │   └── log.ts          # chalk + ora-style progress
-│   └── web/
-│       ├── index.html      # checkbox UI, Indigenous-only toggle, target input, results
-│       ├── main.js
-│       └── style.css       # match the Skin Tyee dark palette
-└── out/                    # gitignored
+├── api/                                # @skintyee/lookup-api
+│   ├── package.json                    # deps: commander, @inquirer/prompts, cheerio (3 new)
+│   ├── tsconfig.json
+│   └── src/
+│       ├── cli.ts                      # commander — `business`, `money`, `serve`, `sources`
+│       ├── serve.ts                    # Node http stdlib + SSE (no Express)
+│       ├── runner.ts                   # orchestrates scrapers; emits progress events
+│       ├── report.ts                   # writes ./out/<slug>/<ts>/report.md + per-source files
+│       ├── types.ts                    # SourceMode, Source, ScrapeResult, ProgressEvent, …
+│       ├── util/{http,slug,fs,log}.ts  # native fetch, polite-pace, ANSI logger
+│       └── sources/
+│           ├── index.ts                # catalogue (single source of truth for picker)
+│           ├── helpers.ts              # indigenousOrQuery, qs(…)
+│           ├── business/
+│           │   ├── orgbook-bc.ts       # ✅ JSON API
+│           │   ├── mras.ts             # HTML scrape
+│           │   ├── website.ts          # generic website probe
+│           │   └── link-only.ts        # opencorporates, corporations-canada, cra-charities, isc-ibd, ccab, bc-indigenous-listings, worksafebc, bcfsc-safe, bccsa-cor, cso, fn-profiles, fn-fma
+│           └── money/
+│               ├── open-canada-contracts.ts   # ✅ HTML Solr w/ PSIB/CLCAA
+│               ├── open-canada-grants.ts      # ✅ HTML Solr w/ ISC/CIRNAC org-filter
+│               ├── open-canada-ckan.ts        # ✅ CKAN package_search
+│               ├── bc-open-data-ckan.ts       # ✅ CKAN package_search
+│               ├── merx.ts                    # HTML scrape
+│               └── link-only.ts               # bc-bid, civicinfo-bc, sedar+
+└── app/                                # @skintyee/lookup-app (RN + Expo)
+    ├── App.tsx                         # init shell (mirrors @skintyee/app)
+    ├── index.js                        # registerRootComponent
+    ├── app.config.js                   # apiServer env (default http://localhost:5050)
+    ├── babel.config.js                 # module-resolver alias `lookup/*` → `src/*`
+    ├── metro.config.js                 # monorepo watchFolders + hoisted resolution
+    ├── tsconfig.json                   # paths: lookup/* → src/*
+    └── src/
+        ├── main.tsx                    # exposes init() → wraps Application in Provider + Paper
+        ├── Application.tsx             # NavigationContainer + material-bottom-tabs + stacks
+        ├── routes.tsx                  # route name + screen options registry
+        ├── styles.tsx                  # copies @skintyee/app theme (cyan/orange dark, sansSerif)
+        ├── models.ts                   # Mode = 'business'|'money'; SourceItem; Job; etc.
+        ├── config.ts                   # API base URL (from expo-constants)
+        ├── core/utils/string.ts        # snake↔camel (matches @skintyee/app)
+        ├── store/
+        │   ├── index.ts                # configureStore + AppDispatch + hooks
+        │   ├── factory.ts              # makeActions snake→camel factory
+        │   ├── reducers.ts
+        │   ├── apis.ts                 # apiFactory; resolves real or mock LookupApi
+        │   └── modules/
+        │       ├── appState.ts
+        │       ├── sources.ts          # GET /sources → catalogue
+        │       ├── lookup.ts           # POST /run + SSE subscription state
+        │       └── history.ts          # past lookups (in-memory + AsyncStorage)
+        ├── services/lookupApi.ts       # fetch wrappers for /sources, /run, /jobs/:id, SSE stream
+        └── components/
+            ├── layout/
+            │   ├── AppHeader.tsx       # mirrors @skintyee/app — Skin Tyee wordmark + Account stub
+            │   ├── PageContainer.tsx
+            │   ├── SourcePicker.tsx    # grouped checkboxes (Card + Checkbox + Chip)
+            │   ├── IndigenousChip.tsx  # toggle pill (orange when on)
+            │   ├── ResultCard.tsx      # one SourceItem rendered as Paper Card
+            │   └── ProgressList.tsx    # live source-by-source status
+            └── pages/
+                ├── Home.tsx            # mode selector + "Recent lookups"
+                ├── BusinessLookup.tsx  # form: target, indigenous-only, --website, source picker
+                ├── MoneyLookup.tsx     # form: keyword, indigenous-only, vendor, years, value bounds, sources
+                ├── Run.tsx             # subscribes to SSE; renders ProgressList
+                ├── Results.tsx         # per-source results with ResultCards + raw payload link
+                └── History.tsx         # list of past runs (tap → Results)
+
+(util/csv.ts, contracts-csv.ts, grants-csv.ts — deferred bulk-CSV scan
+moved to Phase 4)
 ```
 
-Add `lookup` to `pnpm-workspace.yaml` members.
+Add **both** `lookup/api` and `lookup/app` to `pnpm-workspace.yaml` members.
+Root scripts:
+- `pnpm lookup …` → `pnpm --filter @skintyee/lookup-api exec tsx src/cli.ts …`
+- `pnpm lookup:serve` → start the API server on `:5050`
+- `pnpm lookup:app` → start the Expo RN app (web/iOS/Android)
 
 ---
 

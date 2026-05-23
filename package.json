@@ -8,6 +8,10 @@
   },
   "scripts": {
     "app": "pnpm --filter @skintyee/app",
+    "lookup": "pnpm --filter @skintyee/lookup-api lookup",
+    "lookup:serve": "pnpm --filter @skintyee/lookup-api serve",
+    "lookup:app": "pnpm --filter @skintyee/lookup-app start",
+    "lookup:app:web": "pnpm --filter @skintyee/lookup-app web",
     "website:up": "website/recover.sh",
     "website:recover": "website/recover.sh",
     "website:screenshots": "docs/scripts/shoot-website.sh",
