@@ -15,7 +15,7 @@ export default function BusinessLookup({ navigation }: any) {
   const defaults = useAppSelector((s) => s.sources.defaultsByMode['business'] ?? []);
 
   const [target, setTarget] = useState('');
-  const [indigenousOnly, setIndigenousOnly] = useState(true);
+  const [indigenousOnly, setIndigenousOnly] = useState(false);
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -32,6 +32,17 @@ export default function BusinessLookup({ navigation }: any) {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
+      return next;
+    });
+  };
+
+  const onSelectAll = (ids: string[], select: boolean) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const id of ids) {
+        if (select) next.add(id);
+        else next.delete(id);
+      }
       return next;
     });
   };
@@ -99,7 +110,7 @@ export default function BusinessLookup({ navigation }: any) {
       </View>
 
       <Text style={{ color: theme.colors.text, fontSize: 14, marginVertical: 12 }}>Sources</Text>
-      <SourcePicker sources={allSources} selected={selected} onToggle={toggle} />
+      <SourcePicker sources={allSources} selected={selected} onToggle={toggle} onSelectAll={onSelectAll} />
 
       <Button
         mode="contained"

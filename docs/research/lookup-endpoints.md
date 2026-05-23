@@ -1,5 +1,20 @@
 # Lookup endpoints — search URLs & API params
 
+> **Tool implementation status** (2026-05-23):
+> - **JSON / REST API (best path, used directly):** OrgBook BC, MRAS, Open
+>   Canada CKAN, BC Open Data CKAN, BC Indigenous Business Listings (datastore).
+> - **HTML scrape via `fetch` + `cheerio`:** Open Canada contracts, Open Canada
+>   grants, MERX, generic company website, FN FMB list.
+> - **HTML scrape via puppeteer-core (driving installed Chrome):** ISC
+>   Indigenous Business Directory, CCAB CAB directory. Both reach the search
+>   results page after session/form setup; row-parsing is brittle and may
+>   need per-update tweaks.
+> - **Link-only** (deep search URL only): Corporations Canada, CRA Charities,
+>   ISC First Nation Profiles, WorkSafeBC, BCFSC SAFE, BCCSA COR, CSO,
+>   OpenCorporates (free API needs a token), SEDAR+, BC Bid, CivicInfo BC,
+>   plus the bulk CSV downloads.
+
+
 **Purpose:** Concrete, verified search endpoints and query parameters for every
 source listed in [`canadian-business-lookups.md`](canadian-business-lookups.md),
 split into two practical lookups:

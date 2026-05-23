@@ -18,7 +18,7 @@ export default function MoneyLookup({ navigation }: any) {
   const [vendor, setVendor] = useState('');
   const [fromYear, setFromYear] = useState('');
   const [minValue, setMinValue] = useState('');
-  const [indigenousOnly, setIndigenousOnly] = useState(true);
+  const [indigenousOnly, setIndigenousOnly] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -34,6 +34,17 @@ export default function MoneyLookup({ navigation }: any) {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
+      return next;
+    });
+  };
+
+  const onSelectAll = (ids: string[], select: boolean) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const id of ids) {
+        if (select) next.add(id);
+        else next.delete(id);
+      }
       return next;
     });
   };
@@ -125,7 +136,7 @@ export default function MoneyLookup({ navigation }: any) {
       </View>
 
       <Text style={{ color: theme.colors.text, fontSize: 14, marginVertical: 12 }}>Sources</Text>
-      <SourcePicker sources={allSources} selected={selected} onToggle={toggle} />
+      <SourcePicker sources={allSources} selected={selected} onToggle={toggle} onSelectAll={onSelectAll} />
 
       <Button
         mode="contained"

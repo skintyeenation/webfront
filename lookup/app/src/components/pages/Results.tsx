@@ -8,7 +8,7 @@ import { getJob, getReportMarkdown, type JobSourceResult } from 'lookup/services
 
 type SourceResultMap = Record<string, JobSourceResult | { error: string; searchUrl: string }>;
 
-export default function Results({ route }: any) {
+export default function Results({ route, navigation }: any) {
   const jobId: string = route?.params?.jobId;
   const job = useAppSelector((s) => (jobId ? s.lookup.jobs[jobId] : undefined));
   const sources = useAppSelector((s) => s.sources.items);
@@ -102,10 +102,26 @@ export default function Results({ route }: any) {
 
   return (
     <PageContainer>
-      <Text style={{ color: theme.colors.primary, fontSize: 18, fontWeight: '700' }}>{job.options.target}</Text>
-      <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginBottom: 18 }}>
-        {job.options.mode} · {job.options.sourceIds.length} sources · {job.options.indigenousOnly ? 'Indigenous-only' : 'all'}
-      </Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: theme.colors.primary, fontSize: 18, fontWeight: '700' }}>{job.options.target}</Text>
+          <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginBottom: 18 }}>
+            {job.options.mode} · {job.options.sourceIds.length} sources · {job.options.indigenousOnly ? 'Indigenous-only' : 'all'}
+          </Text>
+        </View>
+        <Button
+          mode="contained"
+          icon="magnify-plus-outline"
+          buttonColor={theme.colors.primary}
+          textColor="#000"
+          compact
+          onPress={() =>
+            navigation?.navigate?.(job.options.mode === 'business' ? 'Business' : 'Money')
+          }
+        >
+          New search
+        </Button>
+      </View>
 
       {job.options.sourceIds.map((sid) => {
         const meta = byId[sid];

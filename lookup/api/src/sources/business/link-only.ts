@@ -48,34 +48,8 @@ export const craCharities: Source = {
     `https://apps.cra-arc.gc.ca/ebci/hacc/srch/pub/dsplyAdvncdSrch?request_locale=en&q.bsnssNm=${u(q)}`,
 };
 
-export const iscIbd: Source = {
-  id: 'isc-ibd',
-  name: 'ISC Indigenous Business Directory',
-  mode: 'business',
-  format: 'html-search',
-  category: 'Indigenous-only directories',
-  homepage: 'https://www.sac-isc.gc.ca/rea-ibd',
-  indigenousFilter: 'inherent',
-  autoSelectOnIndigenous: true,
-  description: 'Federal directory of Indigenous-owned businesses (≥51%). Session-form scrape is brittle; link-only here.',
-  searchUrl: (q) => `https://www.sac-isc.gc.ca/REA-IBD/eng/search?bsnssNm=${u(q)}`,
-};
-
-export const ccab: Source = {
-  id: 'ccab',
-  name: 'CCAB CAB directory',
-  mode: 'business',
-  format: 'html-search',
-  category: 'Indigenous-only directories',
-  homepage: 'https://www.ccab.com/cab-directory/',
-  indigenousFilter: 'inherent',
-  autoSelectOnIndigenous: true,
-  description: 'Canadian Council for Aboriginal Business — audited Certified Aboriginal Business directory.',
-  searchUrl: (q) => `https://www.ccab.com/cab-directory/?keyword=${u(q)}`,
-};
-
-// (bc-indigenous-listings has a real scraper — see ./bc-indigenous-listings.ts;
-// the link-only declaration that used to live here has been removed.)
+// isc-ibd, ccab and bc-indigenous-listings have real scrapers — see their own
+// files in this directory. They are no longer declared as link-only.
 
 export const worksafebc: Source = {
   id: 'worksafebc',
@@ -139,18 +113,7 @@ export const fnProfiles: Source = {
   searchUrl: (q) => `https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/SearchFN.aspx?lang=eng&q=${u(q)}`,
 };
 
-export const fnFma: Source = {
-  id: 'fn-fma',
-  name: 'FN Financial Management Board (certified Nations)',
-  mode: 'business',
-  format: 'link-only',
-  category: 'First Nations',
-  homepage: 'https://fnfmb.com/',
-  indigenousFilter: 'inherent',
-  autoSelectOnIndigenous: true,
-  description: 'List of First Nations certified under the First Nations Fiscal Management Act.',
-  searchUrl: () => 'https://fnfmb.com/en/our-work/financial-management-system-certification',
-};
+// fn-fma now has a real scraper — see ./fn-fma.ts.
 
 // Helper to OR in Indigenous keywords for sources that filter purely by keyword.
 export { indigenousOrQuery };
