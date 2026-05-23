@@ -16,11 +16,12 @@
  * Driven by puppeteer because the site is ASP.NET with viewstate.
  */
 
+import { getJson } from '../../util/http.js';
 import { withPage } from '../../util/puppet.js';
 
 const BASE = 'https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search';
 
-export type Section = 'general' | 'governance' | 'reserves' | 'population' | 'funds' | 'fnfta';
+export type Section = 'general' | 'governance' | 'reserves' | 'population' | 'funds' | 'fnfta' | 'geo';
 
 export interface PairList { [label: string]: string }
 
@@ -45,6 +46,26 @@ export interface FundsRow {
   documentUrl?: string;
 }
 
+export interface GeoFeature {
+  /** Reserve name as resolved against the federal Aboriginal Lands layer. */
+  name: string;
+  /** CLSS admin-area id (e.g. "07465" for SKINS LAKE 15). */
+  adminAreaId?: string;
+  /** Polygon rings in [lng, lat] WGS84. */
+  rings: number[][][];
+  /** [lng, lat] — mean of the first ring; good enough to drop a pin. */
+  centroid: [number, number];
+  /** Axis-aligned bounding box [minLng, minLat, maxLng, maxLat]. */
+  bbox: [number, number, number, number];
+}
+
+export interface GeoSection {
+  features: GeoFeature[];
+  /** Bounding box covering every reserve we resolved. */
+  bbox?: [number, number, number, number];
+  warnings?: string[];
+}
+
 export interface BandDetail {
   bandNumber: string;
   general?: PairList & {
@@ -59,11 +80,89 @@ export interface BandDetail {
   population?: PopulationBreakdown;
   funds?: { rows: FundsRow[]; raw?: string };
   fnfta?: { searchUrl: string };
+  geo?: GeoSection;
   /** Section-level errors. */
   errors?: Record<string, string>;
 }
 
-const ALL_SECTIONS: Section[] = ['general', 'governance', 'reserves', 'population', 'funds', 'fnfta'];
+const ALL_SECTIONS: Section[] = ['general', 'governance', 'reserves', 'population', 'funds', 'fnfta', 'geo'];
+
+/**
+ * Federal NRCan CLSS Aboriginal Lands MapServer — used to resolve each
+ * reserve name to a polygon. Returns GeoJSON in WGS84 (outSR=4326).
+ */
+const CLSS_LAYER =
+  'https://proxyinternet.nrcan.gc.ca/arcgis/rest/services/CLSS-SATC/CLSS_Administrative_Boundaries/MapServer/0/query';
+
+async function fetchReserveGeo(name: string): Promise<GeoFeature | undefined> {
+  // SQL-escape apostrophes (TATLA'T EAST 2 → TATLA''T EAST 2) then URL-encode.
+  const sqlSafe = name.replace(/'/g, "''");
+  const params = new URLSearchParams({
+    where: `adminAreaNameEng LIKE '%${sqlSafe}%'`,
+    outFields: 'adminAreaNameEng,adminAreaId',
+    f: 'geojson',
+    outSR: '4326',
+    returnGeometry: 'true',
+  });
+  const url = `${CLSS_LAYER}?${params.toString()}`;
+  let data: any;
+  try {
+    data = await getJson<any>(url);
+  } catch {
+    return undefined;
+  }
+  const feat = (data.features ?? [])[0];
+  if (!feat || !feat.geometry) return undefined;
+  const geom = feat.geometry as { type: string; coordinates: any };
+  let rings: number[][][] = [];
+  if (geom.type === 'Polygon') rings = geom.coordinates as number[][][];
+  else if (geom.type === 'MultiPolygon') {
+    for (const poly of geom.coordinates as number[][][][]) rings.push(...poly);
+  }
+  if (!rings.length) return undefined;
+  // Centroid + bbox over the first ring.
+  const flat = rings[0];
+  let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+  let sumLng = 0, sumLat = 0;
+  for (const [lng, lat] of flat) {
+    if (lng < minLng) minLng = lng;
+    if (lng > maxLng) maxLng = lng;
+    if (lat < minLat) minLat = lat;
+    if (lat > maxLat) maxLat = lat;
+    sumLng += lng;
+    sumLat += lat;
+  }
+  return {
+    name: feat.properties?.adminAreaNameEng ?? name,
+    adminAreaId: feat.properties?.adminAreaId,
+    rings,
+    centroid: [sumLng / flat.length, sumLat / flat.length],
+    bbox: [minLng, minLat, maxLng, maxLat],
+  };
+}
+
+async function getGeoFor(reserveNames: string[]): Promise<GeoSection> {
+  const features: GeoFeature[] = [];
+  const warnings: string[] = [];
+  for (const n of reserveNames) {
+    const g = await fetchReserveGeo(n);
+    if (g) features.push(g);
+    else warnings.push(`No CLSS polygon for "${n}"`);
+  }
+  let bbox: GeoSection['bbox'];
+  if (features.length) {
+    bbox = features.reduce(
+      (acc, f) => [
+        Math.min(acc[0], f.bbox[0]),
+        Math.min(acc[1], f.bbox[1]),
+        Math.max(acc[2], f.bbox[2]),
+        Math.max(acc[3], f.bbox[3]),
+      ],
+      [Infinity, Infinity, -Infinity, -Infinity] as [number, number, number, number],
+    );
+  }
+  return { features, bbox, warnings: warnings.length ? warnings : undefined };
+}
 
 const labelMap: Record<string, string> = {
   'Official Name': 'officialName',
@@ -88,6 +187,35 @@ export async function getBandDetail(bandNumber: string, sections: Section[] = AL
             detail.fnfta = { searchUrl: `https://www.sac-isc.gc.ca/eng/1322056355024/1571080676226` };
             continue;
           }
+          if (section === 'geo') {
+            // Need the reserve list. If we haven't scraped reserves yet,
+            // do it implicitly (the geo lookup is keyed by reserve name).
+            if (!detail.reserves) {
+              const urls = { reserves: `${BASE}/FNReserves.aspx?BAND_NUMBER=${bandNumber}&lang=eng` };
+              await page.goto(urls.reserves, { waitUntil: 'networkidle2', timeout: 25000 });
+              const data = await page.evaluate(() => {
+                const tables = Array.from(document.querySelectorAll('main table, [property="mainContentOfPage"] table'));
+                for (const t of tables) {
+                  const headers = Array.from(t.querySelectorAll('thead th, tr:first-child th, tr:first-child td')).map(
+                    (c) => (c.textContent || '').trim().toLowerCase(),
+                  );
+                  if (!headers.length || !/(name|reserve)/i.test(headers.join(' '))) continue;
+                  const trs = Array.from(t.querySelectorAll('tbody tr, tr')).slice(1, 50);
+                  const names: string[] = [];
+                  for (const tr of trs) {
+                    const t0 = (tr.querySelector('td')?.textContent || '').trim();
+                    if (t0) names.push(t0);
+                  }
+                  return names;
+                }
+                return [];
+              });
+              detail.reserves = { rows: data.map((name: string) => ({ name })) };
+            }
+            const names = (detail.reserves?.rows ?? []).map((r) => r.name).filter(Boolean) as string[];
+            detail.geo = await getGeoFor(names);
+            continue;
+          }
           const urls: Record<Section, string> = {
             general: `${BASE}/FNMain.aspx?BAND_NUMBER=${bandNumber}&lang=eng`,
             governance: `${BASE}/FNGovernance.aspx?BAND_NUMBER=${bandNumber}&lang=eng`,
@@ -95,6 +223,7 @@ export async function getBandDetail(bandNumber: string, sections: Section[] = AL
             population: `${BASE}/FNRegPopulation.aspx?BAND_NUMBER=${bandNumber}&lang=eng`,
             funds: `${BASE}/FederalFundsMain.aspx?BAND_NUMBER=${bandNumber}&lang=eng`,
             fnfta: '',
+            geo: '',
           };
           const url = urls[section];
           if (!url) continue;

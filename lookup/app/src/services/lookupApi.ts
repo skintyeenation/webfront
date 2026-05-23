@@ -136,6 +136,17 @@ export interface BandDetail {
   };
   funds?: { rows: Array<{ fiscalYear: string; documentName: string; documentUrl?: string }> };
   fnfta?: { searchUrl: string };
+  geo?: {
+    features: Array<{
+      name: string;
+      adminAreaId?: string;
+      rings: number[][][];
+      centroid: [number, number];
+      bbox: [number, number, number, number];
+    }>;
+    bbox?: [number, number, number, number];
+    warnings?: string[];
+  };
   errors?: Record<string, string>;
   cached?: boolean;
   fetchedAt?: string;
