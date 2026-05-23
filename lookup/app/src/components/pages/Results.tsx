@@ -3,12 +3,15 @@ import { View, Text, Linking, Pressable } from 'react-native';
 import { Button, Card, Chip, Divider, IconButton, Modal, Portal } from 'react-native-paper';
 import { PageContainer } from 'lookup/components/layout';
 import { theme } from 'lookup/styles';
-import { useAppSelector } from 'lookup/store';
-import { getJob, getReportMarkdown, type JobSourceResult } from 'lookup/services/lookupApi';
+import { useAppDispatch, useAppSelector } from 'lookup/store';
+import { jobStarted } from 'lookup/store/modules/lookup';
+import { historyPushed } from 'lookup/store/modules/history';
+import { getJob, getReportMarkdown, startRun, type JobSourceResult } from 'lookup/services/lookupApi';
 
 type SourceResultMap = Record<string, JobSourceResult | { error: string; searchUrl: string }>;
 
 export default function Results({ route, navigation }: any) {
+  const dispatch = useAppDispatch();
   const jobId: string = route?.params?.jobId;
   const job = useAppSelector((s) => (jobId ? s.lookup.jobs[jobId] : undefined));
   const sources = useAppSelector((s) => s.sources.items);
@@ -110,18 +113,44 @@ export default function Results({ route, navigation }: any) {
             {job.options.mode} · {job.options.sourceIds.length} sources · {job.options.indigenousOnly ? 'Indigenous-only' : 'all'}
           </Text>
         </View>
-        <Button
-          mode="contained"
-          icon="magnify-plus-outline"
-          buttonColor={theme.colors.primary}
-          textColor="#000"
-          compact
-          onPress={() =>
-            navigation?.navigate?.(job.options.mode === 'business' ? 'Business' : 'Money')
-          }
-        >
-          New search
-        </Button>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <Button
+            mode="contained"
+            icon="magnify-plus-outline"
+            buttonColor={theme.colors.primary}
+            textColor="#000"
+            compact
+            onPress={() =>
+              navigation?.navigate?.(job.options.mode === 'business' ? 'Business' : 'Money')
+            }
+          >
+            New search
+          </Button>
+          <IconButton
+            icon="refresh"
+            mode="outlined"
+            size={18}
+            iconColor={theme.colors.primary}
+            onPress={async () => {
+              const { jobId: newId } = await startRun(job.options);
+              dispatch(jobStarted({ jobId: newId, options: job.options }));
+              dispatch(
+                historyPushed({
+                  jobId: newId,
+                  startedAt: Date.now(),
+                  mode: job.options.mode,
+                  target: job.options.target,
+                  indigenousOnly: job.options.indigenousOnly,
+                  sourceCount: job.options.sourceIds.length,
+                  status: 'running',
+                }),
+              );
+              navigation?.navigate?.('Run', { jobId: newId });
+            }}
+            accessibilityLabel="Re-run this search"
+            style={{ margin: 0 }}
+          />
+        </View>
       </View>
 
       {job.options.sourceIds.map((sid) => {

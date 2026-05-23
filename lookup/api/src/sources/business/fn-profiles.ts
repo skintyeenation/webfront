@@ -34,7 +34,11 @@ export const fnProfiles: Source = {
       const items = await withPage(async (page) => {
         await page.goto(SEARCH_PAGE, { waitUntil: 'networkidle2', timeout: 25000 });
         await page.waitForSelector('#plcMain_txtName', { timeout: 10000 });
-        await page.type('#plcMain_txtName', q);
+        // The form's own hint reads: "use full or partial name. For a partial
+        // name search, enter the '%' before the text." So prepend a leading
+        // `%` to make every query a substring match.
+        const term = q.startsWith('%') ? q : `%${q}`;
+        await page.type('#plcMain_txtName', term);
         // Find the submit button INSIDE form#form1 (not the canada.ca form).
         const submitSel = 'form#form1 input[type="submit"], form#form1 button[type="submit"]';
         await page.waitForSelector(submitSel, { timeout: 5000 });
