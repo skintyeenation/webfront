@@ -1,0 +1,202 @@
+/**
+ * Node http-stdlib HTTP + SSE server for the @skintyee/lookup-app frontend.
+ *
+ * Endpoints:
+ *   GET  /api/sources                    → catalogue (id, name, mode, …)
+ *   POST /api/run                        → start a job; returns { jobId, sourceIds }
+ *   GET  /api/jobs/:id                   → job status + replayed events + result
+ *   GET  /api/jobs/:id/stream            → SSE stream of progress events
+ *   GET  /api/jobs/:id/report            → render report.md (text/markdown)
+ *   GET  /api/health                     → { ok: true }
+ *
+ * CORS open by default — local dev tool. Bind 127.0.0.1 to keep it off the LAN.
+ */
+
+import http from 'node:http';
+import { readFile, stat } from 'node:fs/promises';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
+
+import { ALL_SOURCES, sourceById, sourcesByMode, defaultSelected } from './sources/index.js';
+import { startJob, getJob } from './runner.js';
+import type { JobOptions, ProgressEvent, SourceMode } from './types.js';
+import { log, fmt } from './util/log.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const defaultOut = join(__dirname, '..', 'out');
+
+const PORT = Number(process.env.PORT || 5050);
+const HOST = process.env.HOST || '127.0.0.1';
+
+function json(res: http.ServerResponse, status: number, body: unknown): void {
+  const payload = JSON.stringify(body);
+  res.writeHead(status, {
+    'content-type': 'application/json; charset=utf-8',
+    'access-control-allow-origin': '*',
+    'access-control-allow-headers': 'content-type',
+    'access-control-allow-methods': 'GET, POST, OPTIONS',
+    'cache-control': 'no-store',
+  });
+  res.end(payload);
+}
+
+async function readBody(req: http.IncomingMessage): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    req.on('data', (c) => chunks.push(c as Buffer));
+    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    req.on('error', reject);
+  });
+}
+
+interface RunBody {
+  mode: SourceMode;
+  target: string;
+  sourceIds?: string[];
+  indigenousOnly?: boolean;
+  website?: string;
+  vendor?: string;
+  fromYear?: number;
+  toYear?: number;
+  minValue?: number;
+  maxValue?: number;
+  fetch?: boolean;
+  outDir?: string;
+}
+
+const server = http.createServer(async (req, res) => {
+  try {
+    const url = new URL(req.url || '/', `http://${HOST}:${PORT}`);
+    const path = url.pathname;
+
+    // CORS preflight
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, {
+        'access-control-allow-origin': '*',
+        'access-control-allow-headers': 'content-type',
+        'access-control-allow-methods': 'GET, POST, OPTIONS',
+      });
+      res.end();
+      return;
+    }
+
+    if (req.method === 'GET' && path === '/api/health') {
+      return json(res, 200, { ok: true, port: PORT });
+    }
+
+    if (req.method === 'GET' && path === '/api/sources') {
+      const mode = url.searchParams.get('mode') as SourceMode | null;
+      const list = mode ? sourcesByMode(mode) : ALL_SOURCES;
+      const indigenous = url.searchParams.get('indigenousOnly') === '1';
+      const items = list.map((s) => ({
+        id: s.id,
+        name: s.name,
+        mode: s.mode,
+        format: s.format,
+        category: s.category,
+        homepage: s.homepage,
+        description: s.description,
+        scrapable: !!s.scrape,
+        indigenousFilter: s.indigenousFilter,
+        autoSelectOnIndigenous: !!s.autoSelectOnIndigenous,
+        requiresAuth: s.requiresAuth ?? false,
+      }));
+      const defaults = mode ? defaultSelected(mode, indigenous) : undefined;
+      return json(res, 200, { items, defaults });
+    }
+
+    if (req.method === 'POST' && path === '/api/run') {
+      const body = JSON.parse((await readBody(req)) || '{}') as RunBody;
+      if (!body.mode || !body.target) return json(res, 400, { error: 'mode + target required' });
+      const sourceIds = body.sourceIds?.length
+        ? body.sourceIds
+        : defaultSelected(body.mode, !!body.indigenousOnly);
+      const opts: JobOptions = {
+        mode: body.mode,
+        target: body.target,
+        sourceIds,
+        outDir: body.outDir ?? defaultOut,
+        indigenousOnly: !!body.indigenousOnly,
+        website: body.website,
+        vendor: body.vendor,
+        fromYear: body.fromYear,
+        toYear: body.toYear,
+        minValue: body.minValue,
+        maxValue: body.maxValue,
+        fetch: body.fetch !== false,
+      };
+      const job = startJob(opts);
+      return json(res, 200, { jobId: job.id, sourceIds });
+    }
+
+    const jobMatch = path.match(/^\/api\/jobs\/([\w-]+)(\/(stream|report))?$/);
+    if (req.method === 'GET' && jobMatch) {
+      const [, jobId, , sub] = jobMatch;
+      const job = getJob(jobId);
+      if (!job) return json(res, 404, { error: 'unknown job' });
+
+      if (sub === 'stream') {
+        res.writeHead(200, {
+          'content-type': 'text/event-stream',
+          'cache-control': 'no-store',
+          connection: 'keep-alive',
+          'access-control-allow-origin': '*',
+        });
+        // Replay backlog
+        for (const e of job.events) {
+          res.write(`event: ${e.type}\ndata: ${JSON.stringify(e)}\n\n`);
+        }
+        if (job.status === 'done' || job.status === 'failed') {
+          res.end();
+          return;
+        }
+        const onEvent = (e: ProgressEvent) => {
+          res.write(`event: ${e.type}\ndata: ${JSON.stringify(e)}\n\n`);
+          if (e.type === 'job-done') {
+            res.end();
+            job.off('event', onEvent);
+          }
+        };
+        job.on('event', onEvent);
+        req.on('close', () => job.off('event', onEvent));
+        return;
+      }
+
+      if (sub === 'report') {
+        if (!job.result?.reportPath) return json(res, 409, { error: 'job not done' });
+        const md = await readFile(job.result.reportPath, 'utf8');
+        res.writeHead(200, {
+          'content-type': 'text/markdown; charset=utf-8',
+          'access-control-allow-origin': '*',
+        });
+        res.end(md);
+        return;
+      }
+
+      return json(res, 200, {
+        id: job.id,
+        status: job.status,
+        startedAt: job.startedAt,
+        events: job.events,
+        result: job.result,
+        options: job.options,
+      });
+    }
+
+    res.writeHead(404, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ error: 'not found' }));
+  } catch (err) {
+    log.err((err as Error).message);
+    res.writeHead(500, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ error: (err as Error).message }));
+  }
+});
+
+server.listen(PORT, HOST, () => {
+  log.ok(`${fmt.bold('@skintyee/lookup-api')} listening on http://${HOST}:${PORT}`);
+  log.info(`  ${fmt.dim('GET  /api/sources              — catalogue')}`);
+  log.info(`  ${fmt.dim('POST /api/run                  — start a job')}`);
+  log.info(`  ${fmt.dim('GET  /api/jobs/:id/stream      — SSE progress')}`);
+  log.info(`  ${fmt.dim('GET  /api/jobs/:id/report      — markdown report')}`);
+});
