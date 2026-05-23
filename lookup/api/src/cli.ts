@@ -54,6 +54,8 @@ interface LookupFlags {
   to?: string;
   minValue?: string;
   maxValue?: string;
+  regionId?: string;
+  bcOnly?: boolean;
   out?: string;
   noFetch?: boolean;
 }
@@ -94,13 +96,14 @@ async function runLookup(mode: SourceMode, target: string, opts: LookupFlags): P
     target,
     sourceIds,
     outDir: opts.out ?? defaultOut,
-    indigenousOnly: !!opts.indigenousOnly,
+    indigenousOnly: !!opts.indigenousOnly || mode === 'nations',
     website: opts.website,
     vendor: opts.vendor,
     fromYear: opts.from ? Number(opts.from) : undefined,
     toYear: opts.to ? Number(opts.to) : undefined,
     minValue: opts.minValue ? Number(opts.minValue) : undefined,
     maxValue: opts.maxValue ? Number(opts.maxValue) : undefined,
+    regionId: opts.regionId || (opts.bcOnly ? '9' : undefined),
     fetch: !opts.noFetch,
   });
 
@@ -163,6 +166,20 @@ const moneyCmd = program
     await runLookup('money', keyword, opts);
   });
 
+const nationsCmd = program
+  .command('nations <name>')
+  .description('Search First Nation registries by name (band registry, FMA-certified Nations)')
+  .option('-i, --interactive', 'Pick sources interactively')
+  .option('-s, --sources <ids>', 'Comma-separated source ids')
+  .option('--all', 'Use every nations source')
+  .option('--bc-only', 'Restrict to BC bands (ISC region 9). Default off in CLI; default on in the app.')
+  .option('--region-id <id>', 'ISC regional-office id (e.g. 9=BC). Wins over --bc-only.')
+  .option('--out <dir>', 'Output directory', defaultOut)
+  .option('--no-fetch', 'Skip network — only emit search URLs')
+  .action(async (name: string, opts: LookupFlags) => {
+    await runLookup('nations', name, opts);
+  });
+
 program
   .command('interactive')
   .alias('i')
@@ -187,5 +204,6 @@ program
 
 void businessCmd; // referenced to keep TS happy if no other code uses the var
 void moneyCmd;
+void nationsCmd;
 
 await program.parseAsync(process.argv);

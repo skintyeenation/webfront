@@ -13,14 +13,43 @@ export default function Home({ navigation }: any) {
         Skin Tyee Lookup
       </Text>
       <Text style={{ color: theme.colors.textDarker, fontSize: 13, marginBottom: 24 }}>
-        Find a business across BC + federal registries, or follow the money — contracts, grants and bids.
+        Find a Nation, a business, or follow the funding — contracts, grants and bids.
       </Text>
 
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+      <View style={{ flexDirection: 'column', gap: 12 }}>
+        {/* Nations first — usually what a band-internal user is looking for. */}
         <Card
           style={{
-            flex: 1,
-            minWidth: 220,
+            backgroundColor: theme.colors.darkDefault,
+            borderColor: theme.colors.success,
+            borderWidth: 1,
+          }}
+        >
+          <Card.Title
+            title="Nations lookup"
+            subtitle="Find an Indigenous Nation"
+            titleStyle={{ color: theme.colors.success, fontWeight: '700' }}
+            subtitleStyle={{ color: theme.colors.textDarker }}
+          />
+          <Card.Content>
+            <Text style={{ color: theme.colors.text, fontSize: 13 }}>
+              Search First Nations registered in Canada (ISC band registry, FMA-certified Nations) — band number, governance, address. Defaults to BC bands.
+            </Text>
+          </Card.Content>
+          <Card.Actions>
+            <Button
+              mode="contained"
+              buttonColor={theme.colors.success}
+              textColor="#000"
+              onPress={() => navigation.navigate('Nations')}
+            >
+              Start
+            </Button>
+          </Card.Actions>
+        </Card>
+
+        <Card
+          style={{
             backgroundColor: theme.colors.darkDefault,
             borderColor: theme.colors.primary,
             borderWidth: 1,
@@ -51,15 +80,13 @@ export default function Home({ navigation }: any) {
 
         <Card
           style={{
-            flex: 1,
-            minWidth: 220,
             backgroundColor: theme.colors.darkDefault,
             borderColor: theme.colors.accent,
             borderWidth: 1,
           }}
         >
           <Card.Title
-            title="Money lookup"
+            title="Funding lookup"
             subtitle="Where's the money?"
             titleStyle={{ color: theme.colors.accent, fontWeight: '700' }}
             subtitleStyle={{ color: theme.colors.textDarker }}
@@ -74,7 +101,7 @@ export default function Home({ navigation }: any) {
               mode="contained"
               buttonColor={theme.colors.accent}
               textColor="#000"
-              onPress={() => navigation.navigate('Money')}
+              onPress={() => navigation.navigate('Funding')}
             >
               Start
             </Button>
@@ -86,7 +113,7 @@ export default function Home({ navigation }: any) {
         Recent lookups
       </Text>
       {history.length === 0 ? (
-        <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>No runs yet — start a business or money lookup above.</Text>
+        <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>No runs yet — start a Nation, business or funding lookup above.</Text>
       ) : (
         history.slice(0, 5).map((h) => (
           <Card

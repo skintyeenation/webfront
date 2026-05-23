@@ -61,6 +61,7 @@ interface RunBody {
   toYear?: number;
   minValue?: number;
   maxValue?: number;
+  regionId?: string;
   fetch?: boolean;
   outDir?: string;
 }
@@ -124,6 +125,7 @@ const server = http.createServer(async (req, res) => {
         toYear: body.toYear,
         minValue: body.minValue,
         maxValue: body.maxValue,
+        regionId: body.regionId,
         fetch: body.fetch !== false,
       };
       const job = startJob(opts);

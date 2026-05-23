@@ -1,4 +1,4 @@
-export type Mode = 'business' | 'money';
+export type Mode = 'business' | 'money' | 'nations';
 
 export interface SourceMeta {
   id: string;
@@ -40,6 +40,8 @@ export interface JobOptions {
   toYear?: number;
   minValue?: number;
   maxValue?: number;
+  /** Nations mode — ISC regional office id, e.g. "9" for BC. */
+  regionId?: string;
 }
 
 export type ProgressEvent =

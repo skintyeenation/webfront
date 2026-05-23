@@ -10,8 +10,8 @@ import { website } from './business/website.js';
 import { bcIndigenousListings } from './business/bc-indigenous-listings.js';
 import { iscIbd } from './business/isc-ibd.js';
 import { ccab } from './business/ccab.js';
-import { fnFma } from './business/fn-fma.js';
-import { fnProfiles } from './business/fn-profiles.js';
+import { fnFma } from './nations/fn-fma.js';
+import { fnProfiles } from './nations/fn-profiles.js';
 import {
   opencorporates,
   corporationsCanada,
@@ -43,8 +43,6 @@ export const ALL_SOURCES: Source[] = [
   bcfsc,
   bccsaCor,
   cso,
-  fnProfiles,
-  fnFma,
   website,
   // Money
   openCanadaContracts,
@@ -57,6 +55,9 @@ export const ALL_SOURCES: Source[] = [
   sedarPlus,
   contractsCsv,
   grantsCsv,
+  // Nations
+  fnProfiles,
+  fnFma,
 ];
 
 export function sourcesByMode(mode: SourceMode): Source[] {
