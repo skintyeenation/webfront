@@ -285,6 +285,8 @@ tax-deductible operating expenses under Canadian law.
 - [`docs/godaddy/domains.md`](docs/godaddy/domains.md) — GoDaddy domains + Azure DNS records
 - [`docs/godaddy/pricing.md`](docs/godaddy/pricing.md) — domain pricing, tax deductibility
 - [`docs/research/canadian-business-lookups.md`](docs/research/canadian-business-lookups.md) — Canadian/BC business, First Nations & government contract lookup resources
+- [`docs/research/lookup-endpoints.md`](docs/research/lookup-endpoints.md) — verified search endpoints + params for business / money lookups (Indigenous filter)
+- [`docs/research/lookup-tool-plan.md`](docs/research/lookup-tool-plan.md) — proposed `@skintyee/lookup` CLI + web tool plan
 - [`docs/Skintyee-App-Proposal.pptx`](docs/Skintyee-App-Proposal.pptx) — proposal deck
 - [`app/STUBS.md`](app/STUBS.md) — catalogue of POC stubs
 - [`docs/hosting-costs.md`](docs/hosting-costs.md) — hosting cost basis + rationale
