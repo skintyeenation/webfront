@@ -90,6 +90,16 @@ export default function Results({ route, navigation }: any) {
                     </Text>
                   ))
               : null}
+            {it.fields?.band_number ? (
+              <Pressable
+                onPress={() => navigation?.navigate?.('NationDetail', { bandNumber: String(it.fields!.band_number) })}
+                style={{ marginTop: 6, alignSelf: 'flex-start' }}
+              >
+                <Text style={{ color: theme.colors.success, fontSize: 12, fontWeight: '600' }}>
+                  Open band detail (charts, governance, federal funding) ↗
+                </Text>
+              </Pressable>
+            ) : null}
           </View>
         ))}
         {compact && items.length > 6 ? (

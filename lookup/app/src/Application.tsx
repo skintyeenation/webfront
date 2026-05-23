@@ -14,6 +14,7 @@ import Home from 'lookup/components/pages/Home';
 import BusinessLookup from 'lookup/components/pages/BusinessLookup';
 import MoneyLookup from 'lookup/components/pages/MoneyLookup';
 import NationsLookup from 'lookup/components/pages/NationsLookup';
+import NationDetail from 'lookup/components/pages/NationDetail';
 import Run from 'lookup/components/pages/Run';
 import Results from 'lookup/components/pages/Results';
 import History from 'lookup/components/pages/History';
@@ -51,6 +52,7 @@ const NationsNav = () => (
     <NationsStack.Screen name="Nations" component={NationsLookup} options={{ title: 'Nations' }} />
     <NationsStack.Screen name="Run" component={Run} options={{ title: 'Running…' }} />
     <NationsStack.Screen name="Results" component={Results} options={{ title: 'Results' }} />
+    <NationsStack.Screen name="NationDetail" component={NationDetail} options={{ title: 'Nation' }} />
   </NationsStack.Navigator>
 );
 

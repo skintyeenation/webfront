@@ -1,5 +1,6 @@
 node_modules
 api/out
+api/data
 .env
 .env.local
 *.log

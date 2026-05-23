@@ -22,6 +22,8 @@ import { ALL_SOURCES, sourceById, sourcesByMode, defaultSelected } from './sourc
 import { startJob, getJob } from './runner.js';
 import type { JobOptions, ProgressEvent, SourceMode } from './types.js';
 import { log, fmt } from './util/log.js';
+import { getBandDetail, type Section } from './sources/nations/band-detail.js';
+import { BUCKETS, ageMs, get as storeGet, put as storePut } from './util/store.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const defaultOut = join(__dirname, '..', 'out');
@@ -132,6 +134,32 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { jobId: job.id, sourceIds });
     }
 
+    // GET /api/nations/:bandNumber[?sections=…&refresh=1]
+    const nationMatch = path.match(/^\/api\/nations\/(\d{1,5})$/);
+    if (req.method === 'GET' && nationMatch) {
+      const [, bandNumber] = nationMatch;
+      const refresh = url.searchParams.get('refresh') === '1';
+      const sectionsParam = url.searchParams.get('sections');
+      const sections = (sectionsParam ? sectionsParam.split(',') : undefined) as Section[] | undefined;
+      // Cache lookup — 1 day TTL. Stale-while-revalidate semantics aren't worth
+      // it for a single-user dev tool, so a refresh=1 query forces a re-scrape.
+      const cached = storeGet<any>(BUCKETS.nations, bandNumber);
+      if (cached && !refresh && ageMs(cached) < 24 * 60 * 60 * 1000) {
+        return json(res, 200, { ...cached.data, cached: true, fetchedAt: cached.fetchedAt });
+      }
+      try {
+        const detail = await getBandDetail(bandNumber, sections);
+        storePut(BUCKETS.nations, bandNumber, detail);
+        return json(res, 200, { ...detail, cached: false, fetchedAt: new Date().toISOString() });
+      } catch (err) {
+        if (cached) {
+          // Scrape failed; serve stale cache.
+          return json(res, 200, { ...cached.data, cached: true, stale: true, fetchedAt: cached.fetchedAt, warning: (err as Error).message });
+        }
+        return json(res, 502, { error: (err as Error).message });
+      }
+    }
+
     const jobMatch = path.match(/^\/api\/jobs\/([\w-]+)(\/(stream|report))?$/);
     if (req.method === 'GET' && jobMatch) {
       const [, jobId, , sub] = jobMatch;
@@ -201,4 +229,5 @@ server.listen(PORT, HOST, () => {
   log.info(`  ${fmt.dim('POST /api/run                  — start a job')}`);
   log.info(`  ${fmt.dim('GET  /api/jobs/:id/stream      — SSE progress')}`);
   log.info(`  ${fmt.dim('GET  /api/jobs/:id/report      — markdown report')}`);
+  log.info(`  ${fmt.dim('GET  /api/nations/:bandNumber  — cached band detail (puppeteer + JSON store)')}`);
 });

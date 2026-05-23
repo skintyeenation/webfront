@@ -56,6 +56,18 @@ export async function withPage<T>(fn: (page: Page) => Promise<T>, opts: { timeou
   page.setDefaultTimeout(opts.timeoutMs ?? 25000);
   await page.setUserAgent('Mozilla/5.0 (compatible; skintyee-lookup/0.1)');
   await page.setViewport({ width: 1280, height: 900 });
+  // tsx transpiles named arrow functions to use a `__name()` helper for
+  // .name preservation. When puppeteer serializes our page.evaluate()
+  // callbacks to run in the browser, those calls bomb with
+  // `__name is not defined`. Shim it as identity globally inside every
+  // page so the calls become no-ops.
+  await page
+    .evaluateOnNewDocument(() => {
+      (globalThis as any).__name = function (t: unknown) {
+        return t;
+      };
+    })
+    .catch(() => {});
   try {
     return await fn(page);
   } finally {

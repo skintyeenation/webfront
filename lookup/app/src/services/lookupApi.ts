@@ -108,3 +108,45 @@ export async function getReportMarkdown(jobId: string): Promise<string> {
   if (!res.ok) throw new Error(`GET /api/jobs/${jobId}/report → ${res.status}`);
   return res.text();
 }
+
+export interface BandDetail {
+  bandNumber: string;
+  general?: {
+    officialName?: string;
+    address?: string;
+    postalCode?: string;
+    phone?: string;
+    fax?: string;
+    [k: string]: string | undefined;
+  };
+  governance?: { rows: Array<{ role?: string; name?: string; term?: string }> };
+  reserves?: { rows: Array<{ name?: string; size?: string; community?: string; url?: string }> };
+  population?: {
+    rows: Array<{ label: string; count: number }>;
+    total: number;
+    asOf?: string;
+    summary: {
+      onReserve: number;
+      offReserve: number;
+      onOtherReserve: number;
+      onCrownLand: number;
+      male: number;
+      female: number;
+    };
+  };
+  funds?: { rows: Array<{ fiscalYear: string; documentName: string; documentUrl?: string }> };
+  fnfta?: { searchUrl: string };
+  errors?: Record<string, string>;
+  cached?: boolean;
+  fetchedAt?: string;
+  stale?: boolean;
+  warning?: string;
+}
+
+export async function getNationDetail(bandNumber: string, refresh = false): Promise<BandDetail> {
+  const sp = new URLSearchParams();
+  if (refresh) sp.set('refresh', '1');
+  const res = await fetch(`${API_BASE}/api/nations/${bandNumber}${sp.toString() ? `?${sp}` : ''}`);
+  if (!res.ok) throw new Error(`GET /api/nations/${bandNumber} → ${res.status}`);
+  return res.json();
+}
