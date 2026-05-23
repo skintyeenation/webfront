@@ -1,16 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Linking, Platform, Pressable, Text, View } from 'react-native';
 import { ActivityIndicator, Button, Card, Chip, Divider, IconButton } from 'react-native-paper';
-import { PageContainer } from 'lookup/components/layout';
+import { PageContainer, ReserveMap } from 'lookup/components/layout';
 import { theme } from 'lookup/styles';
 import { getNationDetail, type BandDetail } from 'lookup/services/lookupApi';
 
-type Tab = 'general' | 'governance' | 'reserves' | 'population' | 'funds' | 'fnfta';
+type Tab = 'general' | 'governance' | 'reserves' | 'map' | 'population' | 'funds' | 'fnfta';
 
 const TABS: Array<{ id: Tab; label: string; icon: string }> = [
   { id: 'general', label: 'General', icon: 'card-account-details-outline' },
   { id: 'governance', label: 'Governance', icon: 'gavel' },
   { id: 'reserves', label: 'Reserves', icon: 'map-marker-outline' },
+  { id: 'map', label: 'Map', icon: 'map' },
   { id: 'population', label: 'Population', icon: 'account-group-outline' },
   { id: 'funds', label: 'Federal funding', icon: 'cash-multiple' },
   { id: 'fnfta', label: 'FNFTA', icon: 'file-document-outline' },
@@ -266,6 +267,35 @@ export default function NationDetail({ route, navigation }: any) {
                 </View>
               ))
             )}
+          </Card.Content>
+        </Card>
+      ) : null}
+
+      {tab === 'map' ? (
+        <Card style={{ backgroundColor: theme.colors.darkDefault }}>
+          <Card.Title
+            title="Reserve territory"
+            subtitle={detail?.geo
+              ? `${detail.geo.features.length} reserve${detail.geo.features.length === 1 ? '' : 's'} plotted from the federal CLSS Aboriginal Lands layer`
+              : 'Fetching reserve geometry…'
+            }
+            titleStyle={{ color: theme.colors.success }}
+            subtitleStyle={{ color: theme.colors.textDarker, fontSize: 12 }}
+          />
+          <Card.Content>
+            {detail?.geo?.warnings?.map((w, i) => (
+              <Text key={i} style={{ color: theme.colors.accent, fontSize: 12, marginBottom: 4 }}>⚠ {w}</Text>
+            ))}
+            {detail?.geo && detail.geo.features.length > 0 ? (
+              <ReserveMap features={detail.geo.features as any} bbox={detail.geo.bbox} height={380} />
+            ) : detail?.geo ? (
+              <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>
+                No reserve polygons matched on the federal CLSS Aboriginal Lands layer for this Nation.
+              </Text>
+            ) : null}
+            <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginTop: 8 }}>
+              Polygons sourced from NRCan CLSS Administrative Boundaries; tiles © OpenStreetMap contributors.
+            </Text>
           </Card.Content>
         </Card>
       ) : null}
