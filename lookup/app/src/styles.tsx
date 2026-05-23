@@ -51,6 +51,8 @@ const styles: any = StyleSheet.create({
   pageContent: {
     width: '100%',
     maxWidth: Platform.OS === 'web' ? ('1100px' as any) : '100%',
+    // Centre the bounded content area in the viewport on web.
+    alignSelf: 'center',
     colorScheme: 'dark',
     height: '100%',
     flex: 1,
