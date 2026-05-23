@@ -42,7 +42,7 @@ export default function SourcePicker({ sources, selected, onToggle }: Props) {
                       {s.scrapable ? (
                         <Chip
                           compact
-                          style={{ marginLeft: 8, backgroundColor: theme.colors.secondary, height: 22 }}
+                          style={{ marginLeft: 8, backgroundColor: theme.colors.secondary }}
                           textStyle={{ color: theme.colors.success, fontSize: 10 }}
                         >
                           scrape
@@ -50,7 +50,7 @@ export default function SourcePicker({ sources, selected, onToggle }: Props) {
                       ) : (
                         <Chip
                           compact
-                          style={{ marginLeft: 8, backgroundColor: theme.colors.secondary, height: 22 }}
+                          style={{ marginLeft: 8, backgroundColor: theme.colors.secondary }}
                           textStyle={{ color: theme.colors.textDarker, fontSize: 10 }}
                         >
                           link only
@@ -59,7 +59,7 @@ export default function SourcePicker({ sources, selected, onToggle }: Props) {
                       {s.autoSelectOnIndigenous ? (
                         <Chip
                           compact
-                          style={{ marginLeft: 6, backgroundColor: theme.colors.secondary, height: 22 }}
+                          style={{ marginLeft: 6, backgroundColor: theme.colors.secondary }}
                           textStyle={{ color: theme.colors.accent, fontSize: 10 }}
                         >
                           Indigenous
@@ -68,7 +68,7 @@ export default function SourcePicker({ sources, selected, onToggle }: Props) {
                       {s.requiresAuth ? (
                         <Chip
                           compact
-                          style={{ marginLeft: 6, backgroundColor: theme.colors.secondary, height: 22 }}
+                          style={{ marginLeft: 6, backgroundColor: theme.colors.secondary }}
                           textStyle={{ color: theme.colors.error, fontSize: 10 }}
                         >
                           {String(s.requiresAuth)}

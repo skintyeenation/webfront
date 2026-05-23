@@ -1,7 +1,11 @@
 /**
  * OrgBook BC — JSON API. Confirmed live 2026-05-23.
- * GET https://www.orgbook.gov.bc.ca/api/v4/search/topic?q=<q>&inactive=any&revoked=true
- * Detail: /api/v4/topic/{id}/formatted
+ * GET https://www.orgbook.gov.bc.ca/api/v4/search/topic?q=<q>&inactive=any
+ * Detail page: /entity/<source_id>  (e.g. /entity/BC1217312)
+ *
+ * Quirk: `revoked=true` + `inactive=any` together returns 0 (it means
+ * "only revoked credentials, among inactive entities"). Default to including
+ * inactive entities but only valid credentials.
  */
 
 import type { Source, ScrapeResult, SourceItem } from '../../types.js';
@@ -28,7 +32,7 @@ interface OrgBookSearchResp {
 }
 
 const buildUrl = (q: string): string => {
-  const params = qs({ q, inactive: 'any', revoked: 'true', ordering: '-score' });
+  const params = qs({ q, inactive: 'any', ordering: '-score' });
   return `https://www.orgbook.gov.bc.ca/api/v4/search/topic${params}`;
 };
 

@@ -1,6 +1,6 @@
 import 'react-native-gesture-handler';
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DarkTheme as NavDarkTheme } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createMaterialBottomTabNavigator } from '@react-navigation/material-bottom-tabs';
 import { Provider as PaperProvider } from 'react-native-paper';
@@ -62,10 +62,27 @@ const tabIcons: Record<string, string> = {
 };
 
 export default function Application() {
+  // Paper v5 needs an explicit icon source for Checkbox/Card.Title/Chip etc.,
+  // otherwise the Icon component crashes the page at first render. Mirror what
+  // @skintyee/app does.
+  const paperSettings = { icon: (props: any) => <MaterialCommunityIcons {...props} /> };
+  // Match React Navigation's theme to ours so the area outside the
+  // centered (maxWidth 1100) content stays dark instead of bare-browser white.
+  const navTheme = {
+    ...NavDarkTheme,
+    colors: {
+      ...NavDarkTheme.colors,
+      background: theme.colors.background,
+      card: theme.colors.darkDefault,
+      text: theme.colors.text,
+      border: theme.colors.defaultBorder,
+      primary: theme.colors.primary,
+    },
+  };
   return (
-    <PaperProvider theme={theme as any}>
+    <PaperProvider theme={theme as any} settings={paperSettings}>
       <StatusBar style="light" />
-      <NavigationContainer>
+      <NavigationContainer theme={navTheme}>
         <Tabs.Navigator
           activeColor={theme.colors.primary}
           inactiveColor={theme.colors.textDarker}
