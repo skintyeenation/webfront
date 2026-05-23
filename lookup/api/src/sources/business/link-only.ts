@@ -74,19 +74,8 @@ export const ccab: Source = {
   searchUrl: (q) => `https://www.ccab.com/cab-directory/?keyword=${u(q)}`,
 };
 
-export const bcIndigenousListings: Source = {
-  id: 'bc-indigenous-listings',
-  name: 'BC Indigenous Business Listings (open data)',
-  mode: 'business',
-  format: 'ckan',
-  category: 'Indigenous-only directories',
-  homepage: 'https://catalogue.data.gov.bc.ca/dataset/bc-indigenous-business-listings',
-  indigenousFilter: 'inherent',
-  autoSelectOnIndigenous: true,
-  description: 'Provincial open dataset of Indigenous-owned BC businesses.',
-  searchUrl: (q) =>
-    `https://catalogue.data.gov.bc.ca/dataset?q=${u(`bc-indigenous-business-listings ${q}`)}`,
-};
+// (bc-indigenous-listings has a real scraper — see ./bc-indigenous-listings.ts;
+// the link-only declaration that used to live here has been removed.)
 
 export const worksafebc: Source = {
   id: 'worksafebc',

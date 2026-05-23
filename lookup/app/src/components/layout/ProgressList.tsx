@@ -50,7 +50,9 @@ export default function ProgressList({ job, sources }: Props) {
               ) : null}
               {st.status === 'done' ? (
                 <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>
-                  {st.count ?? 0} items
+                  {meta?.scrapable
+                    ? `${st.count ?? 0} items`
+                    : 'link only — open search to view results ↗'}
                 </Text>
               ) : null}
               {st.status === 'error' ? (
