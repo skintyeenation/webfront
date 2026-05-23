@@ -11,6 +11,7 @@ import { bcIndigenousListings } from './business/bc-indigenous-listings.js';
 import { iscIbd } from './business/isc-ibd.js';
 import { ccab } from './business/ccab.js';
 import { fnFma } from './business/fn-fma.js';
+import { fnProfiles } from './business/fn-profiles.js';
 import {
   opencorporates,
   corporationsCanada,
@@ -19,7 +20,6 @@ import {
   bcfsc,
   bccsaCor,
   cso,
-  fnProfiles,
 } from './business/link-only.js';
 
 import { openCanadaContracts } from './money/open-canada-contracts.js';

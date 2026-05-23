@@ -29,6 +29,14 @@ pnpm lookup money "First Nation infrastructure" --indigenous-only --all
 pnpm lookup:serve         # in one terminal — backend on :5050
 pnpm lookup:app:web       # in another — web build of the RN app
 # (or `pnpm lookup:app` for the full Expo dev menu: iOS / Android / web)
+
+# End-to-end test with screenshot proof
+pnpm lookup:test          # → lookup/api/test/results/E2E.md (+ screenshots)
+
+# Bulk federal CSV downloads (contracts + grants — ~100MB each, gitignored)
+pnpm lookup:fetch:bulk                          # both
+pnpm lookup:fetch:bulk contracts                # contracts only
+pnpm lookup:fetch:bulk contracts "First Nation" # also grep for the keyword
 ```
 
 ## Indigenous-only

@@ -22,6 +22,39 @@ pnpm lookup money "First Nation infrastructure" --indigenous-only --all
 pnpm lookup:serve                                  # start http://127.0.0.1:5050
 ```
 
+## End-to-end test (`pnpm lookup:test`)
+
+Runs every catalogued source against a known-good query and asserts the
+scrapers return ≥1 item / the link-only sources emit a valid URL. Writes a
+proof report at [`test/results/E2E.md`](test/results/E2E.md) with one
+section per source — extracted items + an embedded screenshot of the live
+search URL.
+
+```sh
+pnpm lookup:test
+# → test/results/E2E.md
+# → test/results/screenshots/<source-id>.png × 25
+```
+
+## Bulk federal CSV downloads (`pnpm lookup:fetch:bulk`)
+
+The federal Proactive Disclosure datasets ship as **~100MB CSV files** for
+**contracts** (`d8f85d91-…`) and **grants & contributions**
+(`432527ab-…`). They're too big to bundle into the e2e screenshot capture
+(puppeteer hangs trying to render a 100MB download) and are gitignored.
+
+Fetch them on demand:
+
+```sh
+pnpm lookup:fetch:bulk                       # both → lookup/api/out/bulk/
+pnpm lookup:fetch:bulk contracts             # contracts only
+pnpm lookup:fetch:bulk grants                # grants only
+pnpm lookup:fetch:bulk contracts "First Nation"   # also greps for keyword
+```
+
+Once downloaded, the CSVs are local — `grep`/`awk`/`csvkit` against them for
+offline keyword/vendor scans that are too broad for the HTML search portal.
+
 ## Endpoints
 
 | Method | Path | Notes |

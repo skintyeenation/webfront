@@ -12,6 +12,8 @@
     "lookup:serve": "pnpm --filter @skintyee/lookup-api serve",
     "lookup:app": "pnpm --filter @skintyee/lookup-app start",
     "lookup:app:web": "pnpm --filter @skintyee/lookup-app web",
+    "lookup:test": "pnpm --filter @skintyee/lookup-api test:e2e",
+    "lookup:fetch:bulk": "pnpm --filter @skintyee/lookup-api fetch:bulk",
     "website:up": "website/recover.sh",
     "website:recover": "website/recover.sh",
     "website:screenshots": "docs/scripts/shoot-website.sh",

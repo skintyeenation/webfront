@@ -1,6 +1,10 @@
 node_modules
-out
+api/out
 .env
 .env.local
 *.log
 .DS_Store
+
+# Local-only diagnostic scratch files used during scraper iteration.
+api/_*.mjs
+api/ibd_debug*.mjs
