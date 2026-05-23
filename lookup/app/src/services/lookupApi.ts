@@ -30,12 +30,30 @@ export async function startRun(opts: JobOptions): Promise<RunResponse> {
   return res.json();
 }
 
+export interface JobSourceResult {
+  items: Array<{
+    title: string;
+    subtitle?: string;
+    url?: string;
+    snippet?: string;
+    fields?: Record<string, string | number | boolean>;
+  }>;
+  searchUrl: string;
+  notes?: string[];
+  warnings?: string[];
+}
+
 export interface JobStateResponse {
   id: string;
   status: 'pending' | 'running' | 'done' | 'failed';
   startedAt: number;
   events: ProgressEvent[];
-  result?: { reportPath: string; durationMs: number };
+  result?: {
+    reportPath: string;
+    durationMs: number;
+    /** Per-source-id results map. `error` shape for failed sources. */
+    results: Record<string, JobSourceResult | { error: string; searchUrl: string }>;
+  };
 }
 
 export async function getJob(jobId: string): Promise<JobStateResponse> {
