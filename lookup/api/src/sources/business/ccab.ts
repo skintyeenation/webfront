@@ -1,8 +1,13 @@
 /**
  * CCAB (Canadian Council for Aboriginal Business) Certified Aboriginal
- * Business directory. After the 2024 rebrand it lives at ccib.ca but the
- * `/cab-directory/` route is still active and is filtered client-side.
- * Drive with puppeteer.
+ * Business directory. Rebranded to ccib.ca; the old /cab-directory/ route
+ * 404s. The current directory lives at /main/member/ with query params.
+ * `qccabprogram=797` filters to the CAB (Certified Aboriginal Business)
+ * program specifically.
+ *
+ * Individual members are at /main/member/<slug>/ (e.g. /takoda-consulting/).
+ * Drive with puppeteer because the listing is rendered through a JS-driven
+ * WordPress template.
  *
  * Inherently Indigenous-only.
  */
@@ -10,8 +15,17 @@
 import type { Source, ScrapeResult, SourceItem } from '../../types.js';
 import { withPage } from '../../util/puppet.js';
 
-const buildHumanUrl = (q: string): string =>
-  `https://www.ccib.ca/cab-directory/?keyword=${encodeURIComponent(q)}`;
+const buildHumanUrl = (q: string): string => {
+  const sp = new URLSearchParams({
+    qcompanyname: q,
+    qccabindustry: '0',
+    qccabprogram: '797', // CAB program
+    qccabterritory: '0',
+    qccabmembershiptype: '0',
+    s: '',
+  });
+  return `https://www.ccib.ca/main/member/?${sp.toString()}`;
+};
 
 export const ccab: Source = {
   id: 'ccab',
@@ -19,60 +33,53 @@ export const ccab: Source = {
   mode: 'business',
   format: 'html-search',
   category: 'Indigenous-only directories',
-  homepage: 'https://www.ccib.ca/cab-directory/',
+  homepage: 'https://www.ccib.ca/main/member/?qccabprogram=797',
   indigenousFilter: 'inherent',
   autoSelectOnIndigenous: true,
-  description: 'CCAB Certified Aboriginal Business directory (puppeteer scrape of the JS-filtered listing).',
+  description: 'CCAB Certified Aboriginal Business directory (now under ccib.ca/main/member/; puppeteer-driven).',
   searchUrl: (q) => buildHumanUrl(q),
   async scrape(q): Promise<ScrapeResult> {
     try {
       const items = await withPage(async (page) => {
-        await page.goto(buildHumanUrl(q), { waitUntil: 'networkidle2' });
-        try {
-          await page.waitForSelector('.cab-directory, .member-listing, article, .post', { timeout: 8000 });
-        } catch {
-          // No results / different DOM — return whatever we can.
-        }
-        return page.evaluate((needle) => {
-          // Be defensive — CCIB has been WordPress-themed.
+        await page.goto(buildHumanUrl(q), { waitUntil: 'networkidle2', timeout: 30000 });
+        await new Promise((r) => setTimeout(r, 1500));
+        return page.evaluate(() => {
+          // Member detail pages live at /main/member/<slug>/ — distinguish
+          // from the listing page itself (which is /main/member/?…). Anything
+          // with a trailing slug counts as a real member link.
           const seen = new Set<string>();
-          const rows: Array<{ title: string; subtitle?: string; url?: string; snippet?: string }> = [];
-          // Try common patterns.
-          const cards = document.querySelectorAll('.cab-directory article, .cab-directory .member, article.member, article.cab, .cab-listing, .business-listing, .member-listing article, article.post');
-          cards.forEach((el) => {
-            const titleEl = el.querySelector('h2 a, h3 a, .title a, .name a, .entry-title a, h2, h3, .name') as HTMLElement | null;
-            const title = (titleEl?.textContent ?? '').trim();
-            if (!title || seen.has(title)) return;
-            seen.add(title);
-            const link = (titleEl?.tagName === 'A' ? titleEl : titleEl?.closest('a') || el.querySelector('a')) as HTMLAnchorElement | null;
-            const subtitle = (el.querySelector('.industry, .sector, .category, .meta')?.textContent ?? '').replace(/\s+/g, ' ').trim();
-            const snippet = (el.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 240);
-            rows.push({ title, subtitle: subtitle || undefined, url: link?.href, snippet });
-          });
-          if (rows.length) return rows.slice(0, 25);
-          // Fall back: any <a> whose text matches the needle and that links somewhere with /business/ or /member/.
-          document.querySelectorAll('a').forEach((a) => {
+          const rows: Array<{ title: string; url?: string; snippet?: string }> = [];
+          document.querySelectorAll('a[href*="/main/member/"]').forEach((a) => {
             const link = a as HTMLAnchorElement;
-            const t = (link.textContent ?? '').trim();
-            const href = link.getAttribute('href') ?? '';
-            if (!t || seen.has(t)) return;
-            if (!/business|member|company|cab/i.test(href)) return;
-            if (needle && !t.toLowerCase().includes(needle.toLowerCase())) return;
-            seen.add(t);
-            rows.push({ title: t, url: link.href });
+            const href = link.getAttribute('href') || '';
+            // Skip the listing page itself + paginators + nav links.
+            if (!/\/main\/member\/[a-z0-9][a-z0-9-]+\/?$/i.test(href)) return;
+            const title = (link.textContent || '').trim();
+            if (!title || title.length < 3 || seen.has(title)) return;
+            // Skip obvious nav noise ("English", "French", "NONE", single letters, …).
+            if (/^(english|french|none|sort|filter|all|123|\d)$/i.test(title)) return;
+            if (title.length === 1) return;
+            seen.add(title);
+            const card = link.closest('article, li, .member, .card, .post, div');
+            const snippet = (card?.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 240);
+            rows.push({
+              title,
+              url: new URL(href, location.origin).toString(),
+              snippet: snippet === title ? undefined : snippet,
+            });
           });
           return rows.slice(0, 25);
-        }, q);
+        });
       });
       const sourceItems: SourceItem[] = items.map((it) => ({
         title: it.title,
-        subtitle: it.subtitle,
         url: it.url,
         snippet: it.snippet,
       }));
       return {
         items: sourceItems,
         searchUrl: buildHumanUrl(q),
+        notes: sourceItems.length === 0 ? ['CCAB returned no member links for this query.'] : undefined,
       };
     } catch (err) {
       return {

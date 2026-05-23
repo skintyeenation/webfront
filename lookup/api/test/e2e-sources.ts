@@ -22,7 +22,9 @@ const QUERIES: Record<string, string> = {
   mras: 'Two Worlds Consulting',
   website: 'Birdco Industrial Resources Ltd', // needs --website
   'bc-indigenous-listings': 'consulting',
-  'isc-ibd': 'Birdco',
+  // "Cambium" hits one real IBD entry (Cambium Indigenous Professional
+  // Services); "Birdco" is genuinely not in IBD.
+  'isc-ibd': 'Cambium',
   ccab: 'consulting',
   'fn-fma': 'Tsleil',
   // Money mode
