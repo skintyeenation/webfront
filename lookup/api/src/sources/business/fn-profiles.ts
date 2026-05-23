@@ -39,32 +39,61 @@ export const fnProfiles: Source = {
         // `%` to make every query a substring match.
         const term = q.startsWith('%') ? q : `%${q}`;
         await page.type('#plcMain_txtName', term);
-        // Find the submit button INSIDE form#form1 (not the canada.ca form).
-        const submitSel = 'form#form1 input[type="submit"], form#form1 button[type="submit"]';
-        await page.waitForSelector(submitSel, { timeout: 5000 });
+        // The form has SIX submit buttons (btnFirstNation / btnTribalCouncil /
+        // btnReserve / btnPoliticalOrganization / btnFNFTA / btnSearch); the
+        // first input[type=submit] is the category-nav, NOT the search. The
+        // search button is specifically #plcMain_btnSearch.
+        await page.waitForSelector('#plcMain_btnSearch', { timeout: 5000 });
         await Promise.all([
           page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 25000 }).catch(() => {}),
-          page.click(submitSel),
+          page.click('#plcMain_btnSearch'),
         ]);
+        // The search posts back to FNListGrid.aspx with a table of matches.
         await new Promise((r) => setTimeout(r, 1000));
         return page.evaluate(() => {
-          const rows: Array<{ title: string; subtitle?: string; url?: string; snippet?: string; fields?: Record<string, string> }> = [];
-          // FN result links point at FNMain.aspx?BAND_NUMBER=… or FNListGrid.
-          document.querySelectorAll('a[href*="FNMain.aspx"], a[href*="BAND_NUMBER"]').forEach((a) => {
+          // The result table contains pairs of <a> per Nation: one wraps the
+          // band number, one wraps the Nation name. Dedupe by BAND_NUMBER and
+          // prefer the row whose anchor text is non-numeric (the name).
+          const byBand = new Map<string, { number: string; name: string; href: string; row?: Element | null }>();
+          document.querySelectorAll('a[href*="BAND_NUMBER="]').forEach((a) => {
             const link = a as HTMLAnchorElement;
+            const href = link.getAttribute('href') || '';
+            const m = href.match(/BAND_NUMBER=(\d+)/i);
+            if (!m) return;
+            const band = m[1];
             const text = (link.textContent || '').trim();
-            if (!text || text.length < 2) return;
+            const isNumeric = /^\d+$/.test(text);
+            const cur = byBand.get(band);
             const row = link.closest('tr');
-            const cells = row ? Array.from(row.querySelectorAll('td')).map((c) => (c.textContent || '').trim()) : [];
-            const bandMatch = (link.getAttribute('href') || '').match(/BAND_NUMBER=(\d+)/i);
-            rows.push({
-              title: text,
-              subtitle: bandMatch ? `Band ${bandMatch[1]}` : undefined,
-              url: new URL(link.getAttribute('href') || '', location.origin).toString(),
-              snippet: cells.slice(1).join(' · ').slice(0, 240) || undefined,
-              fields: bandMatch ? { band_number: bandMatch[1] } : undefined,
-            });
+            if (!cur) {
+              byBand.set(band, { number: isNumeric ? text : band, name: isNumeric ? '' : text, href, row });
+            } else {
+              if (isNumeric && !cur.number) cur.number = text;
+              if (!isNumeric && (!cur.name || cur.name.length < text.length)) cur.name = text;
+            }
           });
+          const rows: Array<{ title: string; subtitle?: string; url?: string; snippet?: string; fields?: Record<string, string> }> = [];
+          for (const v of byBand.values()) {
+            if (!v.name) continue; // skip records without a name (shouldn't happen)
+            const cells = v.row ? Array.from(v.row.querySelectorAll('td')).map((c) => (c.textContent || '').trim()) : [];
+            // Cell layout (post-2024): [number, name, address/community, province, …]
+            const community = cells[2] || '';
+            const province = cells[3] || '';
+            const region = cells[4] || '';
+            rows.push({
+              title: v.name,
+              subtitle: `Band ${v.number}`,
+              // Result links on FNListGrid are relative to /fnp/Main/Search/.
+              url: new URL(v.href, location.href).toString(),
+              snippet: [community, province, region].filter(Boolean).join(' · ') || undefined,
+              fields: {
+                band_number: v.number,
+                ...(community ? { community } : {}),
+                ...(province ? { province } : {}),
+                ...(region ? { region } : {}),
+              },
+            });
+          }
           return rows.slice(0, 25);
         });
       });

@@ -24,7 +24,7 @@ Latest run of `pnpm lookup:test` (full proof + screenshots committed under
 | BCFSC SAFE Companies | business | link | `Indigenous` | ✅ | link URL emitted | [screenshot](../../lookup/api/test/results/screenshots/bcfsc-safe.png) |
 | BCCSA COR / equivalency | business | link | `Indigenous` | ✅ | link URL emitted | [screenshot](../../lookup/api/test/results/screenshots/bccsa-cor.png) |
 | Court Services Online (BC) | business | link | — | ✅ | link URL emitted | [screenshot](../../lookup/api/test/results/screenshots/cso.png) |
-| **ISC First Nation Profiles** | business | scrape (puppeteer) | `Skin Tyee` | **❌** | **0 items** — *parser doesn't see the result rows; fix planned in §5* | [screenshot](../../lookup/api/test/results/screenshots/fn-profiles.png) |
+| **ISC First Nation Profiles** | business | scrape (puppeteer) | `%Skin Tyee` | ✅ | **1 item** — *Skin Tyee · Band 729 · PO BOX 131, SOUTHBANK, BC V0J 2P0* — root cause: the form had 6 submit buttons; my first-input click was hitting `btnFirstNation` (category nav). Now clicking `#plcMain_btnSearch` and landing on `FNListGrid.aspx`. | [screenshot](../../lookup/api/test/results/screenshots/fn-profiles.png) |
 | FN Financial Management Board | business | scrape | `Tsleil` | ✅ | **1 item** — *Tsleil-Waututh Nation* | [screenshot](../../lookup/api/test/results/screenshots/fn-fma.png) |
 | Company website | business | scrape | `Birdco Industrial Resources Ltd` | ✅ | **1 item** — *Birdco Industrial Resources · birdcoirl.ca* with email/phones extracted | [screenshot](../../lookup/api/test/results/screenshots/website.png) |
 | Open Canada — Federal contracts | money | scrape | `First Nation` | ✅ | **10 items** — vendor, value, dept, dates | [screenshot](../../lookup/api/test/results/screenshots/open-canada-contracts.png) |
@@ -38,7 +38,7 @@ Latest run of `pnpm lookup:test` (full proof + screenshots committed under
 | Federal Contracts (bulk CSV) | money | csv-bulk | — | ✅ | bulk-download URL (use `pnpm lookup:fetch:bulk`) | _no screenshot (download)_ |
 | Federal Grants (bulk CSV) | money | csv-bulk | — | ✅ | bulk-download URL | [screenshot](../../lookup/api/test/results/screenshots/grants-csv.png) |
 
-**Totals: 24 / 25 pass** · 1 fail (fn-profiles) · 180.3 s wall-clock.
+**Totals: 25 / 25 pass** · 196 s wall-clock.
 
 The full sample of **extracted items** (top 5 per source, with every
 key/value field) is in [`E2E.md`](../../lookup/api/test/results/E2E.md);
@@ -216,44 +216,37 @@ Each panel pulls from `GET /api/nations/729?include=<panel>`.
 
 ---
 
-## 5. Fixing FN Profiles
+## 5. Fixing FN Profiles ✅ done
 
-Current symptom: `pnpm lookup business "Skin Tyee" -s fn-profiles` puppeteer
-fills `#plcMain_txtName`, clicks `form#form1` submit, but lands on a page
-where my selector `a[href*="FNMain.aspx"]` matches zero links.
+Root cause: `form#form1` has **six** `input[type="submit"]` buttons —
+`btnFirstNation`, `btnTribalCouncil`, `btnReserve`,
+`btnPoliticalOrganization`, `btnFNFTA`, and `btnSearch`. My
+`form#form1 input[type="submit"]` selector returned `btnFirstNation` (a
+category nav), not `btnSearch`. Clicking it stayed on the same page.
 
-Plan to crack it:
+Fix:
 
-1. **Capture the response URL and full DOM** after submit. Likely candidates:
-   - `/fnp/Main/Search/FNListGrid.aspx?lang=eng` (grid of all FN matching)
-   - Direct redirect to `/fnp/Main/Search/FNMain.aspx?BAND_NUMBER=…` when
-     the query uniquely matches.
-2. **Determine the result container.** It may be `.wb-tables tbody tr`,
-   `gridview` table, or a series of `<a href="FNMain.aspx?BAND_NUMBER=…">`
-   anchors inside a results section.
-3. **Try the partial-match leading `%`** (already in code). If still 0,
-   verify by re-running with the diagnostic harness used for ISC IBD.
-4. **Switch to listing-grid mode** if direct search hits zero: navigate to
-   `/fnp/Main/Search/FNListGrid.aspx?lang=eng` (full alphabetical list) and
-   substring-match `q` against rendered Nation names. This is a viable
-   fallback because the list isn't huge (~600 Nations).
-5. **Cookie/session check:** the ASP.NET app may need an initial GET to
-   establish session state before POST. Add a warm-up GET to `/fnp/Main/Index.aspx?lang=eng`.
+1. Click `#plcMain_btnSearch` specifically.
+2. The post-back lands on `/fnp/Main/Search/FNListGrid.aspx`. Results are
+   a table where each row has a pair of `<a href="FNMain.aspx?BAND_NUMBER=…">`
+   anchors (one wrapping the band number text, one wrapping the Nation
+   name). Dedupe by `BAND_NUMBER`, prefer the non-numeric anchor text as
+   the title, and read the trailing cells for community / province / region.
+3. Apply a leading `%` per the page's own partial-match hint
+   (`%Skin Tyee` instead of `Skin Tyee`).
 
-Expected output items:
+Verified extraction:
 
-```ts
+```json
 {
-  title: "Skin Tyee",
-  subtitle: "Band 729",
-  url: "https://.../FNMain.aspx?BAND_NUMBER=729&lang=eng",
-  snippet: "Southbank, BC · V0J 2P0",
-  fields: {
-    band_number: "729",
-    address: "PO BOX 131, SOUTHBANK, BC",
-    postal_code: "V0J 2P0",
-    phone: "(250) 694-3517",
-  },
+  "title": "Skin Tyee",
+  "subtitle": "Band 729",
+  "url": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/FNMain.aspx?BAND_NUMBER=729&lang=eng",
+  "snippet": "PO BOX 131, SOUTHBANK, BC, V0J 2P0",
+  "fields": {
+    "band_number": "729",
+    "community": "PO BOX 131, SOUTHBANK, BC, V0J 2P0"
+  }
 }
 ```
 
