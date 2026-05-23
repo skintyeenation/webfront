@@ -3,7 +3,7 @@ import React from 'react';
 import { NavigationContainer, DarkTheme as NavDarkTheme } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createMaterialBottomTabNavigator } from '@react-navigation/material-bottom-tabs';
-import { Provider as PaperProvider } from 'react-native-paper';
+import { Provider as PaperProvider, Portal } from 'react-native-paper';
 import { StatusBar } from 'expo-status-bar';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -81,6 +81,7 @@ export default function Application() {
   };
   return (
     <PaperProvider theme={theme as any} settings={paperSettings}>
+      <Portal.Host>
       <StatusBar style="light" />
       <NavigationContainer theme={navTheme}>
         <Tabs.Navigator
@@ -100,6 +101,7 @@ export default function Application() {
           <Tabs.Screen name="History" component={HistoryNav} />
         </Tabs.Navigator>
       </NavigationContainer>
+      </Portal.Host>
     </PaperProvider>
   );
 }
