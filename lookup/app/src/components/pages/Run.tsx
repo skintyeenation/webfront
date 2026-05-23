@@ -1,12 +1,12 @@
 import React, { useEffect } from 'react';
 import { View, Text } from 'react-native';
-import { Button } from 'react-native-paper';
+import { Button, IconButton } from 'react-native-paper';
 import { PageContainer, ProgressList } from 'lookup/components/layout';
 import { theme } from 'lookup/styles';
 import { useAppDispatch, useAppSelector } from 'lookup/store';
-import { eventReceived } from 'lookup/store/modules/lookup';
-import { historyUpdated } from 'lookup/store/modules/history';
-import { streamJob } from 'lookup/services/lookupApi';
+import { eventReceived, jobStarted } from 'lookup/store/modules/lookup';
+import { historyPushed, historyUpdated } from 'lookup/store/modules/history';
+import { startRun, streamJob } from 'lookup/services/lookupApi';
 
 export default function Run({ route, navigation }: any) {
   const dispatch = useAppDispatch();
@@ -54,7 +54,7 @@ export default function Run({ route, navigation }: any) {
       <ProgressList job={job} sources={sources} />
 
       {job.status === 'done' ? (
-        <View style={{ marginTop: 18 }}>
+        <View style={{ marginTop: 18, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Button
             mode="contained"
             buttonColor={theme.colors.success}
@@ -63,6 +63,31 @@ export default function Run({ route, navigation }: any) {
           >
             View results
           </Button>
+          <IconButton
+            icon="refresh"
+            mode="outlined"
+            size={18}
+            iconColor={theme.colors.primary}
+            onPress={async () => {
+              // Re-run the same job (same target / sources / filters).
+              const { jobId: newId } = await startRun(job.options);
+              dispatch(jobStarted({ jobId: newId, options: job.options }));
+              dispatch(
+                historyPushed({
+                  jobId: newId,
+                  startedAt: Date.now(),
+                  mode: job.options.mode,
+                  target: job.options.target,
+                  indigenousOnly: job.options.indigenousOnly,
+                  sourceCount: job.options.sourceIds.length,
+                  status: 'running',
+                }),
+              );
+              navigation.replace('Run', { jobId: newId });
+            }}
+            accessibilityLabel="Search again"
+            style={{ margin: 0 }}
+          />
         </View>
       ) : null}
     </PageContainer>
