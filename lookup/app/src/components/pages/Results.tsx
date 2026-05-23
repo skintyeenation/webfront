@@ -43,7 +43,11 @@ export default function Results({ route }: any) {
           <Card key={sid} style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
             <Card.Title
               title={meta.name}
-              subtitle={`${st?.count ?? 0} items · ${st?.status ?? 'idle'}`}
+              subtitle={
+                meta.scrapable
+                  ? `${st?.count ?? 0} items · ${st?.status ?? 'idle'}`
+                  : `link only — open search ↗`
+              }
               titleStyle={{ color: theme.colors.primary }}
               subtitleStyle={{ color: theme.colors.textDarker, fontSize: 12 }}
             />

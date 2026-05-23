@@ -7,13 +7,13 @@ import type { Source, SourceMode } from '../types.js';
 import { orgbookBc } from './business/orgbook-bc.js';
 import { mras } from './business/mras.js';
 import { website } from './business/website.js';
+import { bcIndigenousListings } from './business/bc-indigenous-listings.js';
 import {
   opencorporates,
   corporationsCanada,
   craCharities,
   iscIbd,
   ccab,
-  bcIndigenousListings,
   worksafebc,
   bcfsc,
   bccsaCor,

@@ -25,7 +25,11 @@ export const website: Source = {
   searchUrl: (_q, opts) => opts.website || '',
   async scrape(_q, opts): Promise<ScrapeResult> {
     if (!opts.website) {
-      return { items: [], searchUrl: '', notes: ['No --website provided; skipping.'] };
+      return {
+        items: [],
+        searchUrl: '',
+        warnings: ['No company website URL provided — paste one in the form to fetch homepage, /about and /contact for emails/phones/description.'],
+      };
     }
     const base = opts.website.replace(/\/+$/, '');
     const urls = [base, `${base}/about`, `${base}/about-us`, `${base}/contact`, `${base}/contact-us`];
