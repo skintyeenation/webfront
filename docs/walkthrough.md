@@ -13,8 +13,8 @@ web build; the same screens render on iOS/Android.
 |---|---|---|
 | Splash | <img src="media/splash.png" width="240"> | Branded launch screen (Skin Tyee · First Nation). |
 | Admin menu | <img src="media/admin-menu.png" width="240"> | Overflow tab for admins — Admin tools (Time Keeping, Financials) + Community. |
-| More menu (non-admin) | 📸 _pending →_ `media/more-menu.png` | The overflow tab for public/members (Directory, Meetings, Polls, Account). |
-| Account & role switcher | 📸 _pending →_ `media/account.png` | Profile + dev role switcher and the spoof-admin badge. |
+| More menu (non-admin) | <img src="media/more-menu.png" width="240"> | The overflow tab for public/members (Directory, Meetings, Polls, Account). |
+| Account & role switcher | <img src="media/account.png" width="240"> | Profile + dev role switcher and the **SPOOF ADMIN** badge. |
 
 ## Home (Dashboard)
 
