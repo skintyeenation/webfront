@@ -8,7 +8,7 @@
  * lists them with a deep search URL the user can click.
  */
 
-export type SourceMode = 'business' | 'money';
+export type SourceMode = 'business' | 'money' | 'nations';
 
 export type SourceFormat =
   | 'json-api' // OrgBook BC, CKAN, …
@@ -38,6 +38,12 @@ export interface SourceLookupOpts {
   vendor?: string;
   /** Override for OpenCorporates token (if a source needs it). */
   apiToken?: string;
+  /**
+   * Nations mode — restrict to a single ISC region. Used by fn-profiles:
+   * a leading-only `%` partial match is applied to the name, and the
+   * dropdown is set to this region (e.g. `9` = BRITISH COLUMBIA).
+   */
+  regionId?: string;
   /** AbortSignal for cancellation. */
   signal?: AbortSignal;
 }

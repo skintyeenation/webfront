@@ -120,9 +120,15 @@ export default function Results({ route, navigation }: any) {
             buttonColor={theme.colors.primary}
             textColor="#000"
             compact
-            onPress={() =>
-              navigation?.navigate?.(job.options.mode === 'business' ? 'Business' : 'Money')
-            }
+            onPress={() => {
+              const target =
+                job.options.mode === 'business'
+                  ? 'Business'
+                  : job.options.mode === 'money'
+                    ? 'Funding'
+                    : 'Nations';
+              navigation?.navigate?.(target);
+            }}
           >
             New search
           </Button>

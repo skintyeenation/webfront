@@ -14,9 +14,9 @@ const buildHumanUrl = (_q: string): string => PAGE;
 export const fnFma: Source = {
   id: 'fn-fma',
   name: 'FN Financial Management Board (certified Nations)',
-  mode: 'business',
+  mode: 'nations',
   format: 'html-search',
-  category: 'First Nations',
+  category: 'Fiscal certification',
   homepage: 'https://fnfmb.com/',
   indigenousFilter: 'inherent',
   autoSelectOnIndigenous: true,

@@ -21,15 +21,15 @@ const buildHumanUrl = (q: string): string =>
 export const fnProfiles: Source = {
   id: 'fn-profiles',
   name: 'ISC First Nation Profiles',
-  mode: 'business',
+  mode: 'nations',
   format: 'html-search',
-  category: 'First Nations',
+  category: 'Band registry',
   homepage: 'https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Index.aspx?lang=eng',
   indigenousFilter: 'inherent',
   autoSelectOnIndigenous: true,
   description: 'Per-band profile: council, demographics, lands, FNFTA disclosures (puppeteer scrape of the ASP.NET form).',
   searchUrl: (q) => buildHumanUrl(q),
-  async scrape(q): Promise<ScrapeResult> {
+  async scrape(q, opts): Promise<ScrapeResult> {
     try {
       const items = await withPage(async (page) => {
         await page.goto(SEARCH_PAGE, { waitUntil: 'networkidle2', timeout: 25000 });
@@ -39,6 +39,11 @@ export const fnProfiles: Source = {
         // `%` to make every query a substring match.
         const term = q.startsWith('%') ? q : `%${q}`;
         await page.type('#plcMain_txtName', term);
+        // Optional region narrow (e.g. BC = '9'). plcMain_ddlRegion is the
+        // ISC regional office dropdown.
+        if (opts.regionId) {
+          await page.select('#plcMain_ddlRegion', opts.regionId).catch(() => {});
+        }
         // The form has SIX submit buttons (btnFirstNation / btnTribalCouncil /
         // btnReserve / btnPoliticalOrganization / btnFNFTA / btnSearch); the
         // first input[type=submit] is the category-nav, NOT the search. The

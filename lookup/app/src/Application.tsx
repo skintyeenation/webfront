@@ -13,6 +13,7 @@ import { AppHeader } from 'lookup/components/layout';
 import Home from 'lookup/components/pages/Home';
 import BusinessLookup from 'lookup/components/pages/BusinessLookup';
 import MoneyLookup from 'lookup/components/pages/MoneyLookup';
+import NationsLookup from 'lookup/components/pages/NationsLookup';
 import Run from 'lookup/components/pages/Run';
 import Results from 'lookup/components/pages/Results';
 import History from 'lookup/components/pages/History';
@@ -44,6 +45,15 @@ const MoneyNav = () => (
   </MoneyStack.Navigator>
 );
 
+const NationsStack = createStackNavigator();
+const NationsNav = () => (
+  <NationsStack.Navigator screenOptions={{ header: (props) => <AppHeader {...props} /> }}>
+    <NationsStack.Screen name="Nations" component={NationsLookup} options={{ title: 'Nations' }} />
+    <NationsStack.Screen name="Run" component={Run} options={{ title: 'Running…' }} />
+    <NationsStack.Screen name="Results" component={Results} options={{ title: 'Results' }} />
+  </NationsStack.Navigator>
+);
+
 const HistoryStack = createStackNavigator();
 const HistoryNav = () => (
   <HistoryStack.Navigator screenOptions={{ header: (props) => <AppHeader {...props} /> }}>
@@ -56,8 +66,9 @@ const Tabs = createMaterialBottomTabNavigator();
 
 const tabIcons: Record<string, string> = {
   Home: 'view-dashboard-outline',
+  Nations: 'feather',
   Business: 'office-building-outline',
-  Money: 'cash-multiple',
+  Funding: 'cash-multiple',
   History: 'history',
 };
 
@@ -96,8 +107,9 @@ export default function Application() {
           })}
         >
           <Tabs.Screen name="Home" component={HomeNav} />
+          <Tabs.Screen name="Nations" component={NationsNav} />
           <Tabs.Screen name="Business" component={BusinessNav} />
-          <Tabs.Screen name="Money" component={MoneyNav} />
+          <Tabs.Screen name="Funding" component={MoneyNav} />
           <Tabs.Screen name="History" component={HistoryNav} />
         </Tabs.Navigator>
       </NavigationContainer>

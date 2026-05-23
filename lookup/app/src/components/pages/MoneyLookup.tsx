@@ -79,7 +79,7 @@ export default function MoneyLookup({ navigation }: any) {
 
   return (
     <PageContainer>
-      <Text style={{ color: theme.colors.accent, fontSize: 18, fontWeight: '700', marginBottom: 6 }}>Money lookup</Text>
+      <Text style={{ color: theme.colors.accent, fontSize: 18, fontWeight: '700', marginBottom: 6 }}>Funding lookup</Text>
       <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginBottom: 16 }}>
         Disclosed federal + provincial contracts, grants, funding agreements and bid solicitations.
       </Text>
