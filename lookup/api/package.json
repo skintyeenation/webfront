@@ -9,6 +9,7 @@
     "sources": "tsx src/cli.ts sources",
     "serve": "tsx src/serve.ts",
     "test:e2e": "tsx test/e2e-sources.ts",
+    "fetch:bulk": "bash scripts/fetch-bulk.sh",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

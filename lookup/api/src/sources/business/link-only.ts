@@ -100,20 +100,8 @@ export const cso: Source = {
   searchUrl: () => 'https://justice.gov.bc.ca/cso/esearch/civil/partySearch.do',
 };
 
-export const fnProfiles: Source = {
-  id: 'fn-profiles',
-  name: 'ISC First Nation Profiles',
-  mode: 'business',
-  format: 'html-search',
-  category: 'First Nations',
-  homepage: 'https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Index.aspx?lang=eng',
-  indigenousFilter: 'inherent',
-  autoSelectOnIndigenous: true,
-  description: 'Per-band profile: council, demographics, lands, FNFTA disclosures.',
-  searchUrl: (q) => `https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/SearchFN.aspx?lang=eng&q=${u(q)}`,
-};
-
-// fn-fma now has a real scraper — see ./fn-fma.ts.
+// fn-profiles and fn-fma now have real scrapers — see ./fn-profiles.ts and
+// ./fn-fma.ts respectively.
 
 // Helper to OR in Indigenous keywords for sources that filter purely by keyword.
 export { indigenousOrQuery };

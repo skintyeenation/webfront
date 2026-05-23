@@ -54,11 +54,17 @@ export const ccab: Source = {
             const href = link.getAttribute('href') || '';
             // Skip the listing page itself + paginators + nav links.
             if (!/\/main\/member\/[a-z0-9][a-z0-9-]+\/?$/i.test(href)) return;
+            // Exclude site chrome (header / nav / footer / sidebar) — those
+            // often contain stray member-detail links (e.g. the agency credit
+            // "A Bloom and Brilliance Website" lives in #Footer).
+            if (link.closest('#Footer, footer, header, nav, .sidebar, #Header, .copyright')) return;
             const title = (link.textContent || '').trim();
             if (!title || title.length < 3 || seen.has(title)) return;
             // Skip obvious nav noise ("English", "French", "NONE", single letters, …).
             if (/^(english|french|none|sort|filter|all|123|\d)$/i.test(title)) return;
             if (title.length === 1) return;
+            // Skip generic "website" / promo titles that aren't business names.
+            if (/website$/i.test(title) && /bloom|design|agency|by\b/i.test(title)) return;
             seen.add(title);
             const card = link.closest('article, li, .member, .card, .post, div');
             const snippet = (card?.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 240);

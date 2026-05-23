@@ -16,6 +16,7 @@ export default function Results({ route, navigation }: any) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [modalSourceId, setModalSourceId] = useState<string | null>(null);
   const [reportMd, setReportMd] = useState<string>('');
+  const [reportErr, setReportErr] = useState<string>('');
   const [showFullReport, setShowFullReport] = useState(false);
 
   // Fetch the full job result once the run is done.
@@ -147,20 +148,23 @@ export default function Results({ route, navigation }: any) {
               subtitleStyle={{ color: theme.colors.textDarker, fontSize: 12 }}
               right={(props) =>
                 items.length > 0 ? (
-                  <View style={{ flexDirection: 'row', marginRight: 8 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 8 }}>
+                    <Button
+                      mode="contained"
+                      buttonColor={theme.colors.accent}
+                      textColor="#000"
+                      compact
+                      icon="file-document-outline"
+                      onPress={() => setModalSourceId(sid)}
+                    >
+                      View report
+                    </Button>
                     <IconButton
                       {...props}
                       icon={isExpanded ? 'chevron-up' : 'chevron-down'}
                       iconColor={theme.colors.primary}
                       onPress={() => toggle(sid)}
                       accessibilityLabel={isExpanded ? 'Collapse' : 'Expand'}
-                    />
-                    <IconButton
-                      {...props}
-                      icon="open-in-new"
-                      iconColor={theme.colors.accent}
-                      onPress={() => setModalSourceId(sid)}
-                      accessibilityLabel="Open in modal"
                     />
                   </View>
                 ) : null
@@ -224,20 +228,68 @@ export default function Results({ route, navigation }: any) {
         >
           {modalSource && modalRes && !('error' in modalRes) ? (
             <View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <Text style={{ color: theme.colors.primary, fontSize: 16, fontWeight: '700' }}>{modalSource.name}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: theme.colors.primary, fontSize: 18, fontWeight: '700' }}>{modalSource.name}</Text>
+                  <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginTop: 2 }}>
+                    {modalSource.category} · {modalSource.format} · {modalRes.items.length} items
+                  </Text>
+                </View>
                 <IconButton icon="close" iconColor={theme.colors.textDarker} onPress={() => setModalSourceId(null)} />
               </View>
-              <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginBottom: 8 }}>
-                {modalRes.items.length} items
-              </Text>
               <Pressable onPress={() => Linking.openURL(modalRes.searchUrl)}>
-                <Text style={{ color: theme.colors.primary, fontSize: 12, marginBottom: 12 }}>Open search ↗</Text>
+                <Text style={{ color: theme.colors.primary, fontSize: 12, marginBottom: 8 }}>Open live search ↗</Text>
               </Pressable>
               <Divider style={{ backgroundColor: theme.colors.defaultBorder, marginBottom: 8 }} />
-              <View style={{ maxHeight: 500 }}>
-                {/* RN ScrollView would be ideal but PageContainer is already one — Modal scrolls via Portal */}
-                <Pressable>{renderItems(modalRes.items, false)}</Pressable>
+              {/* RN-web auto-scrolls; max-height keeps it contained. */}
+              <View style={{ maxHeight: 500, overflow: 'scroll' as any }}>
+                {modalRes.items.map((it, i) => (
+                  <View
+                    key={`${it.title}-${i}`}
+                    style={{ paddingVertical: 10, borderTopColor: theme.colors.defaultBorder, borderTopWidth: i === 0 ? 0 : 1 }}
+                  >
+                    {it.url ? (
+                      <Pressable onPress={() => Linking.openURL(it.url!)}>
+                        <Text style={{ color: theme.colors.primary, fontWeight: '700', fontSize: 14 }}>{it.title}</Text>
+                      </Pressable>
+                    ) : (
+                      <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 14 }}>{it.title}</Text>
+                    )}
+                    {it.subtitle ? (
+                      <Text style={{ color: theme.colors.accent, fontSize: 12, marginTop: 2 }}>{it.subtitle}</Text>
+                    ) : null}
+                    {it.snippet ? (
+                      <Text style={{ color: theme.colors.text, fontSize: 12, marginTop: 4 }}>{it.snippet}</Text>
+                    ) : null}
+                    {it.fields && Object.keys(it.fields).length > 0 ? (
+                      <View
+                        style={{
+                          marginTop: 8,
+                          padding: 8,
+                          backgroundColor: theme.colors.background,
+                          borderColor: theme.colors.defaultBorder,
+                          borderWidth: 1,
+                        }}
+                      >
+                        {Object.entries(it.fields)
+                          .filter(([, v]) => v !== '' && v !== undefined && v !== null)
+                          .map(([k, v]) => (
+                            <View key={k} style={{ flexDirection: 'row', paddingVertical: 2 }}>
+                              <Text style={{ color: theme.colors.textDarker, fontSize: 11, width: 140, fontFamily: 'Menlo, monospace' as any }}>
+                                {k}
+                              </Text>
+                              <Text
+                                selectable
+                                style={{ color: theme.colors.text, fontSize: 12, flex: 1, fontFamily: 'Menlo, monospace' as any }}
+                              >
+                                {String(v)}
+                              </Text>
+                            </View>
+                          ))}
+                      </View>
+                    ) : null}
+                  </View>
+                ))}
               </View>
             </View>
           ) : null}
@@ -253,7 +305,10 @@ export default function Results({ route, navigation }: any) {
               try {
                 const md = await getReportMarkdown(jobId);
                 setReportMd(md);
-              } catch {}
+                setReportErr('');
+              } catch (e) {
+                setReportErr((e as Error).message || 'Failed to fetch report');
+              }
             }
             setShowFullReport((v) => !v);
           }}
@@ -263,6 +318,11 @@ export default function Results({ route, navigation }: any) {
           {showFullReport ? 'Hide full markdown report' : 'Show full markdown report'}
         </Button>
       </View>
+      {reportErr ? (
+        <View style={{ marginTop: 8 }}>
+          <Text style={{ color: theme.colors.error, fontSize: 12 }}>⚠ {reportErr}</Text>
+        </View>
+      ) : null}
       {showFullReport && reportMd ? (
         <View style={{ backgroundColor: theme.colors.darkDefault, padding: 12, borderColor: theme.colors.defaultBorder, borderWidth: 1, marginTop: 8 }}>
           <Text selectable style={{ color: theme.colors.text, fontFamily: 'Menlo, monospace' as any, fontSize: 11 }}>
