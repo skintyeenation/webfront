@@ -284,6 +284,7 @@ tax-deductible operating expenses under Canadian law.
 - [`docs/1password/pricing.md`](docs/1password/pricing.md) — 1Password per-user pricing, tax deductibility, offboarding
 - [`docs/godaddy/domains.md`](docs/godaddy/domains.md) — GoDaddy domains + Azure DNS records
 - [`docs/godaddy/pricing.md`](docs/godaddy/pricing.md) — domain pricing, tax deductibility
+- [`docs/research/canadian-business-lookups.md`](docs/research/canadian-business-lookups.md) — Canadian/BC business, First Nations & government contract lookup resources
 - [`docs/Skintyee-App-Proposal.pptx`](docs/Skintyee-App-Proposal.pptx) — proposal deck
 - [`app/STUBS.md`](app/STUBS.md) — catalogue of POC stubs
 - [`docs/hosting-costs.md`](docs/hosting-costs.md) — hosting cost basis + rationale
