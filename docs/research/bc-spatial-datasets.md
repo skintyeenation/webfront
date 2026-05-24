@@ -9,9 +9,11 @@ Refresh with:
 
 ```bash
 cd lookup/api
-pnpm fetch:bc-spatial            # download everything (~130 MB)
-pnpm fetch:bc-spatial slrp       # SLRP only
-pnpm fetch:bc-spatial public-lup # publicly-available LUPs only
+pnpm fetch:bc-spatial                   # download every dataset (~130 MB)
+pnpm fetch:bc-spatial slrp              # Strategic Land and Resource Plans
+pnpm fetch:bc-spatial public-lup        # publicly-available LUPs
+pnpm fetch:bc-spatial recreation        # Rec sites/reserves/interpretive forests
+pnpm fetch:bc-spatial mineral-profiles  # BC mineral deposit type reference table (CSV)
 ```
 
 The script lives at `lookup/api/scripts/fetch-bc-spatial.sh`.
@@ -140,7 +142,129 @@ between the BC government and the originating Nation.
 
 ---
 
-## 3. (Not downloaded) Nation-specific LUP boundary datasets
+## 3. Recreation Sites, Reserves, and Interpretive Forests Details and Closures
+
+**CKAN package:** `recreation-sites-reserves-and-interpretive-forests-details-and-closures` (id `b0f23ae8-e0aa-449c-a806-653ba37f100a`).
+
+**WFS layer:** `pub:WHSE_FOREST_TENURE.FTEN_REC_DTAILS_CLOSURES_SV`
+on `https://openmaps.gov.bc.ca/geo/pub/wfs`.
+
+**Owner:** Recreation Sites and Trails BC (Ministry of Forests).
+
+### ⚠️ "Reserves" disambiguation
+
+This dataset's **"Reserves"** are **Crown Recreation Reserves** under
+**Forest Tenure Administration (FTA)** — NOT Indigenous reserves under
+the Indian Act. PROJECT_TYPE codes include:
+
+- `RR — Recreation Reserve` (Crown land set aside for future
+  recreational use)
+- `RTR — Recreation Trail Reserve` (the trail right-of-way reservation)
+- Plus regular Recreation Sites, Interpretive Forests, and closures.
+
+Indigenous reserve polygons are sourced separately by
+`band-detail.ts` from the **NRCan CLSS Aboriginal Lands** ArcGIS layer
+(see `lookup/api/src/sources/nations/band-detail.ts`).
+
+### What it is
+
+> The data contained within this spatial layer is an amalgamation of
+> information for trails, Sites, Reserves, and Interpretive Forests
+> derived from Forest Tenure Administration (FTA). The point is derived
+> from the coordinates linked to each recreation number example
+> (REC1567). That coordinate will identify either the trail head or the
+> camping location or access point to the area. Larger areas will be a
+> central point to the polygon.
+
+Public closure list: `https://www.sitesandtrailsbc.ca/closures.aspx`.
+
+### Size
+
+3.2 MB GeoJSON, 2,268 features.
+
+### Per-feature schema (selected)
+
+```
+FTEN_RPD_SYSID                (numeric ID)
+FOREST_FILE_ID                (REC#### identifier — e.g. REC6233)
+PROJECT_NAME                  (human name — e.g. Pilot Peninsula)
+PROJECT_TYPE                  (RR / RTR / RS / IF / RTR etc.)
+CLOSURE_IND                   (Y/N)
+CLOSURE_DATE
+CLOSURE_TYPE
+SITE_LOCATION                 (nearest town/area)
+DEFINED_CAMPSITES             (integer)
+RECREATION_DISTRICT_CODE / _NAME
+ORG_UNIT_NAME                 (Natural Resource District)
+SITE_DESCRIPTION              (free-text description)
+DRIVING_DIRECTIONS            (long form, often multi-paragraph)
+LATITUDE / LONGITUDE
+```
+
+Geometry is point (per dataset description: trailhead / camping
+location / area centroid).
+
+### Sister dataset
+
+`recreation-sites-reserves-and-interpretive-forests-details-and-closures-fully-attributed`
+— a "Full" attributed version with additional fields. Not yet
+downloaded; same WFS family.
+
+---
+
+## 4. Mineral Deposit Profiles (reference table — not spatial)
+
+**CKAN package:** `mineral-deposit-profiles` (id `83195f0a-ebc7-4bed-a99c-9edcff96f445`).
+
+**Download:** CSV (76 KB, 185 rows) — direct from
+`https://catalogue.data.gov.bc.ca/dataset/.../mineraldepositprofiles.csv`.
+
+**Owner:** BC Geological Survey.
+
+### What it is
+
+> Mineral Deposit Profiles provide brief summaries of the types of
+> mineral deposits found in British Columbia. They include descriptions
+> of host rocks, mineralogy, alteration, tectonic setting, associations,
+> genetic models, and exploration guides, and give typical examples with
+> grades and tonnages. Of the 160 profiles for metal, coal deposits and
+> industrial minerals, 120 profile descriptions are in a compiled
+> Geofile 2020-11.
+
+This is a **reference table** of deposit *types* — not spatial. There
+is no geometry. To answer "what minerals are in this geographic area"
+you cross-reference this against **MINFILE** (BC Mineral Inventory
+point dataset) which we don't yet mirror.
+
+### Columns
+
+```
+BC_Profile_Code                       (A01, A02, …)
+Mineral_Deposit_GROUP_or_Profile_Name (Peat, Placer Au, Porphyry Cu-Mo, …)
+Alternate_Deposit_Names
+Deposit_Synonyms
+USGS_Model_#                          (cross-reference to USGS classification)
+BC_Examples                           (named BC deposits of this type)
+Global_Examples
+Authors_Year
+Reference                             (bibliographic citation)
+URL                                   (PDF chapter in Geofile 2020-11)
+```
+
+The URL column points at per-profile chapters within
+`http://cmscontent.nrs.gov.bc.ca/geoscience/PublicationCatalogue/GeoFile/BCGS_GF2020-11.pdf`
+which is a single 1,000-page compendium.
+
+### Why it matters for Skin Tyee
+
+Skin Tyee territory borders the **Babine Lake porphyry copper belt**;
+this profile table is the key to understanding which deposit types are
+relevant to any future resource-extraction proposal on or near the
+band's traditional territory.
+
+---
+
+## 5. (Not downloaded) Nation-specific LUP boundary datasets
 
 The CKAN catalogue also publishes individual Nation-led plan boundaries
 as standalone datasets, e.g.:
