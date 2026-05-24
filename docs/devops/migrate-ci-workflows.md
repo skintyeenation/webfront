@@ -61,7 +61,7 @@ What the script does NOT automate (each is one-time per environment):
 - **Entra ID Application Admin role** on the running user (Microsoft
   policy — only this role can add federated credentials).
 - **ADO Project Administrator role** on the `devops` project.
-- The **prior ADR-8 setup** — the `webfront-docs-publisher` Entra app
+- The **prior ADR-8 setup** — the `it-project-docs-publisher` Entra app
   must already exist with `Sites.Selected` granted to the target
   SharePoint site (per [`../365/sharepoint-docs-publish.md`](../365/sharepoint-docs-publish.md)
   steps 2-5). The script verifies and points back at that doc if
@@ -77,13 +77,13 @@ UIs, the manual walkthrough is unchanged below.
 
 ### 1. Add federated credentials to the existing Entra ID app
 
-The Entra app you already created (`webfront-docs-publisher`, per
+The Entra app you already created (`it-project-docs-publisher`, per
 [`sharepoint-docs-publish.md § 2`](../365/sharepoint-docs-publish.md#2-register-the-entra-id-app))
 needs to trust the new ADO service connection. You're not creating a
 new app — just adding a new credential type to the existing one.
 
 1. <https://entra.microsoft.com> → **App registrations →
-   webfront-docs-publisher** → **Certificates & secrets** → tab
+   it-project-docs-publisher** → **Certificates & secrets** → tab
    **Federated credentials** → **+ Add credential**.
 2. **Federated credential scenario:** *Other issuer*.
 3. **Issuer:** `https://vstoken.dev.azure.com/{ado-org-id}` — find
@@ -208,7 +208,7 @@ ADO **Pipelines → Library → Variable groups → + Variable group**:
 - **Variables** (none secret — the only secret moved to federated):
   - `AZURE_TENANT_ID` = the tenant ID (same value as the GitHub
     secret had)
-  - `AZURE_CLIENT_ID` = the `webfront-docs-publisher` app's client ID
+  - `AZURE_CLIENT_ID` = the `it-project-docs-publisher` app's client ID
   - `SHAREPOINT_SITE_ID` = the comma-triple site ID
   - `SHAREPOINT_DRIVE_NAME` = `Documents` (or wherever you set it)
 - **Pipeline permissions** → grant the `publish-docs-to-sharepoint`

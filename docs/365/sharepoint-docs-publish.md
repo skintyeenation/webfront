@@ -49,7 +49,7 @@ the global admin — see [`entra-id.md`](./entra-id.md) for which
 account that is):
 
 1. **Applications** → **App registrations** → **New registration**.
-2. Name: `webfront-docs-publisher`.
+2. Name: `it-project-docs-publisher`.
 3. **Supported account types**: *Accounts in this organizational
    directory only* (single tenant).
 4. **Redirect URI**: leave blank (we use client_credentials, no
@@ -108,7 +108,7 @@ Connect-PnPOnline -Url https://skintyeenation.sharepoint.com/sites/webfront-docs
 # Grant the app write access to this site
 Grant-PnPAzureADAppSitePermission `
   -AppId "<application-client-id-from-step-2>" `
-  -DisplayName "webfront-docs-publisher" `
+  -DisplayName "it-project-docs-publisher" `
   -Site "https://skintyeenation.sharepoint.com/sites/webfront-docs" `
   -Permissions Write
 ```
@@ -116,7 +116,7 @@ Grant-PnPAzureADAppSitePermission `
 **Alternative** — direct Graph call (if you'd rather not install
 PnP). See <https://learn.microsoft.com/en-us/graph/api/site-post-permissions>
 — `POST /sites/{site-id}/permissions` with body
-`{ "roles": ["write"], "grantedToIdentities": [{ "application": { "id": "<app-id>", "displayName": "webfront-docs-publisher" } }] }`.
+`{ "roles": ["write"], "grantedToIdentities": [{ "application": { "id": "<app-id>", "displayName": "it-project-docs-publisher" } }] }`.
 
 ### 6. Get the SharePoint site ID
 
