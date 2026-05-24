@@ -1,0 +1,158 @@
+{
+  "fetchedAt": "2026-05-24T01:42:41.167Z",
+  "data": {
+    "fiscalYear": "2007-2008",
+    "bandNumber": "607",
+    "bandName": "Lake Babine Nation",
+    "transfers": [
+      {
+        "department": "INAC",
+        "program": "Elementary/Secondary/Post Secondary",
+        "amount": 4389179
+      },
+      {
+        "department": "INAC",
+        "program": "Economic Development",
+        "amount": 272687
+      },
+      {
+        "department": "INAC",
+        "program": "Indian Government Support",
+        "amount": 676302
+      },
+      {
+        "department": "INAC",
+        "program": "Lands and Trust Services",
+        "amount": 0
+      },
+      {
+        "department": "INAC",
+        "program": "Community Infrastructure",
+        "amount": 2128459
+      },
+      {
+        "department": "INAC",
+        "program": "Self-government",
+        "amount": 0
+      },
+      {
+        "department": "INAC",
+        "program": "Social Assistance",
+        "amount": 2371452
+      },
+      {
+        "department": "INAC",
+        "program": "Social Support Services",
+        "amount": 115827
+      },
+      {
+        "department": "INAC",
+        "program": "Housing",
+        "amount": 215570
+      },
+      {
+        "department": "INAC",
+        "program": "Other",
+        "amount": 0
+      },
+      {
+        "department": "Health Canada",
+        "program": "Health Services",
+        "amount": 1590294
+      },
+      {
+        "department": "Health Canada",
+        "program": "Home Care Support",
+        "amount": 302539
+      },
+      {
+        "department": "Health Canada",
+        "program": "Patient Travel",
+        "amount": 674518
+      },
+      {
+        "department": "Health Canada",
+        "program": "AIDS",
+        "amount": 14251
+      },
+      {
+        "department": "Health Canada",
+        "program": "Diabetes",
+        "amount": 24000
+      },
+      {
+        "department": "Health Canada",
+        "program": "Environmental Health",
+        "amount": 20000
+      },
+      {
+        "department": "Health Canada",
+        "program": "Safe Drinking Water",
+        "amount": 22320
+      },
+      {
+        "department": "Health Canada",
+        "program": "Communicable Diseases",
+        "amount": 9705
+      },
+      {
+        "department": "CMHC",
+        "program": "Non-profit on Reserve Housing",
+        "amount": 495339
+      },
+      {
+        "department": "HRDC",
+        "program": "HRDC",
+        "amount": 0
+      },
+      {
+        "department": "Fisheries and Oceans",
+        "program": "Fisheries and Oceans",
+        "amount": 465500
+      },
+      {
+        "department": "Canadian Heritage",
+        "program": "Canadian Heritage",
+        "amount": 0
+      },
+      {
+        "department": "Solicitor General",
+        "program": "Solicitor General",
+        "amount": 0
+      },
+      {
+        "department": "National Association of Culture",
+        "program": "National Assoc. Culture",
+        "amount": 33093
+      },
+      {
+        "department": "Industry Canada",
+        "program": "Industry Canada",
+        "amount": 0
+      },
+      {
+        "department": "Natural Resources",
+        "program": "Natural Resources",
+        "amount": 99800
+      },
+      {
+        "department": "Justice",
+        "program": "Justice",
+        "amount": 0
+      },
+      {
+        "department": "Privy Council Office",
+        "program": "Privy Council Office",
+        "amount": 0
+      },
+      {
+        "department": "Other",
+        "program": "Other",
+        "amount": 0
+      }
+    ],
+    "declaredTotal": 13920835,
+    "computedTotal": 13920835,
+    "notes": "Schedule of Federal Government Funding for year ended March 31, 2008. Total Expenditures from All Sources reported as 16,951,162. NA: Option #2 used for schedule compilation."
+  }
+}

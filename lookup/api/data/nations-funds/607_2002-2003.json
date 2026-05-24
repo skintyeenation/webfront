@@ -1,0 +1,91 @@
+{
+  "fetchedAt": "2026-05-24T01:35:53.495Z",
+  "data": {
+    "fiscalYear": "2002-2003",
+    "bandNumber": "607",
+    "bandName": "Lake Babine Nation",
+    "transfers": [
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Elementary / Secondary Education",
+        "amount": 3148228,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Post Secondary Education",
+        "amount": 171085,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Economic Development",
+        "amount": 140545,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Indian Government Support",
+        "amount": 631029,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Community Infrastructure",
+        "amount": 2373917,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Assistance",
+        "amount": 486324,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Support Services",
+        "amount": 280055,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Housing",
+        "amount": 6142470,
+        "notes": "Federal Funding Received; handwritten value on document"
+      },
+      {
+        "department": "Health Canada",
+        "program": "Community Health Services",
+        "amount": 1431345,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "CMHC",
+        "program": "Social Housing",
+        "amount": 455360,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Fisheries and Oceans",
+        "program": "Fisheries",
+        "amount": 515000,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "CECP",
+        "program": "Cultural Education",
+        "amount": 30573,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "HRDC",
+        "program": "PGNAETA",
+        "amount": 577889,
+        "notes": "Federal Funding Received"
+      }
+    ],
+    "declaredTotal": 11852568,
+    "computedTotal": 16383820,
+    "notes": "Amounts extracted from Summary Schedule of Federal Government Funding for year ended March 31, 2003. The Social Housing line under INAC appears to show a handwritten value of 6,142,470 which may include carry-forward unexpended balances. Total Federal Funding Received per document is $11,852,568. Total Funding Available (including unexpended beginning of year) is $18,099,916. Total Funding Expended is $10,666,726. Unexpended End of Year is $7,433,190. Document contains only the Schedule of Federal Funding; no full audited financial statements with expenditures or balance sheet were included."
+  }
+}

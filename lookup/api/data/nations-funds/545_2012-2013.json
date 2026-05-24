@@ -1,0 +1,53 @@
+{
+  "fetchedAt": "2026-05-24T01:33:14.551Z",
+  "data": {
+    "fiscalYear": "2012-2013",
+    "bandNumber": "545",
+    "bandName": "West Moberly First Nations",
+    "transfers": [
+      {
+        "department": "Aboriginal Affairs and Northern Development Canada",
+        "program": "Administration",
+        "amount": 236406
+      },
+      {
+        "department": "Aboriginal Affairs and Northern Development Canada",
+        "program": "Capital Projects",
+        "amount": 319262
+      },
+      {
+        "department": "Aboriginal Affairs and Northern Development Canada",
+        "program": "Community Operations",
+        "amount": 405566
+      },
+      {
+        "department": "Aboriginal Affairs and Northern Development Canada",
+        "program": "Economic Development",
+        "amount": 76301
+      },
+      {
+        "department": "Aboriginal Affairs and Northern Development Canada",
+        "program": "Education",
+        "amount": 119694
+      },
+      {
+        "department": "Aboriginal Affairs and Northern Development Canada",
+        "program": "Social Development",
+        "amount": 207049
+      },
+      {
+        "department": "Health Canada",
+        "program": "Community Health Services",
+        "amount": 300573
+      },
+      {
+        "department": "CMHC",
+        "program": "Non-Profit On-Reserve Housing",
+        "amount": 98664
+      }
+    ],
+    "declaredTotal": 1763515,
+    "computedTotal": 1763515,
+    "notes": "Document contains only the Schedule of Federal Government Funding; no full audited financial statements (expenditures, balance sheet, operating result) are included. Total funding received per schedule: $1,763,515. Funding expended: $1,592,504. Unexpended funding end of year: $171,011. AANDC subtotal received: $1,364,278."
+  }
+}

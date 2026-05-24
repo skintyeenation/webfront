@@ -1,0 +1,173 @@
+{
+  "fetchedAt": "2026-05-24T01:41:19.996Z",
+  "data": {
+    "fiscalYear": "2006-2007",
+    "bandNumber": "607",
+    "bandName": "Lake Babine Nation",
+    "transfers": [
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Elementary / Secondary",
+        "amount": 4221065
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Post-Secondary Education",
+        "amount": 0
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Economic Development",
+        "amount": 190718
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Indian Government Support",
+        "amount": 585778
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Lands and Trust Services",
+        "amount": 0
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Community Infrastructure",
+        "amount": 5625686
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Self-government",
+        "amount": 0
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Assistance",
+        "amount": 2501196
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Support Services",
+        "amount": 0
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Housing",
+        "amount": 607309
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Other",
+        "amount": 1002644
+      },
+      {
+        "department": "Health Canada",
+        "program": "Health Services",
+        "amount": 1481742
+      },
+      {
+        "department": "Health Canada",
+        "program": "Aboriginal Diabetes Initiative",
+        "amount": 20000
+      },
+      {
+        "department": "Health Canada",
+        "program": "Aids",
+        "amount": 4751
+      },
+      {
+        "department": "Health Canada",
+        "program": "Environmental Health",
+        "amount": 11380
+      },
+      {
+        "department": "Health Canada",
+        "program": "First Nations and Inuit Health Information System",
+        "amount": 0
+      },
+      {
+        "department": "Health Canada",
+        "program": "First Nations and Inuit Home and Community Care",
+        "amount": 293727
+      },
+      {
+        "department": "Health Canada",
+        "program": "Patient Travel",
+        "amount": 433704
+      },
+      {
+        "department": "Health Canada",
+        "program": "Health Station",
+        "amount": 381283
+      },
+      {
+        "department": "Health Canada",
+        "program": "Service Enhancement",
+        "amount": 0
+      },
+      {
+        "department": "Health Canada",
+        "program": "Non-Insured Health Benefits",
+        "amount": 0
+      },
+      {
+        "department": "CMHC",
+        "program": "Non-profit on Reserve Housing",
+        "amount": 514726
+      },
+      {
+        "department": "HRDC",
+        "program": "HRDC",
+        "amount": 0
+      },
+      {
+        "department": "Fisheries and Oceans",
+        "program": "Fisheries and Oceans",
+        "amount": 485500
+      },
+      {
+        "department": "Canadian Heritage",
+        "program": "Canadian Heritage",
+        "amount": 0
+      },
+      {
+        "department": "Solicitor General",
+        "program": "Solicitor General",
+        "amount": 0
+      },
+      {
+        "department": "National Assoc. Culture",
+        "program": "National Assoc. Culture",
+        "amount": 33093
+      },
+      {
+        "department": "Industry Canada",
+        "program": "Industry Canada",
+        "amount": 0
+      },
+      {
+        "department": "Natural Resources",
+        "program": "Natural Resources",
+        "amount": 0
+      },
+      {
+        "department": "Justice",
+        "program": "Justice",
+        "amount": 0
+      },
+      {
+        "department": "Privy Council Office",
+        "program": "Privy Council Office",
+        "amount": 0
+      },
+      {
+        "department": "Other",
+        "program": "Other",
+        "amount": 0
+      }
+    ],
+    "declaredTotal": 18394302,
+    "computedTotal": 18394302,
+    "notes": "Schedule of Federal Government Funding for year ended March 31, 2007. Total Expenditures from All Sources reported as 18,649,537. Option #2 used for schedule compilation. Some Health Canada amounts partially obscured by scan artifacts but readable."
+  }
+}

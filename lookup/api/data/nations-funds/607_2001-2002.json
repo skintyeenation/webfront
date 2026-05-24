@@ -1,0 +1,85 @@
+{
+  "fetchedAt": "2026-05-24T01:34:33.274Z",
+  "data": {
+    "fiscalYear": "2001-2002",
+    "bandNumber": "607",
+    "bandName": "Lake Babine Nation",
+    "transfers": [
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Elementary / Secondary Education",
+        "amount": 3088629,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Post Secondary Education",
+        "amount": 766239,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Economic Development",
+        "amount": 146391,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Indian Government Support",
+        "amount": 1023580,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Community Infrastructure",
+        "amount": 1418168,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Assistance",
+        "amount": 2368623,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Support Services",
+        "amount": 435019,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Health Canada",
+        "program": "Community Health Services",
+        "amount": 1772894,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "CMHC",
+        "program": "Social Housing",
+        "amount": 672654,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Fisheries and Oceans",
+        "program": "Fisheries",
+        "amount": 515000,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "CECP",
+        "program": "Cultural Education",
+        "amount": 22930,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "HRDC",
+        "program": "PGNAETA",
+        "amount": 519906,
+        "notes": "Federal Funding Received"
+      }
+    ],
+    "declaredTotal": 12749033,
+    "computedTotal": 12750033,
+    "notes": "Document contains only the Summary Schedule of Federal Government Funding for year ended March 31, 2002. Total Funding Available was $17,073,785 including unexpended funding from beginning of year of $4,353,799 and adjustments of -$29,047. Total Funding Expended was $10,876,941. Unexpended Funding End of Year was $6,196,844. No full audited financial statements (balance sheet, expenditures) were included in this document."
+  }
+}

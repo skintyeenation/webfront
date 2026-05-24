@@ -1,0 +1,4831 @@
+{
+  "fetchedAt": "2026-05-24T01:15:58.496Z",
+  "data": {
+    "items": [
+      {
+        "bandNumber": "604",
+        "name": "?Akisq'nuk First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 331
+      },
+      {
+        "bandNumber": "602",
+        "name": "?aqam",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 399
+      },
+      {
+        "bandNumber": "709",
+        "name": "?Esdilagh First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 267
+      },
+      {
+        "bandNumber": "172",
+        "name": "Aamjiwnaang",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 2526
+      },
+      {
+        "bandNumber": "1",
+        "name": "Abegweit",
+        "region": "Atlantique",
+        "province": "Île-du-Prince-Édouard",
+        "population": 402
+      },
+      {
+        "bandNumber": "18",
+        "name": "Acadia",
+        "region": "Atlantique",
+        "province": "Nouvelle-Écosse",
+        "population": 1896
+      },
+      {
+        "bandNumber": "758",
+        "name": "Acho Dene Koe First Nation",
+        "region": "Territoires du Nord-Ouest",
+        "province": "Territoires du Nord-Ouest",
+        "population": 722
+      },
+      {
+        "bandNumber": "684",
+        "name": "Adams Lake",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 849
+      },
+      {
+        "bandNumber": "659",
+        "name": "Ahousaht",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 2232
+      },
+      {
+        "bandNumber": "406",
+        "name": "Ahtahkakoop",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 3928
+      },
+      {
+        "bandNumber": "490",
+        "name": "Aishihik",
+        "region": "Yukon",
+        "province": "Yukon",
+        "population": 201
+      },
+      {
+        "bandNumber": "558",
+        "name": "Aitchelitz",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 41
+      },
+      {
+        "bandNumber": "755",
+        "name": "Aklavik",
+        "region": "Territoires du Nord-Ouest",
+        "province": "Territoires du Nord-Ouest",
+        "population": 440
+      },
+      {
+        "bandNumber": "142",
+        "name": "Albany",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 5331
+      },
+      {
+        "bandNumber": "160",
+        "name": "Alderville First Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 1370
+      },
+      {
+        "bandNumber": "438",
+        "name": "Alexander",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 2457
+      },
+      {
+        "bandNumber": "437",
+        "name": "Alexis Nakota Sioux Nation",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 2209
+      },
+      {
+        "bandNumber": "74",
+        "name": "Algonquins of Barriere Lake",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 793
+      },
+      {
+        "bandNumber": "163",
+        "name": "Algonquins of Pikwakanagan First Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 3706
+      },
+      {
+        "bandNumber": "152",
+        "name": "Animakee Wa Zhing #37",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 606
+      },
+      {
+        "bandNumber": "194",
+        "name": "Animbiigoo Zaagi'igan Anishinaabek",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 556
+      },
+      {
+        "bandNumber": "153",
+        "name": "Anishinabe of Wauzhushk Onigum",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 851
+      },
+      {
+        "bandNumber": "125",
+        "name": "Anishnaabeg of Naongashiing",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 461
+      },
+      {
+        "bandNumber": "20",
+        "name": "Annapolis Valley",
+        "region": "Atlantique",
+        "province": "Nouvelle-Écosse",
+        "population": 318
+      },
+      {
+        "bandNumber": "233",
+        "name": "Apitipi Anicinapek Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 418
+      },
+      {
+        "bandNumber": "242",
+        "name": "Aroland",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 755
+      },
+      {
+        "bandNumber": "685",
+        "name": "Ashcroft",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 364
+      },
+      {
+        "bandNumber": "463",
+        "name": "Athabasca Chipewyan First Nation",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 1431
+      },
+      {
+        "bandNumber": "224",
+        "name": "Atikameksheng Anishnawbek",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sudbury",
+        "population": 1508
+      },
+      {
+        "bandNumber": "79",
+        "name": "Atikamekw d'Opitciwan",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District Pointe-Bleue",
+        "population": 3155
+      },
+      {
+        "bandNumber": "143",
+        "name": "Attawapiskat",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 3708
+      },
+      {
+        "bandNumber": "180",
+        "name": "Aundeck-Omni-Kaning",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sudbury",
+        "population": 918
+      },
+      {
+        "bandNumber": "85",
+        "name": "Bande des Innus de Pessamit",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 4128
+      },
+      {
+        "bandNumber": "308",
+        "name": "Barren Lands",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 1227
+      },
+      {
+        "bandNumber": "198",
+        "name": "Batchewana First Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sudbury",
+        "population": 3149
+      },
+      {
+        "bandNumber": "244",
+        "name": "Bay of Quinte Mohawk",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 837
+      },
+      {
+        "bandNumber": "21",
+        "name": "Bear River",
+        "region": "Atlantique",
+        "province": "Nouvelle-Écosse",
+        "population": 378
+      },
+      {
+        "bandNumber": "369",
+        "name": "Beardy's and Okemasis",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 3726
+      },
+      {
+        "bandNumber": "248",
+        "name": "Bearfoot Onondaga",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 687
+      },
+      {
+        "bandNumber": "207",
+        "name": "Bearskin Lake",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sioux Lookout",
+        "population": 954
+      },
+      {
+        "bandNumber": "473",
+        "name": "Bearspaw",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 2013
+      },
+      {
+        "bandNumber": "141",
+        "name": "Beausoleil",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 3101
+      },
+      {
+        "bandNumber": "445",
+        "name": "Beaver First Nation",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 1325
+      },
+      {
+        "bandNumber": "460",
+        "name": "Beaver Lake Cree Nation",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District St. Paul",
+        "population": 1350
+      },
+      {
+        "bandNumber": "640",
+        "name": "Beecher Bay",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 267
+      },
+      {
+        "bandNumber": "771",
+        "name": "Behdzi Ahda’ First Nation",
+        "region": "Territoires du Nord-Ouest",
+        "province": "Territoires du Nord-Ouest",
+        "population": 261
+      },
+      {
+        "bandNumber": "266",
+        "name": "Berens River",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 3707
+      },
+      {
+        "bandNumber": "124",
+        "name": "Big Grassy",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 875
+      },
+      {
+        "bandNumber": "399",
+        "name": "Big Island Lake Cree Nation",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 1274
+      },
+      {
+        "bandNumber": "404",
+        "name": "Big River",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 3916
+      },
+      {
+        "bandNumber": "458",
+        "name": "Bigstone Cree Nation",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 8685
+      },
+      {
+        "bandNumber": "192",
+        "name": "Biigtigong Nishnaabeg",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 1279
+      },
+      {
+        "bandNumber": "197",
+        "name": "Biinjitiwaabik Zaaging Anishinaabek",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 803
+      },
+      {
+        "bandNumber": "11",
+        "name": "Bilijk",
+        "region": "Atlantique",
+        "province": "Nouveau-Brunswick",
+        "population": 1069
+      },
+      {
+        "bandNumber": "730",
+        "name": "Binche Whut'en",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 213
+      },
+      {
+        "bandNumber": "196",
+        "name": "Bingwi Neyaashi Anishinaabek",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 358
+      },
+      {
+        "bandNumber": "403",
+        "name": "Birch Narrows First Nation",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 936
+      },
+      {
+        "bandNumber": "284",
+        "name": "Birdtail Sioux",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 936
+      },
+      {
+        "bandNumber": "359",
+        "name": "Black Lake",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 2298
+      },
+      {
+        "bandNumber": "260",
+        "name": "Black River First Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 1538
+      },
+      {
+        "bandNumber": "435",
+        "name": "Blood",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 12814
+      },
+      {
+        "bandNumber": "267",
+        "name": "Bloodvein",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 2018
+      },
+      {
+        "bandNumber": "547",
+        "name": "Blueberry River First Nations",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 535
+      },
+      {
+        "bandNumber": "686",
+        "name": "Bonaparte",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1037
+      },
+      {
+        "bandNumber": "700",
+        "name": "Boothroyd",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 318
+      },
+      {
+        "bandNumber": "701",
+        "name": "Boston Bar First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 299
+      },
+      {
+        "bandNumber": "590",
+        "name": "Bridge River",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 489
+      },
+      {
+        "bandNumber": "261",
+        "name": "Brokenhead Ojibway Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 2223
+      },
+      {
+        "bandNumber": "228",
+        "name": "Brunswick House",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 926
+      },
+      {
+        "bandNumber": "4",
+        "name": "Buctouche MicMac",
+        "region": "Atlantique",
+        "province": "Nouveau-Brunswick",
+        "population": 128
+      },
+      {
+        "bandNumber": "265",
+        "name": "Buffalo Point First Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 136
+      },
+      {
+        "bandNumber": "398",
+        "name": "Buffalo River Dene Nation",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 1688
+      },
+      {
+        "bandNumber": "301",
+        "name": "Bunibonibee Cree Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 3320
+      },
+      {
+        "bandNumber": "165",
+        "name": "Caldwell",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 498
+      },
+      {
+        "bandNumber": "622",
+        "name": "Campbell River",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 911
+      },
+      {
+        "bandNumber": "713",
+        "name": "Canim Lake",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 607
+      },
+      {
+        "bandNumber": "394",
+        "name": "Canoe Lake Cree First Nation",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 2952
+      },
+      {
+        "bandNumber": "289",
+        "name": "Canupawakpa Dakota First Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 664
+      },
+      {
+        "bandNumber": "623",
+        "name": "Cape Mudge",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1218
+      },
+      {
+        "bandNumber": "491",
+        "name": "Carcross/Tagish First Nation",
+        "region": "Yukon",
+        "province": "Yukon",
+        "population": 719
+      },
+      {
+        "bandNumber": "378",
+        "name": "Carry The Kettle",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Sud",
+        "population": 3055
+      },
+      {
+        "bandNumber": "216",
+        "name": "Cat Lake",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sioux Lookout",
+        "population": 837
+      },
+      {
+        "bandNumber": "591",
+        "name": "Cayoose Creek",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 211
+      },
+      {
+        "bandNumber": "493",
+        "name": "Champagne",
+        "region": "Yukon",
+        "province": "Yukon",
+        "population": 751
+      },
+      {
+        "bandNumber": "221",
+        "name": "Chapleau Cree First Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 702
+      },
+      {
+        "bandNumber": "229",
+        "name": "Chapleau Ojibway",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 41
+      },
+      {
+        "bandNumber": "583",
+        "name": "Chawathil",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 652
+      },
+      {
+        "bandNumber": "584",
+        "name": "Cheam",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 577
+      },
+      {
+        "bandNumber": "309",
+        "name": "Chemawawin Cree Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 2109
+      },
+      {
+        "bandNumber": "620",
+        "name": "Cheslatta Carrier Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 383
+      },
+      {
+        "bandNumber": "433",
+        "name": "Chiniki",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 1802
+      },
+      {
+        "bandNumber": "470",
+        "name": "Chipewyan Prairie First Nation",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 1017
+      },
+      {
+        "bandNumber": "138",
+        "name": "Chippewas of Georgina Island",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 950
+      },
+      {
+        "bandNumber": "171",
+        "name": "Chippewas of Kettle and Stony Point",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 2637
+      },
+      {
+        "bandNumber": "122",
+        "name": "Chippewas of Nawash First Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 2822
+      },
+      {
+        "bandNumber": "139",
+        "name": "Chippewas of Rama First Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 2122
+      },
+      {
+        "bandNumber": "166",
+        "name": "Chippewas of the Thames First Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 3070
+      },
+      {
+        "bandNumber": "401",
+        "name": "Clearwater River Dene",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 3006
+      },
+      {
+        "bandNumber": "464",
+        "name": "Cold Lake First Nations",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District St. Paul",
+        "population": 3090
+      },
+      {
+        "bandNumber": "693",
+        "name": "Coldwater",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 908
+      },
+      {
+        "bandNumber": "62",
+        "name": "Communauté anicinape de Kitcisakik",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 528
+      },
+      {
+        "bandNumber": "55",
+        "name": "Conseil de la Première Nation Abitibiwinni",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 1102
+      },
+      {
+        "bandNumber": "77",
+        "name": "Conseil des Atikamekw de Wemotaci",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District Pointe-Bleue",
+        "population": 2080
+      },
+      {
+        "bandNumber": "182",
+        "name": "Constance Lake",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 1804
+      },
+      {
+        "bandNumber": "694",
+        "name": "Cook's Ferry",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 377
+      },
+      {
+        "bandNumber": "366",
+        "name": "Cote First Nation 366",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Sud",
+        "population": 4252
+      },
+      {
+        "bandNumber": "126",
+        "name": "Couchiching First Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 2904
+      },
+      {
+        "bandNumber": "361",
+        "name": "Cowessess",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Sud",
+        "population": 4435
+      },
+      {
+        "bandNumber": "642",
+        "name": "Cowichan",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 5353
+      },
+      {
+        "bandNumber": "58",
+        "name": "Cree Nation of Chisasibi",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 4833
+      },
+      {
+        "bandNumber": "75",
+        "name": "Cree Nation of Mistissini",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 4223
+      },
+      {
+        "bandNumber": "59",
+        "name": "Cree Nation of Nemaska",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 850
+      },
+      {
+        "bandNumber": "60",
+        "name": "Cree Nation of Wemindji",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 1661
+      },
+      {
+        "bandNumber": "276",
+        "name": "Cross Lake Band of Indians",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 9241
+      },
+      {
+        "bandNumber": "350",
+        "name": "Cumberland House Cree Nation",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 2018
+      },
+      {
+        "bandNumber": "161",
+        "name": "Curve Lake",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 2790
+      },
+      {
+        "bandNumber": "635",
+        "name": "Da'naxda'xw First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 242
+      },
+      {
+        "bandNumber": "288",
+        "name": "Dakota Plains",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 271
+      },
+      {
+        "bandNumber": "295",
+        "name": "Dakota Tipi",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 436
+      },
+      {
+        "bandNumber": "316",
+        "name": "Dauphin River",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 415
+      },
+      {
+        "bandNumber": "389",
+        "name": "Day Star",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Sud",
+        "population": 529
+      },
+      {
+        "bandNumber": "504",
+        "name": "Dease River",
+        "region": "Yukon",
+        "province": "Yukon",
+        "population": 182
+      },
+      {
+        "bandNumber": "774",
+        "name": "Dechi Laot'i First Nations",
+        "region": "Territoires du Nord-Ouest",
+        "province": "Territoires du Nord-Ouest",
+        "population": 197
+      },
+      {
+        "bandNumber": "237",
+        "name": "Deer Lake",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sioux Lookout",
+        "population": 1394
+      },
+      {
+        "bandNumber": "760",
+        "name": "Deh Gáh Got’ı̨ę́ First Nation",
+        "region": "Territoires du Nord-Ouest",
+        "province": "Territoires du Nord-Ouest",
+        "population": 1106
+      },
+      {
+        "bandNumber": "253",
+        "name": "Delaware",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 742
+      },
+      {
+        "bandNumber": "754",
+        "name": "Deline First Nation",
+        "region": "Territoires du Nord-Ouest",
+        "province": "Territoires du Nord-Ouest",
+        "population": 1101
+      },
+      {
+        "bandNumber": "448",
+        "name": "Dene Tha'",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 3232
+      },
+      {
+        "bandNumber": "762",
+        "name": "Deninu K'ue First Nation",
+        "region": "Territoires du Nord-Ouest",
+        "province": "Territoires du Nord-Ouest",
+        "population": 1023
+      },
+      {
+        "bandNumber": "662",
+        "name": "Ditidaht",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 773
+      },
+      {
+        "bandNumber": "765",
+        "name": "Dog Rib Rae",
+        "region": "Territoires du Nord-Ouest",
+        "province": "Territoires du Nord-Ouest",
+        "population": 3341
+      },
+      {
+        "bandNumber": "548",
+        "name": "Doig River First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 323
+      },
+      {
+        "bandNumber": "218",
+        "name": "Dokis",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sudbury",
+        "population": 1409
+      },
+      {
+        "bandNumber": "561",
+        "name": "Douglas",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 367
+      },
+      {
+        "bandNumber": "450",
+        "name": "Driftpile Cree Nation",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 3149
+      },
+      {
+        "bandNumber": "451",
+        "name": "Duncan's First Nation",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 378
+      },
+      {
+        "bandNumber": "636",
+        "name": "Dzawada'enuxw First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 545
+      },
+      {
+        "bandNumber": "183",
+        "name": "Eabametoong First Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 2825
+      },
+      {
+        "bandNumber": "148",
+        "name": "Eagle Lake",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 656
+      },
+      {
+        "bandNumber": "57",
+        "name": "Eastmain",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 953
+      },
+      {
+        "bandNumber": "280",
+        "name": "Ebb and Flow",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 3330
+      },
+      {
+        "bandNumber": "8",
+        "name": "Eel River Bar First Nation",
+        "region": "Atlantique",
+        "province": "Nouveau-Brunswick",
+        "population": 824
+      },
+      {
+        "bandNumber": "634",
+        "name": "Ehattesaht",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 551
+      },
+      {
+        "bandNumber": "3",
+        "name": "Elsipogtog First Nation",
+        "region": "Atlantique",
+        "province": "Nouveau-Brunswick",
+        "population": 3562
+      },
+      {
+        "bandNumber": "400",
+        "name": "English River First Nation",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 1768
+      },
+      {
+        "bandNumber": "440",
+        "name": "Enoch Cree Nation #440",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 2983
+      },
+      {
+        "bandNumber": "443",
+        "name": "Ermineskin Tribe",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 5040
+      },
+      {
+        "bandNumber": "5",
+        "name": "Esgenoopetitj First Nation",
+        "region": "Atlantique",
+        "province": "Nouveau-Brunswick",
+        "population": 1948
+      },
+      {
+        "bandNumber": "711",
+        "name": "Esk'etemc",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1126
+      },
+      {
+        "bandNumber": "23",
+        "name": "Eskasoni",
+        "region": "Atlantique",
+        "province": "Nouvelle-Écosse",
+        "population": 4724
+      },
+      {
+        "bandNumber": "644",
+        "name": "Esquimalt",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 340
+      },
+      {
+        "bandNumber": "495",
+        "name": "First Nation of Nacho Nyak Dun",
+        "region": "Yukon",
+        "province": "Yukon",
+        "population": 549
+      },
+      {
+        "bandNumber": "264",
+        "name": "Fisher River",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 4223
+      },
+      {
+        "bandNumber": "390",
+        "name": "Fishing Lake First Nation",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Sud",
+        "population": 1918
+      },
+      {
+        "bandNumber": "395",
+        "name": "Flying Dust First Nation",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 1676
+      },
+      {
+        "bandNumber": "227",
+        "name": "Flying Post",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 314
+      },
+      {
+        "bandNumber": "351",
+        "name": "Fond du Lac",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 2226
+      },
+      {
+        "bandNumber": "262",
+        "name": "Fort Alexander",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 8427
+      },
+      {
+        "bandNumber": "9",
+        "name": "Fort Folly",
+        "region": "Atlantique",
+        "province": "Nouveau-Brunswick",
+        "population": 140
+      },
+      {
+        "bandNumber": "752",
+        "name": "Fort Good Hope",
+        "region": "Territoires du Nord-Ouest",
+        "province": "Territoires du Nord-Ouest",
+        "population": 954
+      },
+      {
+        "bandNumber": "467",
+        "name": "Fort McKay First Nation",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 981
+      },
+      {
+        "bandNumber": "468",
+        "name": "Fort McMurray #468 First Nation",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 1017
+      },
+      {
+        "bandNumber": "543",
+        "name": "Fort Nelson First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 991
+      },
+      {
+        "bandNumber": "215",
+        "name": "Fort Severn",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sioux Lookout",
+        "population": 726
+      },
+      {
+        "bandNumber": "187",
+        "name": "Fort William",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 2798
+      },
+      {
+        "bandNumber": "305",
+        "name": "Fox Lake",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 1336
+      },
+      {
+        "bandNumber": "465",
+        "name": "Frog Lake",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District St. Paul",
+        "population": 3537
+      },
+      {
+        "bandNumber": "294",
+        "name": "Gambler First Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 384
+      },
+      {
+        "bandNumber": "773",
+        "name": "Gameti First Nation",
+        "region": "Territoires du Nord-Ouest",
+        "province": "Territoires du Nord-Ouest",
+        "population": 368
+      },
+      {
+        "bandNumber": "297",
+        "name": "Garden Hill First Nations",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 4800
+      },
+      {
+        "bandNumber": "199",
+        "name": "Garden River First Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sudbury",
+        "population": 3359
+      },
+      {
+        "bandNumber": "391",
+        "name": "George Gordon First Nation",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Sud",
+        "population": 3849
+      },
+      {
+        "bandNumber": "185",
+        "name": "Ginoogaming First Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 980
+      },
+      {
+        "bandNumber": "531",
+        "name": "Gitanmaax",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 2572
+      },
+      {
+        "bandNumber": "537",
+        "name": "Gitanyow",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 862
+      },
+      {
+        "bandNumber": "675",
+        "name": "Gitga'at First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 848
+      },
+      {
+        "bandNumber": "677",
+        "name": "Gitlaxt'aamiks Village Government",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1860
+      },
+      {
+        "bandNumber": "535",
+        "name": "Gitsegukla",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1071
+      },
+      {
+        "bandNumber": "536",
+        "name": "Gitwangak",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1487
+      },
+      {
+        "bandNumber": "672",
+        "name": "Gitxaała Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 2094
+      },
+      {
+        "bandNumber": "533",
+        "name": "Glen Vowell",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 422
+      },
+      {
+        "bandNumber": "30",
+        "name": "Glooscap First Nation",
+        "region": "Atlantique",
+        "province": "Nouvelle-Écosse",
+        "population": 421
+      },
+      {
+        "bandNumber": "296",
+        "name": "God's Lake First Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 2863
+      },
+      {
+        "bandNumber": "475",
+        "name": "Goodstoney Band",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 1833
+      },
+      {
+        "bandNumber": "149",
+        "name": "Grassy Narrows First Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 1606
+      },
+      {
+        "bandNumber": "188",
+        "name": "Gull Bay",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 1583
+      },
+      {
+        "bandNumber": "724",
+        "name": "Gwa'Sala-Nakwaxda'xw",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1090
+      },
+      {
+        "bandNumber": "627",
+        "name": "Gwawaenuk Tribe",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 41
+      },
+      {
+        "bandNumber": "753",
+        "name": "Gwichya Gwich'in",
+        "region": "Territoires du Nord-Ouest",
+        "province": "Territoires du Nord-Ouest",
+        "population": 495
+      },
+      {
+        "bandNumber": "534",
+        "name": "Hagwilget Village Council",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 823
+      },
+      {
+        "bandNumber": "676",
+        "name": "Haisla Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 2023
+      },
+      {
+        "bandNumber": "645",
+        "name": "Halalt",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 211
+      },
+      {
+        "bandNumber": "546",
+        "name": "Halfway River First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 303
+      },
+      {
+        "bandNumber": "352",
+        "name": "Hatchet Lake",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 1952
+      },
+      {
+        "bandNumber": "469",
+        "name": "Heart Lake",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District St. Paul",
+        "population": 415
+      },
+      {
+        "bandNumber": "538",
+        "name": "Heiltsuk",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 2506
+      },
+      {
+        "bandNumber": "231",
+        "name": "Henvey Inlet First Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sudbury",
+        "population": 1181
+      },
+      {
+        "bandNumber": "661",
+        "name": "Hesquiaht",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 754
+      },
+      {
+        "bandNumber": "162",
+        "name": "Hiawatha First Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 1020
+      },
+      {
+        "bandNumber": "703",
+        "name": "High Bar",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 256
+      },
+      {
+        "bandNumber": "263",
+        "name": "Hollow Water",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 2126
+      },
+      {
+        "bandNumber": "552",
+        "name": "Homalco",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 475
+      },
+      {
+        "bandNumber": "449",
+        "name": "Horse Lake First Nation",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 1354
+      },
+      {
+        "bandNumber": "664",
+        "name": "Hupacasath First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 360
+      },
+      {
+        "bandNumber": "663",
+        "name": "Huu-ay-aht First Nations",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 707
+      },
+      {
+        "bandNumber": "10",
+        "name": "Indian Island",
+        "region": "Atlantique",
+        "province": "Nouveau-Brunswick",
+        "population": 216
+      },
+      {
+        "bandNumber": "80",
+        "name": "Innu Takuaikan Uashat Mak Mani-Utenam",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 4991
+      },
+      {
+        "bandNumber": "86",
+        "name": "Innue Essipit",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 1423
+      },
+      {
+        "bandNumber": "780",
+        "name": "Inuvik Native",
+        "region": "Territoires du Nord-Ouest",
+        "province": "Territoires du Nord-Ouest",
+        "population": 661
+      },
+      {
+        "bandNumber": "154",
+        "name": "Iskatewizaagegan #39 Independent First Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 698
+      },
+      {
+        "bandNumber": "683",
+        "name": "Iskut",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 818
+      },
+      {
+        "bandNumber": "370",
+        "name": "James Smith",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 3840
+      },
+      {
+        "bandNumber": "770",
+        "name": "Jean Marie River First Nation",
+        "region": "Territoires du Nord-Ouest",
+        "province": "Territoires du Nord-Ouest",
+        "population": 161
+      },
+      {
+        "bandNumber": "761",
+        "name": "K'atlodeeche First Nation",
+        "region": "Territoires du Nord-Ouest",
+        "province": "Territoires du Nord-Ouest",
+        "population": 667
+      },
+      {
+        "bandNumber": "624",
+        "name": "K’ómoks First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 350
+      },
+      {
+        "bandNumber": "638",
+        "name": "Ka:'yu:'k't'h'/Che:k'tles7et'h' First Nations",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 585
+      },
+      {
+        "bandNumber": "768",
+        "name": "Ka'a'gee Tu First Nation",
+        "region": "Territoires du Nord-Ouest",
+        "province": "Territoires du Nord-Ouest",
+        "population": 71
+      },
+      {
+        "bandNumber": "362",
+        "name": "Kahkewistahaw",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Sud",
+        "population": 2244
+      },
+      {
+        "bandNumber": "704",
+        "name": "Kanaka Bar",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 244
+      },
+      {
+        "bandNumber": "452",
+        "name": "Kapawe'no First Nation",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 436
+      },
+      {
+        "bandNumber": "210",
+        "name": "Kasabonika Lake",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sioux Lookout",
+        "population": 1225
+      },
+      {
+        "bandNumber": "563",
+        "name": "Katzie",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 644
+      },
+      {
+        "bandNumber": "393",
+        "name": "Kawacatoose",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Sud",
+        "population": 3329
+      },
+      {
+        "bandNumber": "65",
+        "name": "Kebaowek First Nation",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 1170
+      },
+      {
+        "bandNumber": "325",
+        "name": "Kee-Way-Win",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sioux Lookout",
+        "population": 845
+      },
+      {
+        "bandNumber": "367",
+        "name": "Keeseekoose",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Sud",
+        "population": 2640
+      },
+      {
+        "bandNumber": "286",
+        "name": "Keeseekoowenin",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 1360
+      },
+      {
+        "bandNumber": "466",
+        "name": "Kehewin Cree Nation",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District St. Paul",
+        "population": 2339
+      },
+      {
+        "bandNumber": "212",
+        "name": "Kingfisher",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sioux Lookout",
+        "population": 633
+      },
+      {
+        "bandNumber": "377",
+        "name": "Kinistin Saulteaux Nation",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 1131
+      },
+      {
+        "bandNumber": "268",
+        "name": "Kinonjeoshtegon First Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 836
+      },
+      {
+        "bandNumber": "532",
+        "name": "Kispiox",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1678
+      },
+      {
+        "bandNumber": "540",
+        "name": "Kitasoo Xai'xais Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 499
+      },
+      {
+        "bandNumber": "209",
+        "name": "Kitchenuhmaykoosib Inninuwug",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sioux Lookout",
+        "population": 1743
+      },
+      {
+        "bandNumber": "73",
+        "name": "Kitigan Zibi Anishinabeg",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 3860
+      },
+      {
+        "bandNumber": "680",
+        "name": "Kitselas",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 744
+      },
+      {
+        "bandNumber": "681",
+        "name": "Kitsumkalum",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 825
+      },
+      {
+        "bandNumber": "553",
+        "name": "Klahoose First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 440
+      },
+      {
+        "bandNumber": "503",
+        "name": "Kluane First Nation",
+        "region": "Yukon",
+        "province": "Yukon",
+        "population": 180
+      },
+      {
+        "bandNumber": "251",
+        "name": "Konadaha Seneca",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 620
+      },
+      {
+        "bandNumber": "610",
+        "name": "Kwadacha",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 605
+      },
+      {
+        "bandNumber": "626",
+        "name": "Kwakiutl",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 916
+      },
+      {
+        "bandNumber": "500",
+        "name": "Kwanlin Dun First Nation",
+        "region": "Yukon",
+        "province": "Yukon",
+        "population": 1029
+      },
+      {
+        "bandNumber": "564",
+        "name": "Kwantlen First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 375
+      },
+      {
+        "bandNumber": "580",
+        "name": "Kwaw-kwaw-Apilt",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 53
+      },
+      {
+        "bandNumber": "628",
+        "name": "Kwiakah",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 0
+      },
+      {
+        "bandNumber": "625",
+        "name": "Kwikwasut'inuxw Haxwa'mis",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 308
+      },
+      {
+        "bandNumber": "560",
+        "name": "Kwikwetlem First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 133
+      },
+      {
+        "bandNumber": "87",
+        "name": "La Nation Innu Matimekush-Lac John",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 1045
+      },
+      {
+        "bandNumber": "53",
+        "name": "La Nation Micmac de Gespeg",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 1648
+      },
+      {
+        "bandNumber": "189",
+        "name": "Lac Des Mille Lacs",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 637
+      },
+      {
+        "bandNumber": "127",
+        "name": "Lac La Croix",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 508
+      },
+      {
+        "bandNumber": "353",
+        "name": "Lac La Ronge",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 11897
+      },
+      {
+        "bandNumber": "205",
+        "name": "Lac Seul",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sioux Lookout",
+        "population": 3715
+      },
+      {
+        "bandNumber": "607",
+        "name": "Lake Babine Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 2574
+      },
+      {
+        "bandNumber": "271",
+        "name": "Lake Manitoba",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 2228
+      },
+      {
+        "bandNumber": "275",
+        "name": "Lake St. Martin",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 2909
+      },
+      {
+        "bandNumber": "674",
+        "name": "Lax Kw'alaams",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 4079
+      },
+      {
+        "bandNumber": "2",
+        "name": "Lennox Island",
+        "region": "Atlantique",
+        "province": "Île-du-Prince-Édouard",
+        "population": 1075
+      },
+      {
+        "bandNumber": "579",
+        "name": "Leq’á:mel First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 490
+      },
+      {
+        "bandNumber": "78",
+        "name": "Les Atikamekw de Manawan",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District Pointe-Bleue",
+        "population": 3067
+      },
+      {
+        "bandNumber": "82",
+        "name": "Les Innus de Ekuanitshit",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 702
+      },
+      {
+        "bandNumber": "611",
+        "name": "Lheidli T'enneh",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 676
+      },
+      {
+        "bandNumber": "721",
+        "name": "Lhoosk'uz Dene Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 232
+      },
+      {
+        "bandNumber": "715",
+        "name": "Lhtako Dene Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 195
+      },
+      {
+        "bandNumber": "502",
+        "name": "Liard First Nation",
+        "region": "Yukon",
+        "province": "Yukon",
+        "population": 1261
+      },
+      {
+        "bandNumber": "757",
+        "name": "Liidlii Kue First Nation",
+        "region": "Territoires du Nord-Ouest",
+        "province": "Territoires du Nord-Ouest",
+        "population": 1401
+      },
+      {
+        "bandNumber": "557",
+        "name": "Lil'wat Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 2272
+      },
+      {
+        "bandNumber": "826",
+        "name": "Liste générale District de l'Ouest",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 0
+      },
+      {
+        "bandNumber": "817",
+        "name": "Liste générale District de Sudbury",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sudbury",
+        "population": 803
+      },
+      {
+        "bandNumber": "831",
+        "name": "Liste générale District du Centre-Nord",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 0
+      },
+      {
+        "bandNumber": "816",
+        "name": "Liste générale District du Québec",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 239
+      },
+      {
+        "bandNumber": "821",
+        "name": "Liste générale District Sud",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 0
+      },
+      {
+        "bandNumber": "834",
+        "name": "Liste générale District Sud",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Sud",
+        "population": 0
+      },
+      {
+        "bandNumber": "810",
+        "name": "Liste générale région Atlantique",
+        "region": "Atlantique",
+        "province": "NA",
+        "population": 433
+      },
+      {
+        "bandNumber": "838",
+        "name": "Liste générale Région de l'Alberta",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 1231
+      },
+      {
+        "bandNumber": "848",
+        "name": "Liste générale Région de la Colombie-Britannique",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 358
+      },
+      {
+        "bandNumber": "809",
+        "name": "Liste générale Région des Territoires du Nord-Ouest",
+        "region": "Territoires du Nord-Ouest",
+        "province": "Territoires du Nord-Ouest",
+        "population": 0
+      },
+      {
+        "bandNumber": "804",
+        "name": "Liste générale Région du Manitoba",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 0
+      },
+      {
+        "bandNumber": "808",
+        "name": "Liste générale Région du Yukon",
+        "region": "Yukon",
+        "province": "Yukon",
+        "population": 0
+      },
+      {
+        "bandNumber": "51",
+        "name": "Listuguj Mi'gmaq Government",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 4301
+      },
+      {
+        "bandNumber": "379",
+        "name": "Little Black Bear",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Sud",
+        "population": 651
+      },
+      {
+        "bandNumber": "270",
+        "name": "Little Grand Rapids",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 1825
+      },
+      {
+        "bandNumber": "340",
+        "name": "Little Pine",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 2230
+      },
+      {
+        "bandNumber": "447",
+        "name": "Little Red River Cree Nation",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 6245
+      },
+      {
+        "bandNumber": "492",
+        "name": "Little Salmon/Carmacks First Nation",
+        "region": "Yukon",
+        "province": "Yukon",
+        "population": 696
+      },
+      {
+        "bandNumber": "274",
+        "name": "Little Saskatchewan",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 1401
+      },
+      {
+        "bandNumber": "689",
+        "name": "Little Shuswap Lake",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 370
+      },
+      {
+        "bandNumber": "184",
+        "name": "Long Lake No.58 First Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 1844
+      },
+      {
+        "bandNumber": "287",
+        "name": "Long Plain",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 4828
+      },
+      {
+        "bandNumber": "67",
+        "name": "Long Point First Nation",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 960
+      },
+      {
+        "bandNumber": "476",
+        "name": "Loon River Cree",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 692
+      },
+      {
+        "bandNumber": "439",
+        "name": "Louis Bull Band",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 2415
+      },
+      {
+        "bandNumber": "250",
+        "name": "Lower Cayuga",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 3874
+      },
+      {
+        "bandNumber": "606",
+        "name": "Lower Kootenay",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 250
+      },
+      {
+        "bandNumber": "254",
+        "name": "Lower Mohawk",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 4443
+      },
+      {
+        "bandNumber": "695",
+        "name": "Lower Nicola",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1426
+      },
+      {
+        "bandNumber": "598",
+        "name": "Lower Similkameen",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 636
+      },
+      {
+        "bandNumber": "453",
+        "name": "Lubicon Lake",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 795
+      },
+      {
+        "bandNumber": "341",
+        "name": "Lucky Man",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 115
+      },
+      {
+        "bandNumber": "764",
+        "name": "Lutsel K'e Dene First Nation",
+        "region": "Territoires du Nord-Ouest",
+        "province": "Territoires du Nord-Ouest",
+        "population": 831
+      },
+      {
+        "bandNumber": "646",
+        "name": "Lyackson",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 227
+      },
+      {
+        "bandNumber": "705",
+        "name": "Lytton",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 2086
+      },
+      {
+        "bandNumber": "181",
+        "name": "M'Chigeeng First Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sudbury",
+        "population": 2740
+      },
+      {
+        "bandNumber": "6",
+        "name": "Madawaska Maliseet First Nation",
+        "region": "Atlantique",
+        "province": "Nouveau-Brunswick",
+        "population": 377
+      },
+      {
+        "bandNumber": "174",
+        "name": "Magnetawan",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sudbury",
+        "population": 334
+      },
+      {
+        "bandNumber": "396",
+        "name": "Makwa Sahgaiehcan First Nation",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 1815
+      },
+      {
+        "bandNumber": "647",
+        "name": "Malahat Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 358
+      },
+      {
+        "bandNumber": "629",
+        "name": "Mamalilikulla First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 453
+      },
+      {
+        "bandNumber": "302",
+        "name": "Manto Sipi Cree Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 960
+      },
+      {
+        "bandNumber": "328",
+        "name": "Marcel Colomb First Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 444
+      },
+      {
+        "bandNumber": "186",
+        "name": "Martin Falls",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 853
+      },
+      {
+        "bandNumber": "219",
+        "name": "Matachewan",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 997
+      },
+      {
+        "bandNumber": "311",
+        "name": "Mathias Colomb",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 3950
+      },
+      {
+        "bandNumber": "565",
+        "name": "Matsqui First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 289
+      },
+      {
+        "bandNumber": "226",
+        "name": "Mattagami",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 674
+      },
+      {
+        "bandNumber": "326",
+        "name": "McDowell Lake",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sioux Lookout",
+        "population": 59
+      },
+      {
+        "bandNumber": "618",
+        "name": "McLeod Lake",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 566
+      },
+      {
+        "bandNumber": "26",
+        "name": "Membertou",
+        "region": "Atlantique",
+        "province": "Nouvelle-Écosse",
+        "population": 1619
+      },
+      {
+        "bandNumber": "14",
+        "name": "Metepenagiag Mi'kmaq Nation",
+        "region": "Atlantique",
+        "province": "Nouveau-Brunswick",
+        "population": 715
+      },
+      {
+        "bandNumber": "673",
+        "name": "Metlakatla First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1043
+      },
+      {
+        "bandNumber": "47",
+        "name": "Miawpukek",
+        "region": "Atlantique",
+        "province": "Terre-Neuve et Labrador",
+        "population": 3090
+      },
+      {
+        "bandNumber": "225",
+        "name": "Michipicoten",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 1331
+      },
+      {
+        "bandNumber": "52",
+        "name": "Micmacs of Gesgapegiag",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 1650
+      },
+      {
+        "bandNumber": "461",
+        "name": "Mikisew Cree First Nation",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 3247
+      },
+      {
+        "bandNumber": "27",
+        "name": "Millbrook",
+        "region": "Atlantique",
+        "province": "Nouvelle-Écosse",
+        "population": 2248
+      },
+      {
+        "bandNumber": "397",
+        "name": "Ministikwan Lake Cree Nation",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 1345
+      },
+      {
+        "bandNumber": "203",
+        "name": "Mishkeegogamang",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sioux Lookout",
+        "population": 2052
+      },
+      {
+        "bandNumber": "310",
+        "name": "Misipawistik Cree Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 2227
+      },
+      {
+        "bandNumber": "223",
+        "name": "Missanabie Cree",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 601
+      },
+      {
+        "bandNumber": "200",
+        "name": "Mississauga",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sudbury",
+        "population": 1474
+      },
+      {
+        "bandNumber": "140",
+        "name": "Mississaugas of Scugog Island First Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 261
+      },
+      {
+        "bandNumber": "120",
+        "name": "Mississaugas of the Credit",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 2756
+      },
+      {
+        "bandNumber": "374",
+        "name": "Mistawasis NÃªhiyawak",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 2988
+      },
+      {
+        "bandNumber": "133",
+        "name": "Mitaanjigamiing First Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 199
+      },
+      {
+        "bandNumber": "159",
+        "name": "Mohawks of Akwesasne",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 13252
+      },
+      {
+        "bandNumber": "70",
+        "name": "Mohawks of Kahnawá:ke",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District de Montréal",
+        "population": 11556
+      },
+      {
+        "bandNumber": "69",
+        "name": "Mohawks of Kanesatake",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District de Montréal",
+        "population": 2904
+      },
+      {
+        "bandNumber": "164",
+        "name": "Mohawks of the Bay of Quinte",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 10787
+      },
+      {
+        "bandNumber": "88",
+        "name": "Montagnais de Pakua Shipi",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 401
+      },
+      {
+        "bandNumber": "84",
+        "name": "Montagnais de Unamen Shipu",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 1258
+      },
+      {
+        "bandNumber": "442",
+        "name": "Montana",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 1078
+      },
+      {
+        "bandNumber": "354",
+        "name": "Montreal Lake",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 4320
+      },
+      {
+        "bandNumber": "144",
+        "name": "Moose Cree First Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 5014
+      },
+      {
+        "bandNumber": "135",
+        "name": "Moose Deer Point",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 532
+      },
+      {
+        "bandNumber": "342",
+        "name": "Moosomin",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 2175
+      },
+      {
+        "bandNumber": "167",
+        "name": "Moravian of the Thames",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 1345
+      },
+      {
+        "bandNumber": "312",
+        "name": "Mosakahiken Cree Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 2253
+      },
+      {
+        "bandNumber": "343",
+        "name": "Mosquito, Grizzly Bear's Head, Lean Man First Nations",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 1600
+      },
+      {
+        "bandNumber": "630",
+        "name": "Mowachaht/Muchalaht",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 615
+      },
+      {
+        "bandNumber": "168",
+        "name": "Munsee-Delaware Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 698
+      },
+      {
+        "bandNumber": "381",
+        "name": "Muscowpetung",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Sud",
+        "population": 1646
+      },
+      {
+        "bandNumber": "32",
+        "name": "Mushuau Innu First Nation",
+        "region": "Atlantique",
+        "province": "Terre-Neuve et Labrador",
+        "population": 1177
+      },
+      {
+        "bandNumber": "375",
+        "name": "Muskeg Lake Cree Nation #102",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 2413
+      },
+      {
+        "bandNumber": "371",
+        "name": "Muskoday First Nation",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 2132
+      },
+      {
+        "bandNumber": "392",
+        "name": "Muskowekwan",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Sud",
+        "population": 2072
+      },
+      {
+        "bandNumber": "213",
+        "name": "Muskrat Dam Lake",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sioux Lookout",
+        "population": 507
+      },
+      {
+        "bandNumber": "550",
+        "name": "Musqueam",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1488
+      },
+      {
+        "bandNumber": "556",
+        "name": "N'Quatqua",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 377
+      },
+      {
+        "bandNumber": "612",
+        "name": "Nadleh Whuten",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 607
+      },
+      {
+        "bandNumber": "766",
+        "name": "Nahanni Butte",
+        "region": "Territoires du Nord-Ouest",
+        "province": "Territoires du Nord-Ouest",
+        "population": 144
+      },
+      {
+        "bandNumber": "128",
+        "name": "Naicatchewenin",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 556
+      },
+      {
+        "bandNumber": "614",
+        "name": "Nak'azdli Whut'en",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 2007
+      },
+      {
+        "bandNumber": "631",
+        "name": "Namgis First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1952
+      },
+      {
+        "bandNumber": "649",
+        "name": "Nanoose First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 271
+      },
+      {
+        "bandNumber": "158",
+        "name": "Naotkamegwanning",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 1325
+      },
+      {
+        "bandNumber": "81",
+        "name": "Naskapi Nation of Kawawachikamach",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 797
+      },
+      {
+        "bandNumber": "63",
+        "name": "Nation Anishnabe du Lac Simon",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 2302
+      },
+      {
+        "bandNumber": "50",
+        "name": "Nation Huronne Wendat",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 4771
+      },
+      {
+        "bandNumber": "7",
+        "name": "Natoaganeg",
+        "region": "Atlantique",
+        "province": "Nouveau-Brunswick",
+        "population": 1094
+      },
+      {
+        "bandNumber": "720",
+        "name": "Nazko First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 427
+      },
+      {
+        "bandNumber": "726",
+        "name": "Nee-Tahi-Buhn",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 140
+      },
+      {
+        "bandNumber": "380",
+        "name": "Nekaneet",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Sud",
+        "population": 589
+      },
+      {
+        "bandNumber": "239",
+        "name": "Neskantaga First Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 499
+      },
+      {
+        "bandNumber": "690",
+        "name": "Neskonlith",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 671
+      },
+      {
+        "bandNumber": "566",
+        "name": "New Westminster",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 0
+      },
+      {
+        "bandNumber": "241",
+        "name": "Nibinamik First Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 554
+      },
+      {
+        "bandNumber": "696",
+        "name": "Nicomen",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 176
+      },
+      {
+        "bandNumber": "129",
+        "name": "Nigigoonsiminikaaning First Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 426
+      },
+      {
+        "bandNumber": "252",
+        "name": "Niharondasa Seneca",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 433
+      },
+      {
+        "bandNumber": "147",
+        "name": "Niisaachewan Anishinaabe Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 503
+      },
+      {
+        "bandNumber": "220",
+        "name": "Nipissing First Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sudbury",
+        "population": 3199
+      },
+      {
+        "bandNumber": "671",
+        "name": "Nisga'a Village of Gingolx",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 2029
+      },
+      {
+        "bandNumber": "679",
+        "name": "Nisga'a Village of Gitwinksihlkw",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 381
+      },
+      {
+        "bandNumber": "678",
+        "name": "Nisga'a Village of Laxgalt'sap",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1831
+      },
+      {
+        "bandNumber": "313",
+        "name": "Nisichawayasihk Cree Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 5523
+      },
+      {
+        "bandNumber": "699",
+        "name": "Nooaitch",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 244
+      },
+      {
+        "bandNumber": "204",
+        "name": "North Caribou Lake",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sioux Lookout",
+        "population": 1226
+      },
+      {
+        "bandNumber": "238",
+        "name": "North Spirit Lake",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sioux Lookout",
+        "population": 476
+      },
+      {
+        "bandNumber": "317",
+        "name": "Northlands Denesuline First Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 1186
+      },
+      {
+        "bandNumber": "151",
+        "name": "Northwest Angle No.33",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 611
+      },
+      {
+        "bandNumber": "278",
+        "name": "Norway House Cree Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 8707
+      },
+      {
+        "bandNumber": "639",
+        "name": "Nuchatlaht",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 169
+      },
+      {
+        "bandNumber": "539",
+        "name": "Nuxalk Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1799
+      },
+      {
+        "bandNumber": "279",
+        "name": "O-Chi-Chak-Ko-Sipi First Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 1269
+      },
+      {
+        "bandNumber": "318",
+        "name": "O-Pipon-Na-Piwin Cree Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 1734
+      },
+      {
+        "bandNumber": "431",
+        "name": "O'Chiese",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 1488
+      },
+      {
+        "bandNumber": "408",
+        "name": "Ocean Man",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Sud",
+        "population": 567
+      },
+      {
+        "bandNumber": "363",
+        "name": "Ochapowace",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Sud",
+        "population": 1955
+      },
+      {
+        "bandNumber": "72",
+        "name": "Odanak",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 2927
+      },
+      {
+        "bandNumber": "258",
+        "name": "Ojibway Nation of Saugeen",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sioux Lookout",
+        "population": 244
+      },
+      {
+        "bandNumber": "131",
+        "name": "Ojibways of Onigaming First Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 869
+      },
+      {
+        "bandNumber": "616",
+        "name": "Okanagan",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 2175
+      },
+      {
+        "bandNumber": "382",
+        "name": "Okanese",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Sud",
+        "population": 749
+      },
+      {
+        "bandNumber": "669",
+        "name": "Old Massett Village Council",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 3212
+      },
+      {
+        "bandNumber": "373",
+        "name": "One Arrow First Nation",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 2154
+      },
+      {
+        "bandNumber": "246",
+        "name": "Oneida",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 2214
+      },
+      {
+        "bandNumber": "169",
+        "name": "Oneida Nation of the Thames",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 6438
+      },
+      {
+        "bandNumber": "344",
+        "name": "Onion Lake Cree Nation",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 6846
+      },
+      {
+        "bandNumber": "247",
+        "name": "Onondaga Clear Sky",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 873
+      },
+      {
+        "bandNumber": "315",
+        "name": "Opaskwayak Cree Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 6588
+      },
+      {
+        "bandNumber": "692",
+        "name": "Oregon Jack Creek",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 73
+      },
+      {
+        "bandNumber": "12",
+        "name": "Oromocto First Nation",
+        "region": "Atlantique",
+        "province": "Nouveau-Brunswick",
+        "population": 869
+      },
+      {
+        "bandNumber": "596",
+        "name": "Osoyoos",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 589
+      },
+      {
+        "bandNumber": "89",
+        "name": "Oujé-Bougoumou Cree Nation",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 933
+      },
+      {
+        "bandNumber": "13",
+        "name": "Pabineau",
+        "region": "Atlantique",
+        "province": "Nouveau-Brunswick",
+        "population": 363
+      },
+      {
+        "bandNumber": "658",
+        "name": "Pacheedaht First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 291
+      },
+      {
+        "bandNumber": "19",
+        "name": "Paqtnkek Mi'kmaw Nation",
+        "region": "Atlantique",
+        "province": "Nouvelle-Écosse",
+        "population": 612
+      },
+      {
+        "bandNumber": "383",
+        "name": "Pasqua First Nation #79",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Sud",
+        "population": 2581
+      },
+      {
+        "bandNumber": "327",
+        "name": "Pauingassi First Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 716
+      },
+      {
+        "bandNumber": "441",
+        "name": "Paul",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 2179
+      },
+      {
+        "bandNumber": "652",
+        "name": "Pauquachin",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 416
+      },
+      {
+        "bandNumber": "191",
+        "name": "Pays Plat",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 292
+      },
+      {
+        "bandNumber": "384",
+        "name": "Peepeekisis Cree Nation No. 81",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Sud",
+        "population": 3295
+      },
+      {
+        "bandNumber": "478",
+        "name": "Peerless Trout First Nation",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 1061
+      },
+      {
+        "bandNumber": "269",
+        "name": "Peguis",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 11219
+      },
+      {
+        "bandNumber": "756",
+        "name": "Pehdzeh Ki First Nation",
+        "region": "Territoires du Nord-Ouest",
+        "province": "Territoires du Nord-Ouest",
+        "population": 352
+      },
+      {
+        "bandNumber": "405",
+        "name": "Pelican Lake",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 1722
+      },
+      {
+        "bandNumber": "650",
+        "name": "Penelakut Tribe",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1133
+      },
+      {
+        "bandNumber": "597",
+        "name": "Penticton",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1130
+      },
+      {
+        "bandNumber": "355",
+        "name": "Peter Ballantyne Cree Nation",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 12002
+      },
+      {
+        "bandNumber": "586",
+        "name": "Peters First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 177
+      },
+      {
+        "bandNumber": "409",
+        "name": "Pheasant Rump Nakota",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Sud",
+        "population": 459
+      },
+      {
+        "bandNumber": "385",
+        "name": "Piapot",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Sud",
+        "population": 2596
+      },
+      {
+        "bandNumber": "195",
+        "name": "Pic Mobert",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 1092
+      },
+      {
+        "bandNumber": "24",
+        "name": "Pictou Landing",
+        "region": "Atlantique",
+        "province": "Nouvelle-Écosse",
+        "population": 688
+      },
+      {
+        "bandNumber": "436",
+        "name": "Piikani Nation",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 3909
+      },
+      {
+        "bandNumber": "208",
+        "name": "Pikangikum",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sioux Lookout",
+        "population": 3315
+      },
+      {
+        "bandNumber": "272",
+        "name": "Pinaymootang First Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 3478
+      },
+      {
+        "bandNumber": "282",
+        "name": "Pine Creek",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 4338
+      },
+      {
+        "bandNumber": "585",
+        "name": "Popkum First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 0
+      },
+      {
+        "bandNumber": "236",
+        "name": "Poplar Hill",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sioux Lookout",
+        "population": 715
+      },
+      {
+        "bandNumber": "277",
+        "name": "Poplar River First Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 2043
+      },
+      {
+        "bandNumber": "22",
+        "name": "Potlotek First Nation",
+        "region": "Atlantique",
+        "province": "Nouvelle-Écosse",
+        "population": 828
+      },
+      {
+        "bandNumber": "345",
+        "name": "Poundmaker",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 1882
+      },
+      {
+        "bandNumber": "95",
+        "name": "Première Nation de Whapmagoostui",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 1030
+      },
+      {
+        "bandNumber": "71",
+        "name": "Première Nation des Abénakis de Wôlinak",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 638
+      },
+      {
+        "bandNumber": "83",
+        "name": "Première Nation des Innus de Nutashkuan",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 1252
+      },
+      {
+        "bandNumber": "76",
+        "name": "Première Nation des Pekuakamiulnuatsh",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District Pointe-Bleue",
+        "population": 9552
+      },
+      {
+        "bandNumber": "54",
+        "name": "Première Nation Wolastoqiyik (Malécite) Wahsipekuk",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 1733
+      },
+      {
+        "bandNumber": "544",
+        "name": "Prophet River First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 294
+      },
+      {
+        "bandNumber": "34",
+        "name": "Qalipu Mi'kmaq First Nation",
+        "region": "Atlantique",
+        "province": "Terre-Neuve et Labrador",
+        "population": 25088
+      },
+      {
+        "bandNumber": "651",
+        "name": "Qualicum First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 140
+      },
+      {
+        "bandNumber": "633",
+        "name": "Quatsino",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 601
+      },
+      {
+        "bandNumber": "130",
+        "name": "Rainy River First Nations",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 1324
+      },
+      {
+        "bandNumber": "356",
+        "name": "Red Earth",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 2039
+      },
+      {
+        "bandNumber": "346",
+        "name": "Red Pheasant",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 2620
+      },
+      {
+        "bandNumber": "193",
+        "name": "Red Rock",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 2262
+      },
+      {
+        "bandNumber": "300",
+        "name": "Red Sucker Lake",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 1148
+      },
+      {
+        "bandNumber": "291",
+        "name": "Rolling River",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 1124
+      },
+      {
+        "bandNumber": "273",
+        "name": "Roseau River Anishinabe First Nation Government",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 2729
+      },
+      {
+        "bandNumber": "497",
+        "name": "Ross River Dena Council",
+        "region": "Yukon",
+        "province": "Yukon",
+        "population": 544
+      },
+      {
+        "bandNumber": "214",
+        "name": "Sachigo Lake",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sioux Lookout",
+        "population": 970
+      },
+      {
+        "bandNumber": "462",
+        "name": "Saddle Lake Cree Nation",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District St. Paul",
+        "population": 11413
+      },
+      {
+        "bandNumber": "179",
+        "name": "Sagamok Anishnawbek",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sudbury",
+        "population": 3191
+      },
+      {
+        "bandNumber": "615",
+        "name": "Saik'uz First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 998
+      },
+      {
+        "bandNumber": "15",
+        "name": "Saint Mary's",
+        "region": "Atlantique",
+        "province": "Nouveau-Brunswick",
+        "population": 2165
+      },
+      {
+        "bandNumber": "759",
+        "name": "Salt River First Nation #195",
+        "region": "Territoires du Nord-Ouest",
+        "province": "Territoires du Nord-Ouest",
+        "population": 1050
+      },
+      {
+        "bandNumber": "567",
+        "name": "Samahquam",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 374
+      },
+      {
+        "bandNumber": "767",
+        "name": "Sambaa K'e First Nation",
+        "region": "Territoires du Nord-Ouest",
+        "province": "Territoires du Nord-Ouest",
+        "population": 120
+      },
+      {
+        "bandNumber": "444",
+        "name": "Samson",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 9267
+      },
+      {
+        "bandNumber": "283",
+        "name": "Sandy Bay",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 7132
+      },
+      {
+        "bandNumber": "211",
+        "name": "Sandy Lake",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sioux Lookout",
+        "population": 3200
+      },
+      {
+        "bandNumber": "314",
+        "name": "Sapotaweyak Cree Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 2773
+      },
+      {
+        "bandNumber": "123",
+        "name": "Saugeen",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 1957
+      },
+      {
+        "bandNumber": "542",
+        "name": "Saulteau First Nations",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1300
+      },
+      {
+        "bandNumber": "347",
+        "name": "Saulteaux",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 1424
+      },
+      {
+        "bandNumber": "454",
+        "name": "Sawridge First Nation",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 621
+      },
+      {
+        "bandNumber": "303",
+        "name": "Sayisi Dene First Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 900
+      },
+      {
+        "bandNumber": "581",
+        "name": "Seabird Island",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1074
+      },
+      {
+        "bandNumber": "551",
+        "name": "Sechelt",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1558
+      },
+      {
+        "bandNumber": "132",
+        "name": "Seine River First Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 811
+      },
+      {
+        "bandNumber": "498",
+        "name": "Selkirk First Nation",
+        "region": "Yukon",
+        "province": "Yukon",
+        "population": 676
+      },
+      {
+        "bandNumber": "569",
+        "name": "Semiahmoo",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 107
+      },
+      {
+        "bandNumber": "201",
+        "name": "Serpent River",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sudbury",
+        "population": 1549
+      },
+      {
+        "bandNumber": "698",
+        "name": "Shackan",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 132
+      },
+      {
+        "bandNumber": "307",
+        "name": "Shamattawa First Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 1631
+      },
+      {
+        "bandNumber": "137",
+        "name": "Shawanaga First Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sudbury",
+        "population": 745
+      },
+      {
+        "bandNumber": "176",
+        "name": "Sheguiandah",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sudbury",
+        "population": 452
+      },
+      {
+        "bandNumber": "33",
+        "name": "Sheshatshiu Innu First Nation",
+        "region": "Atlantique",
+        "province": "Terre-Neuve et Labrador",
+        "population": 1939
+      },
+      {
+        "bandNumber": "178",
+        "name": "Sheshegwaning",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sudbury",
+        "population": 466
+      },
+      {
+        "bandNumber": "357",
+        "name": "Shoal Lake Cree Nation",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 1229
+      },
+      {
+        "bandNumber": "155",
+        "name": "Shoal Lake No.40",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 683
+      },
+      {
+        "bandNumber": "605",
+        "name": "Shuswap Band",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 288
+      },
+      {
+        "bandNumber": "587",
+        "name": "Shxw'ow'hamel First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 222
+      },
+      {
+        "bandNumber": "570",
+        "name": "Shxwhá:y Village",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 475
+      },
+      {
+        "bandNumber": "430",
+        "name": "Siksika Nation",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 7603
+      },
+      {
+        "bandNumber": "691",
+        "name": "Simpcw First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 782
+      },
+      {
+        "bandNumber": "290",
+        "name": "Sioux Valley Dakota Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 2688
+      },
+      {
+        "bandNumber": "25",
+        "name": "Sipekne'katik",
+        "region": "Atlantique",
+        "province": "Nouvelle-Écosse",
+        "population": 2984
+      },
+      {
+        "bandNumber": "706",
+        "name": "Siska",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 334
+      },
+      {
+        "bandNumber": "562",
+        "name": "Skatin",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 421
+      },
+      {
+        "bandNumber": "582",
+        "name": "Skawahlook First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 93
+      },
+      {
+        "bandNumber": "687",
+        "name": "Skeetchestn",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 564
+      },
+      {
+        "bandNumber": "670",
+        "name": "Skidegate",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1723
+      },
+      {
+        "bandNumber": "729",
+        "name": "Skin Tyee",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 193
+      },
+      {
+        "bandNumber": "571",
+        "name": "Skowkale",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 287
+      },
+      {
+        "bandNumber": "281",
+        "name": "Skownan First Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 1619
+      },
+      {
+        "bandNumber": "707",
+        "name": "Skuppah",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 143
+      },
+      {
+        "bandNumber": "573",
+        "name": "Skwah",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 718
+      },
+      {
+        "bandNumber": "259",
+        "name": "Slate Falls Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sioux Lookout",
+        "population": 300
+      },
+      {
+        "bandNumber": "477",
+        "name": "Smith's Landing First Nation",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 376
+      },
+      {
+        "bandNumber": "648",
+        "name": "Snuneymuxw First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1921
+      },
+      {
+        "bandNumber": "656",
+        "name": "Songhees Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 649
+      },
+      {
+        "bandNumber": "572",
+        "name": "Soowahlie",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 422
+      },
+      {
+        "bandNumber": "600",
+        "name": "Splatsin",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 959
+      },
+      {
+        "bandNumber": "708",
+        "name": "Spuzzum",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 400
+      },
+      {
+        "bandNumber": "568",
+        "name": "Sq'éwlets",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 295
+      },
+      {
+        "bandNumber": "555",
+        "name": "Squamish",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 4485
+      },
+      {
+        "bandNumber": "574",
+        "name": "Squiala First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 218
+      },
+      {
+        "bandNumber": "298",
+        "name": "St. Theresa Point",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 4425
+      },
+      {
+        "bandNumber": "386",
+        "name": "Standing Buffalo",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Sud",
+        "population": 1324
+      },
+      {
+        "bandNumber": "387",
+        "name": "Star Blanket Cree Nation",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Sud",
+        "population": 724
+      },
+      {
+        "bandNumber": "613",
+        "name": "Stellat'en First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 609
+      },
+      {
+        "bandNumber": "559",
+        "name": "Sts'ailes",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1127
+      },
+      {
+        "bandNumber": "723",
+        "name": "Stswecem'c Xgat'tem First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 811
+      },
+      {
+        "bandNumber": "455",
+        "name": "Sturgeon Lake Cree Nation",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 3721
+      },
+      {
+        "bandNumber": "360",
+        "name": "Sturgeon Lake First Nation",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 3086
+      },
+      {
+        "bandNumber": "641",
+        "name": "Stz'uminus First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1422
+      },
+      {
+        "bandNumber": "456",
+        "name": "Sucker Creek",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 3145
+      },
+      {
+        "bandNumber": "578",
+        "name": "Sumas First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 366
+      },
+      {
+        "bandNumber": "434",
+        "name": "Sunchild First Nation",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 1473
+      },
+      {
+        "bandNumber": "293",
+        "name": "Swan Lake",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 1495
+      },
+      {
+        "bandNumber": "457",
+        "name": "Swan River First Nation",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 1609
+      },
+      {
+        "bandNumber": "348",
+        "name": "Sweetgrass",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 2144
+      },
+      {
+        "bandNumber": "593",
+        "name": "T'it'q'et",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 469
+      },
+      {
+        "bandNumber": "657",
+        "name": "T'Sou-ke First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 319
+      },
+      {
+        "bandNumber": "508",
+        "name": "Ta'an Kwach'an",
+        "region": "Yukon",
+        "province": "Yukon",
+        "population": 298
+      },
+      {
+        "bandNumber": "682",
+        "name": "Tahltan",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 2064
+      },
+      {
+        "bandNumber": "608",
+        "name": "Takla Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 921
+      },
+      {
+        "bandNumber": "501",
+        "name": "Taku River Tlingit",
+        "region": "Yukon",
+        "province": "Yukon",
+        "population": 454
+      },
+      {
+        "bandNumber": "446",
+        "name": "Tallcree Tribal Government",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 1463
+      },
+      {
+        "bandNumber": "306",
+        "name": "Tataskweyak Cree Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 4093
+      },
+      {
+        "bandNumber": "145",
+        "name": "Taykwa Tagamou Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 665
+      },
+      {
+        "bandNumber": "751",
+        "name": "Teetl'it Gwich'in Band Council",
+        "region": "Territoires du Nord-Ouest",
+        "province": "Territoires du Nord-Ouest",
+        "population": 1452
+      },
+      {
+        "bandNumber": "222",
+        "name": "Temagami First Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sudbury",
+        "population": 1026
+      },
+      {
+        "bandNumber": "499",
+        "name": "Teslin Tlingit Council",
+        "region": "Yukon",
+        "province": "Yukon",
+        "population": 609
+      },
+      {
+        "bandNumber": "61",
+        "name": "The Crees of the Waskaganish First Nation",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 2903
+      },
+      {
+        "bandNumber": "368",
+        "name": "The Key First Nation",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Sud",
+        "population": 1502
+      },
+      {
+        "bandNumber": "202",
+        "name": "Thessalon",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sudbury",
+        "population": 1076
+      },
+      {
+        "bandNumber": "349",
+        "name": "Thunderchild First Nation",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 3003
+      },
+      {
+        "bandNumber": "64",
+        "name": "Timiskaming First Nation",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 2718
+      },
+      {
+        "bandNumber": "688",
+        "name": "Tk'emlúps te Secwépemc",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1494
+      },
+      {
+        "bandNumber": "617",
+        "name": "Tl'azt'en Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1558
+      },
+      {
+        "bandNumber": "712",
+        "name": "Tl’etinqox Government",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1727
+      },
+      {
+        "bandNumber": "660",
+        "name": "Tla-o-qui-aht First Nations",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1200
+      },
+      {
+        "bandNumber": "554",
+        "name": "Tla'amin Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1205
+      },
+      {
+        "bandNumber": "632",
+        "name": "Tlatlasikwala",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 66
+      },
+      {
+        "bandNumber": "637",
+        "name": "Tlowitsis Tribe",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 447
+      },
+      {
+        "bandNumber": "16",
+        "name": "Tobique",
+        "region": "Atlantique",
+        "province": "Nouveau-Brunswick",
+        "population": 2614
+      },
+      {
+        "bandNumber": "718",
+        "name": "Toosey",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 437
+      },
+      {
+        "bandNumber": "292",
+        "name": "Tootinaowaziibeeng Treaty Reserve",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 1584
+      },
+      {
+        "bandNumber": "666",
+        "name": "Toquaht",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 148
+      },
+      {
+        "bandNumber": "494",
+        "name": "Tr’ondëk Hwëch’in",
+        "region": "Yukon",
+        "province": "Yukon",
+        "population": 954
+      },
+      {
+        "bandNumber": "619",
+        "name": "Ts'il Kaz Koh",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 185
+      },
+      {
+        "bandNumber": "594",
+        "name": "Ts'kw'aylaxw First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 590
+      },
+      {
+        "bandNumber": "643",
+        "name": "Ts'uubaa-asatx",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 0
+      },
+      {
+        "bandNumber": "595",
+        "name": "Tsal'alh",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 722
+      },
+      {
+        "bandNumber": "654",
+        "name": "Tsawout First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 977
+      },
+      {
+        "bandNumber": "577",
+        "name": "Tsawwassen First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 407
+      },
+      {
+        "bandNumber": "609",
+        "name": "Tsay Keh Dene",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 525
+      },
+      {
+        "bandNumber": "665",
+        "name": "Tseshaht",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1272
+      },
+      {
+        "bandNumber": "655",
+        "name": "Tseycum",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 206
+      },
+      {
+        "bandNumber": "710",
+        "name": "Tŝideldel First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 701
+      },
+      {
+        "bandNumber": "549",
+        "name": "Tsleil-Waututh Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 667
+      },
+      {
+        "bandNumber": "432",
+        "name": "Tsuut'ina Nation",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 2565
+      },
+      {
+        "bandNumber": "750",
+        "name": "Tulita Dene",
+        "region": "Territoires du Nord-Ouest",
+        "province": "Territoires du Nord-Ouest",
+        "population": 769
+      },
+      {
+        "bandNumber": "245",
+        "name": "Tuscarora",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 2423
+      },
+      {
+        "bandNumber": "575",
+        "name": "Tzeachten",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 605
+      },
+      {
+        "bandNumber": "667",
+        "name": "Uchucklesaht",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 247
+      },
+      {
+        "bandNumber": "668",
+        "name": "Ucluelet First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 671
+      },
+      {
+        "bandNumber": "722",
+        "name": "Ulkatcho",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1064
+      },
+      {
+        "bandNumber": "588",
+        "name": "Union Bar First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 162
+      },
+      {
+        "bandNumber": "249",
+        "name": "Upper Cayuga",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 3982
+      },
+      {
+        "bandNumber": "257",
+        "name": "Upper Mohawk",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 6783
+      },
+      {
+        "bandNumber": "697",
+        "name": "Upper Nicola",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 997
+      },
+      {
+        "bandNumber": "599",
+        "name": "Upper Similkameen",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 293
+      },
+      {
+        "bandNumber": "496",
+        "name": "Vuntut Gwitchin First Nation",
+        "region": "Yukon",
+        "province": "Yukon",
+        "population": 603
+      },
+      {
+        "bandNumber": "150",
+        "name": "Wabaseemoong Independent Nations",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 2039
+      },
+      {
+        "bandNumber": "156",
+        "name": "Wabauskang First Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 377
+      },
+      {
+        "bandNumber": "157",
+        "name": "Wabigoon Lake Ojibway Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 1004
+      },
+      {
+        "bandNumber": "28",
+        "name": "Wagmatcook",
+        "region": "Atlantique",
+        "province": "Nouvelle-Écosse",
+        "population": 924
+      },
+      {
+        "bandNumber": "232",
+        "name": "Wahnapitae",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sudbury",
+        "population": 691
+      },
+      {
+        "bandNumber": "358",
+        "name": "Wahpeton Dakota Nation",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 570
+      },
+      {
+        "bandNumber": "134",
+        "name": "Wahta Mohawk",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 898
+      },
+      {
+        "bandNumber": "255",
+        "name": "Walker Mohawk",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 521
+      },
+      {
+        "bandNumber": "170",
+        "name": "Walpole Island",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 4974
+      },
+      {
+        "bandNumber": "206",
+        "name": "Wapekeka",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sioux Lookout",
+        "population": 519
+      },
+      {
+        "bandNumber": "323",
+        "name": "War Lake First Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 332
+      },
+      {
+        "bandNumber": "299",
+        "name": "Wasagamack First Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 2269
+      },
+      {
+        "bandNumber": "136",
+        "name": "Wasauksing First Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sud",
+        "population": 1387
+      },
+      {
+        "bandNumber": "235",
+        "name": "Washagamis Bay",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 351
+      },
+      {
+        "bandNumber": "56",
+        "name": "Waswanipi",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 2330
+      },
+      {
+        "bandNumber": "402",
+        "name": "Waterhen Lake",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 2146
+      },
+      {
+        "bandNumber": "234",
+        "name": "Wawakapewin",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sioux Lookout",
+        "population": 74
+      },
+      {
+        "bandNumber": "285",
+        "name": "Waywayseecappo First Nation Treaty Four - 1874",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 3140
+      },
+      {
+        "bandNumber": "29",
+        "name": "We'koqma'q First Nation",
+        "region": "Atlantique",
+        "province": "Nouvelle-Écosse",
+        "population": 1088
+      },
+      {
+        "bandNumber": "240",
+        "name": "Webequie",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 970
+      },
+      {
+        "bandNumber": "146",
+        "name": "Weenusk",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 607
+      },
+      {
+        "bandNumber": "545",
+        "name": "West Moberly First Nations",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 367
+      },
+      {
+        "bandNumber": "772",
+        "name": "West Point First Nation",
+        "region": "Territoires du Nord-Ouest",
+        "province": "Territoires du Nord-Ouest",
+        "population": 91
+      },
+      {
+        "bandNumber": "601",
+        "name": "Westbank First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 948
+      },
+      {
+        "bandNumber": "725",
+        "name": "Wet'suwet'en First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 248
+      },
+      {
+        "bandNumber": "769",
+        "name": "Wha Ti First Nation",
+        "region": "Territoires du Nord-Ouest",
+        "province": "Territoires du Nord-Ouest",
+        "population": 693
+      },
+      {
+        "bandNumber": "702",
+        "name": "Whispering Pines/Clinton",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 211
+      },
+      {
+        "bandNumber": "365",
+        "name": "White Bear",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Sud",
+        "population": 2863
+      },
+      {
+        "bandNumber": "506",
+        "name": "White River First Nation",
+        "region": "Yukon",
+        "province": "Yukon",
+        "population": 168
+      },
+      {
+        "bandNumber": "372",
+        "name": "Whitecap Dakota First Nation",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 692
+      },
+      {
+        "bandNumber": "459",
+        "name": "Whitefish Lake",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 3091
+      },
+      {
+        "bandNumber": "230",
+        "name": "Whitefish River",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sudbury",
+        "population": 1490
+      },
+      {
+        "bandNumber": "190",
+        "name": "Whitesand",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District de l'Ouest",
+        "population": 1328
+      },
+      {
+        "bandNumber": "175",
+        "name": "Wikwemikong",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sudbury",
+        "population": 8577
+      },
+      {
+        "bandNumber": "719",
+        "name": "Williams Lake First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 967
+      },
+      {
+        "bandNumber": "407",
+        "name": "Witchekan Lake",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 834
+      },
+      {
+        "bandNumber": "530",
+        "name": "Witset First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 2121
+      },
+      {
+        "bandNumber": "653",
+        "name": "W̱JOȽEȽP",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1051
+      },
+      {
+        "bandNumber": "68",
+        "name": "Wolf Lake",
+        "region": "Québec",
+        "province": "Québec",
+        "district": "District  Québec",
+        "population": 271
+      },
+      {
+        "bandNumber": "388",
+        "name": "Wood Mountain",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Sud",
+        "population": 366
+      },
+      {
+        "bandNumber": "474",
+        "name": "Woodland Cree First Nation",
+        "region": "Alberta",
+        "province": "Alberta",
+        "district": "District Alberta",
+        "population": 1263
+      },
+      {
+        "bandNumber": "17",
+        "name": "Woodstock",
+        "region": "Atlantique",
+        "province": "Nouveau-Brunswick",
+        "population": 1188
+      },
+      {
+        "bandNumber": "541",
+        "name": "Wuikinuxv Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 291
+      },
+      {
+        "bandNumber": "217",
+        "name": "Wunnumin",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sioux Lookout",
+        "population": 712
+      },
+      {
+        "bandNumber": "324",
+        "name": "Wuskwi Sipihk First Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 692
+      },
+      {
+        "bandNumber": "716",
+        "name": "Xatśūll First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 454
+      },
+      {
+        "bandNumber": "592",
+        "name": "Xaxli'p",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 1097
+      },
+      {
+        "bandNumber": "714",
+        "name": "Xeni Gwet'in First Nations Government",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 463
+      },
+      {
+        "bandNumber": "576",
+        "name": "Yakweakwioose",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 81
+      },
+      {
+        "bandNumber": "589",
+        "name": "Yale First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 196
+      },
+      {
+        "bandNumber": "603",
+        "name": "Yaq̓it ʔa·knuqⱡi’it First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 252
+      },
+      {
+        "bandNumber": "728",
+        "name": "Yekooche First Nation",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 226
+      },
+      {
+        "bandNumber": "376",
+        "name": "Yellow Quill",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Centre-Nord",
+        "population": 3114
+      },
+      {
+        "bandNumber": "763",
+        "name": "Yellowknives Dene First Nation",
+        "region": "Territoires du Nord-Ouest",
+        "province": "Territoires du Nord-Ouest",
+        "population": 1657
+      },
+      {
+        "bandNumber": "304",
+        "name": "York Factory First Nation",
+        "region": "Manitoba",
+        "province": "Manitoba",
+        "population": 1528
+      },
+      {
+        "bandNumber": "717",
+        "name": "YuneÅit'in Government",
+        "region": "Colombie-Britannique",
+        "province": "Colombie-Britannique",
+        "population": 495
+      },
+      {
+        "bandNumber": "364",
+        "name": "Zagime Anishinabek",
+        "region": "Saskatchewan",
+        "province": "Saskatchewan",
+        "district": "District Sud",
+        "population": 1834
+      },
+      {
+        "bandNumber": "173",
+        "name": "Zhiibaahaasing First Nation",
+        "region": "Ontario",
+        "province": "Ontario",
+        "district": "District Sudbury",
+        "population": 183
+      }
+    ]
+  }
+}

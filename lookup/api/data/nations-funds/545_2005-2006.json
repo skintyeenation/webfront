@@ -1,0 +1,97 @@
+{
+  "fetchedAt": "2026-05-24T01:24:28.034Z",
+  "data": {
+    "fiscalYear": "2005-2006",
+    "bandNumber": "545",
+    "bandName": "West Moberly First Nations",
+    "transfers": [
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Administration",
+        "amount": 147804
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Capital - Cryingman Subdivision",
+        "amount": 75223,
+        "notes": "Unexpended funding beginning of year; 47,319 expended, 27,904 unexpended end of year"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Capital Projects - CMPS",
+        "amount": 86562
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Cultural",
+        "amount": 17460
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Economic Development",
+        "amount": 10384
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Education - Ancillary",
+        "amount": 4400
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Education - Post Sec.",
+        "amount": 75485
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Education",
+        "amount": 14260
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "IMD Training and Infrastructure Operations and Maintenance",
+        "amount": 187849,
+        "notes": "Plus 400 unexpended beginning of year; total available 188,249"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Membership",
+        "amount": 1281
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "New Housing and Construction",
+        "amount": 139396,
+        "notes": "Unexpended funding beginning of year; fully expended"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development",
+        "amount": 102632
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Dev. Admin.",
+        "amount": 26443,
+        "notes": "Plus 24,190 unexpended beginning of year; total available 50,633; 34,100 unexpended end of year"
+      },
+      {
+        "department": "Health Canada",
+        "program": "Community Health Services",
+        "amount": 403369
+      },
+      {
+        "department": "Health Canada",
+        "program": "Environmental Health",
+        "amount": 6300
+      },
+      {
+        "department": "CMHC",
+        "program": "Non-Profit On-Reserve Housing",
+        "amount": 57031
+      }
+    ],
+    "declaredTotal": 1141260,
+    "computedTotal": 1355879,
+    "notes": "Total federal funding received during year is 1,141,260. Total funding available including unexpended beginning-of-year balances is 1,380,469. Total funding expended is 1,284,102. Unexpended end of year is 96,367. Document contains only the Schedule of Federal Government Funding; no full audited financial statements included."
+  }
+}

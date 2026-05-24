@@ -1,0 +1,84 @@
+{
+  "fetchedAt": "2026-05-24T01:27:01.356Z",
+  "data": {
+    "fiscalYear": "2007-2008",
+    "bandNumber": "545",
+    "bandName": "West Moberly First Nations",
+    "transfers": [
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Administration",
+        "amount": 151779
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Capital - Cryingman",
+        "amount": 0,
+        "notes": "Listed but no amount shown"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Cultural",
+        "amount": 7457
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Economic Development",
+        "amount": 10384
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Education - Ancillary",
+        "amount": 8140
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Education - Post Secondary",
+        "amount": 73759
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Education",
+        "amount": 14869
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "INAC by Proposal",
+        "amount": 137600
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Infrastructure Operations and Maintenance",
+        "amount": 184856
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Membership",
+        "amount": 1669
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "New Housing and Social Development",
+        "amount": 138243
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Dev. Admin.",
+        "amount": 26892
+      },
+      {
+        "department": "Health Canada",
+        "program": "Community Health Services",
+        "amount": 202752
+      },
+      {
+        "department": "CMHC",
+        "program": "Non-Profit On-Reserve Housing",
+        "amount": 68012
+      }
+    ],
+    "declaredTotal": 1026412,
+    "computedTotal": 1026412,
+    "notes": "Document contains Schedule of Federal Government Funding only; no full audited financial statements (expenditures, balance sheet, surplus/deficit) are present in this submission."
+  }
+}

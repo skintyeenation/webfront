@@ -1,0 +1,96 @@
+{
+  "fetchedAt": "2026-05-24T01:25:47.208Z",
+  "data": {
+    "fiscalYear": "2006-2007",
+    "bandNumber": "545",
+    "bandName": "West Moberly First Nations",
+    "transfers": [
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Administration",
+        "amount": 152788
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Capital - Cryingman Subdivision",
+        "amount": 27904,
+        "notes": "Unexpended funding beginning of year; total available 43,114; fully unexpended at year end"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Capital Projects - CMPS",
+        "amount": 34363,
+        "notes": "Unexpended funding beginning of year"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Cultural",
+        "amount": 17603
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Economic Development",
+        "amount": 10384
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Education - Ancillary",
+        "amount": 5280
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Education - Post Secondary",
+        "amount": 80681
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Education",
+        "amount": 14744
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "INAC by Proposal",
+        "amount": 114500
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Infrastructure Operations and Maintenance",
+        "amount": 179798
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Membership",
+        "amount": 1684
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "New Housing and Social Development",
+        "amount": 114652
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Dev. Admin.",
+        "amount": 26393,
+        "notes": "Plus 34,100 unexpended from prior year; total available 60,493"
+      },
+      {
+        "department": "Health Canada",
+        "program": "Community Health Services",
+        "amount": 184407
+      },
+      {
+        "department": "Health Canada",
+        "program": "Environmental Health",
+        "amount": 8100
+      },
+      {
+        "department": "CMHC",
+        "program": "Non-Profit On-Reserve Housing",
+        "amount": 68449
+      }
+    ],
+    "declaredTotal": 979463,
+    "computedTotal": 1041730,
+    "notes": "Document contains only the Schedule of Federal Government Funding; no full audited financial statements included. Declared total reflects Federal Funding Received column. Total Funding Available was 1,091,040; total Funding Expended was 1,047,926; unexpended at year end was 43,114."
+  }
+}

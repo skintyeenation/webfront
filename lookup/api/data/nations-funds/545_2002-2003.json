@@ -1,0 +1,78 @@
+{
+  "fetchedAt": "2026-05-24T01:20:28.421Z",
+  "data": {
+    "fiscalYear": "2002-2003",
+    "bandNumber": "545",
+    "bandName": "West Moberly First Nations",
+    "transfers": [
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Elementary Education",
+        "amount": 19463
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Post-Secondary Education",
+        "amount": 68919
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Economic Development",
+        "amount": 92618
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Indian Government Support",
+        "amount": 152489
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Lands & Trust Services",
+        "amount": 91587
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Community Infrastructure",
+        "amount": 710690
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Housing",
+        "amount": 395363
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Assistance",
+        "amount": 75298
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Support Services",
+        "amount": 42298
+      },
+      {
+        "department": "Health Canada",
+        "program": "Community Health Services",
+        "amount": 184218
+      },
+      {
+        "department": "Health Canada",
+        "program": "Environmental Health",
+        "amount": 4500
+      },
+      {
+        "department": "CMHC",
+        "program": "Non-Profit On-Reserve Housing",
+        "amount": 29019
+      },
+      {
+        "department": "CMHC",
+        "program": "RRAP Homowner and Disabled Programs",
+        "amount": 13650
+      }
+    ],
+    "declaredTotal": 1880112,
+    "computedTotal": 1880112,
+    "notes": "Federal Funding Received column used as transfer amounts. Total funding available was 2,100,774 including 220,662 unexpended from prior year. Total funding expended was 2,075,761."
+  }
+}

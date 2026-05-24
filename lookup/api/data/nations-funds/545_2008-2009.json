@@ -1,0 +1,83 @@
+{
+  "fetchedAt": "2026-05-24T01:28:20.035Z",
+  "data": {
+    "fiscalYear": "2008-2009",
+    "bandNumber": "545",
+    "bandName": "West Moberly First Nations",
+    "transfers": [
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Administration",
+        "amount": 141014
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Cultural",
+        "amount": 24577
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Economic Development",
+        "amount": 10384
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Education",
+        "amount": 14429
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Education - Ancillary",
+        "amount": 7260
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Education - Post Sec",
+        "amount": 105544
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "INAC by Proposal",
+        "amount": 94200
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Infrastructure Operations and Maintenance",
+        "amount": 265884
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Membership",
+        "amount": 3674
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Public Works",
+        "amount": 99015
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development",
+        "amount": 151203
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Dev Admin",
+        "amount": 27049
+      },
+      {
+        "department": "Health Canada",
+        "program": "Community Health Services",
+        "amount": 270042
+      },
+      {
+        "department": "CMHC",
+        "program": "Non-Profit On-Reserve Housing",
+        "amount": 72661
+      }
+    ],
+    "declaredTotal": 1286936,
+    "computedTotal": 1286936,
+    "notes": "Document contains only the Schedule of Federal Government Funding. Total funding received: 1,286,936. Funding expended: 1,242,023. Unexpended funding end of year: 44,913 (attributed to Public Works)."
+  }
+}

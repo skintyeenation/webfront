@@ -1,0 +1,91 @@
+{
+  "fetchedAt": "2026-05-24T01:21:45.920Z",
+  "data": {
+    "fiscalYear": "2003-2004",
+    "bandNumber": "545",
+    "bandName": "West Moberly First Nations",
+    "transfers": [
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Education",
+        "amount": 22356,
+        "notes": "Education"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Post-Secondary Education",
+        "amount": 70240,
+        "notes": "Post-Secondary Education"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Economic Development",
+        "amount": 9719,
+        "notes": "Economic Development"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Indian Government Support",
+        "amount": 127183,
+        "notes": "Indian Government Support"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Lands & Trust Services",
+        "amount": 16345,
+        "notes": "Lands & Trust Services"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Community Infrastructure",
+        "amount": 129621,
+        "notes": "Community Infrastructure"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Housing",
+        "amount": 39324,
+        "notes": "Housing"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Self-Government",
+        "amount": 49313,
+        "notes": "Self-Government"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Assistance",
+        "amount": 25217,
+        "notes": "Social Assistance"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Support Services",
+        "amount": 98762,
+        "notes": "Social Support Services"
+      },
+      {
+        "department": "Health Canada",
+        "program": "Community Health Services",
+        "amount": 205994,
+        "notes": "Community Health Services"
+      },
+      {
+        "department": "Health Canada",
+        "program": "Environmental Health",
+        "amount": 3960,
+        "notes": "Environmental Health"
+      },
+      {
+        "department": "CMHC",
+        "program": "Non-Profit On-Reserve Housing",
+        "amount": 54805,
+        "notes": "Non-Profit On-Reserve Housing / RRAP Homowner and"
+      }
+    ],
+    "declaredTotal": 852839,
+    "computedTotal": 852839,
+    "notes": "Federal Funding Received column used as transfer amounts. Total funding available was 1,052,097; total funding expended was 953,446; unexpended end of year was 98,651. Unexpended beginning of year balances included in total available but not in received amounts."
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "fetchedAt": "2026-05-24T01:38:36.369Z",
+  "data": {
+    "fiscalYear": "2004-2005",
+    "bandNumber": "607",
+    "bandName": "Lake Babine Nation",
+    "transfers": [
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Elementary / Secondary Education",
+        "amount": 3271319
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Post-Secondary Education",
+        "amount": 806430
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Economic Development",
+        "amount": 121443
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Indian Government Support",
+        "amount": 704905
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Lands and Trust Services",
+        "amount": 14816
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Community Infrastructure",
+        "amount": 2171386
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Self-government",
+        "amount": 0
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Assistance",
+        "amount": 2141294
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Support Services",
+        "amount": 215037
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Housing",
+        "amount": 703711
+      },
+      {
+        "department": "Health Canada",
+        "program": "Health Services",
+        "amount": 1485086
+      },
+      {
+        "department": "Health Canada",
+        "program": "Aboriginal Diabetes Initiative",
+        "amount": 20000
+      },
+      {
+        "department": "Health Canada",
+        "program": "Aids",
+        "amount": 3189
+      },
+      {
+        "department": "Health Canada",
+        "program": "Environmental Health",
+        "amount": 11700
+      },
+      {
+        "department": "Health Canada",
+        "program": "First Nations and Inuit Health Information System",
+        "amount": 43587
+      },
+      {
+        "department": "Health Canada",
+        "program": "First Nations and Inuit Home and Community Care",
+        "amount": 217677
+      },
+      {
+        "department": "Health Canada",
+        "program": "Non-Insured Health Benefits",
+        "amount": 433704
+      },
+      {
+        "department": "CMHC",
+        "program": "Non-profit on Reserve Housing",
+        "amount": 549953
+      },
+      {
+        "department": "Fisheries and Oceans",
+        "program": "Fisheries and Oceans",
+        "amount": 465500
+      },
+      {
+        "department": "Other",
+        "program": "Other",
+        "amount": 31808
+      }
+    ],
+    "declaredTotal": 13472545,
+    "computedTotal": 13412545,
+    "notes": "Federal Funding Received column used as transfer amounts. Total Funding Available after adjustments is 13,119,199. Total Expenditures from All Sources is 14,739,745. Adjustments column total is -353,346. Option #2 used for schedule compilation."
+  }
+}

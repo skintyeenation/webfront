@@ -1,0 +1,175 @@
+{
+  "fetchedAt": "2026-05-24T00:48:22.035Z",
+  "data": {
+    "fiscalYear": "2005-2006",
+    "bandNumber": "729",
+    "bandName": "Skin Tyee Nation",
+    "transfers": [
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Elementary/Secondary Education - Comprehensive education support services - Ancillary services",
+        "amount": 385,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Elementary/Secondary Education - Comprehensive education support services - Guidance and counselling",
+        "amount": 1100,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Elementary/Secondary Education - Comprehensive education support services - Guidance and counselling (additional)",
+        "amount": 804,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Post-secondary Education",
+        "amount": 53135,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Economic Development - CEDO planning and development",
+        "amount": 13718,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Indian Government Support - Band support funding",
+        "amount": 121780,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Indian Government Support - IMD training and development",
+        "amount": 25000,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Indian Registry Administration",
+        "amount": 1153,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Community Infrastructure - Roads and bridges",
+        "amount": 5101,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Community Infrastructure - Wastewater systems",
+        "amount": 5212,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Community Infrastructure - Municipal services",
+        "amount": 3245,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Community Infrastructure - Training - Fire Protection",
+        "amount": 600,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Capital project #6929",
+        "amount": 0,
+        "notes": "Unexpended funding from prior year only; no federal funding received this year"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Capital project #7212",
+        "amount": 0,
+        "notes": "Unexpended funding from prior year only; no federal funding received this year"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Capital project #7382",
+        "amount": 0,
+        "notes": "Unexpended funding from prior year only; no federal funding received this year"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Capital project #7387",
+        "amount": 0,
+        "notes": "Unexpended funding from prior year only; no federal funding received this year"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Support Services - Basic needs",
+        "amount": 111447,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Support Services - Guardian financial assistance",
+        "amount": 21251,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Support Services - Special needs",
+        "amount": 3322,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Support Services (continued) - In-home care",
+        "amount": 8546,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Support Services (continued) - Service delivery",
+        "amount": 19721,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Support Services (continued) - National child benefit reinvestment",
+        "amount": 14079,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Support Services (continued) - Prevention projects",
+        "amount": 4190,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Other - Employment and training",
+        "amount": 2530,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Health Canada (direct) and c/o Carrier Sekani",
+        "program": "Family Services",
+        "amount": 97978,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "CMHC",
+        "program": "Section 95 Social Housing Program",
+        "amount": 1025,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Canadian Heritage",
+        "program": "Canadian Heritage",
+        "amount": 19800,
+        "notes": "Federal Funding Received"
+      }
+    ],
+    "declaredTotal": 1173019,
+    "computedTotal": 535122,
+    "notes": "Document is the Schedule of Federal Government Funding only (revenue side). Auditor issued a disclaimer of opinion due to serious deficiencies in accounting records. Total Expenditures from All Sources per schedule: $1,173,019. Total Federal Funding Received: $535,122. Unexpended funding beginning of year: $135,853. Adjustments: ($3,456)."
+  }
+}

@@ -1,0 +1,576 @@
+[
+  {
+    "id": "d96a8676-93fc-43ad-9f50-063b47c155d9",
+    "type": "pdf-ocr",
+    "key": "729_2003-2004",
+    "payload": {
+      "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=729&FY=2003-2004&lang=eng",
+      "bandNumber": "729",
+      "bandName": "Skin Tyee",
+      "fiscalYear": "2003-2004"
+    },
+    "status": "done",
+    "enqueuedAt": "2026-05-24T00:34:39.910Z",
+    "attempts": 1,
+    "claimedAt": "2026-05-24T00:35:36.049Z",
+    "completedAt": "2026-05-24T00:36:21.106Z",
+    "result": {
+      "computedTotal": 402229,
+      "transfers": 17
+    }
+  },
+  {
+    "id": "b29130be-6851-4cbf-ae43-680e45450b68",
+    "type": "pdf-ocr",
+    "key": "729_2006-2007",
+    "payload": {
+      "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=729&FY=2006-2007&lang=eng",
+      "bandNumber": "729",
+      "bandName": "Skin Tyee",
+      "fiscalYear": "2006-2007"
+    },
+    "status": "done",
+    "enqueuedAt": "2026-05-24T00:34:39.911Z",
+    "attempts": 1,
+    "claimedAt": "2026-05-24T00:39:39.909Z",
+    "completedAt": "2026-05-24T00:40:32.163Z",
+    "result": {
+      "computedTotal": 368210,
+      "transfers": 23
+    }
+  },
+  {
+    "id": "816dbb8b-a2c1-40f9-9348-8651d815dfaf",
+    "type": "pdf-ocr",
+    "key": "729_2005-2006",
+    "payload": {
+      "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=729&FY=2005-2006&lang=eng",
+      "bandNumber": "729",
+      "bandName": "Skin Tyee",
+      "fiscalYear": "2005-2006"
+    },
+    "status": "done",
+    "enqueuedAt": "2026-05-24T00:43:58.697Z",
+    "attempts": 3,
+    "claimedAt": "2026-05-24T00:47:58.762Z",
+    "completedAt": "2026-05-24T00:48:22.036Z",
+    "result": {
+      "computedTotal": 535122,
+      "transfers": 27
+    }
+  },
+  {
+    "id": "b065267b-1fcc-4ef0-a67c-245e42d30816",
+    "type": "pdf-ocr",
+    "key": "729_2002-2003",
+    "payload": {
+      "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=729&FY=2002-2003&lang=eng",
+      "bandNumber": "729",
+      "bandName": "Skin Tyee",
+      "fiscalYear": "2002-2003"
+    },
+    "status": "done",
+    "enqueuedAt": "2026-05-24T00:57:36.418Z",
+    "attempts": 3,
+    "claimedAt": "2026-05-24T00:59:50.719Z",
+    "completedAt": "2026-05-24T01:00:45.677Z",
+    "result": {
+      "computedTotal": 585789,
+      "transfers": 27
+    }
+  },
+  {
+    "id": "b9ba9610-959d-4f5d-b9fc-1141a63eac4f",
+    "type": "pdf-ocr",
+    "key": "729_2004-2005",
+    "payload": {
+      "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=729&FY=2004-2005&lang=eng",
+      "bandNumber": "729",
+      "bandName": "Skin Tyee",
+      "fiscalYear": "2004-2005"
+    },
+    "status": "done",
+    "enqueuedAt": "2026-05-24T00:57:36.421Z",
+    "attempts": 1,
+    "claimedAt": "2026-05-24T01:01:50.683Z",
+    "completedAt": "2026-05-24T01:02:54.906Z",
+    "result": {
+      "computedTotal": 664747,
+      "transfers": 32
+    }
+  },
+  {
+    "id": "8e4a1625-08d7-4fdb-9e92-bb0c865b3749",
+    "type": "pdf-ocr",
+    "key": "545_2001-2002",
+    "payload": {
+      "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=545&FY=2001-2002&lang=eng",
+      "bandNumber": "545",
+      "bandName": "West Moberly First Nations",
+      "fiscalYear": "2001-2002"
+    },
+    "status": "done",
+    "enqueuedAt": "2026-05-24T01:19:00.008Z",
+    "attempts": 1,
+    "claimedAt": "2026-05-24T01:19:01.110Z",
+    "completedAt": "2026-05-24T01:19:12.538Z",
+    "result": {
+      "computedTotal": 945125,
+      "transfers": 11
+    }
+  },
+  {
+    "id": "3060c325-daa8-41da-952c-e52eb31e7eb8",
+    "type": "pdf-ocr",
+    "key": "545_2002-2003",
+    "payload": {
+      "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=545&FY=2002-2003&lang=eng",
+      "bandNumber": "545",
+      "bandName": "West Moberly First Nations",
+      "fiscalYear": "2002-2003"
+    },
+    "status": "done",
+    "enqueuedAt": "2026-05-24T01:19:00.009Z",
+    "attempts": 1,
+    "claimedAt": "2026-05-24T01:20:17.544Z",
+    "completedAt": "2026-05-24T01:20:28.422Z",
+    "result": {
+      "computedTotal": 1880112,
+      "transfers": 13
+    }
+  },
+  {
+    "id": "85d3be7d-9e73-416d-a03b-5c73310a22d1",
+    "type": "pdf-ocr",
+    "key": "545_2003-2004",
+    "payload": {
+      "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=545&FY=2003-2004&lang=eng",
+      "bandNumber": "545",
+      "bandName": "West Moberly First Nations",
+      "fiscalYear": "2003-2004"
+    },
+    "status": "done",
+    "enqueuedAt": "2026-05-24T01:19:00.010Z",
+    "attempts": 1,
+    "claimedAt": "2026-05-24T01:21:33.424Z",
+    "completedAt": "2026-05-24T01:21:45.920Z",
+    "result": {
+      "computedTotal": 852839,
+      "transfers": 13
+    }
+  },
+  {
+    "id": "04cf4d8b-b8eb-4c16-be02-c838482298a1",
+    "type": "pdf-ocr",
+    "key": "545_2004-2005",
+    "payload": {
+      "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=545&FY=2004-2005&lang=eng",
+      "bandNumber": "545",
+      "bandName": "West Moberly First Nations",
+      "fiscalYear": "2004-2005"
+    },
+    "status": "done",
+    "enqueuedAt": "2026-05-24T01:19:00.010Z",
+    "attempts": 1,
+    "claimedAt": "2026-05-24T01:22:50.923Z",
+    "completedAt": "2026-05-24T01:23:07.608Z",
+    "result": {
+      "computedTotal": 1105769,
+      "transfers": 21
+    }
+  },
+  {
+    "id": "ac1142f7-a8d6-49a3-aca6-fdbffdeee820",
+    "type": "pdf-ocr",
+    "key": "545_2005-2006",
+    "payload": {
+      "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=545&FY=2005-2006&lang=eng",
+      "bandNumber": "545",
+      "bandName": "West Moberly First Nations",
+      "fiscalYear": "2005-2006"
+    },
+    "status": "done",
+    "enqueuedAt": "2026-05-24T01:19:00.010Z",
+    "attempts": 1,
+    "claimedAt": "2026-05-24T01:24:12.610Z",
+    "completedAt": "2026-05-24T01:24:28.035Z",
+    "result": {
+      "computedTotal": 1355879,
+      "transfers": 16
+    }
+  },
+  {
+    "id": "344b08c3-dd89-4480-a039-c894a90bd3dd",
+    "type": "pdf-ocr",
+    "key": "545_2006-2007",
+    "payload": {
+      "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=545&FY=2006-2007&lang=eng",
+      "bandNumber": "545",
+      "bandName": "West Moberly First Nations",
+      "fiscalYear": "2006-2007"
+    },
+    "status": "done",
+    "enqueuedAt": "2026-05-24T01:19:00.010Z",
+    "attempts": 1,
+    "claimedAt": "2026-05-24T01:25:33.038Z",
+    "completedAt": "2026-05-24T01:25:47.208Z",
+    "result": {
+      "computedTotal": 1041730,
+      "transfers": 16
+    }
+  },
+  {
+    "id": "9ac4a67c-a10c-4c33-8ef8-8e3d894f6ad5",
+    "type": "pdf-ocr",
+    "key": "545_2007-2008",
+    "payload": {
+      "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=545&FY=2007-2008&lang=eng",
+      "bandNumber": "545",
+      "bandName": "West Moberly First Nations",
+      "fiscalYear": "2007-2008"
+    },
+    "status": "done",
+    "enqueuedAt": "2026-05-24T01:19:00.010Z",
+    "attempts": 1,
+    "claimedAt": "2026-05-24T01:26:52.209Z",
+    "completedAt": "2026-05-24T01:27:01.357Z",
+    "result": {
+      "computedTotal": 1026412,
+      "transfers": 14
+    }
+  },
+  {
+    "id": "4ea0bcd3-3084-4d16-9c8c-736c432c0752",
+    "type": "pdf-ocr",
+    "key": "545_2008-2009",
+    "payload": {
+      "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=545&FY=2008-2009&lang=eng",
+      "bandNumber": "545",
+      "bandName": "West Moberly First Nations",
+      "fiscalYear": "2008-2009"
+    },
+    "status": "done",
+    "enqueuedAt": "2026-05-24T01:19:00.011Z",
+    "attempts": 1,
+    "claimedAt": "2026-05-24T01:28:06.359Z",
+    "completedAt": "2026-05-24T01:28:20.036Z",
+    "result": {
+      "computedTotal": 1286936,
+      "transfers": 14
+    }
+  },
+  {
+    "id": "9c88b313-a1d9-4159-a4f9-4d144f1b02ff",
+    "type": "pdf-ocr",
+    "key": "545_2009-2010",
+    "payload": {
+      "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=545&FY=2009-2010&lang=eng",
+      "bandNumber": "545",
+      "bandName": "West Moberly First Nations",
+      "fiscalYear": "2009-2010"
+    },
+    "status": "done",
+    "enqueuedAt": "2026-05-24T01:19:00.011Z",
+    "attempts": 1,
+    "claimedAt": "2026-05-24T01:29:25.038Z",
+    "completedAt": "2026-05-24T01:29:32.986Z",
+    "result": {
+      "computedTotal": 1735881,
+      "transfers": 9
+    }
+  },
+  {
+    "id": "a042989e-41e0-4088-8e86-7fda083283e5",
+    "type": "pdf-ocr",
+    "key": "545_2010-2011",
+    "payload": {
+      "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=545&FY=2010-2011&lang=eng",
+      "bandNumber": "545",
+      "bandName": "West Moberly First Nations",
+      "fiscalYear": "2010-2011"
+    },
+    "status": "done",
+    "enqueuedAt": "2026-05-24T01:19:00.011Z",
+    "attempts": 1,
+    "claimedAt": "2026-05-24T01:30:37.988Z",
+    "completedAt": "2026-05-24T01:30:46.134Z",
+    "result": {
+      "computedTotal": 1936591,
+      "transfers": 8
+    }
+  },
+  {
+    "id": "ba1c5194-f496-4b7e-a8f6-05e1748ce5a4",
+    "type": "pdf-ocr",
+    "key": "545_2011-2012",
+    "payload": {
+      "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=545&FY=2011-2012&lang=eng",
+      "bandNumber": "545",
+      "bandName": "West Moberly First Nations",
+      "fiscalYear": "2011-2012"
+    },
+    "status": "done",
+    "enqueuedAt": "2026-05-24T01:19:00.011Z",
+    "attempts": 1,
+    "claimedAt": "2026-05-24T01:31:51.135Z",
+    "completedAt": "2026-05-24T01:31:59.933Z",
+    "result": {
+      "computedTotal": 1569314,
+      "transfers": 8
+    }
+  },
+  {
+    "id": "92c99e7b-85e1-4ade-b9a6-35495af23279",
+    "type": "pdf-ocr",
+    "key": "545_2012-2013",
+    "payload": {
+      "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=545&FY=2012-2013&lang=eng",
+      "bandNumber": "545",
+      "bandName": "West Moberly First Nations",
+      "fiscalYear": "2012-2013"
+    },
+    "status": "done",
+    "enqueuedAt": "2026-05-24T01:19:00.012Z",
+    "attempts": 1,
+    "claimedAt": "2026-05-24T01:33:04.934Z",
+    "completedAt": "2026-05-24T01:33:14.552Z",
+    "result": {
+      "computedTotal": 1763515,
+      "transfers": 8
+    }
+  },
+  {
+    "id": "6df0ef92-2a53-4511-9027-a168cc31fb6a",
+    "type": "pdf-ocr",
+    "key": "607_2001-2002",
+    "payload": {
+      "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=607&FY=2001-2002&lang=eng",
+      "bandNumber": "607",
+      "bandName": "Lake Babine Nation",
+      "fiscalYear": "2001-2002"
+    },
+    "status": "done",
+    "enqueuedAt": "2026-05-24T01:19:30.127Z",
+    "attempts": 1,
+    "claimedAt": "2026-05-24T01:34:19.553Z",
+    "completedAt": "2026-05-24T01:34:33.275Z",
+    "result": {
+      "computedTotal": 12750033,
+      "transfers": 12
+    }
+  },
+  {
+    "id": "2eefe620-4fb9-4590-89ed-a22bff9d9767",
+    "type": "pdf-ocr",
+    "key": "607_2002-2003",
+    "payload": {
+      "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=607&FY=2002-2003&lang=eng",
+      "bandNumber": "607",
+      "bandName": "Lake Babine Nation",
+      "fiscalYear": "2002-2003"
+    },
+    "status": "done",
+    "enqueuedAt": "2026-05-24T01:19:30.128Z",
+    "attempts": 1,
+    "claimedAt": "2026-05-24T01:35:38.277Z",
+    "completedAt": "2026-05-24T01:35:53.496Z",
+    "result": {
+      "computedTotal": 16383820,
+      "transfers": 13
+    }
+  },
+  {
+    "id": "fbb554c7-efa5-4e8b-9eb0-e3564a340df7",
+    "type": "pdf-ocr",
+    "key": "607_2003-2004",
+    "payload": {
+      "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=607&FY=2003-2004&lang=eng",
+      "bandNumber": "607",
+      "bandName": "Lake Babine Nation",
+      "fiscalYear": "2003-2004"
+    },
+    "status": "done",
+    "enqueuedAt": "2026-05-24T01:19:30.129Z",
+    "attempts": 1,
+    "claimedAt": "2026-05-24T01:36:58.498Z",
+    "completedAt": "2026-05-24T01:37:17.170Z",
+    "result": {
+      "computedTotal": 11433558,
+      "transfers": 20
+    }
+  },
+  {
+    "id": "1c8ef745-1906-4801-b75f-11e3056ad83d",
+    "type": "pdf-ocr",
+    "key": "607_2004-2005",
+    "payload": {
+      "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=607&FY=2004-2005&lang=eng",
+      "bandNumber": "607",
+      "bandName": "Lake Babine Nation",
+      "fiscalYear": "2004-2005"
+    },
+    "status": "done",
+    "enqueuedAt": "2026-05-24T01:19:30.129Z",
+    "attempts": 1,
+    "claimedAt": "2026-05-24T01:38:22.171Z",
+    "completedAt": "2026-05-24T01:38:36.370Z",
+    "result": {
+      "computedTotal": 13412545,
+      "transfers": 20
+    }
+  },
+  {
+    "id": "8e5a00ed-6c80-4e69-8da9-bbb6e86538fe",
+    "type": "pdf-ocr",
+    "key": "607_2005-2006",
+    "payload": {
+      "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=607&FY=2005-2006&lang=eng",
+      "bandNumber": "607",
+      "bandName": "Lake Babine Nation",
+      "fiscalYear": "2005-2006"
+    },
+    "status": "done",
+    "enqueuedAt": "2026-05-24T01:19:30.129Z",
+    "attempts": 1,
+    "claimedAt": "2026-05-24T01:39:41.372Z",
+    "completedAt": "2026-05-24T01:39:56.768Z",
+    "result": {
+      "computedTotal": 14778165,
+      "transfers": 23
+    }
+  },
+  {
+    "id": "7d8491ad-09b9-4df3-a724-7265fec05606",
+    "type": "pdf-ocr",
+    "key": "607_2006-2007",
+    "payload": {
+      "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=607&FY=2006-2007&lang=eng",
+      "bandNumber": "607",
+      "bandName": "Lake Babine Nation",
+      "fiscalYear": "2006-2007"
+    },
+    "status": "done",
+    "enqueuedAt": "2026-05-24T01:19:30.129Z",
+    "attempts": 1,
+    "claimedAt": "2026-05-24T01:41:01.771Z",
+    "completedAt": "2026-05-24T01:41:19.997Z",
+    "result": {
+      "computedTotal": 18394302,
+      "transfers": 32
+    }
+  },
+  {
+    "id": "4d94ca5b-7538-44a5-9aab-7d9968f5ad92",
+    "type": "pdf-ocr",
+    "key": "607_2007-2008",
+    "payload": {
+      "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=607&FY=2007-2008&lang=eng",
+      "bandNumber": "607",
+      "bandName": "Lake Babine Nation",
+      "fiscalYear": "2007-2008"
+    },
+    "status": "done",
+    "enqueuedAt": "2026-05-24T01:19:30.130Z",
+    "attempts": 1,
+    "claimedAt": "2026-05-24T01:42:24.999Z",
+    "completedAt": "2026-05-24T01:42:41.168Z",
+    "result": {
+      "computedTotal": 13920835,
+      "transfers": 29
+    }
+  },
+  {
+    "id": "1ef9c0b6-3997-488e-ab9a-26e654bdde2b",
+    "type": "pdf-ocr",
+    "key": "607_2008-2009",
+    "payload": {
+      "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=607&FY=2008-2009&lang=eng",
+      "bandNumber": "607",
+      "bandName": "Lake Babine Nation",
+      "fiscalYear": "2008-2009"
+    },
+    "status": "done",
+    "enqueuedAt": "2026-05-24T01:19:30.130Z",
+    "attempts": 1,
+    "claimedAt": "2026-05-24T01:43:46.170Z",
+    "completedAt": "2026-05-24T01:44:06.775Z",
+    "result": {
+      "computedTotal": 18662083,
+      "transfers": 25
+    }
+  },
+  {
+    "id": "6723bbac-0f80-4f4d-bd95-203b5139fc3f",
+    "type": "pdf-ocr",
+    "key": "607_2009-2010",
+    "payload": {
+      "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=607&FY=2009-2010&lang=eng",
+      "bandNumber": "607",
+      "bandName": "Lake Babine Nation",
+      "fiscalYear": "2009-2010"
+    },
+    "status": "done",
+    "enqueuedAt": "2026-05-24T01:19:30.130Z",
+    "attempts": 1,
+    "claimedAt": "2026-05-24T01:45:11.777Z",
+    "completedAt": "2026-05-24T01:45:34.329Z",
+    "result": {
+      "computedTotal": 13613835,
+      "transfers": 24
+    }
+  },
+  {
+    "id": "6b93c852-2421-416f-8080-fbc642425be6",
+    "type": "pdf-ocr",
+    "key": "607_2010-2011",
+    "payload": {
+      "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=607&FY=2010-2011&lang=eng",
+      "bandNumber": "607",
+      "bandName": "Lake Babine Nation",
+      "fiscalYear": "2010-2011"
+    },
+    "status": "done",
+    "enqueuedAt": "2026-05-24T01:19:30.130Z",
+    "attempts": 1,
+    "claimedAt": "2026-05-24T01:46:39.330Z",
+    "completedAt": "2026-05-24T01:47:04.135Z",
+    "result": {
+      "computedTotal": 14986208,
+      "transfers": 31
+    }
+  },
+  {
+    "id": "3a21ead7-a296-4e8c-afb8-c5f46aaee3eb",
+    "type": "pdf-ocr",
+    "key": "607_2011-2012",
+    "payload": {
+      "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=607&FY=2011-2012&lang=eng",
+      "bandNumber": "607",
+      "bandName": "Lake Babine Nation",
+      "fiscalYear": "2011-2012"
+    },
+    "status": "failed",
+    "enqueuedAt": "2026-05-24T02:07:37.792Z",
+    "attempts": 1,
+    "claimedAt": "2026-05-24T02:07:40.294Z",
+    "completedAt": "2026-05-24T02:07:40.493Z",
+    "error": "400 {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CbLaTmu7ir897TU7pgUqK\"}"
+  },
+  {
+    "id": "8c1cf74f-34d8-406e-aed3-05373437dd41",
+    "type": "pdf-ocr",
+    "key": "607_2012-2013",
+    "payload": {
+      "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=607&FY=2012-2013&lang=eng",
+      "bandNumber": "607",
+      "bandName": "Lake Babine Nation",
+      "fiscalYear": "2012-2013"
+    },
+    "status": "failed",
+    "enqueuedAt": "2026-05-24T02:08:13.387Z",
+    "attempts": 1,
+    "claimedAt": "2026-05-24T02:08:45.496Z",
+    "completedAt": "2026-05-24T02:08:45.680Z",
+    "error": "400 {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CbLaYabcFjrRFin7RhdXL\"}"
+  }
+]
