@@ -23,9 +23,31 @@ import { startJob, getJob } from './runner.js';
 import type { JobOptions, ProgressEvent, SourceMode } from './types.js';
 import { log, fmt } from './util/log.js';
 import { getBandDetail, type Section } from './sources/nations/band-detail.js';
+import { describeFundsRows, summarizeFunds } from './sources/nations/funds-extract.js';
 import { BUCKETS, ageMs, get as storeGet, put as storePut } from './util/store.js';
 import { list as listJobs } from './util/queue.js';
 import { startWorker } from './worker.js';
+
+/**
+ * Re-hydrate the `funds.extracted` array of a cached band-detail row
+ * against the live queue + per-(band, fy) OCR cache. The rest of the
+ * band detail (general / governance / reserves / population / geo) is
+ * expensive to recompute and rarely changes between requests, so we
+ * leave it as-is and only refresh the volatile funds statuses. This
+ * keeps the cache fast AND makes the UI reflect worker progress without
+ * the client having to force-refresh.
+ */
+function refreshFundsExtractedLive(cachedDetail: any): any {
+  if (!cachedDetail?.funds?.rows?.length) return cachedDetail;
+  const bandNumber = String(cachedDetail.bandNumber ?? '');
+  const bandName = cachedDetail.general?.officialName;
+  const extracted = describeFundsRows(bandNumber, bandName, cachedDetail.funds.rows);
+  const summary = summarizeFunds(extracted);
+  return {
+    ...cachedDetail,
+    funds: { ...cachedDetail.funds, extracted, summary },
+  };
+}
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const defaultOut = join(__dirname, '..', 'out');
@@ -203,7 +225,8 @@ const server = http.createServer(async (req, res) => {
       // it for a single-user dev tool, so a refresh=1 query forces a re-scrape.
       const cached = storeGet<any>(BUCKETS.nations, bandNumber);
       if (cached && !refresh && ageMs(cached) < 24 * 60 * 60 * 1000) {
-        return json(res, 200, { ...cached.data, cached: true, fetchedAt: cached.fetchedAt });
+        const live = refreshFundsExtractedLive(cached.data);
+        return json(res, 200, { ...live, cached: true, fetchedAt: cached.fetchedAt });
       }
       // In-flight dedup — a fresh fetch can take minutes (PDF OCR is heavily
       // rate-limited). Reuse the same promise for concurrent callers so a
@@ -230,7 +253,8 @@ const server = http.createServer(async (req, res) => {
         return json(res, 200, { ...result.detail, cached: false, fetchedAt: new Date().toISOString() });
       }
       if (cached) {
-        return json(res, 200, { ...cached.data, cached: true, stale: true, fetchedAt: cached.fetchedAt, warning: result.error.message });
+        const live = refreshFundsExtractedLive(cached.data);
+        return json(res, 200, { ...live, cached: true, stale: true, fetchedAt: cached.fetchedAt, warning: result.error.message });
       }
       return json(res, 502, { error: result.error.message });
     }
