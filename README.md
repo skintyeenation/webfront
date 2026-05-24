@@ -30,7 +30,7 @@ proof-of-concept built for the proposal.
 | &nbsp;&nbsp;&nbsp;&nbsp;[Domains (GoDaddy)](#domains-godaddy) | `skintyee.ca` registrar + Azure DNS |
 | &nbsp;&nbsp;&nbsp;&nbsp;[Developer tools](#developer-tools) | IntelliJ Ultimate + Claude Max |
 | **Reference** | |
-| &nbsp;&nbsp;&nbsp;&nbsp;[Costs](#costs) | All recurring + one-time software costs (M365, 1Password, GoDaddy, Azure, dev tools) |
+| &nbsp;&nbsp;&nbsp;&nbsp;[Pricing & costs](#pricing--costs) | Pricing for all software / services — recurring + one-time (M365, 1Password, GoDaddy, Azure, app stores, dev tools), each with tax-deductibility |
 | &nbsp;&nbsp;&nbsp;&nbsp;[Documentation](#documentation) | Index of every doc in this repo |
 | &nbsp;&nbsp;&nbsp;&nbsp;[Conventions](#conventions) | Git workflow + branch rules |
 
@@ -401,7 +401,7 @@ Tooling used to build/maintain the software: **JetBrains IntelliJ IDEA Ultimate*
 🛠️ **[Developer tools & cost →](docs/developer-tools.md)** — IDE + AI assistant,
 pricing, and 100% Canadian tax-deductibility.
 
-## Costs
+## Pricing & costs
 
 💰 **[Pricing overview →](docs/pricing-overview.md)** — all software/service
 costs in one place — recurring and one-time (Microsoft 365, 1Password, GoDaddy,
