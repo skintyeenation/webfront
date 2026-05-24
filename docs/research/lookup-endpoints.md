@@ -39,6 +39,19 @@ constraints**.
 
 The cleanest API in the bunch. Public, no auth, JSON.
 
+> Per the BC Open Data catalogue's _OrgBook BC API_ entry (organisation:
+> Digital Identity and Trust, first published 2023-11-20):
+> "Anyone is able to use OrgBook BC data in their own services. Rather
+> than needing to use the OrgBook BC website interface, the data is
+> available directly from OrgBook BC using what developers call an API.
+> Your developers could use this, for example, to integrate OrgBook BC
+> data into your business processes."
+>
+> CKAN package: `orgbook-bc-api`
+> (`https://catalogue.data.gov.bc.ca/dataset/orgbook-bc-api`).
+>
+> Swagger / interactive docs: `https://www.orgbook.gov.bc.ca/api/v4/docs/`
+
 | Endpoint | Method | Purpose |
 |---|---|---|
 | `https://www.orgbook.gov.bc.ca/api/v4/search/topic` | GET | Search registered BC orgs |
