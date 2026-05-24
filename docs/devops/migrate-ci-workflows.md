@@ -38,6 +38,41 @@ GitHub or ADO. The 24-month rotation reminder from
 [`sharepoint-docs-publish.md`](../365/sharepoint-docs-publish.md#3-generate-a-client-secret)
 goes away.
 
+## TL;DR — run the automation script
+
+Most of the steps below are automated by `scripts/setup-sharepoint-pipeline.sh`:
+
+```bash
+# (one-time, requires Entra ID Application Admin + ADO Project Admin)
+bash scripts/setup-sharepoint-pipeline.sh \
+  --sharepoint-site-id 'skintyee.sharepoint.com,...,...' \
+  --sharepoint-drive   Documents
+# (everything else defaults to skintyeenation/devops/webfront and is
+# discoverable via az — see --help)
+```
+
+The script handles **steps 1, 2, 3 below** (federated credential + ADO
+service connection + variable group + pipeline registration). It's
+idempotent — safe to re-run.
+
+What the script does NOT automate (each is one-time per environment):
+
+- **`az login`** — interactive sign-in. Script prompts you.
+- **Entra ID Application Admin role** on the running user (Microsoft
+  policy — only this role can add federated credentials).
+- **ADO Project Administrator role** on the `devops` project.
+- The **prior ADR-8 setup** — the `webfront-docs-publisher` Entra app
+  must already exist with `Sites.Selected` granted to the target
+  SharePoint site (per [`../365/sharepoint-docs-publish.md`](../365/sharepoint-docs-publish.md)
+  steps 2-5). The script verifies and points back at that doc if
+  missing.
+- **First-run pipeline authorization** — ADO may prompt for "Permit"
+  on the first pipeline run that uses the new service connection or
+  variable group (one-click in the ADO UI).
+
+If you'd rather do the four steps yourself by clicking through the
+UIs, the manual walkthrough is unchanged below.
+
 ## Step-by-step
 
 ### 1. Add federated credentials to the existing Entra ID app

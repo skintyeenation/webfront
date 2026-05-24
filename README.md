@@ -305,6 +305,7 @@ tax-deductible operating expenses under Canadian law.
 - [`docs/devops/agents.md`](docs/devops/agents.md) — self-hosted ADO agent guidance
 - [`azure-pipelines/README.md`](azure-pipelines/README.md) — Azure Pipelines YAML pipeline definitions (CI/CD on the `skintyeenation`/`devops` ADO project)
 - [`azure-pipelines/publish-docs-to-sharepoint.yml`](azure-pipelines/publish-docs-to-sharepoint.yml) — Azure Pipeline that publishes `docs/` to SharePoint via workload identity federation (replaces the legacy GitHub Actions workflow once verified)
+- [`scripts/setup-sharepoint-pipeline.sh`](scripts/setup-sharepoint-pipeline.sh) — idempotent setup script that wires the federated credential + ADO service connection + variable group + pipeline registration so the YAML above can actually run (automates four of the five admin steps; see `--help` for what stays manual)
 - [`docs/onboarding/README.md`](docs/onboarding/README.md) — new-staff onboarding sequence (M365 + 1Password)
 - [`docs/onboarding/outlook-skintyee-ca.md`](docs/onboarding/outlook-skintyee-ca.md) — activate `firstname.lastname@skintyee.ca`, register MFA, add to Outlook on macOS / Windows / iOS / Android / web, shared-mailbox auto-mapping
 - [`docs/onboarding/1password.md`](docs/onboarding/1password.md) — accept invite, set Master Password + save Emergency Kit, install desktop + browser-extension + mobile apps, migrate browser passwords, join shared vaults
