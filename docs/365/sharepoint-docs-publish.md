@@ -34,13 +34,13 @@ SharePoint site**, then put its credentials in GitHub Actions secrets.
 If you don't already have one, create a SharePoint site to hold the
 docs:
 
-1. Go to <https://skintyee.sharepoint.com/_layouts/15/sharepoint.aspx>
+1. Go to <https://skintyeenation.sharepoint.com/_layouts/15/sharepoint.aspx>
    (or your tenant's SharePoint home).
 2. **Create site** → **Team site** → name it e.g. `webfront-docs`.
 3. The default `Documents` library is fine; we'll write under a
    `webfront-docs/docs/` folder inside it.
 
-Note down the **site URL** — e.g. `https://skintyee.sharepoint.com/sites/webfront-docs`.
+Note down the **site URL** — e.g. `https://skintyeenation.sharepoint.com/sites/webfront-docs`.
 
 ### 2. Register the Entra ID app
 
@@ -102,14 +102,14 @@ admin.
 Install-Module PnP.PowerShell -Scope CurrentUser
 
 # Sign in as the global admin
-Connect-PnPOnline -Url https://skintyee.sharepoint.com/sites/webfront-docs `
+Connect-PnPOnline -Url https://skintyeenation.sharepoint.com/sites/webfront-docs `
                   -Interactive
 
 # Grant the app write access to this site
 Grant-PnPAzureADAppSitePermission `
   -AppId "<application-client-id-from-step-2>" `
   -DisplayName "webfront-docs-publisher" `
-  -Site "https://skintyee.sharepoint.com/sites/webfront-docs" `
+  -Site "https://skintyeenation.sharepoint.com/sites/webfront-docs" `
   -Permissions Write
 ```
 
@@ -132,12 +132,12 @@ TOKEN=$(curl -s -X POST \
   -d "grant_type=client_credentials" | jq -r .access_token)
 
 curl -s -H "authorization: Bearer $TOKEN" \
-  "https://graph.microsoft.com/v1.0/sites/skintyee.sharepoint.com:/sites/webfront-docs" \
+  "https://graph.microsoft.com/v1.0/sites/skintyeenation.sharepoint.com:/sites/webfront-docs" \
   | jq -r .id
 ```
 
 That prints something like
-`skintyee.sharepoint.com,11111111-2222-3333-4444-555555555555,66666666-7777-8888-9999-aaaaaaaaaaaa`.
+`skintyeenation.sharepoint.com,11111111-2222-3333-4444-555555555555,66666666-7777-8888-9999-aaaaaaaaaaaa`.
 That's the `SHAREPOINT_SITE_ID`.
 
 ### 7. Get the drive (document library) name

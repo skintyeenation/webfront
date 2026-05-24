@@ -45,7 +45,7 @@ Most of the steps below are automated by `scripts/setup-sharepoint-pipeline.sh`:
 ```bash
 # (one-time, requires Entra ID Application Admin + ADO Project Admin)
 bash scripts/setup-sharepoint-pipeline.sh \
-  --sharepoint-site-id 'skintyee.sharepoint.com,...,...' \
+  --sharepoint-site-id 'skintyeenation.sharepoint.com,...,...' \
   --sharepoint-drive   Documents
 # (everything else defaults to skintyeenation/devops/webfront and is
 # discoverable via az — see --help)
