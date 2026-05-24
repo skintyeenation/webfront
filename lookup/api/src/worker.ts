@@ -11,7 +11,7 @@
  */
 
 import { extractFundingPdf } from './util/anthropic.js';
-import { claim, complete, fail, recoverStuck, pruneCompleted } from './util/queue.js';
+import { claim, complete, fail, recoverStuck, pruneCompleted, requeue } from './util/queue.js';
 import { put as storePut } from './util/store.js';
 import { log, fmt } from './util/log.js';
 
@@ -60,6 +60,18 @@ async function processNext(): Promise<boolean> {
     return true;
   } catch (err) {
     const msg = (err as Error).message || 'unknown error';
+    const status = (err as any).status;
+    const retryable =
+      status === 429 || status === 529 || status === 503 || /rate_limit_error|overloaded_error/i.test(msg);
+    const MAX_ATTEMPTS = 6;
+    if (retryable && job.attempts < MAX_ATTEMPTS) {
+      requeue(job.id, msg);
+      log.warn(
+        `job ${job.id.slice(0, 8)} ${status === 429 ? '429' : status ?? 'transient'} → requeued (attempt ${job.attempts}/${MAX_ATTEMPTS}); sleeping ${GAP_AFTER_SUCCESS_MS / 1000}s`,
+      );
+      await new Promise((r) => setTimeout(r, GAP_AFTER_SUCCESS_MS));
+      return true;
+    }
     fail(job.id, msg);
     log.err(`job ${job.id.slice(0, 8)} ✖ ${msg.slice(0, 140)}`);
     // Wait at least one rate-window before claiming the next so a flood of

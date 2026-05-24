@@ -3,7 +3,7 @@ import { Linking, Platform, Pressable, Text, View } from 'react-native';
 import { ActivityIndicator, Button, Card, Chip, Divider, IconButton } from 'react-native-paper';
 import { PageContainer, ReserveMap } from 'lookup/components/layout';
 import { theme } from 'lookup/styles';
-import { getNationDetail, type BandDetail } from 'lookup/services/lookupApi';
+import { getNationDetail, retryFundingOcr, type BandDetail } from 'lookup/services/lookupApi';
 
 type Tab = 'general' | 'governance' | 'reserves' | 'population' | 'funds' | 'fnfta';
 
@@ -681,12 +681,29 @@ export default function NationDetail({ route, navigation }: any) {
                           </Text>
                         ) : e?.extractStatus === 'running' ? (
                           <Text style={{ color: theme.colors.accent, fontSize: 11, marginLeft: 8 }}>
-                            ⚙ OCR in progress…
+                            ⚙ OCR in progress{e?.attempts && e.attempts > 1 ? ` (attempt ${e.attempts})` : ''}…
                           </Text>
                         ) : e?.extractStatus === 'failed' ? (
-                          <Text style={{ color: theme.colors.error, fontSize: 11, marginLeft: 8 }}>
-                            ✖ OCR failed: {(e.extractError || '').slice(0, 80)}
-                          </Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginLeft: 8 }}>
+                            <Text style={{ color: theme.colors.error, fontSize: 11 }}>
+                              ✖ OCR failed: {(e.extractError || '').slice(0, 80)}
+                            </Text>
+                            <Pressable
+                              onPress={async () => {
+                                try {
+                                  await retryFundingOcr(bandNumber, e.fiscalYear);
+                                  await load(true);
+                                } catch (err) {
+                                  setError((err as Error).message);
+                                }
+                              }}
+                              style={{ marginLeft: 8 }}
+                            >
+                              <Text style={{ color: theme.colors.primary, fontSize: 11, fontWeight: '600' }}>
+                                Retry OCR ↻
+                              </Text>
+                            </Pressable>
+                          </View>
                         ) : e?.extractError ? (
                           <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginLeft: 8 }}>
                             {e.extractError.includes('ANTHROPIC_API_KEY')
