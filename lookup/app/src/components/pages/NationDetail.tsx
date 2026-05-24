@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Linking, Platform, Pressable, Text, View } from 'react-native';
-import { ActivityIndicator, Button, Card, Chip, Divider, IconButton, Snackbar } from 'react-native-paper';
+import { ActivityIndicator, Button, Card, Chip, Divider, IconButton, Menu, Snackbar } from 'react-native-paper';
 import { PageContainer, ReserveMap } from 'lookup/components/layout';
 import { theme } from 'lookup/styles';
 import { getNationDetail, retryFundingOcr, type BandDetail } from 'lookup/services/lookupApi';
@@ -137,6 +137,12 @@ export default function NationDetail({ route, navigation }: any) {
   // Transient toast at the bottom of the screen — used to confirm retries
   // (otherwise the user clicks and nothing visible changes for ~15s).
   const [toast, setToast] = useState<string>('');
+  // Year selector on the Funding tab. 'all' (default) shows the aggregate
+  // panels; a specific fiscal year shows just that year's transfers /
+  // expenditures / balance sheet / surplus-deficit.
+  const [selectedFy, setSelectedFy] = useState<string>('all');
+  const [moreYearsMenuOpen, setMoreYearsMenuOpen] = useState<boolean>(false);
+  const MAX_INLINE_YEARS = 5;
 
   const load = async (refresh = false) => {
     if (!bandNumber) return;
@@ -405,10 +411,235 @@ export default function NationDetail({ route, navigation }: any) {
           const latestBs = [...allExtracted]
             .filter((x) => x.balanceSheet && Object.keys(x.balanceSheet).length > 0)
             .sort((a, b) => b.fiscalYear.localeCompare(a.fiscalYear))[0];
+          // Build the available year list — anything with an extraction OR a
+          // PDF row gets a tab. Newest first for the selector chips so the
+          // most recent year is always quick to reach.
+          const yearList = Array.from(
+            new Set([
+              ...allExtracted.map((x) => x.fiscalYear),
+              ...(detail.funds.rows?.map((r) => r.fiscalYear) ?? []),
+            ]),
+          ).sort((a, b) => b.localeCompare(a));
+          const inlineYears = yearList.slice(0, MAX_INLINE_YEARS);
+          const overflowYears = yearList.slice(MAX_INLINE_YEARS);
+          // Resolve the selection — if the user picked one but it's
+          // disappeared (e.g. after a refresh dropped a cache), fall back.
+          const activeFy = selectedFy === 'all' || yearList.includes(selectedFy) ? selectedFy : 'all';
+          const perYearExtracted =
+            activeFy !== 'all' ? allExtracted.find((x) => x.fiscalYear === activeFy) : undefined;
           return (
         <View>
-          {/* Year-over-year totals — PDF-extracted vs federal Grants & Contributions */}
-          {(detail.funds.summary?.byYear?.length || detail.funds.federal?.byYear?.length) ? (
+          {/* Year selector */}
+          <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
+            <Card.Content>
+              <Text style={{ color: theme.colors.text, fontSize: 13, marginBottom: 8, fontWeight: '600' }}>
+                Drill into a fiscal year — or stay on "All years" for the aggregate charts.
+              </Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                <Chip
+                  selected={activeFy === 'all'}
+                  onPress={() => setSelectedFy('all')}
+                  style={{ backgroundColor: activeFy === 'all' ? theme.colors.accent : theme.colors.secondary }}
+                  textStyle={{ color: activeFy === 'all' ? '#000' : theme.colors.text, fontSize: 12 }}
+                >
+                  All years
+                </Chip>
+                {inlineYears.map((fy) => {
+                  const has = allExtracted.some((x) => x.fiscalYear === fy);
+                  return (
+                    <Chip
+                      key={fy}
+                      selected={activeFy === fy}
+                      icon={has ? 'check' : 'progress-clock'}
+                      onPress={() => setSelectedFy(fy)}
+                      style={{ backgroundColor: activeFy === fy ? theme.colors.accent : theme.colors.secondary }}
+                      textStyle={{ color: activeFy === fy ? '#000' : theme.colors.text, fontSize: 12 }}
+                    >
+                      {fy}
+                    </Chip>
+                  );
+                })}
+                {overflowYears.length > 0 ? (
+                  <Menu
+                    visible={moreYearsMenuOpen}
+                    onDismiss={() => setMoreYearsMenuOpen(false)}
+                    anchor={
+                      <Button
+                        mode="outlined"
+                        compact
+                        textColor={theme.colors.primary}
+                        onPress={() => setMoreYearsMenuOpen(true)}
+                      >
+                        More years ({overflowYears.length}) ▾
+                      </Button>
+                    }
+                    contentStyle={{ backgroundColor: theme.colors.darkDefault }}
+                  >
+                    {overflowYears.map((fy) => {
+                      const has = allExtracted.some((x) => x.fiscalYear === fy);
+                      return (
+                        <Menu.Item
+                          key={fy}
+                          title={fy}
+                          leadingIcon={has ? 'check' : 'progress-clock'}
+                          onPress={() => {
+                            setSelectedFy(fy);
+                            setMoreYearsMenuOpen(false);
+                          }}
+                          titleStyle={{ color: theme.colors.text }}
+                        />
+                      );
+                    })}
+                  </Menu>
+                ) : null}
+              </View>
+            </Card.Content>
+          </Card>
+
+          {/* Per-year drill-down (only when a specific year is selected) */}
+          {activeFy !== 'all' ? (
+            <View>
+              {perYearExtracted ? (
+                <View>
+                  {/* P/L header */}
+                  <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
+                    <Card.Title
+                      title={`${activeFy} — financial summary`}
+                      subtitle="From the band's audited submission for this fiscal year"
+                      titleStyle={{ color: theme.colors.success }}
+                      subtitleStyle={{ color: theme.colors.textDarker, fontSize: 11 }}
+                    />
+                    <Card.Content>
+                      {[
+                        ['Revenue (transfers)', perYearExtracted.computedTotal],
+                        ['Expenditures', perYearExtracted.computedExpenditureTotal],
+                        ['Surplus / (Deficit)', perYearExtracted.surplusDeficit],
+                      ]
+                        .filter(([, v]) => typeof v === 'number')
+                        .map(([label, v]) => {
+                          const isPL = label === 'Surplus / (Deficit)';
+                          const colour = isPL
+                            ? (v as number) >= 0
+                              ? theme.colors.success
+                              : theme.colors.error
+                            : theme.colors.text;
+                          return (
+                            <View key={String(label)} style={{ flexDirection: 'row', paddingVertical: 4, borderBottomColor: theme.colors.defaultBorder, borderBottomWidth: 1 }}>
+                              <Text style={{ color: theme.colors.text, fontSize: 13, flex: 1, fontWeight: isPL ? '700' : '400' }}>{label}</Text>
+                              <Text style={{ color: colour, fontSize: 13, fontFamily: 'Menlo, monospace' as any, fontWeight: isPL ? '700' : '400' }}>
+                                {(v as number) < 0 ? '−' : ''}${Math.abs(v as number).toLocaleString()}
+                              </Text>
+                            </View>
+                          );
+                        })}
+                    </Card.Content>
+                  </Card>
+
+                  {/* Transfers detail */}
+                  {perYearExtracted.transfers.length ? (
+                    <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
+                      <Card.Title
+                        title={`Revenue — ${perYearExtracted.transfers.length} transfer${perYearExtracted.transfers.length === 1 ? '' : 's'}`}
+                        titleStyle={{ color: theme.colors.accent }}
+                      />
+                      <Card.Content>
+                        {perYearExtracted.transfers.map((t, i) => (
+                          <View key={i} style={{ flexDirection: 'row', paddingVertical: 4, borderBottomColor: theme.colors.defaultBorder, borderBottomWidth: 1 }}>
+                            <View style={{ flex: 1 }}>
+                              <Text style={{ color: theme.colors.text, fontSize: 12 }}>{t.department || 'Unknown department'}</Text>
+                              {t.program ? (
+                                <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>{t.program}</Text>
+                              ) : null}
+                              {t.notes ? (
+                                <Text style={{ color: theme.colors.textDarker, fontSize: 11, fontStyle: 'italic' }}>{t.notes}</Text>
+                              ) : null}
+                            </View>
+                            <Text style={{ color: theme.colors.text, fontSize: 12, fontFamily: 'Menlo, monospace' as any }}>
+                              ${(Number(t.amount) || 0).toLocaleString()}
+                            </Text>
+                          </View>
+                        ))}
+                      </Card.Content>
+                    </Card>
+                  ) : null}
+
+                  {/* Expenditures detail */}
+                  {perYearExtracted.expenditures && perYearExtracted.expenditures.length ? (
+                    <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
+                      <Card.Title
+                        title={`Expenditures — ${perYearExtracted.expenditures.length} line${perYearExtracted.expenditures.length === 1 ? '' : 's'}`}
+                        titleStyle={{ color: theme.colors.primary }}
+                      />
+                      <Card.Content>
+                        {perYearExtracted.expenditures.map((e2, i) => (
+                          <View key={i} style={{ flexDirection: 'row', paddingVertical: 4, borderBottomColor: theme.colors.defaultBorder, borderBottomWidth: 1 }}>
+                            <View style={{ flex: 1 }}>
+                              <Text style={{ color: theme.colors.text, fontSize: 12 }}>{e2.category}</Text>
+                              {e2.detail ? (
+                                <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>{e2.detail}</Text>
+                              ) : null}
+                            </View>
+                            <Text style={{ color: theme.colors.text, fontSize: 12, fontFamily: 'Menlo, monospace' as any }}>
+                              ${(Number(e2.amount) || 0).toLocaleString()}
+                            </Text>
+                          </View>
+                        ))}
+                      </Card.Content>
+                    </Card>
+                  ) : null}
+
+                  {/* Balance sheet for this year */}
+                  {perYearExtracted.balanceSheet && Object.keys(perYearExtracted.balanceSheet).length > 0 ? (
+                    <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
+                      <Card.Title title={`Balance sheet — ${activeFy}`} titleStyle={{ color: theme.colors.success }} />
+                      <Card.Content>
+                        {[
+                          ['Current assets', perYearExtracted.balanceSheet.currentAssets],
+                          ['Capital assets', perYearExtracted.balanceSheet.capitalAssets],
+                          ['Total assets', perYearExtracted.balanceSheet.totalAssets],
+                          ['Current liabilities', perYearExtracted.balanceSheet.currentLiabilities],
+                          ['Long-term liabilities', perYearExtracted.balanceSheet.longTermLiabilities],
+                          ['Total liabilities', perYearExtracted.balanceSheet.totalLiabilities],
+                          ['Equity in capital assets', perYearExtracted.balanceSheet.equityInCapitalAssets],
+                          ['Accumulated surplus', perYearExtracted.balanceSheet.accumulatedSurplus],
+                          ['Net assets / band equity', perYearExtracted.balanceSheet.netAssetsOrEquity],
+                        ]
+                          .filter(([, v]) => typeof v === 'number')
+                          .map(([label, v]) => {
+                            const bold = ['Total assets', 'Total liabilities', 'Net assets / band equity'].includes(String(label));
+                            return (
+                              <View key={String(label)} style={{ flexDirection: 'row', paddingVertical: 4, borderBottomColor: theme.colors.defaultBorder, borderBottomWidth: 1 }}>
+                                <Text style={{ color: theme.colors.text, fontSize: 12, fontWeight: bold ? '700' : '400', flex: 1 }}>{label}</Text>
+                                <Text style={{
+                                  color: (v as number) < 0 ? theme.colors.error : theme.colors.text,
+                                  fontWeight: bold ? '700' : '400',
+                                  fontSize: 12,
+                                  fontFamily: 'Menlo, monospace' as any,
+                                }}>
+                                  ${(v as number).toLocaleString()}
+                                </Text>
+                              </View>
+                            );
+                          })}
+                      </Card.Content>
+                    </Card>
+                  ) : null}
+                </View>
+              ) : (
+                <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
+                  <Card.Content>
+                    <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>
+                      No OCR data for {activeFy} yet. Check the Schedule of Federal Funding list below — the worker may still be processing this year, or the PDF failed to extract (use Retry OCR).
+                    </Text>
+                  </Card.Content>
+                </Card>
+              )}
+            </View>
+          ) : null}
+
+          {/* The existing aggregate panels render only on "All years" so the
+              year-tab view stays focused. */}
+          {activeFy === 'all' && (detail.funds.summary?.byYear?.length || detail.funds.federal?.byYear?.length) ? (
             <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
               <Card.Title
                 title="Year-over-year federal transfers"
@@ -472,7 +703,7 @@ export default function NationDetail({ route, navigation }: any) {
           ) : null}
 
           {/* Profit / loss by year */}
-          {plByYear.length ? (
+          {activeFy === 'all' && plByYear.length ? (
             <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
               <Card.Title
                 title="Profit / loss by year"
@@ -500,7 +731,7 @@ export default function NationDetail({ route, navigation }: any) {
           ) : null}
 
           {/* Year-over-year revenue vs expenditures double-bar */}
-          {expByYear.length ? (
+          {activeFy === 'all' && expByYear.length ? (
             <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
               <Card.Title
                 title="Revenue vs expenditures by year"
@@ -546,7 +777,7 @@ export default function NationDetail({ route, navigation }: any) {
           ) : null}
 
           {/* Expenditures by category — aggregated across all years */}
-          {expByCategory.length ? (
+          {activeFy === 'all' && expByCategory.length ? (
             <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
               <Card.Title title="Expenditures by category (all years combined)" titleStyle={{ color: theme.colors.primary }} />
               <Card.Content>
@@ -563,7 +794,7 @@ export default function NationDetail({ route, navigation }: any) {
           ) : null}
 
           {/* Balance sheet snapshot — latest available year */}
-          {latestBs?.balanceSheet ? (
+          {activeFy === 'all' && latestBs?.balanceSheet ? (
             <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
               <Card.Title
                 title={`Balance sheet — ${latestBs.fiscalYear}`}
@@ -605,7 +836,7 @@ export default function NationDetail({ route, navigation }: any) {
           ) : null}
 
           {/* Per-department breakdown (pie, from whichever side has data) */}
-          {detail.funds.summary?.byDepartment?.length ? (
+          {activeFy === 'all' && detail.funds.summary?.byDepartment?.length ? (
             <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
               <Card.Title title="By funding department (from PDFs)" titleStyle={{ color: theme.colors.success }} />
               <Card.Content>
@@ -622,7 +853,7 @@ export default function NationDetail({ route, navigation }: any) {
           ) : null}
 
           {/* Cross-check table */}
-          {detail.funds.comparison?.byYear?.length ? (
+          {activeFy === 'all' && detail.funds.comparison?.byYear?.length ? (
             <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
               <Card.Title
                 title="Cross-check: PDF vs Federal records"
