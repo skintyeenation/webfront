@@ -214,7 +214,10 @@ Return the JSON object only.`;
 
   const msg = await c.messages.create({
     model: MODEL,
-    max_tokens: 4096,
+    // Multi-page scanned audits routinely produce 5–7K output tokens (one
+    // line per transfer + expenditure + balance-sheet entry). 4K truncated
+    // the JSON mid-object on some years, so the response had no closing `}`.
+    max_tokens: 8192,
     system: SYSTEM_PROMPT,
     messages: [
       {
@@ -228,8 +231,32 @@ Return the JSON object only.`;
   const block = msg.content.find((b: any) => b.type === 'text') as { type: 'text'; text: string } | undefined;
   if (!block) return undefined;
   const text = block.text.trim();
-  const parsed = parseJsonForgiving(text);
-  if (!parsed) return undefined;
+  let parsed: any = parseJsonForgiving(text);
+
+  // Fallback: if the first response wasn't valid JSON (Claude truncated or
+  // added commentary), ask Claude to repair its own output. One shot only —
+  // we don't want a retry loop burning tokens on a genuinely broken doc.
+  if (!parsed) {
+    const repair = await c.messages.create({
+      model: MODEL,
+      max_tokens: 8192,
+      system:
+        'You are a JSON repair tool. The user will give you text that should be a single JSON object. Output ONLY the corrected JSON object — no commentary, no markdown fences. If the input was truncated, complete it sensibly. If multiple objects are present, return the one that best matches the originally intended schema.',
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: `Repair this into a single valid JSON object:\n\n${text.slice(0, 24000)}` }],
+        },
+      ],
+    });
+    const rblock = repair.content.find((b: any) => b.type === 'text') as { type: 'text'; text: string } | undefined;
+    if (rblock) parsed = parseJsonForgiving(rblock.text.trim());
+  }
+  if (!parsed) {
+    // Surface a snippet of what Claude said so the failure is debuggable.
+    const head = text.slice(0, 160).replace(/\s+/g, ' ');
+    throw new Error(`Claude returned no parseable JSON. First ~160 chars: ${head}`);
+  }
   const transfers: FundingTransfer[] = Array.isArray(parsed.transfers) ? parsed.transfers : [];
   const computedTotal = transfers.reduce((s, t) => s + (Number(t.amount) || 0), 0);
   const expenditures: ExpenditureLine[] | undefined = Array.isArray(parsed.expenditures) ? parsed.expenditures : undefined;
