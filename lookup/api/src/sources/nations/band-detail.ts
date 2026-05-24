@@ -18,7 +18,7 @@
 
 import { getJson } from '../../util/http.js';
 import { withPage } from '../../util/puppet.js';
-import { extractFundsRows, summarizeFunds, type FundsRowWithExtract } from './funds-extract.js';
+import { describeFundsRows, summarizeFunds, type FundsRowWithExtract } from './funds-extract.js';
 import {
   compareFundingSources,
   fetchFederalFunding,
@@ -322,14 +322,15 @@ export async function getBandDetail(bandNumber: string, sections: Section[] = AL
               }
               return rows;
             }, BASE);
-            // Fan out: OCR each PDF via Claude (no-op if no API key) + pull
-            // the federal Grants & Contributions records for the same Nation
-            // for cross-check. Both run in parallel.
+            // Fast path — never block on OCR. `describeFundsRows` either
+            // attaches an already-cached extraction OR enqueues a job for
+            // the background worker and returns 'pending'. The federal
+            // Grants & Contributions side runs in parallel; both are quick.
             const bandName = detail.general?.officialName;
-            const [extracted, federal] = await Promise.all([
-              extractFundsRows(bandNumber, bandName, fundsRows),
-              bandName ? fetchFederalFunding(bandName).catch(() => undefined) : Promise.resolve(undefined),
-            ]);
+            const extracted = describeFundsRows(bandNumber, bandName, fundsRows);
+            const federal = bandName
+              ? await fetchFederalFunding(bandName).catch(() => undefined)
+              : undefined;
             const summary = summarizeFunds(extracted);
             const comparison = federal
               ? compareFundingSources(summary.byYear, federal.byYear)

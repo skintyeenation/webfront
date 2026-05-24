@@ -143,12 +143,28 @@ export interface BandDetail {
       extracted?: {
         fiscalYear: string;
         transfers: Array<{ department?: string; program?: string; amount: number; notes?: string }>;
+        expenditures?: Array<{ category: string; detail?: string; amount: number; notes?: string }>;
+        balanceSheet?: {
+          currentAssets?: number;
+          capitalAssets?: number;
+          totalAssets?: number;
+          currentLiabilities?: number;
+          longTermLiabilities?: number;
+          totalLiabilities?: number;
+          equityInCapitalAssets?: number;
+          accumulatedSurplus?: number;
+          netAssetsOrEquity?: number;
+        };
         declaredTotal?: number;
         computedTotal: number;
+        computedExpenditureTotal?: number;
+        surplusDeficit?: number;
         notes?: string;
       };
+      extractStatus: 'done' | 'cached' | 'pending' | 'running' | 'failed' | 'disabled';
+      jobId?: string;
+      attempts?: number;
       extractError?: string;
-      extractCached?: boolean;
     }>;
     summary?: {
       byYear: Array<{ fiscalYear: string; total: number; count: number }>;

@@ -8,6 +8,7 @@
     "lookup": "tsx src/cli.ts",
     "sources": "tsx src/cli.ts sources",
     "serve": "tsx src/serve.ts",
+    "worker": "LOOKUP_DISABLE_INPROC_WORKER=1 tsx src/worker.ts",
     "test:e2e": "tsx test/e2e-sources.ts",
     "fetch:bulk": "bash scripts/fetch-bulk.sh",
     "typecheck": "tsc --noEmit"

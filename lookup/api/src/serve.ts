@@ -24,12 +24,21 @@ import type { JobOptions, ProgressEvent, SourceMode } from './types.js';
 import { log, fmt } from './util/log.js';
 import { getBandDetail, type Section } from './sources/nations/band-detail.js';
 import { BUCKETS, ageMs, get as storeGet, put as storePut } from './util/store.js';
+import { list as listJobs } from './util/queue.js';
+import { startWorker } from './worker.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const defaultOut = join(__dirname, '..', 'out');
 
 const PORT = Number(process.env.PORT || 5050);
 const HOST = process.env.HOST || '127.0.0.1';
+
+// In-flight per (bandNumber, sections) — shared promise so concurrent
+// /api/nations requests don't fire duplicate OCR runs.
+const bandFetchInflight = new Map<
+  string,
+  Promise<{ ok: true; detail: any } | { ok: false; error: Error }>
+>();
 
 function json(res: http.ServerResponse, status: number, body: unknown): void {
   const payload = JSON.stringify(body);
@@ -86,6 +95,16 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === 'GET' && path === '/api/health') {
       return json(res, 200, { ok: true, port: PORT });
+    }
+
+    // GET /api/queue[?type=…&status=…] — peek at the background worker's queue
+    if (req.method === 'GET' && path === '/api/queue') {
+      const type = url.searchParams.get('type') || undefined;
+      const status = (url.searchParams.get('status') || undefined) as any;
+      const items = listJobs({ type, status });
+      const counts = { pending: 0, running: 0, done: 0, failed: 0 };
+      for (const j of listJobs()) (counts as any)[j.status] += 1;
+      return json(res, 200, { counts, items });
     }
 
     if (req.method === 'GET' && path === '/api/sources') {
@@ -147,17 +166,34 @@ const server = http.createServer(async (req, res) => {
       if (cached && !refresh && ageMs(cached) < 24 * 60 * 60 * 1000) {
         return json(res, 200, { ...cached.data, cached: true, fetchedAt: cached.fetchedAt });
       }
-      try {
-        const detail = await getBandDetail(bandNumber, sections);
-        storePut(BUCKETS.nations, bandNumber, detail);
-        return json(res, 200, { ...detail, cached: false, fetchedAt: new Date().toISOString() });
-      } catch (err) {
-        if (cached) {
-          // Scrape failed; serve stale cache.
-          return json(res, 200, { ...cached.data, cached: true, stale: true, fetchedAt: cached.fetchedAt, warning: (err as Error).message });
-        }
-        return json(res, 502, { error: (err as Error).message });
+      // In-flight dedup — a fresh fetch can take minutes (PDF OCR is heavily
+      // rate-limited). Reuse the same promise for concurrent callers so a
+      // page refresh doesn't kick off a second OCR run.
+      const inflightKey = `${bandNumber}:${sectionsParam || 'all'}`;
+      let p = bandFetchInflight.get(inflightKey);
+      if (!p) {
+        p = (async () => {
+          try {
+            const detail = await getBandDetail(bandNumber, sections);
+            storePut(BUCKETS.nations, bandNumber, detail);
+            return { ok: true as const, detail };
+          } catch (err) {
+            return { ok: false as const, error: err as Error };
+          } finally {
+            // Clear *after* the body resolves so dedup covers the whole run.
+            setTimeout(() => bandFetchInflight.delete(inflightKey), 0);
+          }
+        })();
+        bandFetchInflight.set(inflightKey, p);
       }
+      const result = await p;
+      if (result.ok) {
+        return json(res, 200, { ...result.detail, cached: false, fetchedAt: new Date().toISOString() });
+      }
+      if (cached) {
+        return json(res, 200, { ...cached.data, cached: true, stale: true, fetchedAt: cached.fetchedAt, warning: result.error.message });
+      }
+      return json(res, 502, { error: result.error.message });
     }
 
     const jobMatch = path.match(/^\/api\/jobs\/([\w-]+)(\/(stream|report))?$/);
@@ -229,5 +265,12 @@ server.listen(PORT, HOST, () => {
   log.info(`  ${fmt.dim('POST /api/run                  — start a job')}`);
   log.info(`  ${fmt.dim('GET  /api/jobs/:id/stream      — SSE progress')}`);
   log.info(`  ${fmt.dim('GET  /api/jobs/:id/report      — markdown report')}`);
-  log.info(`  ${fmt.dim('GET  /api/nations/:bandNumber  — cached band detail (puppeteer + JSON store)')}`);
+  log.info(`  ${fmt.dim('GET  /api/nations/:bandNumber  — band detail (PDF OCR runs in the background worker)')}`);
+  log.info(`  ${fmt.dim('GET  /api/queue                — peek at worker queue (pending / running / done / failed)')}`);
 });
+
+// Start the in-process worker — set LOOKUP_DISABLE_INPROC_WORKER=1 to skip it
+// (e.g. when running a dedicated `pnpm worker` process alongside).
+if (!process.env.LOOKUP_DISABLE_INPROC_WORKER) {
+  startWorker();
+}
