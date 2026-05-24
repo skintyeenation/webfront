@@ -177,13 +177,19 @@ if ($LASTEXITCODE -eq 0 -and $projectShow) {
 }
 
 # ----- 5) repo — create if missing --------------------------------------------
+#
+# Note: when ADO creates a new project, it AUTO-CREATES a default repo with
+# the same name. We probe with `az repos show` (atomic single-repo lookup)
+# rather than `az repos list` because the latter has a small
+# post-project-creation delay. We also handle ADO's TF400948 ("already
+# exists") response on create by re-probing.
 
 Say "checking repo '$Repo'…"
 $repoId = ""
-try {
-  $repoId = az repos list --project $Project --organization $OrgUrl `
-    --query "[?name=='$Repo'].id | [0]" -o tsv --only-show-errors 2>$null
-} catch {}
+if (-not $DryRun) {
+  $repoId = az repos show --repository $Repo --project $Project `
+    --organization $OrgUrl --query id -o tsv --only-show-errors 2>$null
+}
 if ($repoId -and $repoId -ne 'null') {
   Ok "repo '$Repo' already exists (id $repoId)"
 } else {
@@ -191,11 +197,23 @@ if ($repoId -and $repoId -ne 'null') {
   if ($DryRun) {
     $repoId = "DRY-RUN-REPO-ID"
   } else {
-    $repoId = az repos create `
+    $createOutput = az repos create `
       --name $Repo --project $Project --organization $OrgUrl `
-      --query 'id' -o tsv --only-show-errors
+      --query 'id' -o tsv --only-show-errors 2>&1
+    if ($createOutput -and $createOutput -notmatch 'TF400948' -and $createOutput -notmatch 'ERROR') {
+      $repoId = $createOutput
+      Ok "repo '$Repo' created (id $repoId)"
+    } else {
+      # Either "already exists" or some other failure — re-probe.
+      $repoId = az repos show --repository $Repo --project $Project `
+        --organization $OrgUrl --query id -o tsv --only-show-errors 2>$null
+      if ($repoId -and $repoId -ne 'null') {
+        Ok "repo '$Repo' already existed (auto-created with the project; id $repoId)"
+      } else {
+        Die "couldn't create or find repo '$Repo': $createOutput"
+      }
+    }
   }
-  Ok "repo '$Repo' created (id $repoId)"
 }
 
 $repoUrl = "$OrgUrl/$Project/_git/$Repo"
@@ -223,16 +241,55 @@ if (-not $DryRun) {
   $remoteHeads = git ls-remote --heads azure 2>$null
   $remoteBranchCount = if ($remoteHeads) { ($remoteHeads -split "`n").Count } else { 0 }
   if ($remoteBranchCount -eq 0) {
-    Say "pushing all branches + tags to azure (mirror)…"
+    Say "remote is empty — pushing all branches + tags to azure (mirror)…"
     Invoke-Cmd git push azure --mirror
     Ok "history pushed"
   } else {
-    Warn "remote already has $remoteBranchCount branch(es) — skipping --mirror to avoid clobbering."
-    Say "pushing master only…"
-    try { Invoke-Cmd git push azure master } catch { Warn "couldn't push master (resolve conflicts manually)" }
+    Warn "remote already has $remoteBranchCount branch(es) on azure."
+    Write-Host ""
+    Write-Host "  What would you like to do?"
+    Write-Host "    [s] Skip          — leave the remote as-is, don't push anything"
+    Write-Host "    [o] Overwrite     — git push azure --mirror --force"
+    Write-Host "                        (replaces every remote branch + tag with local)"
+    Write-Host "    [d] Delete + recreate — az repos delete, recreate fresh, then mirror-push"
+    Write-Host "                        (wipes the remote completely)"
+    Write-Host "    [a] Abort         — exit the script without pushing"
+    Write-Host ""
+    $pushChoice = ""
+    while (-not $pushChoice) {
+      $reply = Read-Host "  Choice [s/o/d/a]"
+      switch ($reply.ToLower()) {
+        's' { $pushChoice = 'skip' }
+        'o' { $pushChoice = 'overwrite' }
+        'd' { $pushChoice = 'delete' }
+        'a' { Die "aborted by user — no changes pushed." }
+        default { Write-Host "  ↳ pick one of s, o, d, a." }
+      }
+    }
+
+    switch ($pushChoice) {
+      'skip' {
+        Ok "skipped — remote unchanged."
+      }
+      'overwrite' {
+        Warn "force-pushing every local branch + tag, replacing remote contents."
+        Invoke-Cmd git push azure --mirror --force
+        Ok "history overwritten (mirror force-push)"
+      }
+      'delete' {
+        Warn "deleting and recreating the remote repo (destructive)…"
+        Invoke-Cmd az repos delete --id $repoId --project $Project --organization $OrgUrl --yes --only-show-errors
+        $repoId = az repos create --name $Repo --project $Project --organization $OrgUrl `
+          --query 'id' -o tsv --only-show-errors
+        Ok "repo '$Repo' recreated (new id $repoId)"
+        Say "pushing all branches + tags to the fresh repo…"
+        Invoke-Cmd git push azure --mirror
+        Ok "history pushed"
+      }
+    }
   }
 } else {
-  Write-Host "  (dry-run) would: git push azure --mirror (if remote empty) or git push azure master"
+  Write-Host "  (dry-run) would: git push azure --mirror (if remote empty) or prompt for skip/overwrite/delete"
 }
 
 # ----- 7) branch policy on master --------------------------------------------

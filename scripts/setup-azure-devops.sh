@@ -172,10 +172,21 @@ else
 fi
 
 # ----- 5) repo — create if missing --------------------------------------------
+#
+# Note: when ADO creates a new project, it AUTO-CREATES a default repo with
+# the same name as the project. So if we just ran step 4, the repo already
+# exists. We probe with `az repos show` (atomic single-repo lookup) rather
+# than `az repos list` because the latter has a small post-project-creation
+# delay before it returns the auto-default. We also wrap `az repos create`
+# to treat ADO's TF400948 ("repository with that name already exists")
+# response as success — covers the case where the probe somehow misses.
 
 say "checking repo '$REPO'…"
-REPO_ID=$(az repos list --project "$PROJECT" --organization "$ORG_URL" \
-  --query "[?name=='$REPO'].id | [0]" -o tsv --only-show-errors 2>/dev/null || echo "")
+REPO_ID=""
+if [ "$DRY_RUN" -eq 0 ]; then
+  REPO_ID=$(az repos show --repository "$REPO" --project "$PROJECT" \
+    --organization "$ORG_URL" --query id -o tsv --only-show-errors 2>/dev/null || echo "")
+fi
 if [ -n "$REPO_ID" ] && [ "$REPO_ID" != "null" ]; then
   ok "repo '$REPO' already exists (id $REPO_ID)"
 else
@@ -183,13 +194,27 @@ else
   if [ "$DRY_RUN" -eq 1 ]; then
     REPO_ID="DRY-RUN-REPO-ID"
   else
-    REPO_ID=$(az repos create \
+    # Try to create; if ADO says "already exists" (TF400948), re-probe and
+    # use the existing repo's id.
+    CREATE_OUTPUT=$(az repos create \
       --name "$REPO" \
       --project "$PROJECT" \
       --organization "$ORG_URL" \
-      --query 'id' -o tsv --only-show-errors)
+      --query 'id' -o tsv --only-show-errors 2>&1) || CREATE_OUTPUT="$CREATE_OUTPUT"
+    if [ -n "$CREATE_OUTPUT" ] && [[ "$CREATE_OUTPUT" != *"TF400948"* ]] && [[ "$CREATE_OUTPUT" != *"ERROR"* ]]; then
+      REPO_ID="$CREATE_OUTPUT"
+      ok "repo '$REPO' created (id $REPO_ID)"
+    else
+      # Either "already exists" or some other failure — re-probe.
+      REPO_ID=$(az repos show --repository "$REPO" --project "$PROJECT" \
+        --organization "$ORG_URL" --query id -o tsv --only-show-errors 2>/dev/null || echo "")
+      if [ -n "$REPO_ID" ] && [ "$REPO_ID" != "null" ]; then
+        ok "repo '$REPO' already existed (auto-created with the project; id $REPO_ID)"
+      else
+        die "couldn't create or find repo '$REPO': $CREATE_OUTPUT"
+      fi
+    fi
   fi
-  ok "repo '$REPO' created (id $REPO_ID)"
 fi
 
 REPO_URL="$ORG_URL/$PROJECT/_git/$REPO"
@@ -214,23 +239,62 @@ else
   ok "azure remote added"
 fi
 
-# Push every branch + tag. `--mirror` is the cleanest way to seed an empty repo;
-# subsequent pushes should be normal `git push azure master`.
+# Push every branch + tag. `--mirror` is the cleanest way to seed an empty repo.
+# If the remote already has commits, prompt for what to do — never silently
+# clobber.
 if [ "$DRY_RUN" -eq 0 ]; then
-  # Check whether the remote is empty — if not, `--mirror` would force-overwrite
-  # someone else's work.
   REMOTE_BRANCH_COUNT=$(git ls-remote --heads azure 2>/dev/null | wc -l | tr -d ' ')
   if [ "$REMOTE_BRANCH_COUNT" = "0" ]; then
-    say "pushing all branches + tags to azure (mirror)…"
+    say "remote is empty — pushing all branches + tags to azure (mirror)…"
     run git push azure --mirror
     ok "history pushed"
   else
-    warn "remote already has $REMOTE_BRANCH_COUNT branch(es) — skipping --mirror to avoid clobbering."
-    say "pushing master only…"
-    run git push azure master 2>/dev/null || warn "couldn't push master (resolve conflicts manually)"
+    warn "remote already has $REMOTE_BRANCH_COUNT branch(es) on azure."
+    echo
+    echo "  What would you like to do?"
+    echo "    [s] Skip          — leave the remote as-is, don't push anything"
+    echo "    [o] Overwrite     — git push azure --mirror --force"
+    echo "                        (replaces every remote branch + tag with local)"
+    echo "    [d] Delete + recreate — az repos delete, recreate fresh, then mirror-push"
+    echo "                        (wipes the remote completely)"
+    echo "    [a] Abort         — exit the script without pushing"
+    echo
+    PUSH_CHOICE=""
+    while [ -z "$PUSH_CHOICE" ]; do
+      printf "  Choice [s/o/d/a]: "
+      read -r PUSH_CHOICE < /dev/tty
+      case "$PUSH_CHOICE" in
+        s|S) PUSH_CHOICE=skip ;;
+        o|O) PUSH_CHOICE=overwrite ;;
+        d|D) PUSH_CHOICE=delete ;;
+        a|A) die "aborted by user — no changes pushed." ;;
+        *)   echo "  ↳ pick one of s, o, d, a."; PUSH_CHOICE="" ;;
+      esac
+    done
+
+    case "$PUSH_CHOICE" in
+      skip)
+        ok "skipped — remote unchanged."
+        ;;
+      overwrite)
+        warn "force-pushing every local branch + tag, replacing remote contents."
+        run git push azure --mirror --force
+        ok "history overwritten (mirror force-push)"
+        ;;
+      delete)
+        warn "deleting and recreating the remote repo (destructive)…"
+        run az repos delete --id "$REPO_ID" --project "$PROJECT" --organization "$ORG_URL" --yes --only-show-errors
+        REPO_ID=$(az repos create --name "$REPO" --project "$PROJECT" --organization "$ORG_URL" \
+          --query 'id' -o tsv --only-show-errors)
+        ok "repo '$REPO' recreated (new id $REPO_ID)"
+        say "pushing all branches + tags to the fresh repo…"
+        run git push azure --mirror
+        ok "history pushed"
+        ;;
+    esac
   fi
 else
-  printf '  (dry-run) would: git push azure --mirror (if remote empty) or git push azure master\n'
+  printf '  (dry-run) would: git push azure --mirror (if remote empty) or prompt for skip/overwrite/delete\n'
 fi
 
 # ----- 7) branch policy on master --------------------------------------------
