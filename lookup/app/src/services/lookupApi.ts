@@ -134,7 +134,43 @@ export interface BandDetail {
       female: number;
     };
   };
-  funds?: { rows: Array<{ fiscalYear: string; documentName: string; documentUrl?: string }> };
+  funds?: {
+    rows: Array<{ fiscalYear: string; documentName: string; documentUrl?: string }>;
+    extracted?: Array<{
+      fiscalYear: string;
+      documentName: string;
+      documentUrl?: string;
+      extracted?: {
+        fiscalYear: string;
+        transfers: Array<{ department?: string; program?: string; amount: number; notes?: string }>;
+        declaredTotal?: number;
+        computedTotal: number;
+        notes?: string;
+      };
+      extractError?: string;
+      extractCached?: boolean;
+    }>;
+    summary?: {
+      byYear: Array<{ fiscalYear: string; total: number; count: number }>;
+      byDepartment: Array<{ department: string; total: number; count: number }>;
+      byProgram: Array<{ program: string; total: number; count: number }>;
+    };
+    federal?: {
+      recipientNameSearched: string;
+      totalRecords: number;
+      byYear: Array<{ fiscalYear: string; total: number; count: number }>;
+      byDepartment: Array<{ department: string; total: number; count: number }>;
+    };
+    comparison?: {
+      byYear: Array<{
+        fiscalYear: string;
+        pdfTotal?: number;
+        federalTotal?: number;
+        delta?: number;
+        deltaPct?: number;
+      }>;
+    };
+  };
   fnfta?: { searchUrl: string };
   geo?: {
     features: Array<{

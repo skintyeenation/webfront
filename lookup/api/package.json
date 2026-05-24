@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
     "@inquirer/prompts": "^5.5.0",
     "cheerio": "^1.0.0",
     "commander": "^12.1.0",
