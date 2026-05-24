@@ -40,30 +40,68 @@ use the web UI.
 
 > ⚠️ **Don't use `aka.ms/AzureDevOpsAccountCreate`** — that shortlink
 > was retired by Microsoft and now redirects to a Bing search results
-> page. Use the URL below.
+> page.
 
-1. Open <https://dev.azure.com/>.
-2. Sign in with your Skin Tyee admin account
-   (`firstname.lastname@skintyee.ca`). If you land on a project list
-   instead of an empty dashboard, that's fine — the next step is the
-   same.
-3. Click **New organization** (top-left of the dashboard, in the
-   left-hand nav).
-4. Fill the create-organization dialog:
-   - **Organization name:** `skintyeenation`. The URL ends up at
-     `https://dev.azure.com/skintyeenation`.
-   - **Geography (hosting):** **Canada Central**. Data residency in
-     Canada — matches the M365 + Azure DB regions we already use;
-     supports the NGO accountability + privacy posture from
-     [`../architecture-decisions.md`](../architecture-decisions.md).
-   - **Azure subscription:** pick the active Skin Tyee subscription.
-     (See prerequisites above — Microsoft requires this for new
-     orgs since 2026.)
-5. Click **Continue**. The org is created; you land on its dashboard.
+There are two equivalent paths to the create-org dialog; pick
+whichever fits your current state.
 
-If you don't see a "New organization" button, you're signed in to
-the wrong account — sign out, sign back in with the admin account
-listed above.
+### Path A — direct ADO portal URL (recommended)
+
+Open <https://aex.dev.azure.com/me> in a new tab.
+
+This is the ADO account portal — bypasses the `dev.azure.com → portal.azure.com`
+sign-in redirect that fires if you're already signed in to the Azure
+portal in another tab.
+
+You should land on a page with your name in the upper-right and a
+**Create new organization** link on the left rail. Click it → skip
+to step 1.4 below.
+
+### Path B — via the Azure portal (if you're already signed in there)
+
+If you're currently in <https://portal.azure.com> as the admin
+account, you're 30 seconds away:
+
+1. Click the **search bar** at the top.
+2. Type **`Azure DevOps organizations`** → click the service result.
+3. On the blade, click **My Azure DevOps Organizations →** in the
+   upper-right. That opens `aex.dev.azure.com/me` in a new tab,
+   already signed in.
+4. Click **Create new organization** on the left rail.
+
+### 1.4 — Fill the create-organization dialog
+
+Either path lands you at the same dialog:
+
+- **Organization name:** `skintyeenation`. The URL ends up at
+  `https://dev.azure.com/skintyeenation`.
+- **Host your projects in (Geography):** **Canada Central**. Data
+  residency in Canada — matches the M365 + Azure DB regions we
+  already use; supports the NGO accountability + privacy posture from
+  [`../architecture-decisions.md`](../architecture-decisions.md).
+- **Azure subscription:** pick the active Skin Tyee subscription.
+  (See prerequisites above — Microsoft requires this for new orgs
+  since 2026.)
+
+Click **Continue**. The org is created; you land on its dashboard at
+`https://dev.azure.com/skintyeenation`.
+
+### Troubleshooting Step 1
+
+**"Sign in" sent me to `portal.azure.com/#home` instead of ADO**
+- Standard MSFT cross-product session routing. You're already signed
+  in to the Azure portal, so generic `dev.azure.com` defers to it.
+  Use Path A's `aex.dev.azure.com/me` URL — that's the ADO-specific
+  entry point and won't get hijacked. Or Path B (search "Azure
+  DevOps organizations" inside the portal you're already in).
+
+**No "New organization" button visible after sign-in**
+- Wrong account. Sign out
+  (<https://aex.dev.azure.com/_signout>) and back in with the admin
+  account listed in the prerequisites.
+
+**"Subscription required" error**
+- See the troubleshooting section at the bottom of this doc.
 
 ## Step 2 — Run the setup script
 
