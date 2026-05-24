@@ -353,7 +353,7 @@ tax-deductible operating expenses under Canadian law.
 
 - [`CLAUDE.md`](CLAUDE.md) — workspace overview, conventions, and decisions
 - [`docs/app-plan.md`](docs/app-plan.md) — app build plan
-- [`docs/architecture-decisions.md`](docs/architecture-decisions.md) — service ADRs (Entra ID, Azure Blob, Ferrus/Adagio, WordPress categories)
+- [`docs/architecture-decisions.md`](docs/architecture-decisions.md) — service ADRs (Entra ID, Azure Blob, Ferrus/Adagio, WordPress categories, SharePoint docs publishing)
 - [`docs/roadmap.md`](docs/roadmap.md) — 3-month engagement timeline
 - [`docs/pricing-overview.md`](docs/pricing-overview.md) — software/service costs summary, recurring + one-time (M365, 1Password, GoDaddy, Azure, app stores, dev tools) + tax
 - [`docs/app-distribution-costs.md`](docs/app-distribution-costs.md) — Apple Developer + Google Play costs, tax deductibility
@@ -366,6 +366,9 @@ tax-deductible operating expenses under Canadian law.
 - [`docs/365/entra-id.md`](docs/365/entra-id.md) — Entra ID, the admin account, Entra Connect, SSO + device/server access
 - [`docs/365/shared-mailboxes.md`](docs/365/shared-mailboxes.md) — Microsoft 365 shared mailbox setup + adding users
 - [`docs/365/pricing.md`](docs/365/pricing.md) — Microsoft 365 per-user pricing, tax deductibility, offboarding
+- [`docs/365/sharepoint-docs-publish.md`](docs/365/sharepoint-docs-publish.md) — auto-publish `docs/` to SharePoint via GitHub Actions + Microsoft Graph (Entra ID app + `Sites.Selected`), 9-step one-time Azure setup
+- [`scripts/publish-docs-to-sharepoint.sh`](scripts/publish-docs-to-sharepoint.sh) — the SharePoint publisher script (bash + curl + pandoc + jq)
+- [`.github/workflows/publish-docs-to-sharepoint.yml`](.github/workflows/publish-docs-to-sharepoint.yml) — push-to-master trigger + manual `workflow_dispatch`
 - [`docs/improvmx/README.md`](docs/improvmx/README.md) — ImprovMX email forwarding + pricing
 - [`docs/mailgun/README.md`](docs/mailgun/README.md) — Mailgun transactional email + pricing
 - [`docs/1password/setup.md`](docs/1password/setup.md) — 1Password vaults, groups, user management
