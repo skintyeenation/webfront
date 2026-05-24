@@ -292,15 +292,15 @@ export const indigenousTourismBc: Source = {
   mode: 'money',
   format: 'link-only',
   category: 'Open opportunities — Provincial grants',
-  // Their `/become-itbc-stakeholder/` page sits behind CDN protection that
-  // 403s requests whose referrer contains a localhost dev URL (the `?oref=`
-  // param). `/funding/` is the stable public landing.
-  homepage: 'https://indigenoustourismbc.com/funding/',
+  // The indigenoustourismbc.com domain is now fully squatted by SearchHounds
+  // (verified Puppeteer 2026-05; every path resolves to a domain-parking
+  // landing). ITBC's live site has moved to indigenousbc.com.
+  homepage: 'https://www.indigenousbc.com/',
   indigenousFilter: 'inherent',
   autoSelectOnIndigenous: true,
   description:
-    'BC Indigenous-led tourism marketing + business-development body; sector-specific funding for Indigenous tourism operators.',
-  searchUrl: () => 'https://indigenoustourismbc.com/funding/',
+    'BC Indigenous-led tourism marketing + business-development body. Sector-specific funding for Indigenous tourism operators (the old indigenoustourismbc.com domain is now squatted — indigenousbc.com is the canonical).',
+  searchUrl: () => 'https://www.indigenousbc.com/',
 };
 
 /**

@@ -106,7 +106,7 @@ Treaty, self-government, reconciliation:
 
 ### 2.1 NACCA — National Aboriginal Capital Corporations Association
 
-🔵 **Lookup source:** `nacca` (link-only) — <https://nacca.ca/>
+🟢 **Lookup source:** `nacca` (link-only) + scraped by `available-grants` (programs hub) — <https://nacca.ca/programs/>
 
 Federates **50+ regional Aboriginal Financial Institutions (AFIs)** and
 administers federal programs on behalf of ISED:
@@ -175,12 +175,12 @@ Every BC payment ≥$25K published in the Public Accounts. From FYE 2023:
 
 | Funder | What it funds | Searchable in app |
 |---|---|---|
-| **First Peoples' Cultural Council (FPCC)** — <https://fpcc.ca/grants/> | BC Crown corp, Indigenous-controlled board. BC Language Initiative, Cultural Heritage Stewardship Program, Indigenous Arts Program, Mentor-Apprentice Program | 🔵 `fpcc` link-only |
-| **New Relationship Trust** — <https://www.newrelationshiptrust.ca/funding/> | ~$135M independent endowment (2006), grants to BC First Nations for capacity building, language, economic development | 🔵 `new-relationship-trust` link-only |
-| **Indigenous Tourism BC** — <https://indigenoustourismbc.com/funding/> | Sector-specific stream tied to Destination BC | 🔵 `indigenous-tourism-bc` link-only |
-| **First Nations Health Authority (FNHA)** — <https://www.fnha.ca/> | Runs grants to member Nations for health programs, mental wellness, harm reduction, healthy living | 🔵 `fnha` link-only |
-| **Indigenous Tourism Association of Canada (ITAC)** — <https://indigenoustourism.ca/> | National + Indigenous Tourism Stimulus Fund (with NACCA) | 🔵 `itac` link-only |
-| **BC Funding Opportunities (Province-wide)** — <https://www2.gov.bc.ca/gov/content/funding> | BC government cross-ministry funding-opportunities hub (the `employment-business/business/funding-and-grants-for-business` path is 404 — this is the canonical) | 🔵 `bc-funding-finder` link-only |
+| **First Peoples' Cultural Council (FPCC)** — <https://fpcc.ca/grants/> | BC Crown corp, Indigenous-controlled board. BC Language Initiative, Cultural Heritage Stewardship Program, Indigenous Arts Program, Mentor-Apprentice Program | 🟢 `fpcc` link-only + scraped by `available-grants` |
+| **New Relationship Trust** — <https://www.newrelationshiptrust.ca/funding/> | ~$135M independent endowment (2006), grants to BC First Nations for capacity building, language, economic development. 13 listed programs incl. Nation Building, Declaration Act Engagement Grant, BC Indigenous Clean Energy, Community Energy Diesel Reduction (CEDR), Youth/Elder/Language/Education Grants | 🟢 `new-relationship-trust` link-only + scraped by `available-grants` |
+| **Indigenous Tourism BC** — <https://www.indigenousbc.com/> | Sector-specific stream tied to Destination BC (the old indigenoustourismbc.com domain is now squatted by SearchHounds — verified 2026-05) | 🔵 `indigenous-tourism-bc` link-only |
+| **First Nations Health Authority (FNHA)** — <https://www.fnha.ca/> | Runs grants to member Nations for health programs, mental wellness, harm reduction, healthy living. (SharePoint-style site — no clean grants landing page to scrape) | 🔵 `fnha` link-only |
+| **Indigenous Tourism Association of Canada (ITAC)** — <https://indigenoustourism.ca/> | National + Indigenous Tourism Stimulus Fund (with NACCA). (Site landing is news posts, not a programs list — link-only) | 🔵 `itac` link-only |
+| **BC Funding Opportunities (Province-wide)** — <https://www2.gov.bc.ca/gov/content/funding> | BC government cross-ministry funding-opportunities hub (the `employment-business/business/funding-and-grants-for-business` path is 404 — this is the canonical). On-page wizard — no scrapable list | 🔵 `bc-funding-finder` link-only |
 
 ---
 
@@ -188,7 +188,7 @@ Every BC payment ≥$25K published in the Public Accounts. From FYE 2023:
 
 | Funder | Focus | Searchable in app |
 |---|---|---|
-| **Indspire** — <https://indspire.ca/> | Indigenous-led, ~$22M/yr in education bursaries | 🔵 `indspire` link-only |
+| **Indspire** — <https://indspire.ca/programs/students/> | Indigenous-led, ~$22M/yr in education bursaries — Building Brighter Futures, Rivers to Success, Teach for Tomorrow | 🟢 `indspire` link-only + scraped by `available-grants` |
 | **Inspirit Foundation** — <https://inspiritfoundation.org/> | Indigenous youth + intercultural grants | 🔵 `inspirit-foundation` link-only |
 | **Suncor Energy Foundation — Indigenous stream** — <https://www.suncor.com/en-ca/sustainability/social-investment/indigenous-relations> | Corporate foundation | ⚪ |
 | **RBC Future Launch — Indigenous stream** — <https://www.rbc.com/community-social-impact/future-launch/indigenous.html> | Youth employment | ⚪ |
@@ -243,7 +243,7 @@ federal mechanism that backs Nation equity participation.
 
 | Where the money is | Source ID | Status |
 |---|---|---|
-| 12 federal department program hubs (CIRNAC + Canadian Heritage + ESDC + NRCan + ECCC + DFO + Justice + PacifiCan + PrairiesCan + ACOA + CanNor + Infrastructure Canada) — 330 programs indexed | `available-grants` | 🟢 Puppeteer + 24h cache |
+| 16 funding hubs — 12 federal departments (CIRNAC + Canadian Heritage + ESDC + NRCan + ECCC + DFO + Justice + PacifiCan + PrairiesCan + ACOA + CanNor + Infrastructure Canada) + 4 BC/Indigenous-controlled funders (New Relationship Trust + NACCA + Indspire + FPCC) — **391 programs indexed** | `available-grants` | 🟢 Puppeteer + 24h cache + per-hub skip patterns |
 | Canada Business Benefits Finder (cross-departmental + provincial) | `fed-funding-finder` | 🔵 link-only |
 | ISC + CIRNAC current calls for proposals | `isc-funding` | 🔵 link-only |
 | Canadian Heritage Indigenous Languages | `ch-indigenous-languages` | 🔵 link-only |
