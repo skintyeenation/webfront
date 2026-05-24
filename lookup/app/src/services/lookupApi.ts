@@ -213,3 +213,16 @@ export async function getNationDetail(bandNumber: string, refresh = false): Prom
   if (!res.ok) throw new Error(`GET /api/nations/${bandNumber} → ${res.status}`);
   return res.json();
 }
+
+/**
+ * Drop the cached OCR row for one (band, fiscalYear) PDF + any queued job
+ * + the parent band detail row. The next GET /api/nations/:b re-enqueues
+ * a fresh OCR job that the worker will pick up.
+ */
+export async function retryFundingOcr(bandNumber: string, fiscalYear: string): Promise<void> {
+  const res = await fetch(
+    `${API_BASE}/api/nations/${bandNumber}/funds/${encodeURIComponent(fiscalYear)}/retry`,
+    { method: 'POST' },
+  );
+  if (!res.ok) throw new Error(`POST retry → ${res.status}`);
+}

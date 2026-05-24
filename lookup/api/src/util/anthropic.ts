@@ -11,6 +11,52 @@ import Anthropic from '@anthropic-ai/sdk';
 
 const MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6';
 
+/**
+ * Tolerate Claude wrapping JSON in markdown fences, preamble like
+ * "Here's the extracted data:", trailing commentary, etc. Strips fences,
+ * then locates the first balanced top-level `{...}` and parses just that.
+ */
+export function parseJsonForgiving(text: string): any | undefined {
+  let s = text.trim();
+  // Strip leading ```json / ``` and trailing ``` fences.
+  s = s.replace(/^```(?:json|JSON)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+  // Try a straight parse first.
+  try {
+    return JSON.parse(s);
+  } catch {
+    // fall through
+  }
+  // Find the first `{` and walk for a matching `}` accounting for string escapes.
+  const start = s.indexOf('{');
+  if (start < 0) return undefined;
+  let depth = 0;
+  let inStr = false;
+  let esc = false;
+  for (let i = start; i < s.length; i++) {
+    const ch = s[i];
+    if (inStr) {
+      if (esc) esc = false;
+      else if (ch === '\\') esc = true;
+      else if (ch === '"') inStr = false;
+      continue;
+    }
+    if (ch === '"') inStr = true;
+    else if (ch === '{') depth += 1;
+    else if (ch === '}') {
+      depth -= 1;
+      if (depth === 0) {
+        const candidate = s.slice(start, i + 1);
+        try {
+          return JSON.parse(candidate);
+        } catch {
+          return undefined;
+        }
+      }
+    }
+  }
+  return undefined;
+}
+
 let client: Anthropic | null = null;
 export function getClient(): Anthropic | null {
   if (!process.env.ANTHROPIC_API_KEY) return null;
@@ -182,14 +228,8 @@ Return the JSON object only.`;
   const block = msg.content.find((b: any) => b.type === 'text') as { type: 'text'; text: string } | undefined;
   if (!block) return undefined;
   const text = block.text.trim();
-  // Tolerate accidental markdown fencing.
-  const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/```$/, '').trim();
-  let parsed: any;
-  try {
-    parsed = JSON.parse(cleaned);
-  } catch {
-    return undefined;
-  }
+  const parsed = parseJsonForgiving(text);
+  if (!parsed) return undefined;
   const transfers: FundingTransfer[] = Array.isArray(parsed.transfers) ? parsed.transfers : [];
   const computedTotal = transfers.reduce((s, t) => s + (Number(t.amount) || 0), 0);
   const expenditures: ExpenditureLine[] | undefined = Array.isArray(parsed.expenditures) ? parsed.expenditures : undefined;

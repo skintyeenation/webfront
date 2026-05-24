@@ -107,6 +107,45 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { counts, items });
     }
 
+    // POST /api/nations/:bandNumber/funds/:fiscalYear/retry
+    //   Requeue / re-OCR one fiscal year's PDF. Drops any cached extraction
+    //   so the next worker pickup re-runs from scratch.
+    const retryMatch = path.match(/^\/api\/nations\/(\d{1,5})\/funds\/([\w-]+)\/retry$/);
+    if (req.method === 'POST' && retryMatch) {
+      const [, bandNumber, fiscalYear] = retryMatch;
+      // Drop the cached OCR result so describeFundsRows enqueues a fresh job.
+      const fundsBucket = 'nations-funds';
+      const key = `${bandNumber}_${fiscalYear}`;
+      const cachePath = (await import('node:path')).join(__dirname, '..', 'data', fundsBucket, `${key}.json`);
+      try {
+        await (await import('node:fs/promises')).unlink(cachePath);
+      } catch {
+        /* not cached — fine */
+      }
+      // Drop the queued job (if any) — describeFundsRows will re-enqueue.
+      const fs = await import('node:fs/promises');
+      const queuePath = (await import('node:path')).join(__dirname, '..', 'data', 'queue.json');
+      try {
+        const buf = await fs.readFile(queuePath, 'utf8');
+        const arr = JSON.parse(buf) as any[];
+        const kept = arr.filter((j) => !(j.type === 'pdf-ocr' && j.key === key));
+        await fs.writeFile(queuePath, JSON.stringify(kept, null, 2));
+        // queue.ts caches in memory — bust it.
+        const { clearCache } = await import('./util/queue.js');
+        clearCache();
+      } catch {
+        /* no queue file yet — fine */
+      }
+      // Drop the band cache so the next GET re-runs describeFundsRows.
+      const bandPath = (await import('node:path')).join(__dirname, '..', 'data', 'nations', `${bandNumber}.json`);
+      try {
+        await fs.unlink(bandPath);
+      } catch {
+        /* not cached — fine */
+      }
+      return json(res, 200, { ok: true, fiscalYear, bandNumber });
+    }
+
     if (req.method === 'GET' && path === '/api/sources') {
       const mode = url.searchParams.get('mode') as SourceMode | null;
       const list = mode ? sourcesByMode(mode) : ALL_SOURCES;

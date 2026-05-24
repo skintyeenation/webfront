@@ -119,6 +119,21 @@ export function fail(id: string, error: string): void {
   writeAll();
 }
 
+/**
+ * Put a running job back onto the queue. Used by the worker for retryable
+ * errors (429 rate-limit, 5xx, etc.) where we want another shot rather than
+ * marking the job terminally failed.
+ */
+export function requeue(id: string, lastError?: string): void {
+  const all = readAll();
+  const job = all.find((j) => j.id === id);
+  if (!job) return;
+  job.status = 'pending';
+  delete job.claimedAt;
+  if (lastError) job.error = lastError;
+  writeAll();
+}
+
 /** Re-queue any 'running' jobs older than `staleMs` — they were left mid-run
  *  by a process kill / restart and need another shot. */
 export function recoverStuck(staleMs = 10 * 60 * 1000): number {
