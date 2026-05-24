@@ -63,18 +63,7 @@ export const worksafebc: Source = {
   searchUrl: () => 'https://online.worksafebc.com/anonymous/clearance/',
 };
 
-export const bcfsc: Source = {
-  id: 'bcfsc-safe',
-  name: 'BCFSC SAFE Companies',
-  mode: 'business',
-  format: 'html-search',
-  category: 'Safety / certification',
-  homepage: 'https://www.bcforestsafe.org/safe-companies/safe-program/safe-companies-list/',
-  indigenousFilter: 'none',
-  description: 'BC Forest Safety Council — list of SAFE-certified forestry contractors.',
-  searchUrl: (q) =>
-    `https://www.bcforestsafe.org/?s=${u(q)}`,
-};
+// bcfsc-safe has a real PDF-backed scraper now — see ./bcfsc-safe.ts.
 
 export const bccsaCor: Source = {
   id: 'bccsa-cor',

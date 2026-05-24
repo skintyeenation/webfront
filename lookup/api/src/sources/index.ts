@@ -12,12 +12,12 @@ import { iscIbd } from './business/isc-ibd.js';
 import { ccab } from './business/ccab.js';
 import { fnFma } from './nations/fn-fma.js';
 import { fnProfiles } from './nations/fn-profiles.js';
+import { bcfsc } from './business/bcfsc-safe.js';
 import {
   opencorporates,
   corporationsCanada,
   craCharities,
   worksafebc,
-  bcfsc,
   bccsaCor,
   cso,
 } from './business/link-only.js';

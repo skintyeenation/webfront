@@ -74,4 +74,5 @@ export function ageMs<T>(record: Record<T>): number {
 /** Buckets used by the lookup tool. */
 export const BUCKETS = {
   nations: 'nations',
+  bcfscSafe: 'bcfsc-safe',
 } as const;
