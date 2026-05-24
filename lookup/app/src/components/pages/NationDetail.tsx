@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Linking, Platform, Pressable, Text, View } from 'react-native';
-import { ActivityIndicator, Button, Card, Chip, Divider, IconButton } from 'react-native-paper';
+import { ActivityIndicator, Button, Card, Chip, Divider, IconButton, Snackbar } from 'react-native-paper';
 import { PageContainer, ReserveMap } from 'lookup/components/layout';
 import { theme } from 'lookup/styles';
 import { getNationDetail, retryFundingOcr, type BandDetail } from 'lookup/services/lookupApi';
@@ -131,6 +131,12 @@ export default function NationDetail({ route, navigation }: any) {
   const [loading, setLoading] = useState(false);   // initial first-fetch
   const [refreshing, setRefreshing] = useState(false); // user-triggered refresh
   const [error, setError] = useState<string | undefined>();
+  // Per-row OCR-retry indicator — drives the "↻ retrying…" badge while a
+  // POST /retry + subsequent refresh is in flight. Keyed by fiscal year.
+  const [retryingFy, setRetryingFy] = useState<Set<string>>(new Set());
+  // Transient toast at the bottom of the screen — used to confirm retries
+  // (otherwise the user clicks and nothing visible changes for ~15s).
+  const [toast, setToast] = useState<string>('');
 
   const load = async (refresh = false) => {
     if (!bandNumber) return;
@@ -684,26 +690,52 @@ export default function NationDetail({ route, navigation }: any) {
                             ⚙ OCR in progress{e?.attempts && e.attempts > 1 ? ` (attempt ${e.attempts})` : ''}…
                           </Text>
                         ) : e?.extractStatus === 'failed' ? (
-                          <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginLeft: 8 }}>
-                            <Text style={{ color: theme.colors.error, fontSize: 11 }}>
-                              ✖ OCR failed: {(e.extractError || '').slice(0, 80)}
-                            </Text>
-                            <Pressable
-                              onPress={async () => {
-                                try {
-                                  await retryFundingOcr(bandNumber, e.fiscalYear);
-                                  await load(true);
-                                } catch (err) {
-                                  setError((err as Error).message);
-                                }
-                              }}
-                              style={{ marginLeft: 8 }}
-                            >
-                              <Text style={{ color: theme.colors.primary, fontSize: 11, fontWeight: '600' }}>
-                                Retry OCR ↻
-                              </Text>
-                            </Pressable>
-                          </View>
+                          (() => {
+                            const isRetrying = retryingFy.has(e.fiscalYear);
+                            return (
+                              <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginLeft: 8 }}>
+                                {isRetrying ? (
+                                  <Text style={{ color: theme.colors.primary, fontSize: 11 }}>
+                                    ⏳ queued — worker will pick up shortly
+                                  </Text>
+                                ) : (
+                                  <Text style={{ color: theme.colors.error, fontSize: 11 }}>
+                                    ✖ OCR failed: {(e.extractError || '').slice(0, 80)}
+                                  </Text>
+                                )}
+                                <Button
+                                  mode="text"
+                                  compact
+                                  disabled={isRetrying || refreshing}
+                                  textColor={isRetrying ? theme.colors.textDarker : theme.colors.primary}
+                                  loading={isRetrying}
+                                  onPress={async () => {
+                                    if (isRetrying) return;
+                                    // Optimistic: mark this row as retrying immediately so the
+                                    // button greys out + the badge flips to "queued" without
+                                    // waiting on the network round-trip.
+                                    setRetryingFy((prev) => new Set([...prev, e.fiscalYear]));
+                                    try {
+                                      await retryFundingOcr(bandNumber, e.fiscalYear);
+                                      setToast(`Re-queued OCR for ${e.fiscalYear} — worker picks up next.`);
+                                      await load(true);
+                                    } catch (err) {
+                                      setError(`Retry failed: ${(err as Error).message}`);
+                                    } finally {
+                                      setRetryingFy((prev) => {
+                                        const next = new Set(prev);
+                                        next.delete(e.fiscalYear);
+                                        return next;
+                                      });
+                                    }
+                                  }}
+                                  style={{ marginLeft: 8 }}
+                                >
+                                  {isRetrying ? 'Queueing…' : 'Retry OCR ↻'}
+                                </Button>
+                              </View>
+                            );
+                          })()
                         ) : e?.extractError ? (
                           <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginLeft: 8 }}>
                             {e.extractError.includes('ANTHROPIC_API_KEY')
@@ -741,6 +773,16 @@ export default function NationDetail({ route, navigation }: any) {
           </Card.Content>
         </Card>
       ) : null}
+
+      <Snackbar
+        visible={!!toast}
+        onDismiss={() => setToast('')}
+        duration={4000}
+        action={{ label: 'OK', onPress: () => setToast('') }}
+        style={{ backgroundColor: theme.colors.darkDefault, borderColor: theme.colors.primary, borderWidth: 1 }}
+      >
+        <Text style={{ color: theme.colors.text }}>{toast}</Text>
+      </Snackbar>
     </PageContainer>
   );
 }
