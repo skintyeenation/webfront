@@ -370,6 +370,7 @@ tax-deductible operating expenses under Canadian law.
 - [`docs/research/canadian-business-lookups.md`](docs/research/canadian-business-lookups.md) — Canadian/BC business, First Nations & government contract lookup resources
 - [`docs/research/lookup-endpoints.md`](docs/research/lookup-endpoints.md) — verified search endpoints + params for business / money lookups (Indigenous filter)
 - [`docs/research/lookup-funding-architecture.md`](docs/research/lookup-funding-architecture.md) — Funding tab sub-tabs + multi-mode sources + `available-grants` aggregator
+- [`docs/research/indigenous-funding-landscape.md`](docs/research/indigenous-funding-landscape.md) — full Canadian Indigenous funding ecosystem (federal departments, NACCA + AFIs, BC provincial, philanthropic, IBAs) with which sources are searchable in the app
 - [`docs/research/lookup-tool-plan.md`](docs/research/lookup-tool-plan.md) — proposed `@skintyee/lookup` CLI + web tool plan
 - [`docs/research/nations-tab-plan.md`](docs/research/nations-tab-plan.md) — Nations tab plan + per-source scraping notes
 - [`docs/research/bc-spatial-datasets.md`](docs/research/bc-spatial-datasets.md) — SLRP, Publicly Available LUP, Recreation Sites, Mineral Deposit Profiles — download + schemas

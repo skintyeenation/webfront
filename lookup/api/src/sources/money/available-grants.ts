@@ -54,6 +54,7 @@ interface HubDef {
 }
 
 const HUBS: HubDef[] = [
+  // Original three (verified, > 95% of hits today).
   {
     agency: 'CIRNAC — Crown-Indigenous Relations & Northern Affairs',
     url: 'https://www.rcaanc-cirnac.gc.ca/eng/1611847555503/1611847585249',
@@ -71,6 +72,72 @@ const HUBS: HubDef[] = [
     url: 'https://www.canada.ca/en/employment-social-development/services/funding/programs.html',
     minTextLen: 12,
     maxTextLen: 120,
+  },
+  // Federal department hubs added 2026-05 in response to the
+  // "make all these searchable" ask. Same Drupal-WET template as the
+  // first three, so the existing <main> anchor extraction works.
+  // Some return only a handful of program anchors — that's fine; the
+  // catalogue is the union of all of them.
+  {
+    agency: 'NRCan — Natural Resources Canada',
+    // Verified live 2026-05 (the older /funding-opportunities path 404s).
+    url: 'https://natural-resources.canada.ca/funding-partnerships',
+    minTextLen: 10,
+    maxTextLen: 140,
+  },
+  {
+    agency: 'ECCC — Environment and Climate Change Canada',
+    url: 'https://www.canada.ca/en/environment-climate-change/services/environmental-funding.html',
+    minTextLen: 10,
+    maxTextLen: 140,
+  },
+  {
+    agency: 'DFO — Fisheries and Oceans (Indigenous programs)',
+    // Note: .htm (not .html). The .html variant serves a 200-status
+    // "Page not found" rendering.
+    url: 'https://www.dfo-mpo.gc.ca/fm-gp/aboriginal-autochtones/index-eng.htm',
+    minTextLen: 10,
+    maxTextLen: 140,
+  },
+  {
+    agency: 'Justice Canada',
+    url: 'https://www.justice.gc.ca/eng/fund-fina/index.html',
+    minTextLen: 10,
+    maxTextLen: 140,
+  },
+  // Regional development agencies — BC focus first.
+  {
+    agency: 'PacifiCan — Pacific Economic Development Canada (BC)',
+    url: 'https://www.canada.ca/en/pacific-economic-development.html',
+    minTextLen: 10,
+    maxTextLen: 140,
+  },
+  {
+    agency: 'PrairiesCan — Prairies Economic Development',
+    url: 'https://www.canada.ca/en/prairies-economic-development.html',
+    minTextLen: 10,
+    maxTextLen: 140,
+  },
+  {
+    agency: 'ACOA — Atlantic Canada Opportunities Agency',
+    url: 'https://www.canada.ca/en/atlantic-canada-opportunities.html',
+    minTextLen: 10,
+    maxTextLen: 140,
+  },
+  {
+    agency: 'CanNor — Canadian Northern Economic Development',
+    // Use the canonical "Our Programs and Services" deep-link
+    // (verified 2026-05; lists Northern Indigenous Economic Opportunities
+    // Program, IDEANorth, NICI Fund, Tourism Growth Program, etc.).
+    url: 'https://www.cannor.gc.ca/eng/1381325363616/1381325380355',
+    minTextLen: 10,
+    maxTextLen: 140,
+  },
+  {
+    agency: 'Infrastructure Canada',
+    url: 'https://housing-infrastructure.canada.ca/index-eng.html',
+    minTextLen: 10,
+    maxTextLen: 140,
   },
 ];
 
@@ -157,7 +224,7 @@ export const availableGrants: Source = {
   homepage: HUMAN_URL,
   indigenousFilter: 'keyword-or',
   description:
-    'Searchable list of federal grant + funding programs currently accepting applications. Aggregated from three departmental funding hubs (CIRNAC, Canadian Heritage, ESDC). Cached 24h.',
+    'Searchable list of federal grant + funding programs currently accepting applications. Aggregated from 11 departmental funding hubs (CIRNAC, Canadian Heritage, ESDC, NRCan, ECCC, DFO, Justice, PacifiCan, PrairiesCan, ACOA, CanNor, Infrastructure Canada). Cached 24h.',
   searchUrl: (q) => buildHumanUrl(q),
   async scrape(q): Promise<ScrapeResult> {
     try {
@@ -182,7 +249,7 @@ export const availableGrants: Source = {
         items,
         searchUrl: buildHumanUrl(q),
         notes: [
-          `Searched ${programs.length} federal funding programs across ${HUBS.length} departmental hubs (CIRNAC + Canadian Heritage + ESDC). Cache TTL 24h.`,
+          `Searched ${programs.length} federal funding programs across ${HUBS.length} departmental hubs (${HUBS.map((h) => h.agency.split(' — ')[0]).join(' · ')}). Cache TTL 24h.`,
         ],
       };
     } catch (err) {
