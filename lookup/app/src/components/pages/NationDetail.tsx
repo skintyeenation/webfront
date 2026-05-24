@@ -19,7 +19,15 @@ const TABS: Array<{ id: Tab; label: string; icon: string }> = [
 
 const CHART_COLORS = ['#00B8EC', '#EC6A37', '#9ECD3B', '#7C5CFA', '#F2C94C', '#A4A4A4'];
 
-function PieSlices({ slices, size = 180 }: { slices: Array<{ label: string; value: number; color: string }>; size?: number }) {
+interface PieSlicesProps {
+  slices: Array<{ label: string; value: number; color: string }>;
+  size?: number;
+  /** Render values as CAD currency rather than a bare integer. */
+  formatCurrency?: boolean;
+}
+function PieSlices({ slices, size = 180, formatCurrency }: PieSlicesProps) {
+  const fmtV = (n: number) =>
+    formatCurrency ? `$${n.toLocaleString()}` : n.toLocaleString();
   const total = slices.reduce((s, x) => s + x.value, 0);
   if (total <= 0) return <Text style={{ color: theme.colors.textDarker }}>No data.</Text>;
   if (Platform.OS === 'web') {
@@ -52,7 +60,7 @@ function PieSlices({ slices, size = 180 }: { slices: Array<{ label: string; valu
                 {s.label}
               </Text>
               <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginLeft: 8 }}>
-                {s.value} ({((s.value / total) * 100).toFixed(0)}%)
+                {fmtV(s.value)} ({((s.value / total) * 100).toFixed(0)}%)
               </Text>
             </View>
           ))}
@@ -68,7 +76,7 @@ function PieSlices({ slices, size = 180 }: { slices: Array<{ label: string; valu
           <View style={{ width: 12, height: 12, marginRight: 8, backgroundColor: s.color }} />
           <Text style={{ color: theme.colors.text, fontSize: 12, flex: 1 }}>{s.label}</Text>
           <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>
-            {s.value} ({((s.value / total) * 100).toFixed(0)}%)
+            {fmtV(s.value)} ({((s.value / total) * 100).toFixed(0)}%)
           </Text>
         </View>
       ))}
@@ -139,6 +147,19 @@ export default function NationDetail({ route, navigation }: any) {
   useEffect(() => {
     void load(false);
   }, [bandNumber]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // While any PDF OCR is pending / running in the background worker, poll
+  // the band-detail endpoint every 15s so the chart populates without a
+  // manual refresh.
+  useEffect(() => {
+    if (!detail?.funds?.extracted) return;
+    const pending = detail.funds.extracted.some(
+      (e) => e.extractStatus === 'pending' || e.extractStatus === 'running',
+    );
+    if (!pending) return;
+    const t = setInterval(() => void load(false), 15000);
+    return () => clearInterval(t);
+  }, [detail]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const title = detail?.general?.officialName || `Band ${bandNumber}`;
   const populationSlices = useMemo(() => {
@@ -331,6 +352,30 @@ export default function NationDetail({ route, navigation }: any) {
       ) : null}
 
       {tab === 'funds' && detail?.funds ? (
+        (() => {
+          const allExtracted = (detail.funds.extracted ?? [])
+            .map((e) => e.extracted)
+            .filter(Boolean) as NonNullable<NonNullable<typeof detail.funds.extracted>[number]['extracted']>[];
+          const expByYear = allExtracted
+            .filter((x) => x.computedExpenditureTotal !== undefined)
+            .map((x) => ({ fiscalYear: x.fiscalYear, total: x.computedExpenditureTotal! }));
+          const plByYear = allExtracted
+            .filter((x) => x.surplusDeficit !== undefined)
+            .map((x) => ({ fiscalYear: x.fiscalYear, surplus: x.surplusDeficit! }));
+          // Aggregate expenditure categories across all years.
+          const expCatMap = new Map<string, number>();
+          for (const x of allExtracted) {
+            for (const e of x.expenditures ?? []) {
+              const k = (e.category || 'Unspecified').trim() || 'Unspecified';
+              expCatMap.set(k, (expCatMap.get(k) ?? 0) + (Number(e.amount) || 0));
+            }
+          }
+          const expByCategory = [...expCatMap.entries()].sort((a, b) => b[1] - a[1]).map(([category, total]) => ({ category, total }));
+          // Latest balance sheet (most recent year with one).
+          const latestBs = [...allExtracted]
+            .filter((x) => x.balanceSheet && Object.keys(x.balanceSheet).length > 0)
+            .sort((a, b) => b.fiscalYear.localeCompare(a.fiscalYear))[0];
+          return (
         <View>
           {/* Year-over-year totals — PDF-extracted vs federal Grants & Contributions */}
           {(detail.funds.summary?.byYear?.length || detail.funds.federal?.byYear?.length) ? (
@@ -396,12 +441,146 @@ export default function NationDetail({ route, navigation }: any) {
             </Card>
           ) : null}
 
+          {/* Profit / loss by year */}
+          {plByYear.length ? (
+            <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
+              <Card.Title
+                title="Profit / loss by year"
+                subtitle="Revenue minus expenditures (from each year's audited submission)"
+                titleStyle={{ color: theme.colors.success }}
+                subtitleStyle={{ color: theme.colors.textDarker, fontSize: 11 }}
+              />
+              <Card.Content>
+                {plByYear.map((p) => (
+                  <View key={p.fiscalYear} style={{ flexDirection: 'row', paddingVertical: 4, borderBottomColor: theme.colors.defaultBorder, borderBottomWidth: 1 }}>
+                    <Text style={{ color: theme.colors.text, fontSize: 12, width: 90 }}>{p.fiscalYear}</Text>
+                    <Text style={{
+                      color: p.surplus >= 0 ? theme.colors.success : theme.colors.error,
+                      fontSize: 12,
+                      flex: 1,
+                      textAlign: 'right',
+                      fontFamily: 'Menlo, monospace' as any,
+                    }}>
+                      {p.surplus >= 0 ? '+' : '−'}${Math.abs(p.surplus).toLocaleString()}
+                    </Text>
+                  </View>
+                ))}
+              </Card.Content>
+            </Card>
+          ) : null}
+
+          {/* Year-over-year revenue vs expenditures double-bar */}
+          {expByYear.length ? (
+            <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
+              <Card.Title
+                title="Revenue vs expenditures by year"
+                subtitle="Top: revenue from federal transfer payments; bottom: total expenditures"
+                titleStyle={{ color: theme.colors.accent }}
+                subtitleStyle={{ color: theme.colors.textDarker, fontSize: 11 }}
+              />
+              <Card.Content>
+                {(() => {
+                  const revMap = new Map((detail.funds.summary?.byYear ?? []).map((y) => [y.fiscalYear, y.total]));
+                  const expMap = new Map(expByYear.map((x) => [x.fiscalYear, x.total]));
+                  const years = Array.from(new Set([...revMap.keys(), ...expMap.keys()])).sort();
+                  const max = Math.max(1, ...years.map((y) => Math.max(revMap.get(y) ?? 0, expMap.get(y) ?? 0)));
+                  return years.map((y) => {
+                    const rev = revMap.get(y) ?? 0;
+                    const exp = expMap.get(y) ?? 0;
+                    return (
+                      <View key={y} style={{ marginBottom: 10 }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                          <Text style={{ color: theme.colors.text, fontSize: 12, fontWeight: '600' }}>{y}</Text>
+                          <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>
+                            Rev ${rev.toLocaleString()} · Exp ${exp.toLocaleString()}
+                          </Text>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                          <Text style={{ width: 50, fontSize: 10, color: theme.colors.textDarker }}>Rev</Text>
+                          <View style={{ flex: 1, height: 8, backgroundColor: theme.colors.secondary }}>
+                            <View style={{ width: `${(rev / max) * 100}%`, height: '100%', backgroundColor: theme.colors.accent }} />
+                          </View>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                          <Text style={{ width: 50, fontSize: 10, color: theme.colors.textDarker }}>Exp</Text>
+                          <View style={{ flex: 1, height: 8, backgroundColor: theme.colors.secondary }}>
+                            <View style={{ width: `${(exp / max) * 100}%`, height: '100%', backgroundColor: theme.colors.primary }} />
+                          </View>
+                        </View>
+                      </View>
+                    );
+                  });
+                })()}
+              </Card.Content>
+            </Card>
+          ) : null}
+
+          {/* Expenditures by category — aggregated across all years */}
+          {expByCategory.length ? (
+            <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
+              <Card.Title title="Expenditures by category (all years combined)" titleStyle={{ color: theme.colors.primary }} />
+              <Card.Content>
+                <PieSlices
+                  formatCurrency
+                  slices={expByCategory.slice(0, 8).map((d, i) => ({
+                    label: d.category,
+                    value: d.total,
+                    color: CHART_COLORS[i % CHART_COLORS.length],
+                  }))}
+                />
+              </Card.Content>
+            </Card>
+          ) : null}
+
+          {/* Balance sheet snapshot — latest available year */}
+          {latestBs?.balanceSheet ? (
+            <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
+              <Card.Title
+                title={`Balance sheet — ${latestBs.fiscalYear}`}
+                subtitle="Assets, liabilities, equity (year-end snapshot from the audited submission)"
+                titleStyle={{ color: theme.colors.success }}
+                subtitleStyle={{ color: theme.colors.textDarker, fontSize: 11 }}
+              />
+              <Card.Content>
+                {[
+                  ['Current assets', latestBs.balanceSheet.currentAssets],
+                  ['Capital assets', latestBs.balanceSheet.capitalAssets],
+                  ['Total assets', latestBs.balanceSheet.totalAssets],
+                  ['Current liabilities', latestBs.balanceSheet.currentLiabilities],
+                  ['Long-term liabilities', latestBs.balanceSheet.longTermLiabilities],
+                  ['Total liabilities', latestBs.balanceSheet.totalLiabilities],
+                  ['Equity in capital assets', latestBs.balanceSheet.equityInCapitalAssets],
+                  ['Accumulated surplus', latestBs.balanceSheet.accumulatedSurplus],
+                  ['Net assets / band equity', latestBs.balanceSheet.netAssetsOrEquity],
+                ]
+                  .filter(([, v]) => typeof v === 'number')
+                  .map(([label, v]) => {
+                    const bold = ['Total assets', 'Total liabilities', 'Net assets / band equity'].includes(String(label));
+                    return (
+                      <View key={String(label)} style={{ flexDirection: 'row', paddingVertical: 4, borderBottomColor: theme.colors.defaultBorder, borderBottomWidth: 1 }}>
+                        <Text style={{ color: theme.colors.text, fontSize: 12, fontWeight: bold ? '700' : '400', flex: 1 }}>{label}</Text>
+                        <Text style={{
+                          color: (v as number) < 0 ? theme.colors.error : theme.colors.text,
+                          fontWeight: bold ? '700' : '400',
+                          fontSize: 12,
+                          fontFamily: 'Menlo, monospace' as any,
+                        }}>
+                          ${(v as number).toLocaleString()}
+                        </Text>
+                      </View>
+                    );
+                  })}
+              </Card.Content>
+            </Card>
+          ) : null}
+
           {/* Per-department breakdown (pie, from whichever side has data) */}
           {detail.funds.summary?.byDepartment?.length ? (
             <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
               <Card.Title title="By funding department (from PDFs)" titleStyle={{ color: theme.colors.success }} />
               <Card.Content>
                 <PieSlices
+                  formatCurrency
                   slices={detail.funds.summary.byDepartment.slice(0, 6).map((d, i) => ({
                     label: d.department,
                     value: d.total,
@@ -470,13 +649,25 @@ export default function NationDetail({ route, navigation }: any) {
                         {e?.extracted ? (
                           <Text style={{ color: theme.colors.success, fontSize: 11, marginLeft: 8 }}>
                             ✔ {e.extracted.transfers.length} transfers · ${e.extracted.computedTotal.toLocaleString()}
-                            {e.extractCached ? ' (cached)' : ''}
+                            {e.extractStatus === 'cached' ? ' (cached)' : ''}
+                          </Text>
+                        ) : e?.extractStatus === 'pending' ? (
+                          <Text style={{ color: theme.colors.primary, fontSize: 11, marginLeft: 8 }}>
+                            ⏳ queued for background OCR{e.attempts && e.attempts > 1 ? ` (attempt ${e.attempts})` : ''}
+                          </Text>
+                        ) : e?.extractStatus === 'running' ? (
+                          <Text style={{ color: theme.colors.accent, fontSize: 11, marginLeft: 8 }}>
+                            ⚙ OCR in progress…
+                          </Text>
+                        ) : e?.extractStatus === 'failed' ? (
+                          <Text style={{ color: theme.colors.error, fontSize: 11, marginLeft: 8 }}>
+                            ✖ OCR failed: {(e.extractError || '').slice(0, 80)}
                           </Text>
                         ) : e?.extractError ? (
                           <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginLeft: 8 }}>
                             {e.extractError.includes('ANTHROPIC_API_KEY')
                               ? 'OCR disabled — set ANTHROPIC_API_KEY to enable.'
-                              : `OCR failed: ${e.extractError}`}
+                              : `OCR error: ${e.extractError.slice(0, 80)}`}
                           </Text>
                         ) : null}
                       </View>
@@ -487,6 +678,8 @@ export default function NationDetail({ route, navigation }: any) {
             </Card.Content>
           </Card>
         </View>
+          );
+        })()
       ) : null}
 
       {tab === 'fnfta' ? (
