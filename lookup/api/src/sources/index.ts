@@ -28,7 +28,30 @@ import { openCanadaCkan } from './money/open-canada-ckan.js';
 import { bcOpenDataCkan } from './money/bc-open-data-ckan.js';
 import { merx } from './money/merx.js';
 import { canadabuys } from './money/canadabuys.js';
-import { availableGrants } from './money/available-grants.js';
+import {
+  availableGrants,
+  // Per-agency scrapers that share the available-grants cache. Each one
+  // surfaces a single hub's programs as an inline-searchable Source instead
+  // of a link-only landing, so the picker shows "scrape · N items" next to
+  // each agency name.
+  cirnacGrants,
+  canadianHeritageGrants,
+  esdcGrants,
+  pacifiCanGrants,
+  prairiesCanGrants,
+  acoaGrants,
+  cannorGrants,
+  nrcanGrants,
+  ecccGrants,
+  dfoIndigenousGrants,
+  justiceGrants,
+  infrastructureCanadaGrants,
+  naccaGrants,
+  fpccGrants,
+  newRelationshipTrustGrants,
+  indspireGrants,
+  bcFundingSearchGrants,
+} from './money/available-grants.js';
 import { bcMinistryContracts } from './money/bc-ministry-contracts.js';
 import { bcCrfTransfers } from './money/bc-crf-transfers.js';
 import {
@@ -41,31 +64,16 @@ import {
   innovativeSolutionsCanada,
   defenceProcurement,
   bcHydroTenders,
-  iscFundingPrograms,
   chIndigenousLanguages,
-  fpcc,
-  nacca,
   fedFundingFinder,
   bcafn,
-  newRelationshipTrust,
   fnha,
   indigenousTourismBc,
   itac,
-  bcFundingFinder,
-  indspire,
   inspiritFoundation,
   vancouverFoundation,
   tmxIndigenousLoanGuarantee,
   grantConnect,
-  pacifiCan,
-  prairiesCan,
-  acoa,
-  cannor,
-  nrcan,
-  eccc,
-  dfoIndigenous,
-  justiceFunding,
-  infrastructureCanada,
 } from './money/link-only.js';
 
 export const ALL_SOURCES: Source[] = [
@@ -92,23 +100,29 @@ export const ALL_SOURCES: Source[] = [
   openCanadaGrants,
   openCanadaCkan,
   fedFundingFinder,
-  iscFundingPrograms,
+  // Per-agency scrapers (real scrape via shared catalogue) — each shows up
+  // in the picker with "scrape · N items" and a chevron that expands to the
+  // hub's programs.
+  cirnacGrants,
+  canadianHeritageGrants,
   chIndigenousLanguages,
-  nacca,
+  esdcGrants,
+  pacifiCanGrants,
+  prairiesCanGrants,
+  acoaGrants,
+  cannorGrants,
+  nrcanGrants,
+  ecccGrants,
+  dfoIndigenousGrants,
+  justiceGrants,
+  infrastructureCanadaGrants,
+  naccaGrants,
+  indspireGrants,
+  // Still link-only — see comments in each entry for why.
   psib,
   innovativeSolutionsCanada,
   defenceProcurement,
-  pacifiCan,
-  prairiesCan,
-  acoa,
-  cannor,
-  nrcan,
-  eccc,
-  dfoIndigenous,
-  justiceFunding,
-  infrastructureCanada,
   itac,
-  indspire,
   inspiritFoundation,
   tmxIndigenousLoanGuarantee,
   merx,
@@ -117,12 +131,13 @@ export const ALL_SOURCES: Source[] = [
   bcMinistryContracts,
   bcCrfTransfers,
   bcOpenDataCkan,
-  fpcc,
+  // BC + provincial Indigenous-led
+  fpccGrants,
+  newRelationshipTrustGrants,
+  bcFundingSearchGrants,
   bcafn,
-  newRelationshipTrust,
   fnha,
   indigenousTourismBc,
-  bcFundingFinder,
   vancouverFoundation,
   bcBid,
   bcHydroTenders,
