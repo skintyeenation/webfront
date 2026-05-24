@@ -11,23 +11,28 @@ proof-of-concept built for the proposal.
 
 | Section | What's in it |
 |---|---|
-| [Purpose](#purpose) | What we're building and why — identity, transparency, community, NGO priorities |
-| [Architecture](#architecture) | Top-level diagram of the platform |
-| [Visual walkthroughs](#visual-walkthroughs) | App + website screenshot tours |
-| [Layout](#layout) | Repo / workspace structure |
-| [app/](#app--skin-tyee-community-app) | `@skintyee/app` — Skin Tyee community app (React Native + Expo) |
-| [api/](#api--skin-tyee-api-proposed) | `@skintyee/api` — API contract + stub server |
-| [lookup/](#lookup--skin-tyee-lookup-tool) | `@skintyee/lookup-api` + `@skintyee/lookup-app` — Canadian business / funding / Nations lookup tool |
-| [Getting started](#getting-started) | `pnpm install` + first-run commands |
-| [Deployment](#deployment) | WordPress site via Azure DevOps; app via EAS Build |
-| [Microsoft 365 integration](#microsoft-365-integration) | Entra ID, shared mailboxes, SharePoint docs auto-publish |
-| [Staff onboarding](#staff-onboarding) | New-staff sequence: Outlook (with mandatory password change) → 1Password → shared mailboxes → band apps |
-| [Password management (1Password)](#password-management-1password) | Vaults, groups, recovery |
-| [Domains (GoDaddy)](#domains-godaddy) | `skintyee.ca` registrar + Azure DNS |
-| [Developer tools](#developer-tools) | IntelliJ Ultimate + Claude Max |
-| [Costs](#costs) | All recurring + one-time software costs (M365, 1Password, GoDaddy, Azure, dev tools) |
-| [Documentation](#documentation) | Index of every doc in this repo |
-| [Conventions](#conventions) | Git workflow + branch rules |
+| **Overview** | |
+| &nbsp;&nbsp;&nbsp;&nbsp;[Purpose](#purpose) | What we're building and why — identity, transparency, community, NGO priorities |
+| &nbsp;&nbsp;&nbsp;&nbsp;[Architecture](#architecture) | Top-level diagram of the platform |
+| &nbsp;&nbsp;&nbsp;&nbsp;[Visual walkthroughs](#visual-walkthroughs) | App + website screenshot tours |
+| &nbsp;&nbsp;&nbsp;&nbsp;[Layout](#layout) | Repo / workspace structure |
+| **Packages** | |
+| &nbsp;&nbsp;&nbsp;&nbsp;[app/](#app--skin-tyee-community-app) | `@skintyee/app` — Skin Tyee community app (React Native + Expo) |
+| &nbsp;&nbsp;&nbsp;&nbsp;[api/](#api--skin-tyee-api-proposed) | `@skintyee/api` — API contract + stub server |
+| &nbsp;&nbsp;&nbsp;&nbsp;[lookup/](#lookup--skin-tyee-lookup-tool) | `@skintyee/lookup-api` + `@skintyee/lookup-app` — Canadian business / funding / Nations lookup tool |
+| **Run & deploy** | |
+| &nbsp;&nbsp;&nbsp;&nbsp;[Getting started](#getting-started) | `pnpm install` + first-run commands |
+| &nbsp;&nbsp;&nbsp;&nbsp;[Deployment](#deployment) | WordPress site via Azure DevOps; app via EAS Build |
+| **Infrastructure & people** | |
+| &nbsp;&nbsp;&nbsp;&nbsp;[Microsoft 365 integration](#microsoft-365-integration) | Entra ID, shared mailboxes, SharePoint docs auto-publish |
+| &nbsp;&nbsp;&nbsp;&nbsp;[Staff onboarding](#staff-onboarding) | New-staff sequence: Outlook (with mandatory password change) → 1Password → shared mailboxes → band apps |
+| &nbsp;&nbsp;&nbsp;&nbsp;[Password management (1Password)](#password-management-1password) | Vaults, groups, recovery |
+| &nbsp;&nbsp;&nbsp;&nbsp;[Domains (GoDaddy)](#domains-godaddy) | `skintyee.ca` registrar + Azure DNS |
+| &nbsp;&nbsp;&nbsp;&nbsp;[Developer tools](#developer-tools) | IntelliJ Ultimate + Claude Max |
+| **Reference** | |
+| &nbsp;&nbsp;&nbsp;&nbsp;[Costs](#costs) | All recurring + one-time software costs (M365, 1Password, GoDaddy, Azure, dev tools) |
+| &nbsp;&nbsp;&nbsp;&nbsp;[Documentation](#documentation) | Index of every doc in this repo |
+| &nbsp;&nbsp;&nbsp;&nbsp;[Conventions](#conventions) | Git workflow + branch rules |
 
 ## Purpose
 
