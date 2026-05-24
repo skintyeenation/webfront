@@ -5,13 +5,12 @@ import { PageContainer, ReserveMap } from 'lookup/components/layout';
 import { theme } from 'lookup/styles';
 import { getNationDetail, type BandDetail } from 'lookup/services/lookupApi';
 
-type Tab = 'general' | 'governance' | 'reserves' | 'map' | 'population' | 'funds' | 'fnfta';
+type Tab = 'general' | 'governance' | 'reserves' | 'population' | 'funds' | 'fnfta';
 
 const TABS: Array<{ id: Tab; label: string; icon: string }> = [
   { id: 'general', label: 'General', icon: 'card-account-details-outline' },
   { id: 'governance', label: 'Governance', icon: 'gavel' },
   { id: 'reserves', label: 'Reserves', icon: 'map-marker-outline' },
-  { id: 'map', label: 'Map', icon: 'map' },
   { id: 'population', label: 'Population', icon: 'account-group-outline' },
   { id: 'funds', label: 'Federal funding', icon: 'cash-multiple' },
   { id: 'fnfta', label: 'FNFTA', icon: 'file-document-outline' },
@@ -127,12 +126,16 @@ export default function NationDetail({ route, navigation }: any) {
   const bandNumber: string = String(route?.params?.bandNumber || '');
   const [tab, setTab] = useState<Tab>('general');
   const [detail, setDetail] = useState<BandDetail | undefined>();
-  const [loading, setLoading] = useState(false);
+  // Two separate flags so the spinner state on the refresh button is correct
+  // independently of the first-load skeleton.
+  const [loading, setLoading] = useState(false);   // initial first-fetch
+  const [refreshing, setRefreshing] = useState(false); // user-triggered refresh
   const [error, setError] = useState<string | undefined>();
 
   const load = async (refresh = false) => {
     if (!bandNumber) return;
-    setLoading(true);
+    if (refresh) setRefreshing(true);
+    else if (!detail) setLoading(true);
     setError(undefined);
     try {
       const d = await getNationDetail(bandNumber, refresh);
@@ -141,9 +144,15 @@ export default function NationDetail({ route, navigation }: any) {
       setError((e as Error).message);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
+  // Stale-while-revalidate: on mount we always pull the cached row first
+  // (instant if the JSON store has it; ~10s puppeteer scrape if not). The
+  // refresh button + the polling loop below both kick a server-side
+  // ?refresh=1 which re-runs every section without blocking the cached
+  // copy currently being displayed.
   useEffect(() => {
     void load(false);
   }, [bandNumber]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -190,17 +199,30 @@ export default function NationDetail({ route, navigation }: any) {
           <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginTop: 2 }}>
             Band {bandNumber}
             {detail?.general?.address ? ` · ${detail.general.address}` : ''}
-            {detail?.fetchedAt ? ` · ${detail.cached ? 'cached' : 'fresh'} ${new Date(detail.fetchedAt).toLocaleString()}` : ''}
-            {detail?.stale ? ' · stale' : ''}
+            {detail?.fetchedAt
+              ? ` · ${detail.cached ? '📦 cached' : '✨ fresh'} ${new Date(detail.fetchedAt).toLocaleString()}`
+              : ''}
+            {detail?.stale ? ' · stale (last scrape failed)' : ''}
           </Text>
         </View>
-        <IconButton
-          icon="refresh"
-          iconColor={theme.colors.primary}
+        <Button
+          mode={refreshing ? 'outlined' : 'contained-tonal'}
+          icon={refreshing ? undefined : 'refresh'}
+          buttonColor={refreshing ? undefined : theme.colors.secondary}
+          textColor={theme.colors.primary}
+          loading={refreshing}
+          disabled={refreshing || loading}
           onPress={() => void load(true)}
-          accessibilityLabel="Re-scrape this band"
-        />
+          compact
+        >
+          {refreshing ? 'Refreshing…' : 'Refresh'}
+        </Button>
       </View>
+      {refreshing ? (
+        <Text style={{ color: theme.colors.primary, fontSize: 11, marginBottom: 8 }}>
+          Re-scraping every section (FN Profiles sub-pages + reserve geometry + federal grants + funding PDFs). Takes ~10–20s. The currently displayed data stays in place until the refresh completes.
+        </Text>
+      ) : null}
 
       {/* Tabs */}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
@@ -267,58 +289,60 @@ export default function NationDetail({ route, navigation }: any) {
       ) : null}
 
       {tab === 'reserves' ? (
-        <Card style={{ backgroundColor: theme.colors.darkDefault }}>
-          <Card.Title title="Reserves" titleStyle={{ color: theme.colors.primary }} />
-          <Card.Content>
-            {(detail?.reserves?.rows ?? []).length === 0 ? (
-              <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>No reserve rows extracted.</Text>
-            ) : (
-              (detail?.reserves?.rows ?? []).map((r, i) => (
-                <View key={`${r.name}-${i}`} style={{ paddingVertical: 6, borderBottomColor: theme.colors.defaultBorder, borderBottomWidth: 1 }}>
-                  {r.url ? (
-                    <Pressable onPress={() => Linking.openURL(r.url!)}>
-                      <Text style={{ color: theme.colors.primary, fontSize: 13, fontWeight: '600' }}>{r.name} ↗</Text>
-                    </Pressable>
-                  ) : (
-                    <Text style={{ color: theme.colors.text, fontSize: 13, fontWeight: '600' }}>{r.name}</Text>
-                  )}
-                  <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>
-                    {[r.size, r.community].filter(Boolean).join(' · ')}
-                  </Text>
-                </View>
-              ))
-            )}
-          </Card.Content>
-        </Card>
-      ) : null}
-
-      {tab === 'map' ? (
-        <Card style={{ backgroundColor: theme.colors.darkDefault }}>
-          <Card.Title
-            title="Reserve territory"
-            subtitle={detail?.geo
-              ? `${detail.geo.features.length} reserve${detail.geo.features.length === 1 ? '' : 's'} plotted from the federal CLSS Aboriginal Lands layer`
-              : 'Fetching reserve geometry…'
-            }
-            titleStyle={{ color: theme.colors.success }}
-            subtitleStyle={{ color: theme.colors.textDarker, fontSize: 12 }}
-          />
-          <Card.Content>
-            {detail?.geo?.warnings?.map((w, i) => (
-              <Text key={i} style={{ color: theme.colors.accent, fontSize: 12, marginBottom: 4 }}>⚠ {w}</Text>
-            ))}
-            {detail?.geo && detail.geo.features.length > 0 ? (
-              <ReserveMap features={detail.geo.features as any} bbox={detail.geo.bbox} height={380} />
-            ) : detail?.geo ? (
-              <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>
-                No reserve polygons matched on the federal CLSS Aboriginal Lands layer for this Nation.
+        <View>
+          {/* Map first — visual context before the legal descriptions. */}
+          <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
+            <Card.Title
+              title="Reserve territory"
+              subtitle={
+                detail?.geo
+                  ? `${detail.geo.features.length} reserve${detail.geo.features.length === 1 ? '' : 's'} plotted from the federal NRCan CLSS Aboriginal Lands layer`
+                  : 'Fetching reserve geometry…'
+              }
+              titleStyle={{ color: theme.colors.success }}
+              subtitleStyle={{ color: theme.colors.textDarker, fontSize: 12 }}
+            />
+            <Card.Content>
+              {detail?.geo?.warnings?.map((w, i) => (
+                <Text key={i} style={{ color: theme.colors.accent, fontSize: 12, marginBottom: 4 }}>⚠ {w}</Text>
+              ))}
+              {detail?.geo && detail.geo.features.length > 0 ? (
+                <ReserveMap features={detail.geo.features as any} bbox={detail.geo.bbox} height={360} />
+              ) : detail?.geo ? (
+                <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>
+                  No reserve polygons matched on the federal CLSS Aboriginal Lands layer for this Nation.
+                </Text>
+              ) : null}
+              <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginTop: 8 }}>
+                Polygons sourced from NRCan CLSS Administrative Boundaries; tiles © OpenStreetMap contributors.
               </Text>
-            ) : null}
-            <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginTop: 8 }}>
-              Polygons sourced from NRCan CLSS Administrative Boundaries; tiles © OpenStreetMap contributors.
-            </Text>
-          </Card.Content>
-        </Card>
+            </Card.Content>
+          </Card>
+
+          <Card style={{ backgroundColor: theme.colors.darkDefault }}>
+            <Card.Title title="Reserve list" titleStyle={{ color: theme.colors.primary }} />
+            <Card.Content>
+              {(detail?.reserves?.rows ?? []).length === 0 ? (
+                <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>No reserve rows extracted.</Text>
+              ) : (
+                (detail?.reserves?.rows ?? []).map((r, i) => (
+                  <View key={`${r.name}-${i}`} style={{ paddingVertical: 6, borderBottomColor: theme.colors.defaultBorder, borderBottomWidth: 1 }}>
+                    {r.url ? (
+                      <Pressable onPress={() => Linking.openURL(r.url!)}>
+                        <Text style={{ color: theme.colors.primary, fontSize: 13, fontWeight: '600' }}>{r.name} ↗</Text>
+                      </Pressable>
+                    ) : (
+                      <Text style={{ color: theme.colors.text, fontSize: 13, fontWeight: '600' }}>{r.name}</Text>
+                    )}
+                    <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>
+                      {[r.size && `${r.size} ha`, r.community].filter(Boolean).join(' · ')}
+                    </Text>
+                  </View>
+                ))
+              )}
+            </Card.Content>
+          </Card>
+        </View>
       ) : null}
 
       {tab === 'population' && detail?.population ? (
