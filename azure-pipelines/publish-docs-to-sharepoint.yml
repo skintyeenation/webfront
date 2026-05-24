@@ -6,14 +6,14 @@ name: publish-docs-to-sharepoint
 #
 # Auth: workload identity federation through an ADO service connection.
 # NO long-lived client_secret involved — the ADO project's federated
-# identity is trusted by the `webfront-docs-publisher` Entra ID app, and
+# identity is trusted by the `it-project-docs-publisher` Entra ID app, and
 # this pipeline mints a Graph token just-in-time per run.
 #
 # Setup walkthrough:  docs/devops/migrate-ci-workflows.md
 # Underlying publisher script: scripts/publish-docs-to-sharepoint.sh
 #
 # Prerequisites BEFORE this pipeline can succeed (one-time, admin tasks):
-#   1. Federated credential added to `webfront-docs-publisher` Entra app
+#   1. Federated credential added to `it-project-docs-publisher` Entra app
 #      with subject `sc://skintyeenation/devops/sharepoint-docs-sc`.
 #      See docs/devops/migrate-ci-workflows.md § 1.
 #   2. ADO service connection `sharepoint-docs-sc` created in the

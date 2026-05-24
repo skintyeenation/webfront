@@ -2,7 +2,7 @@
 # Automate the four admin tasks needed to make
 # `azure-pipelines/publish-docs-to-sharepoint.yml` run for the first time:
 #
-#   1. Add a federated credential to the `webfront-docs-publisher` Entra
+#   1. Add a federated credential to the `it-project-docs-publisher` Entra
 #      app pointing at the ADO service connection we're about to create.
 #   2. Create the ADO service connection `sharepoint-docs-sc` in the
 #      `devops` project using workload identity federation.
@@ -23,7 +23,7 @@
 # (`docs/365/sharepoint-docs-publish.md`) and you stored them as GitHub
 # Actions secrets. Pass them here too:
 #
-#   --entra-app-id        ID of the `webfront-docs-publisher` Entra app
+#   --entra-app-id        ID of the `it-project-docs-publisher` Entra app
 #                         (the GUID, not the display name).
 #                         Default: discovered via `az ad app list`
 #                         filtering on display name.
@@ -70,7 +70,7 @@
 #    need this to create service connections + pipelines + variable
 #    groups. If you don't have it, ask whoever runs the org.
 #
-# D. The `webfront-docs-publisher` Entra app + its
+# D. The `it-project-docs-publisher` Entra app + its
 #    Sites.Selected permission + the **site-level Sites.Selected
 #    grant** via PnP PowerShell `Grant-PnPAzureADAppSitePermission`.
 #    These are documented in `docs/365/sharepoint-docs-publish.md`
@@ -93,7 +93,7 @@ set -euo pipefail
 
 # ----- defaults --------------------------------------------------------------
 
-ENTRA_APP_DISPLAY_NAME="webfront-docs-publisher"
+ENTRA_APP_DISPLAY_NAME="it-project-docs-publisher"
 ENTRA_APP_ID=""
 TENANT_ID=""
 SHAREPOINT_SITE_ID=""
