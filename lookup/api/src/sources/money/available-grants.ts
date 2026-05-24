@@ -296,9 +296,97 @@ const HUMAN_URL = 'https://www.canada.ca/en/services/funding.html';
 const buildHumanUrl = (q: string): string =>
   q.trim() ? `${HUMAN_URL}?q=${encodeURIComponent(q)}` : HUMAN_URL;
 
+/**
+ * Convert raw HubProgram rows into SourceItems with consistent shape.
+ */
+function toSourceItems(matched: HubProgram[], limit = 30): SourceItem[] {
+  return matched.slice(0, limit).map((p) => ({
+    title: p.name,
+    subtitle: p.agency,
+    url: p.applyUrl,
+    fields: {
+      agency: p.agency,
+      apply_url: p.applyUrl,
+      source_hub: p.hubUrl,
+    },
+  }));
+}
+
+/**
+ * Filter the cached program catalogue. `agencyMatch` (optional) narrows to a
+ * single hub; the keyword `needle` matches the program name and the agency
+ * name. An empty needle returns the full (agency-narrowed) catalogue so the
+ * "browse mode" search Just Works.
+ */
+async function searchCatalogue(needle: string, agencyMatch?: RegExp): Promise<HubProgram[]> {
+  const programs = await ensureCatalogue(false);
+  const filtered = agencyMatch ? programs.filter((p) => agencyMatch.test(p.agency)) : programs;
+  const lower = needle.trim().toLowerCase();
+  if (!lower) return filtered;
+  return filtered.filter(
+    (p) => p.name.toLowerCase().includes(lower) || p.agency.toLowerCase().includes(lower),
+  );
+}
+
+/**
+ * Per-agency Source factory — each one is a *real* scraper that shares the
+ * `available-grants` cache and filters to the matching hub. This is what the
+ * picker UI shows as "scrape" instead of "link only": users see PacifiCan,
+ * CanNor, NACCA, etc. each as a scrapable source with its real program count,
+ * not as a clickable-only landing.
+ */
+interface AgencySourceOpts {
+  id: string;
+  name: string;
+  /** Regex tested against `HubProgram.agency`. Determines which hub's items
+   *  show up under this source. */
+  agencyMatch: RegExp;
+  /** Page users land on when clicking "Open search ↗" — the hub URL. */
+  homepage: string;
+  description: string;
+  category?: string;
+  /** Whether the source auto-selects when the Indigenous-only chip is on. */
+  autoIndigenous?: boolean;
+}
+
+function mkAgencyScraper(opts: AgencySourceOpts): Source {
+  return {
+    id: opts.id,
+    name: opts.name,
+    mode: 'money',
+    format: 'html-search',
+    category: opts.category || 'Open opportunities — Federal grants',
+    homepage: opts.homepage,
+    indigenousFilter: opts.autoIndigenous ? 'inherent' : 'keyword-or',
+    autoSelectOnIndigenous: opts.autoIndigenous,
+    description: opts.description,
+    searchUrl: () => opts.homepage,
+    async scrape(q): Promise<ScrapeResult> {
+      try {
+        const matched = await searchCatalogue(q, opts.agencyMatch);
+        return {
+          items: toSourceItems(matched),
+          searchUrl: opts.homepage,
+          notes: [`${matched.length} program${matched.length === 1 ? '' : 's'} from the cached funding catalogue (24h TTL).`],
+        };
+      } catch (err) {
+        return {
+          items: [],
+          searchUrl: opts.homepage,
+          warnings: [`Catalogue fetch failed (${(err as Error).message}); link only.`],
+        };
+      }
+    },
+  };
+}
+
+/**
+ * The cross-hub aggregator — searches across every hub in the cache. Same
+ * cache that the per-agency scrapers use; this just doesn't filter by agency.
+ */
 export const availableGrants: Source = {
   id: 'available-grants',
-  name: 'Available federal grants & programs (accepting applications)',
+  name: 'Available federal grants & programs (all hubs)',
   // Available in both Funding *and* Business modes — knowing what programs are
   // open to apply to is useful for both "where's the money" and "what should
   // this business apply for".
@@ -308,32 +396,16 @@ export const availableGrants: Source = {
   homepage: HUMAN_URL,
   indigenousFilter: 'keyword-or',
   description:
-    'Searchable list of grant + funding programs currently accepting applications. Aggregated from 17 hubs — 12 federal departments (CIRNAC, Canadian Heritage, ESDC, NRCan, ECCC, DFO, Justice, PacifiCan, PrairiesCan, ACOA, CanNor, Infrastructure Canada), 4 Indigenous-controlled / BC funders (New Relationship Trust, NACCA, Indspire, FPCC), and the BC Government Funding Search with the Aboriginal facet pre-applied. Cached 24h.',
+    'Searchable list of grant + funding programs currently accepting applications. Aggregated from 17 hubs — 12 federal departments (CIRNAC, Canadian Heritage, ESDC, NRCan, ECCC, DFO, Justice, PacifiCan, PrairiesCan, ACOA, CanNor, Infrastructure Canada), 4 Indigenous-controlled / BC funders (New Relationship Trust, NACCA, Indspire, FPCC), and the BC Government Funding Search with the Aboriginal facet pre-applied. Per-hub scrapers also exposed individually. Cached 24h.',
   searchUrl: (q) => buildHumanUrl(q),
   async scrape(q): Promise<ScrapeResult> {
     try {
-      const programs = await ensureCatalogue(false);
-      const needle = q.trim().toLowerCase();
-      const matched = needle
-        ? programs.filter(
-            (p) => p.name.toLowerCase().includes(needle) || p.agency.toLowerCase().includes(needle),
-          )
-        : programs;
-      const items: SourceItem[] = matched.slice(0, 30).map((p) => ({
-        title: p.name,
-        subtitle: p.agency,
-        url: p.applyUrl,
-        fields: {
-          agency: p.agency,
-          apply_url: p.applyUrl,
-          source_hub: p.hubUrl,
-        },
-      }));
+      const matched = await searchCatalogue(q);
       return {
-        items,
+        items: toSourceItems(matched),
         searchUrl: buildHumanUrl(q),
         notes: [
-          `Searched ${programs.length} federal funding programs across ${HUBS.length} departmental hubs (${HUBS.map((h) => h.agency.split(' — ')[0]).join(' · ')}). Cache TTL 24h.`,
+          `Searched ${matched.length} matching of all programs cached, across ${HUBS.length} hubs (${HUBS.map((h) => h.agency.split(' — ')[0]).join(' · ')}). Cache TTL 24h.`,
         ],
       };
     } catch (err) {
@@ -345,3 +417,174 @@ export const availableGrants: Source = {
     }
   },
 };
+
+// =============================================================================
+// Per-agency scrapable sources. Each pulls from the shared catalogue cache.
+// =============================================================================
+
+export const pacifiCanGrants: Source = mkAgencyScraper({
+  id: 'pacifican',
+  name: 'PacifiCan — Pacific Economic Development Canada (BC)',
+  agencyMatch: /^PacifiCan/i,
+  homepage: 'https://www.canada.ca/en/pacific-economic-development.html',
+  description:
+    'BC + Yukon regional development agency. REGI Indigenous-business stream, Jobs and Growth Fund, Tourism Relief Fund Indigenous stream. Programs harvested live; cached 24h.',
+});
+
+export const prairiesCanGrants: Source = mkAgencyScraper({
+  id: 'prairiescan',
+  name: 'PrairiesCan — Prairies Economic Development Canada',
+  agencyMatch: /^PrairiesCan/i,
+  homepage: 'https://www.canada.ca/en/prairies-economic-development.html',
+  description:
+    'MB/SK/AB regional development agency. REGI Indigenous-business stream, Jobs and Growth Fund. Programs harvested live; cached 24h.',
+});
+
+export const acoaGrants: Source = mkAgencyScraper({
+  id: 'acoa',
+  name: 'ACOA — Atlantic Canada Opportunities Agency',
+  agencyMatch: /^ACOA/i,
+  homepage: 'https://www.canada.ca/en/atlantic-canada-opportunities.html',
+  description:
+    'Atlantic Canada regional development. REGI Indigenous-business stream, Atlantic Innovation Fund. Programs harvested live; cached 24h.',
+});
+
+export const cannorGrants: Source = mkAgencyScraper({
+  id: 'cannor',
+  name: 'CanNor — Canadian Northern Economic Development',
+  agencyMatch: /^CanNor/i,
+  homepage: 'https://www.cannor.gc.ca/eng/1381325363616/1381325380355',
+  description:
+    'Yukon/NWT/Nunavut regional agency. NIEOP, IDEANorth, NICI Fund, Tourism Growth Program, NPMO. Programs harvested live; cached 24h.',
+  autoIndigenous: true,
+});
+
+export const nrcanGrants: Source = mkAgencyScraper({
+  id: 'nrcan-funding',
+  name: 'NRCan — Natural Resources Canada funding',
+  agencyMatch: /^NRCan/i,
+  homepage: 'https://natural-resources.canada.ca/funding-partnerships',
+  description:
+    'CERRC, SREPs Indigenous stream, Indigenous Forestry Initiative. Programs harvested live; cached 24h.',
+});
+
+export const ecccGrants: Source = mkAgencyScraper({
+  id: 'eccc-funding',
+  name: 'ECCC — Environment and Climate Change Canada funding',
+  agencyMatch: /^ECCC/i,
+  homepage:
+    'https://www.canada.ca/en/environment-climate-change/services/environmental-funding.html',
+  description:
+    'Indigenous Guardians Program, Aboriginal Fund for Species at Risk (AFSAR), Indigenous Climate Leadership. Programs harvested live; cached 24h.',
+});
+
+export const dfoIndigenousGrants: Source = mkAgencyScraper({
+  id: 'dfo-indigenous',
+  name: 'DFO — Fisheries & Oceans (Indigenous programs)',
+  agencyMatch: /^DFO/i,
+  homepage: 'https://www.dfo-mpo.gc.ca/fm-gp/aboriginal-autochtones/index-eng.htm',
+  description:
+    'AAROM, Indigenous Habitat Participation Program (IHPP), Indigenous Marine Conservation. Programs harvested live; cached 24h.',
+  autoIndigenous: true,
+});
+
+export const justiceGrants: Source = mkAgencyScraper({
+  id: 'justice-funding',
+  name: 'Justice Canada — funding programs',
+  agencyMatch: /^Justice Canada/i,
+  homepage: 'https://www.justice.gc.ca/eng/fund-fina/index.html',
+  description:
+    'Indigenous Justice Program, Indigenous Courtwork Program, Family Violence Initiative, Victims Fund. Programs harvested live; cached 24h.',
+});
+
+export const infrastructureCanadaGrants: Source = mkAgencyScraper({
+  id: 'infrastructure-canada',
+  name: 'Infrastructure Canada — housing & community',
+  agencyMatch: /^Infrastructure Canada/i,
+  homepage: 'https://housing-infrastructure.canada.ca/index-eng.html',
+  description:
+    'ICIF, Investing in Canada Infrastructure Program Indigenous stream, Reaching Home Indigenous Homelessness. Programs harvested live; cached 24h.',
+});
+
+export const cirnacGrants: Source = mkAgencyScraper({
+  id: 'cirnac-calls',
+  name: 'CIRNAC — Calls for Proposals',
+  agencyMatch: /^CIRNAC/i,
+  homepage: 'https://www.rcaanc-cirnac.gc.ca/eng/1611847555503/1611847585249',
+  description:
+    'Current CIRNAC + ISC funding rounds (Modern treaty, Indigenous Women & 2SLGBTQI+, Food Security Research, Federal Interlocutor, ISC Calls). Programs harvested live; cached 24h.',
+  autoIndigenous: true,
+});
+
+export const canadianHeritageGrants: Source = mkAgencyScraper({
+  id: 'canadian-heritage-funding',
+  name: 'Canadian Heritage — funding',
+  agencyMatch: /^Canadian Heritage/i,
+  homepage: 'https://www.canada.ca/en/canadian-heritage/services/funding.html',
+  description:
+    'Arts, culture, sport, heritage stewardship; Indigenous Languages and Cultures Program, Building Communities Through Arts and Heritage. Programs harvested live; cached 24h.',
+});
+
+export const esdcGrants: Source = mkAgencyScraper({
+  id: 'esdc-funding',
+  name: 'ESDC — Employment and Social Development Canada',
+  agencyMatch: /^ESDC/i,
+  homepage:
+    'https://www.canada.ca/en/employment-social-development/services/funding/programs.html',
+  description:
+    'ISET, Reaching Home, Skills for Success Indigenous Stream, Canada Summer Jobs. Programs harvested live; cached 24h.',
+});
+
+export const naccaGrants: Source = mkAgencyScraper({
+  id: 'nacca',
+  name: 'NACCA — Aboriginal Financial Institutions network',
+  agencyMatch: /^NACCA/i,
+  homepage: 'https://nacca.ca/',
+  description:
+    '50+ AFI network; Indigenous Growth Fund (~$150M evergreen), IWE Program, IYE Program, Aboriginal Entrepreneurship Program. Programs harvested live; cached 24h.',
+  autoIndigenous: true,
+});
+
+export const fpccGrants: Source = mkAgencyScraper({
+  id: 'fpcc',
+  name: "First Peoples' Cultural Council (BC) — language & arts",
+  agencyMatch: /First Peoples/i,
+  homepage: 'https://fpcc.ca/grants/',
+  description:
+    'BC Crown corp, Indigenous-controlled. BC Language Initiative, Cultural Heritage Stewardship, Indigenous Arts Program, Mentor-Apprentice Program. Programs harvested live; cached 24h.',
+  category: 'Open opportunities — Provincial grants',
+  autoIndigenous: true,
+});
+
+export const newRelationshipTrustGrants: Source = mkAgencyScraper({
+  id: 'new-relationship-trust',
+  name: 'New Relationship Trust (BC)',
+  agencyMatch: /New Relationship Trust/i,
+  homepage: 'https://www.newrelationshiptrust.ca/funding/',
+  description:
+    '~$135M independent BC endowment (est. 2006). Nation Building, Declaration Act Engagement Grant, BC Indigenous Clean Energy, CEDR, Youth/Elder/Language/Education Grants. Programs harvested live; cached 24h.',
+  category: 'Open opportunities — Provincial grants',
+  autoIndigenous: true,
+});
+
+export const indspireGrants: Source = mkAgencyScraper({
+  id: 'indspire',
+  name: 'Indspire — Indigenous education bursaries',
+  agencyMatch: /Indspire/i,
+  homepage: 'https://indspire.ca/programs/students/',
+  description:
+    'Indigenous-led national education foundation. ~$22M/yr in bursaries: Building Brighter Futures, Rivers to Success, Teach for Tomorrow. Programs harvested live; cached 24h.',
+  autoIndigenous: true,
+});
+
+export const bcFundingSearchGrants: Source = mkAgencyScraper({
+  id: 'bc-funding-finder',
+  name: 'BC Funding Search — Aboriginal facet',
+  agencyMatch: /^BC Government/i,
+  homepage:
+    'https://www2.gov.bc.ca/gov/search?id=06772BB02F5D4E5C9A15E9CA4B0146AC&q=indigenous%2Binmeta%3Abcgov_fundingSubject%3DAboriginal+People&tab=1',
+  description:
+    'BC government Funding Search with the Aboriginal People facet pre-applied. ~22 Indigenous-eligible BC programs (Indigenous Entrepreneur Loan, First Citizens Fund, First Nations Clean Energy Business Fund, NRT Equity Match Grant, etc.). Programs harvested live; cached 24h.',
+  category: 'Open opportunities — Provincial grants',
+  autoIndigenous: true,
+});

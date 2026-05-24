@@ -125,29 +125,6 @@ export const defenceProcurement: Source = {
 };
 
 /**
- * ISC — federal funding programs catalogue. Landing page lists every active
- * grant/contribution program ISC runs (housing, education, infrastructure,
- * economic dev, health, child + family services, …).
- */
-export const iscFundingPrograms: Source = {
-  id: 'isc-funding',
-  name: 'ISC + CIRNAC — Calls for proposals',
-  mode: 'money',
-  format: 'link-only',
-  category: 'Open opportunities — Federal grants',
-  // The canada.ca/.../indigenous-services-canada/services/funding.html URL
-  // previously cited here 404s as of 2026. CIRNAC's "Calls for proposals"
-  // page is the canonical live listing of currently-open ISC + CIRNAC
-  // funding rounds.
-  homepage: 'https://www.rcaanc-cirnac.gc.ca/eng/1611847555503/1611847585249',
-  indigenousFilter: 'inherent',
-  autoSelectOnIndigenous: true,
-  description:
-    'CIRNAC Calls for Proposals — current ISC + CIRNAC funding rounds (Modern treaty, Indigenous Women & 2SLGBTQI+, Food Security Research, Federal Interlocutor, etc.). The same hub is scraped structurally by `available-grants`.',
-  searchUrl: () => 'https://www.rcaanc-cirnac.gc.ca/eng/1611847555503/1611847585249',
-};
-
-/**
  * Canadian Heritage — Indigenous Languages funding component. ~$117M/year
  * since 2024, grants to Indigenous-led orgs for language revitalization,
  * documentation, education materials, and immersion programs.
@@ -164,45 +141,6 @@ export const chIndigenousLanguages: Source = {
   description:
     'Indigenous Languages and Cultures program — federal grants to Indigenous-led organizations for language revitalization, documentation, education resources, and immersion programs. Phased applications announced annually.',
   searchUrl: () => 'https://www.canada.ca/en/canadian-heritage/services/funding/indigenous-languages.html',
-};
-
-/**
- * First Peoples' Cultural Council — BC's Indigenous-controlled Crown corporation
- * for language + culture funding. Operates several grant streams (B.C. Language
- * Initiative, Cultural Heritage Stewardship Program, Indigenous Arts Program).
- */
-export const fpcc: Source = {
-  id: 'fpcc',
-  name: 'First Peoples\' Cultural Council (BC) — language & arts grants',
-  mode: 'money',
-  format: 'link-only',
-  category: 'Open opportunities — Provincial grants',
-  homepage: 'https://fpcc.ca/grants/',
-  indigenousFilter: 'inherent',
-  autoSelectOnIndigenous: true,
-  description:
-    'BC Crown corporation supporting Indigenous languages, arts, and cultural heritage. Active grant streams: BC Language Initiative, Cultural Heritage Stewardship Program, Indigenous Arts Program, Mentor-Apprentice Program. Open intake.',
-  searchUrl: () => 'https://fpcc.ca/grants/',
-};
-
-/**
- * NACCA — National Aboriginal Capital Corporations Association. Network of
- * 50+ Aboriginal Financial Institutions across Canada providing capital,
- * loans, and grants to Indigenous entrepreneurs. Includes the Indigenous
- * Growth Fund (~$150M evergreen capital pool).
- */
-export const nacca: Source = {
-  id: 'nacca',
-  name: 'NACCA — Aboriginal Financial Institutions network',
-  mode: 'money',
-  format: 'link-only',
-  category: 'Open opportunities — Federal grants',
-  homepage: 'https://nacca.ca/',
-  indigenousFilter: 'inherent',
-  autoSelectOnIndigenous: true,
-  description:
-    'National Aboriginal Capital Corporations Association — network of 50+ Aboriginal Financial Institutions across Canada. Capital + loans + grants for Indigenous SMEs through Indigenous Growth Fund (~$150M), Indigenous Entrepreneur Loan Fund, and member-AFI products.',
-  searchUrl: () => 'https://nacca.ca/',
 };
 
 /**
@@ -242,25 +180,6 @@ export const bcafn: Source = {
   description:
     'BC Assembly of First Nations — political org representing 203 BC First Nations. Funding announcements, capacity-building grants, sector-specific (housing, fisheries, gov-to-gov) opportunities aggregated for member bands.',
   searchUrl: () => 'https://www.bcafn.ca/',
-};
-
-/**
- * BC New Relationship Trust — ~$135M independent provincial endowment
- * (2006). Grants to BC First Nations for capacity building, language,
- * economic development. Quarterly RFP calendar.
- */
-export const newRelationshipTrust: Source = {
-  id: 'new-relationship-trust',
-  name: 'New Relationship Trust (BC)',
-  mode: 'money',
-  format: 'link-only',
-  category: 'Open opportunities — Provincial grants',
-  homepage: 'https://www.newrelationshiptrust.ca/funding/',
-  indigenousFilter: 'inherent',
-  autoSelectOnIndigenous: true,
-  description:
-    '~$135M independent BC endowment (est. 2006) supporting BC First Nations capacity building, language, education, economic development. Quarterly RFP rounds.',
-  searchUrl: () => 'https://www.newrelationshiptrust.ca/funding/',
 };
 
 /**
@@ -322,50 +241,6 @@ export const itac: Source = {
 };
 
 /**
- * BC government's centralised funding finder page — funding & grants for
- * business across all BC ministries.
- */
-export const bcFundingFinder: Source = {
-  id: 'bc-funding-finder',
-  name: 'BC Funding Search — Aboriginal facet',
-  mode: 'money',
-  format: 'link-only',
-  category: 'Open opportunities — Provincial grants',
-  // BC government Funding Search with the Aboriginal People facet
-  // pre-applied — returns ~22 Indigenous-eligible BC programs.
-  // (The `gov/content/funding` landing is the unfiltered hub; this is
-  // the same search with the facet pre-checked.) The same URL is also
-  // scraped inline by `available-grants` so users see the programs as
-  // structured items.
-  homepage:
-    'https://www2.gov.bc.ca/gov/search?id=06772BB02F5D4E5C9A15E9CA4B0146AC&q=indigenous%2Binmeta%3Abcgov_fundingSubject%3DAboriginal+People&tab=1',
-  indigenousFilter: 'inherent',
-  autoSelectOnIndigenous: true,
-  description:
-    'BC government Funding Search with the Aboriginal People facet pre-applied — ~22 Indigenous-eligible BC programs (Indigenous Entrepreneur Loan, First Citizens Fund, First Nations Clean Energy Business Fund, NRT Equity Match Grant, etc.). The same URL is also scraped inline by `available-grants`.',
-  searchUrl: () =>
-    'https://www2.gov.bc.ca/gov/search?id=06772BB02F5D4E5C9A15E9CA4B0146AC&q=indigenous%2Binmeta%3Abcgov_fundingSubject%3DAboriginal+People&tab=1',
-};
-
-/**
- * Indspire — Indigenous-led national education foundation; ~$22M/yr in
- * bursaries to First Nations, Métis, and Inuit students.
- */
-export const indspire: Source = {
-  id: 'indspire',
-  name: 'Indspire — Indigenous education bursaries',
-  mode: 'money',
-  format: 'link-only',
-  category: 'Open opportunities — Federal grants',
-  homepage: 'https://indspire.ca/programs/students/',
-  indigenousFilter: 'inherent',
-  autoSelectOnIndigenous: true,
-  description:
-    'Indigenous-led national education foundation. ~$22M/yr in bursaries and scholarships for First Nations, Métis, and Inuit students.',
-  searchUrl: () => 'https://indspire.ca/programs/students/',
-};
-
-/**
  * Inspirit Foundation — Indigenous youth + intercultural granting.
  */
 export const inspiritFoundation: Source = {
@@ -421,134 +296,6 @@ export const tmxIndigenousLoanGuarantee: Source = {
     'Federal loan-guarantee vehicle ($5B envelope) for Nations to equity-acquire major resource and infrastructure projects (TMX, LNG Canada, etc.). Now administered by ISED via the Canada Indigenous Loan Guarantee Corporation.',
   searchUrl: () =>
     'https://ised-isde.canada.ca/site/canada-indigenous-loan-guarantee-corporation/en',
-};
-
-/**
- * Federal regional development agencies — each agency funds Indigenous-business
- * streams (via REGI = Regional Economic Growth through Innovation) plus
- * region-specific Indigenous programs. Listed individually so users can click
- * straight to the right agency for their geography. (The agencies' program
- * lists are also harvested into the `available-grants` aggregator above.)
- */
-export const pacifiCan: Source = {
-  id: 'pacifican',
-  name: 'PacifiCan — Pacific Economic Development Canada (BC)',
-  mode: 'money',
-  format: 'link-only',
-  category: 'Open opportunities — Federal grants',
-  homepage: 'https://www.canada.ca/en/pacific-economic-development.html',
-  indigenousFilter: 'keyword-or',
-  autoSelectOnIndigenous: true,
-  description:
-    'PacifiCan — BC + Yukon regional development agency. Regional Economic Growth through Innovation (REGI) Indigenous stream, Jobs and Growth Fund, Tourism Relief Fund Indigenous stream.',
-  searchUrl: () => 'https://www.canada.ca/en/pacific-economic-development.html',
-};
-
-export const prairiesCan: Source = {
-  id: 'prairiescan',
-  name: 'PrairiesCan — Prairies Economic Development Canada',
-  mode: 'money',
-  format: 'link-only',
-  category: 'Open opportunities — Federal grants',
-  homepage: 'https://www.canada.ca/en/prairies-economic-development.html',
-  indigenousFilter: 'keyword-or',
-  description:
-    'PrairiesCan — Manitoba/Saskatchewan/Alberta regional development agency. REGI Indigenous-business stream, Jobs and Growth Fund.',
-  searchUrl: () => 'https://www.canada.ca/en/prairies-economic-development.html',
-};
-
-export const acoa: Source = {
-  id: 'acoa',
-  name: 'ACOA — Atlantic Canada Opportunities Agency',
-  mode: 'money',
-  format: 'link-only',
-  category: 'Open opportunities — Federal grants',
-  homepage: 'https://www.canada.ca/en/atlantic-canada-opportunities.html',
-  indigenousFilter: 'keyword-or',
-  description:
-    'ACOA — Atlantic Canada regional development agency. REGI Indigenous-business stream, Atlantic Innovation Fund, sector-specific programs.',
-  searchUrl: () => 'https://www.canada.ca/en/atlantic-canada-opportunities.html',
-};
-
-export const cannor: Source = {
-  id: 'cannor',
-  name: 'CanNor — Canadian Northern Economic Development',
-  mode: 'money',
-  format: 'link-only',
-  category: 'Open opportunities — Federal grants',
-  homepage: 'https://www.cannor.gc.ca/eng/1381325363616/1381325380355',
-  indigenousFilter: 'inherent',
-  autoSelectOnIndigenous: true,
-  description:
-    'CanNor — Yukon/NWT/Nunavut regional agency. Northern Indigenous Economic Opportunities Program (NIEOP), IDEANorth, Northern Isolated Community Initiatives Fund, Tourism Growth Program, NPMO project management.',
-  searchUrl: () => 'https://www.cannor.gc.ca/eng/1381325363616/1381325380355',
-};
-
-export const nrcan: Source = {
-  id: 'nrcan-funding',
-  name: 'NRCan — Natural Resources Canada funding',
-  mode: 'money',
-  format: 'link-only',
-  category: 'Open opportunities — Federal grants',
-  homepage: 'https://natural-resources.canada.ca/funding-partnerships',
-  indigenousFilter: 'keyword-or',
-  description:
-    'Natural Resources Canada funding hub — Clean Energy for Rural and Remote Communities (CERRC), Smart Renewables and Electrification Pathways Program (SREPs) Indigenous stream, Indigenous Forestry Initiative.',
-  searchUrl: () => 'https://natural-resources.canada.ca/funding-partnerships',
-};
-
-export const eccc: Source = {
-  id: 'eccc-funding',
-  name: 'ECCC — Environment and Climate Change Canada funding',
-  mode: 'money',
-  format: 'link-only',
-  category: 'Open opportunities — Federal grants',
-  homepage: 'https://www.canada.ca/en/environment-climate-change/services/environmental-funding.html',
-  indigenousFilter: 'keyword-or',
-  description:
-    'Environment and Climate Change Canada funding hub — Indigenous Guardians Program, Aboriginal Fund for Species at Risk (AFSAR), Indigenous Climate Leadership.',
-  searchUrl: () =>
-    'https://www.canada.ca/en/environment-climate-change/services/environmental-funding.html',
-};
-
-export const dfoIndigenous: Source = {
-  id: 'dfo-indigenous',
-  name: 'DFO — Fisheries & Oceans (Indigenous programs)',
-  mode: 'money',
-  format: 'link-only',
-  category: 'Open opportunities — Federal grants',
-  homepage: 'https://www.dfo-mpo.gc.ca/fm-gp/aboriginal-autochtones/index-eng.htm',
-  indigenousFilter: 'inherent',
-  autoSelectOnIndigenous: true,
-  description:
-    'Fisheries and Oceans Canada Indigenous programs — Aboriginal Aquatic Resource and Oceans Management (AAROM), Indigenous Habitat Participation Program (IHPP), Indigenous Marine Conservation.',
-  searchUrl: () => 'https://www.dfo-mpo.gc.ca/fm-gp/aboriginal-autochtones/index-eng.htm',
-};
-
-export const justiceFunding: Source = {
-  id: 'justice-funding',
-  name: 'Justice Canada — funding programs',
-  mode: 'money',
-  format: 'link-only',
-  category: 'Open opportunities — Federal grants',
-  homepage: 'https://www.justice.gc.ca/eng/fund-fina/index.html',
-  indigenousFilter: 'keyword-or',
-  description:
-    'Justice Canada funding programs — Indigenous Justice Program, Indigenous Courtwork Program, Family Violence Initiative, Victims Fund.',
-  searchUrl: () => 'https://www.justice.gc.ca/eng/fund-fina/index.html',
-};
-
-export const infrastructureCanada: Source = {
-  id: 'infrastructure-canada',
-  name: 'Infrastructure Canada — housing & community',
-  mode: 'money',
-  format: 'link-only',
-  category: 'Open opportunities — Federal grants',
-  homepage: 'https://housing-infrastructure.canada.ca/index-eng.html',
-  indigenousFilter: 'keyword-or',
-  description:
-    'Housing, Infrastructure and Communities Canada — Indigenous Community Infrastructure Fund (ICIF), Investing in Canada Infrastructure Program Indigenous stream, Reaching Home Indigenous Homelessness.',
-  searchUrl: () => 'https://housing-infrastructure.canada.ca/index-eng.html',
 };
 
 /**
