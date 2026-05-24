@@ -301,6 +301,11 @@ with reference screenshots and the current mailbox/member list.
 (with Teams) per-user cost, why it's 100% tax-deductible under Canadian law, and
 the rule to **unlicense departed/terminated staff immediately**.
 
+🔁 **[SharePoint docs auto-publish →](docs/365/sharepoint-docs-publish.md)** —
+every push to `master` that touches `docs/` mirrors the tree (markdown +
+pandoc-rendered HTML) to a SharePoint document library via Microsoft Graph.
+One-time Entra ID app + `Sites.Selected` setup walkthrough.
+
 Related email services: **[ImprovMX](docs/improvmx/README.md)** (forwarding
 aliases / secondary domains into M365) and **[Mailgun](docs/mailgun/README.md)**
 (transactional / app-sent email).
