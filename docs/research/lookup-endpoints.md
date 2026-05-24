@@ -401,6 +401,33 @@ Page returns ~50 tender notices + 10 award notices + 10 contract-history rows in
 | **DND/PSPC defence procurement** | `https://www.canada.ca/en/department-national-defence/services/procurement.html` (+ CanadaBuys `words=… defence`) | Defence-related solicitations from National Defence and PSPC defence acquisition |
 | **BC Hydro tenders** | `https://www.bchydro.com/work-with-us/suppliers/bid-opportunities.html` | Crown corp procurement (many BC Hydro RFPs are also mirrored on BC Bid) |
 
+### 2.7c Indigenous-specific grants — link-only catalogue (no listing API)
+
+| Source | Endpoint | Notes |
+|---|---|---|
+| **Federal Funding Finder (Indigenous filter)** | `https://www.canada.ca/en/services/funding.html?q={query} indigenous` | Cross-departmental federal grant search pre-filtered to Indigenous |
+| **ISC — Indigenous Services Canada funding programs** | `https://www.canada.ca/en/indigenous-services-canada/services/funding.html` | Every ISC program: housing, infrastructure, economic dev, education, health, child & family services |
+| **Canadian Heritage — Indigenous Languages funding** | `https://www.canada.ca/en/canadian-heritage/services/funding/indigenous-languages.html` | Indigenous Languages and Cultures program — language revitalization, documentation, immersion |
+| **NACCA — Aboriginal Financial Institutions network** | `https://nacca.ca/` | 50+ AFI network; Indigenous Growth Fund (~$150M evergreen), Indigenous Entrepreneur Loan Fund |
+| **First Peoples' Cultural Council (BC)** | `https://fpcc.ca/grants/` | BC Crown corp; Language Initiative, Cultural Heritage Stewardship, Indigenous Arts Program |
+| **BCAFN — BC Assembly of First Nations** | `https://www.bcafn.ca/` | Political org for 203 BC First Nations; aggregated funding announcements |
+
+### 2.7d BC Open Data CKAN — real keyword-searchable provincial datasets
+
+| Dataset | Package ID | What it gives us |
+|---|---|---|
+| **BC Ministry Contract Awards** | `ministry-contract-awards-province-of-british-columbia` | The **same data BC Bid publishes** as contract awards (mandatory ministerial submission since July 2014). Vendor, title, amount, ministry, date. Quarterly CSVs from 2012–present, ~26 active datastore resources. Owned by gov.bc.ca Procurement Services. Replaces our link-only BC Bid (which is captcha-locked at browser_check) |
+| **BC CRF Government Transfers** | `crf-detailed-schedules-of-payments-government-transfers` | Every BC payment of $25K+ to any payee — community orgs, First Nations, vendors, public sector. From Province of BC Public Accounts. Payee name, ministry, amount. 17 fiscal-year CSVs (FYE 2007–2023), 14k+ rows per year. Smoke-test: `q=skin tyee` → $2.43M to Skin Tyee Nation in FYE 2023 across IRR, Post-Sec, and CFD |
+
+We use CKAN's `datastore_search` endpoint:
+
+```
+GET https://catalogue.data.gov.bc.ca/api/3/action/datastore_search
+    ?resource_id={uuid}&q={query}&limit=50
+```
+
+Returns `result.records[]` with the dataset's columns + a `rank` column for relevance. We query the latest N quarter/year resources in parallel and merge results.
+
 ---
 
 ### 2.8 ISC / CIRNAC — funding & program pages (non-search)
