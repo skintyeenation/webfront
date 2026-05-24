@@ -28,6 +28,8 @@ import { openCanadaCkan } from './money/open-canada-ckan.js';
 import { bcOpenDataCkan } from './money/bc-open-data-ckan.js';
 import { merx } from './money/merx.js';
 import { canadabuys } from './money/canadabuys.js';
+import { bcMinistryContracts } from './money/bc-ministry-contracts.js';
+import { bcCrfTransfers } from './money/bc-crf-transfers.js';
 import {
   bcBid,
   civicInfoBc,
@@ -38,6 +40,12 @@ import {
   innovativeSolutionsCanada,
   defenceProcurement,
   bcHydroTenders,
+  iscFundingPrograms,
+  chIndigenousLanguages,
+  fpcc,
+  nacca,
+  fedFundingFinder,
+  bcafn,
 } from './money/link-only.js';
 
 export const ALL_SOURCES: Source[] = [
@@ -55,19 +63,28 @@ export const ALL_SOURCES: Source[] = [
   bccsaCor,
   cso,
   website,
-  // Money — federal procurement first (CanadaBuys = the GoC portal), then
-  // bulk datasets, then provincial / Crown corp / municipal.
+  // Money — federal procurement first (CanadaBuys = the GoC portal),
+  // then federal Indigenous-specific grants, then bulk datasets, then
+  // provincial / Crown corp / municipal.
   canadabuys,
   openCanadaContracts,
   openCanadaGrants,
   openCanadaCkan,
+  fedFundingFinder,
+  iscFundingPrograms,
+  chIndigenousLanguages,
+  nacca,
   psib,
   innovativeSolutionsCanada,
   defenceProcurement,
   merx,
   contractsCsv,
   grantsCsv,
+  bcMinistryContracts,
+  bcCrfTransfers,
   bcOpenDataCkan,
+  fpcc,
+  bcafn,
   bcBid,
   bcHydroTenders,
   civicInfoBc,
