@@ -18,7 +18,7 @@ export const merx: Source = {
   name: 'MERX — tenders & awarded contracts',
   mode: 'money',
   format: 'html-search',
-  category: 'Bids / solicitations',
+  category: 'Open opportunities — Federal bids',
   homepage: 'https://www.merx.com/',
   indigenousFilter: 'keyword-or',
   description: 'Active and awarded solicitations across federal and several provinces.',

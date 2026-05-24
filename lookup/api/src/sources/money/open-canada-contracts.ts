@@ -29,7 +29,7 @@ export const openCanadaContracts: Source = {
   name: 'Open Canada — Federal contracts (>$10K)',
   mode: 'money',
   format: 'html-search',
-  category: 'Federal contracts / grants',
+  category: 'Historical disclosures — Federal contracts',
   homepage: BASE,
   indigenousFilter: 'flag',
   description: 'All disclosed federal contracts over $10K. Indigenous-only flips the PSIB filter.',

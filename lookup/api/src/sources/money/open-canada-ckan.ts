@@ -36,7 +36,7 @@ export const openCanadaCkan: Source = {
   name: 'Open Canada — datasets (CKAN)',
   mode: 'money',
   format: 'ckan',
-  category: 'Open-data catalogues',
+  category: 'Reference — Open-data catalogues',
   homepage: 'https://open.canada.ca/data/en/dataset',
   indigenousFilter: 'keyword-or',
   description: 'Federal open-data catalogue — surfaces grant/funding datasets matching the keyword.',

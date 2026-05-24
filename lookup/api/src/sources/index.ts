@@ -94,8 +94,13 @@ export const ALL_SOURCES: Source[] = [
   fnFma,
 ];
 
+/** Membership check that handles both single-mode and multi-mode sources. */
+function inMode(s: Source, mode: SourceMode): boolean {
+  return Array.isArray(s.mode) ? s.mode.includes(mode) : s.mode === mode;
+}
+
 export function sourcesByMode(mode: SourceMode): Source[] {
-  return ALL_SOURCES.filter((s) => s.mode === mode);
+  return ALL_SOURCES.filter((s) => inMode(s, mode));
 }
 
 export function sourceById(id: string): Source | undefined {

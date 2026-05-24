@@ -29,9 +29,12 @@ const buildUrl = (q: string, opts: { indigenousOnly: boolean; fromYear?: number;
 export const openCanadaGrants: Source = {
   id: 'open-canada-grants',
   name: 'Open Canada — Federal grants & contributions',
-  mode: 'money',
+  // Listed in both modes — under Funding for "what grants exist", and under
+  // Business for the diligence flow ("has this vendor received federal
+  // grants?"). Same scraper handles both.
+  mode: ['money', 'business'],
   format: 'html-search',
-  category: 'Federal contracts / grants',
+  category: 'Historical disclosures — Federal grants',
   homepage: BASE,
   indigenousFilter: 'org-filter',
   description: 'Federal grant + contribution + transfer-payment disclosures. Indigenous-only restricts to ISC + CIRNAC.',

@@ -8,10 +8,11 @@ import { loadSources } from 'lookup/store/modules/sources';
 import { jobStarted } from 'lookup/store/modules/lookup';
 import { historyPushed } from 'lookup/store/modules/history';
 import { startRun } from 'lookup/services/lookupApi';
+import { sourceInMode } from 'lookup/models';
 
 export default function BusinessLookup({ navigation }: any) {
   const dispatch = useAppDispatch();
-  const allSources = useAppSelector((s) => s.sources.items.filter((x) => x.mode === 'business'));
+  const allSources = useAppSelector((s) => s.sources.items.filter((x) => sourceInMode(x, 'business')));
   const defaults = useAppSelector((s) => s.sources.defaultsByMode['business'] ?? []);
 
   const [target, setTarget] = useState('');

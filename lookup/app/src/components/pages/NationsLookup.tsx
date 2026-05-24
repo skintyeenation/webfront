@@ -8,6 +8,7 @@ import { loadSources } from 'lookup/store/modules/sources';
 import { jobStarted } from 'lookup/store/modules/lookup';
 import { historyPushed } from 'lookup/store/modules/history';
 import { listNations, startRun, type NationListItem } from 'lookup/services/lookupApi';
+import { sourceInMode } from 'lookup/models';
 
 type Mode = 'search' | 'browse';
 
@@ -32,7 +33,7 @@ const REGIONS: Array<{ id: string; label: string }> = [
  */
 export default function NationsLookup({ navigation }: any) {
   const dispatch = useAppDispatch();
-  const allSources = useAppSelector((s) => s.sources.items.filter((x) => x.mode === 'nations'));
+  const allSources = useAppSelector((s) => s.sources.items.filter((x) => sourceInMode(x, 'nations')));
   const defaults = useAppSelector((s) => s.sources.defaultsByMode['nations'] ?? []);
 
   const [mode, setMode] = useState<Mode>('browse');

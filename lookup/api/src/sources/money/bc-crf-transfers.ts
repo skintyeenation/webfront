@@ -109,7 +109,7 @@ export const bcCrfTransfers: Source = {
   name: 'BC Government Transfers (≥$25K, Public Accounts)',
   mode: 'money',
   format: 'csv-bulk',
-  category: 'Provincial Indigenous grants',
+  category: 'Historical disclosures — BC government transfers',
   homepage: HUMAN_URL,
   indigenousFilter: 'keyword-or',
   description:

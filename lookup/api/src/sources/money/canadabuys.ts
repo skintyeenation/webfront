@@ -114,7 +114,7 @@ export const canadabuys: Source = {
   name: 'CanadaBuys — federal procurement (tenders + awards + contracts)',
   mode: 'money',
   format: 'html-search',
-  category: 'Federal bids',
+  category: 'Open opportunities — Federal bids',
   homepage: 'https://canadabuys.canada.ca/',
   indigenousFilter: 'keyword-or',
   description:
