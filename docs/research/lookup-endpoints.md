@@ -344,12 +344,28 @@ Use to find provincial grant / contract / Indigenous datasets (e.g. BC Indigenou
 | Endpoint | Method | Purpose |
 |---|---|---|
 | `https://www.bcbid.gov.bc.ca/page.aspx/en/buy/homepage` | UI | Bid portal homepage |
-| `https://www.bcbid.gov.bc.ca/page.aspx/en/rfp/contract_award_list_public` | UI | Public contract awards list |
+| `https://www.bcbid.gov.bc.ca/page.aspx/en/rfp/request_browse_public` | UI | **Public opportunities (no login)** — what our link points at |
+| `https://www.bcbid.gov.bc.ca/page.aspx/en/rfp/contract_award_list_public` | UI | Public contract awards list — **redirects to login** |
 | `https://www.bcbid.gov.bc.ca/page.aspx/en/rfp/public_award_view/{award_id}` | UI | Individual award detail |
 
-Session-/JS-heavy SciQuest portal; scraping needs Puppeteer or the export-CSV from the awards list. No public JSON API.
+Session-/JS-heavy SciQuest portal; the first request hits `…/page.aspx/en/bas/browser_check` for fingerprint + cookie before any opportunity table renders, so a curl-only scrape returns the check page. Browse Public Opportunities is the only deep link that works without an account. Scraping the award list would need Puppeteer or a logged-in CSV export.
 
 **Indigenous filter:** no portal-level toggle; search by keyword and by Indigenous-set-aside language in the solicitation title/scope.
+
+### 2.5b CanadaBuys — federal procurement portal ✅
+
+| Endpoint | Method | Purpose |
+|---|---|---|
+| `https://canadabuys.canada.ca/en/tender-opportunities?words={query}` | GET | Combined search across **tender notices + award notices + contract history** |
+| `https://canadabuys.canada.ca/en/tender-opportunities/tender-notice/{id}` | GET | Individual open tender notice detail |
+| `https://canadabuys.canada.ca/en/tender-opportunities/award-notice/{id}` | GET | Award notice detail |
+| `https://canadabuys.canada.ca/en/tender-opportunities/contract-history/{id}` | GET | Contract history (already-paid) detail |
+
+**Replaces buyandsell.gc.ca (retired 2022).** Plain HTML, no JS challenge, no login. The listing form has three input boxes — `keys`, `search_filter`, and `words` — but only `words` actually full-text-filters the table. `search_filter` is a category narrow that returns everything when used alone; `keys` targets the global site-search index, not the procurement table.
+
+Page returns ~50 tender notices + 10 award notices + 10 contract-history rows interleaved in one HTML table. We parse all three by URL prefix and tag each item with `record_type`.
+
+**Indigenous filter:** no listing-level toggle. PSIB (Procurement Strategy for Indigenous Business) set-aside is exposed only on individual notice pages — fall back to OR-ing `indigenous`/`set-aside`/etc. into the keyword.
 
 ---
 
@@ -372,9 +388,18 @@ Session-/JS-heavy SciQuest portal; scraping needs Puppeteer or the export-CSV fr
 | Endpoint | Method | Purpose |
 |---|---|---|
 | `https://www.civicinfo.bc.ca/bids` | GET | Browse / keyword search current municipal opportunities |
-| `https://www.civicinfo.bc.ca/bids/results?keyword={query}&category={cat}&region={region}` | GET | Filtered results |
+| `https://www.civicinfo.bc.ca/bids?keyword={query}` | GET | Filtered results |
 
-HTML scrape. Awards disclosure varies by municipality.
+**Cloudflare-protected** — curl returns 403 (`<title>Just a moment...</title>`). Link-only in our catalogue; users open the URL and the site's own keyword box filters from there. Real scraping would need a JS-running headless browser. Awards disclosure varies by municipality.
+
+### 2.7b Federal procurement — additional link-only Government of Canada sources
+
+| Source | Endpoint | Purpose |
+|---|---|---|
+| **PSIB — Indigenous business set-aside** | `https://www.sac-isc.gc.ca/eng/1100100032779/1610723194465` | Procurement Strategy for Indigenous Business — federal contracts reserved for Indigenous-owned suppliers. Our deep search ORs `indigenous set-aside` into CanadaBuys words= |
+| **Innovative Solutions Canada** | `https://ised-isde.canada.ca/site/innovative-solutions-canada/en/funding-opportunities/current-funding-opportunities` | R&D challenge program — Phase 1 up to $1M, Phase 2 up to $2M for Canadian SMBs |
+| **DND/PSPC defence procurement** | `https://www.canada.ca/en/department-national-defence/services/procurement.html` (+ CanadaBuys `words=… defence`) | Defence-related solicitations from National Defence and PSPC defence acquisition |
+| **BC Hydro tenders** | `https://www.bchydro.com/work-with-us/suppliers/bid-opportunities.html` | Crown corp procurement (many BC Hydro RFPs are also mirrored on BC Bid) |
 
 ---
 
@@ -456,8 +481,13 @@ can't be filtered (or routes them through ISC IBD / CCAB as the seed list).
 | Money | Open Canada CKAN | `…/api/3/action/package_search?q={q}` | JSON |
 | Money | BC Open Data CKAN | `…/api/3/action/package_search?q={q}` | JSON |
 | Money | MERX | `…/public/solicitations/{open|awards}?keywords={q}` | HTML |
-| Money | BC Bid | portal UI (no JSON API) | HTML/CSV export |
-| Money | CivicInfo BC | `…/bids/results?keyword={q}` | HTML |
+| Money | **CanadaBuys** | `…/en/tender-opportunities?words={q}` (combined tenders + awards + contract history) | HTML |
+| Money | BC Bid | `…/page.aspx/en/rfp/request_browse_public` (login-free opportunities) | HTML (JS-required) |
+| Money | BC Hydro tenders | `…/work-with-us/suppliers/bid-opportunities.html` | HTML/PDF (link-only) |
+| Money | CivicInfo BC | `…/bids?keyword={q}` (Cloudflare 403 on curl) | HTML (link-only) |
+| Money | PSIB Indigenous set-aside | CanadaBuys `words={q}+indigenous+set-aside` | link-only |
+| Money | Innovative Solutions Canada | `…/innovative-solutions-canada/en/funding-opportunities/current-funding-opportunities` | link-only |
+| Money | Defence procurement (DND/PSPC) | CanadaBuys `words={q}+defence` | link-only |
 | Money | Contracts CSV | `…/contracts.csv` (bulk) | CSV |
 | Money | Grants CSV | `…/grants.csv` (bulk) | CSV |
 
