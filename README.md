@@ -312,22 +312,36 @@ aliases / secondary domains into M365) and **[Mailgun](docs/mailgun/README.md)**
 
 ## Staff onboarding
 
-The end-user-facing onboarding sequence for new Skin Tyee staff (M365 +
-1Password setup, walking through every device + every "I'm stuck" symptom).
-Companion to the admin-side docs above.
+The end-user-facing onboarding sequence for new Skin Tyee staff. Companion to
+the admin-side docs above — the admin does their part (creating accounts,
+assigning licenses, granting access) and the staff member walks the four-step
+sequence below to get set up on every device.
 
-👋 **[Onboarding sequence →](docs/onboarding/README.md)** — the order to run
-the setup in, what the admin sends you, and what you end up with at the end.
+| # | Step | What the admin sends you | Walkthrough |
+|---|---|---|---|
+| 1 | Activate your `@skintyee.ca` Outlook account (set a new password, register MFA) | Your work username + a **temporary** password by email — **expires on first sign-in, you'll be forced to change it** | [outlook-skintyee-ca.md](docs/onboarding/outlook-skintyee-ca.md) |
+| 2 | Install + sign into 1Password | A 1Password invite email + (separately) your Secret Key on paper or sealed PDF | [1password.md](docs/onboarding/1password.md) |
+| 2b | _(optional)_ Switch 1Password to "Unlock with SSO" so your Entra ID account unlocks the vault | Admin confirms org-level Entra ID ↔ 1Password integration is enabled | [1password.md § Step 6](docs/onboarding/1password.md#step-6--connect-1password-to-entra-id-unlock-with-sso) |
+| 3 | _(if applicable)_ Get added to shared mailboxes (`info@`, `chief@`, `admin@`) | Admin grants Full Access + Send-As permission | [365/shared-mailboxes.md](docs/365/shared-mailboxes.md) (auto-maps in Outlook within ~24h — no extra password) |
+| 4 | _(if applicable)_ Get added to band apps (Skin Tyee app, WordPress editor, Azure DevOps, etc.) | Per-app invitation | Per-app — admin points you at the right doc |
 
-📧 **[Outlook setup with `@skintyee.ca` →](docs/onboarding/outlook-skintyee-ca.md)**
-— activate the M365 account, register MFA, add the address to Outlook on
-macOS + Windows + iOS + Android + the web, and pick up auto-mapped shared
-mailboxes (`info@`, `chief@`, `admin@`).
+**End state** when steps 1-2 are done:
+- A working **`firstname.lastname@skintyee.ca`** address on your laptop, phone, and the web.
+- Membership in any **shared mailboxes** you need — auto-mapped in Outlook, no second password.
+- **1Password** with your own vault + the shared vaults for your role.
+- **Single sign-on** into Microsoft 365 (Outlook, Teams, OneDrive, SharePoint, the Skin Tyee app) using the same `@skintyee.ca` login.
 
-🔐 **[1Password install + setup →](docs/onboarding/1password.md)** — accept
-the invite, set the Master Password, save the Emergency Kit, install the
-desktop + browser-extension + mobile apps, migrate any existing browser-saved
-passwords, and join the shared vaults for your role.
+> **For governance review:** the 1Password walkthrough includes a
+> [Security model + liability section](docs/onboarding/1password.md#security-model--liability-for-council--governance-review)
+> that documents the zero-knowledge architecture, the contractual liability
+> ceiling (capped at fees paid — standard B2B SaaS), and the admin's
+> incident-response runbook if 1Password ever reports a breach. Council
+> can review this before signing off.
+
+👋 **[Open the full onboarding section →](docs/onboarding/README.md)** — the
+sequence table above with the "if you get stuck" troubleshooting bucket, the
+section's scope (what it covers and explicitly doesn't), and links to the
+admin-side companion docs.
 
 ## Password management (1Password)
 
