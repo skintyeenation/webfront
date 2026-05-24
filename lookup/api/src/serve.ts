@@ -214,6 +214,60 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { jobId: job.id, sourceIds });
     }
 
+    // GET /api/nations/list?regionId=9[&refresh=1]
+    //   Browse the full ISC band registry for one region (BC = 9). Backed
+    //   by the federal Open Government "Population Registered under the
+    //   Indian Act" CSV (~66 KB, every Canadian band) — much faster than
+    //   puppeteering FNListGrid. Cached for 7 days; ?refresh=1 forces a
+    //   re-download.
+    if (req.method === 'GET' && path === '/api/nations/list') {
+      const regionId = url.searchParams.get('regionId') || '9';
+      const refresh = url.searchParams.get('refresh') === '1';
+      const LIST_BUCKET = 'nations-list';
+      // We cache the FULL registry once (key 'all') and slice per region on
+      // the way out, so flipping between regions in the UI is free after
+      // the first hit.
+      const cachedAll = storeGet<any>(LIST_BUCKET, 'all');
+      const fresh = cachedAll && !refresh && ageMs(cachedAll) < 7 * 24 * 60 * 60 * 1000;
+      try {
+        let all: any[];
+        let fetchedAt: string;
+        let cached: boolean;
+        if (fresh) {
+          all = cachedAll.data.items;
+          fetchedAt = cachedAll.fetchedAt;
+          cached = true;
+        } else {
+          const { fetchRegisteredBands } = await import('./sources/nations/bands-csv.js');
+          const bands = await fetchRegisteredBands();
+          all = bands;
+          const stored = storePut(LIST_BUCKET, 'all', { items: bands });
+          fetchedAt = stored.fetchedAt;
+          cached = false;
+        }
+        const { filterByRegionId } = await import('./sources/nations/bands-csv.js');
+        const items = filterByRegionId(all as any, regionId).map((b: any) => ({
+          bandNumber: b.bandNumber,
+          name: b.name,
+          community: b.district ? `${b.district} · ${b.province}` : b.province,
+          population: b.population,
+        }));
+        return json(res, 200, { regionId, count: items.length, items, cached, fetchedAt });
+      } catch (err) {
+        if (cachedAll) {
+          const { filterByRegionId } = await import('./sources/nations/bands-csv.js');
+          const items = filterByRegionId(cachedAll.data.items as any, regionId).map((b: any) => ({
+            bandNumber: b.bandNumber,
+            name: b.name,
+            community: b.district ? `${b.district} · ${b.province}` : b.province,
+            population: b.population,
+          }));
+          return json(res, 200, { regionId, count: items.length, items, cached: true, stale: true, fetchedAt: cachedAll.fetchedAt, warning: (err as Error).message });
+        }
+        return json(res, 502, { error: (err as Error).message });
+      }
+    }
+
     // GET /api/nations/:bandNumber[?sections=…&refresh=1]
     const nationMatch = path.match(/^\/api\/nations\/(\d{1,5})$/);
     if (req.method === 'GET' && nationMatch) {

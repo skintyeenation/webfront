@@ -219,6 +219,33 @@ export async function getNationDetail(bandNumber: string, refresh = false): Prom
  * + the parent band detail row. The next GET /api/nations/:b re-enqueues
  * a fresh OCR job that the worker will pick up.
  */
+export interface NationListItem {
+  bandNumber: string;
+  name: string;
+  community?: string;
+  /** 2022 registered population (from the ISC Open Government dataset). */
+  population?: number;
+  url?: string;
+}
+
+export interface NationListResponse {
+  regionId: string;
+  count: number;
+  items: NationListItem[];
+  cached?: boolean;
+  stale?: boolean;
+  fetchedAt?: string;
+  warning?: string;
+}
+
+export async function listNations(regionId = '9', refresh = false): Promise<NationListResponse> {
+  const sp = new URLSearchParams({ regionId });
+  if (refresh) sp.set('refresh', '1');
+  const res = await fetch(`${API_BASE}/api/nations/list?${sp.toString()}`);
+  if (!res.ok) throw new Error(`GET /api/nations/list → ${res.status}`);
+  return res.json();
+}
+
 export async function retryFundingOcr(bandNumber: string, fiscalYear: string): Promise<void> {
   const res = await fetch(
     `${API_BASE}/api/nations/${bandNumber}/funds/${encodeURIComponent(fiscalYear)}/retry`,
