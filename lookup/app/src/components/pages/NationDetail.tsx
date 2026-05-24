@@ -793,47 +793,9 @@ export default function NationDetail({ route, navigation }: any) {
             </Card>
           ) : null}
 
-          {/* Balance sheet snapshot — latest available year */}
-          {activeFy === 'all' && latestBs?.balanceSheet ? (
-            <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
-              <Card.Title
-                title={`Balance sheet — ${latestBs.fiscalYear}`}
-                subtitle="Assets, liabilities, equity (year-end snapshot from the audited submission)"
-                titleStyle={{ color: theme.colors.success }}
-                subtitleStyle={{ color: theme.colors.textDarker, fontSize: 11 }}
-              />
-              <Card.Content>
-                {[
-                  ['Current assets', latestBs.balanceSheet.currentAssets],
-                  ['Capital assets', latestBs.balanceSheet.capitalAssets],
-                  ['Total assets', latestBs.balanceSheet.totalAssets],
-                  ['Current liabilities', latestBs.balanceSheet.currentLiabilities],
-                  ['Long-term liabilities', latestBs.balanceSheet.longTermLiabilities],
-                  ['Total liabilities', latestBs.balanceSheet.totalLiabilities],
-                  ['Equity in capital assets', latestBs.balanceSheet.equityInCapitalAssets],
-                  ['Accumulated surplus', latestBs.balanceSheet.accumulatedSurplus],
-                  ['Net assets / band equity', latestBs.balanceSheet.netAssetsOrEquity],
-                ]
-                  .filter(([, v]) => typeof v === 'number')
-                  .map(([label, v]) => {
-                    const bold = ['Total assets', 'Total liabilities', 'Net assets / band equity'].includes(String(label));
-                    return (
-                      <View key={String(label)} style={{ flexDirection: 'row', paddingVertical: 4, borderBottomColor: theme.colors.defaultBorder, borderBottomWidth: 1 }}>
-                        <Text style={{ color: theme.colors.text, fontSize: 12, fontWeight: bold ? '700' : '400', flex: 1 }}>{label}</Text>
-                        <Text style={{
-                          color: (v as number) < 0 ? theme.colors.error : theme.colors.text,
-                          fontWeight: bold ? '700' : '400',
-                          fontSize: 12,
-                          fontFamily: 'Menlo, monospace' as any,
-                        }}>
-                          ${(v as number).toLocaleString()}
-                        </Text>
-                      </View>
-                    );
-                  })}
-              </Card.Content>
-            </Card>
-          ) : null}
+          {/* Balance-sheet snapshot belongs to a specific year, not the
+              All-years aggregate — it lives in the per-year drill-down block
+              above so the user has to pick a fiscal year to see it. */}
 
           {/* Per-department breakdown (pie, from whichever side has data) */}
           {activeFy === 'all' && detail.funds.summary?.byDepartment?.length ? (
