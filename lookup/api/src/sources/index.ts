@@ -28,6 +28,7 @@ import { openCanadaCkan } from './money/open-canada-ckan.js';
 import { bcOpenDataCkan } from './money/bc-open-data-ckan.js';
 import { merx } from './money/merx.js';
 import { canadabuys } from './money/canadabuys.js';
+import { availableGrants } from './money/available-grants.js';
 import { bcMinistryContracts } from './money/bc-ministry-contracts.js';
 import { bcCrfTransfers } from './money/bc-crf-transfers.js';
 import {
@@ -67,6 +68,7 @@ export const ALL_SOURCES: Source[] = [
   // then federal Indigenous-specific grants, then bulk datasets, then
   // provincial / Crown corp / municipal.
   canadabuys,
+  availableGrants,
   openCanadaContracts,
   openCanadaGrants,
   openCanadaCkan,

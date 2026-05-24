@@ -131,16 +131,20 @@ export const defenceProcurement: Source = {
  */
 export const iscFundingPrograms: Source = {
   id: 'isc-funding',
-  name: 'ISC — Indigenous Services Canada funding programs',
+  name: 'ISC + CIRNAC — Calls for proposals',
   mode: 'money',
   format: 'link-only',
   category: 'Open opportunities — Federal grants',
-  homepage: 'https://www.canada.ca/en/indigenous-services-canada/services/funding.html',
+  // The canada.ca/.../indigenous-services-canada/services/funding.html URL
+  // previously cited here 404s as of 2026. CIRNAC's "Calls for proposals"
+  // page is the canonical live listing of currently-open ISC + CIRNAC
+  // funding rounds.
+  homepage: 'https://www.rcaanc-cirnac.gc.ca/eng/1611847555503/1611847585249',
   indigenousFilter: 'inherent',
   autoSelectOnIndigenous: true,
   description:
-    'Catalogue of every federal Indigenous Services Canada funding program — housing, infrastructure, economic dev, education, health, child & family services. Each program page has eligibility + application details.',
-  searchUrl: () => 'https://www.canada.ca/en/indigenous-services-canada/services/funding.html',
+    'CIRNAC Calls for Proposals — current ISC + CIRNAC funding rounds (Modern treaty, Indigenous Women & 2SLGBTQI+, Food Security Research, Federal Interlocutor, etc.). The same hub is scraped structurally by `available-grants`.',
+  searchUrl: () => 'https://www.rcaanc-cirnac.gc.ca/eng/1611847555503/1611847585249',
 };
 
 /**
