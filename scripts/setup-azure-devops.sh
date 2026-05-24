@@ -3,10 +3,17 @@
 #
 # What this does (idempotent — safe to re-run):
 #   1. Confirms `az` CLI + `az devops` extension are installed.
-#   2. Opens https://dev.azure.com/ in your browser so you can sign in
-#      and click "New organization" to create `skintyeenation`
-#      (one-time, manual — Microsoft only allows org creation via the
-#      web). Skipped automatically if the org already exists.
+#   2. Opens https://aex.dev.azure.com/me in your browser so you can
+#      sign in and click "Create new organization" to create
+#      `skintyeenation` (one-time, manual — Microsoft only allows org
+#      creation via the web). Skipped automatically if the org
+#      already exists.
+#
+#      Why `aex.dev.azure.com/me` and not `dev.azure.com/`: if you're
+#      already signed in to the Azure portal in another tab, plain
+#      `dev.azure.com/` defers to the portal session and bounces you
+#      to `portal.azure.com/#home`. `aex.dev.azure.com/me` is the
+#      ADO-specific account portal — bypasses that redirect.
 #
 #      Prerequisite: an active Azure subscription on the same tenant
 #      (Microsoft requires this for new orgs as of 2026; existing orgs
@@ -115,10 +122,13 @@ if [ "$DRY_RUN" -eq 0 ] && ! az devops project list --organization "$ORG_URL" --
   browser — there's no \`az devops org create\` command. Steps:
 
     1. The browser will open in 3 seconds (or open it yourself):
-       https://dev.azure.com/
+       https://aex.dev.azure.com/me
+       (the ADO account portal — direct, avoids the portal.azure.com
+       redirect that 'dev.azure.com/' triggers if you're already
+       signed in to the Azure portal in another tab.)
     2. Sign in with your Skin Tyee admin account
-       (firstname.lastname@skintyee.ca).
-    3. Click "New organization" (top-left after sign-in).
+       (firstname.lastname@skintyee.ca) if not already signed in.
+    3. Click "Create new organization" on the left rail.
     4. Enter:    Organization name = ${ORG}
        Geography = Canada Central
        Azure subscription = pick the Skin Tyee subscription
@@ -129,13 +139,12 @@ if [ "$DRY_RUN" -eq 0 ] && ! az devops project list --organization "$ORG_URL" --
     6. After the org is created, re-run this script.
 
   (The older 'aka.ms/AzureDevOpsAccountCreate' shortlink was retired
-  by Microsoft and now redirects to Bing search — use the URL above
-  instead.)
+  by Microsoft and now redirects to Bing search — don't use it.)
 
   Press ENTER when you've finished creating the org, or Ctrl-C to abort.
 MSG
   sleep 3
-  open_url "https://dev.azure.com/"
+  open_url "https://aex.dev.azure.com/me"
   read -r -p "" _ < /dev/tty
   # Re-check after the user comes back.
   if ! az devops project list --organization "$ORG_URL" --only-show-errors >/dev/null 2>&1; then
