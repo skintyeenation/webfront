@@ -1,0 +1,53 @@
+{
+  "fetchedAt": "2026-05-24T01:31:59.933Z",
+  "data": {
+    "fiscalYear": "2011-2012",
+    "bandNumber": "545",
+    "bandName": "West Moberly First Nations",
+    "transfers": [
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Administration",
+        "amount": 236512
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Capital Projects",
+        "amount": 96174
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Community Operations",
+        "amount": 467003
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Economic Development",
+        "amount": 96201
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Education",
+        "amount": 120933
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development",
+        "amount": 170401
+      },
+      {
+        "department": "Health Canada",
+        "program": "Community Health Services",
+        "amount": 294988
+      },
+      {
+        "department": "CMHC",
+        "program": "Non-Profit On-Reserve Housing",
+        "amount": 87102
+      }
+    ],
+    "declaredTotal": 1569314,
+    "computedTotal": 1569314,
+    "notes": "Document contains Schedule of Federal Government Funding only; no full audited financial statements (expenditures, balance sheet, operating result) are present. Band number 545 confirmed from federal FN Profiles. AANDC subtotal 1,187,224; grand total 1,569,314. Recipient # not visible on reconciliation page."
+  }
+}

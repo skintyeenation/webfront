@@ -1,0 +1,119 @@
+{
+  "fetchedAt": "2026-05-24T01:23:07.608Z",
+  "data": {
+    "fiscalYear": "2004-2005",
+    "bandNumber": "545",
+    "bandName": "West Moberly First Nations",
+    "transfers": [
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Administration",
+        "amount": 111091
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "BC Claims",
+        "amount": 15000
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Capital - Cryingman Subdivision",
+        "amount": 102943
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Capital Development - ECDI",
+        "amount": 20000
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Capital Projects - CMPS",
+        "amount": 10722
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Cultural",
+        "amount": 18460
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Economic Development",
+        "amount": 10209
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Education - Ancillary",
+        "amount": 6160
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Education - Post Sec.",
+        "amount": 75882
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Education",
+        "amount": 16900
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "IMD Training and Development",
+        "amount": 24952
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Infrastructure Operations and Maintenance",
+        "amount": 135239
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Treaty Land Entitlement",
+        "amount": 0,
+        "notes": "No federal funding received this year; unexpended from prior year 14,000"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Membership",
+        "amount": 1379
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "New Housing and Construction",
+        "amount": 139396
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Resource Partnership Program",
+        "amount": 56700
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development",
+        "amount": 91215
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development Admin",
+        "amount": 26046
+      },
+      {
+        "department": "Health Canada",
+        "program": "Community Health Services",
+        "amount": 181744
+      },
+      {
+        "department": "Health Canada",
+        "program": "Environmental Health",
+        "amount": 4700
+      },
+      {
+        "department": "CMHC",
+        "program": "Non-Profit On-Reserve Housing",
+        "amount": 57031
+      }
+    ],
+    "declaredTotal": 1105769,
+    "computedTotal": 1105769,
+    "notes": "Federal Funding Received total is $1,105,769. Total Funding Available (including unexpended from prior year of $98,651) is $1,204,420. Funding Expended is $965,211. Unexpended End of Year is $239,209. Treaty Land Entitlement shows $0 federal funding received this year but $14,000 unexpended from beginning of year. Document contains only the Schedule of Federal Government Funding; no full audited financial statements with expenditures or balance sheet are included."
+  }
+}

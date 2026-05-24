@@ -1,0 +1,58 @@
+{
+  "fetchedAt": "2026-05-24T01:29:32.986Z",
+  "data": {
+    "fiscalYear": "2009-2010",
+    "bandNumber": "545",
+    "bandName": "West Moberly First Nations",
+    "transfers": [
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Administration",
+        "amount": 145191
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Capital Projects",
+        "amount": 539547
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Chief and Council",
+        "amount": 205
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Community Operations",
+        "amount": 265687
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Economic Development",
+        "amount": 94791
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Education",
+        "amount": 122773
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development",
+        "amount": 205072
+      },
+      {
+        "department": "Health Canada",
+        "program": "Community Health Services",
+        "amount": 293795
+      },
+      {
+        "department": "CMHC",
+        "program": "Non-Profit On-Reserve Housing",
+        "amount": 68820
+      }
+    ],
+    "declaredTotal": 1735881,
+    "computedTotal": 1735881,
+    "notes": "Document contains only the Schedule of Federal Government Funding. No full audited financial statements (expenditures, balance sheet, operating result) are included in the provided pages."
+  }
+}

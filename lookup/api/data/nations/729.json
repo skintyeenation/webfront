@@ -1,0 +1,3947 @@
+{
+  "fetchedAt": "2026-05-24T00:57:43.140Z",
+  "data": {
+    "bandNumber": "729",
+    "general": {
+      "officialName": "Skin Tyee",
+      "number": "729",
+      "address": "PO BOX 131, SOUTHBANK, BC",
+      "postalCode": "V0J 2P0",
+      "phone": "(250) 694-3517",
+      "fax": "(250) 694-3268"
+    },
+    "governance": {
+      "rows": [
+        {
+          "role": "Councillor",
+          "name": "GABRIEL TOM",
+          "term": "Term ends 04/08/2029"
+        },
+        {
+          "role": "Councillor",
+          "name": "SHIRLEY WILSON",
+          "term": "Term ends 04/08/2029"
+        }
+      ]
+    },
+    "reserves": {
+      "rows": [
+        {
+          "name": "SKINS LAKE 15",
+          "size": "183.70",
+          "community": "COAST DISTRICT, RANGE 4, S 1/2 LT 2433 & N 1/2 LT 2436, N.   OF SKINS LAKE, HEAD OF CHESLATTA RIVER"
+        },
+        {
+          "name": "SKINS LAKE 16A",
+          "size": "64.70",
+          "community": "COAST DIST. 4,SE 1/4 OF LT 2388, 3/4 MLE S.E. OF OCTOPUS     LAKE, WHICH IS 2 MILES SOUTH OF FRANCOIS LAKE"
+        },
+        {
+          "name": "SKINS LAKE 16B",
+          "size": "64.70",
+          "community": "COAST DISTRICT, RGE 4, BLK B, LT 1707, 2 MILES N.E. OF UNCHA LAKE, I.R. NO 13A, ON NORTHWEST SHORE OF UNCHA LAKE"
+        },
+        {
+          "name": "TATLA'T EAST 2",
+          "size": "56.10",
+          "community": "LOT 2649 RANGE 4 COAST DISTRICT"
+        },
+        {
+          "name": "TYEE UNCHA LAKE",
+          "size": "15.30",
+          "community": "RANGE 4 COAST DITRICT"
+        },
+        {
+          "name": "UNCHA LAKE 13A",
+          "size": "24.10",
+          "community": "COAST DISTRICT, RANGE 4, ON NORTH SHORE OF UNCHA LAKE, NEAR  WEST END"
+        },
+        {
+          "name": "WESTERN ISLAND 14",
+          "size": "3.30",
+          "community": "COAST DISTRICT, RANGE 4, LOT 2698, A SMALL ISLAND AT WEST    END OF UNCHA LAKE"
+        }
+      ]
+    },
+    "population": {
+      "rows": [
+        {
+          "label": "Registered Males On Own Reserve",
+          "count": 22
+        },
+        {
+          "label": "Registered Females On Own Reserve",
+          "count": 25
+        },
+        {
+          "label": "Registered Males On Other Reserves",
+          "count": 3
+        },
+        {
+          "label": "Registered Females On Other Reserves",
+          "count": 1
+        },
+        {
+          "label": "Registered Males On Own Crown Land",
+          "count": 0
+        },
+        {
+          "label": "Registered Females On Own Crown Land",
+          "count": 0
+        },
+        {
+          "label": "Registered Males On Other Band Crown Land",
+          "count": 0
+        },
+        {
+          "label": "Registered Females On Other Band Crown Land",
+          "count": 0
+        },
+        {
+          "label": "Registered Males On No Band Crown Land",
+          "count": 0
+        },
+        {
+          "label": "Registered Females On No Band Crown Land",
+          "count": 0
+        },
+        {
+          "label": "Registered Males Off Reserve",
+          "count": 88
+        },
+        {
+          "label": "Registered Females Off Reserve",
+          "count": 58
+        }
+      ],
+      "total": 197,
+      "asOf": "April, 2026",
+      "summary": {
+        "onReserve": 47,
+        "offReserve": 146,
+        "onOtherReserve": 4,
+        "onCrownLand": 0,
+        "male": 113,
+        "female": 84
+      }
+    },
+    "funds": {
+      "rows": [
+        {
+          "fiscalYear": "2002-2003",
+          "documentName": "Skin Tyee20022003.pdf",
+          "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=729&FY=2002-2003&lang=eng"
+        },
+        {
+          "fiscalYear": "2003-2004",
+          "documentName": "Skin Tyee20032004.pdf",
+          "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=729&FY=2003-2004&lang=eng"
+        },
+        {
+          "fiscalYear": "2004-2005",
+          "documentName": "Skin Tyee20042005.pdf",
+          "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=729&FY=2004-2005&lang=eng"
+        },
+        {
+          "fiscalYear": "2005-2006",
+          "documentName": "Skin Tyee20052006.pdf",
+          "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=729&FY=2005-2006&lang=eng"
+        },
+        {
+          "fiscalYear": "2006-2007",
+          "documentName": "Skin Tyee20062007.pdf",
+          "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=729&FY=2006-2007&lang=eng"
+        }
+      ],
+      "extracted": [
+        {
+          "fiscalYear": "2002-2003",
+          "documentName": "Skin Tyee20022003.pdf",
+          "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=729&FY=2002-2003&lang=eng",
+          "extractStatus": "pending",
+          "jobId": "b065267b-1fcc-4ef0-a67c-245e42d30816",
+          "attempts": 0
+        },
+        {
+          "fiscalYear": "2003-2004",
+          "documentName": "Skin Tyee20032004.pdf",
+          "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=729&FY=2003-2004&lang=eng",
+          "extractStatus": "cached",
+          "extracted": {
+            "fiscalYear": "2003-2004",
+            "bandNumber": "729",
+            "bandName": "Skin Tyee Nation",
+            "transfers": [
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Band Support",
+                "amount": 65896,
+                "notes": "Schedule 3-1"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Operations and Maintenance",
+                "amount": 66649,
+                "notes": "Schedule 3-2"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Social Development - Basic Needs",
+                "amount": 74548,
+                "notes": "Schedule 3-3; current funding"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Social Development - Family Violence",
+                "amount": 4190,
+                "notes": "Schedule 3-3"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Social Development - Guardian Financial Assistance",
+                "amount": 6374,
+                "notes": "Schedule 3-3; current funding"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Social Development - In-Home Care",
+                "amount": 7642,
+                "notes": "Schedule 3-3"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Social Development - National Child Benefit",
+                "amount": 14420,
+                "notes": "Schedule 3-3"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Social Development - Service Delivery",
+                "amount": 17614,
+                "notes": "Schedule 3-3"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Social Development - Service Delivery (2)",
+                "amount": 1145,
+                "notes": "Schedule 3-3"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Social Development - Special Needs",
+                "amount": 3250,
+                "notes": "Schedule 3-3"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Social Development - Training and Education Support Initiative",
+                "amount": 5864,
+                "notes": "Schedule 3-3"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Elementary and Secondary Education - Comprehensive Education Support Services",
+                "amount": 824,
+                "notes": "Schedule 3-4"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Elementary and Secondary Education - Ancillary Services",
+                "amount": 440,
+                "notes": "Schedule 3-4"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Post-Secondary Education",
+                "amount": 53434,
+                "notes": "Schedule 3-5"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Economic Development",
+                "amount": 6939,
+                "notes": "Schedule 3-6"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Capacity Development",
+                "amount": 28000,
+                "notes": "Schedule 3-14"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "New On-Reserve Housing Approach (Capital Fund)",
+                "amount": 45000,
+                "notes": "Schedule 7-1; gross receipt, current year deferred revenue of 45000 netted out in revenue"
+              }
+            ],
+            "expenditures": [
+              {
+                "category": "Band Support",
+                "detail": "Administration",
+                "amount": 26779
+              },
+              {
+                "category": "Band Support",
+                "detail": "Bank charges and interest",
+                "amount": 1080
+              },
+              {
+                "category": "Band Support",
+                "detail": "Election costs",
+                "amount": 9943
+              },
+              {
+                "category": "Band Support",
+                "detail": "Equipment purchases",
+                "amount": 598
+              },
+              {
+                "category": "Band Support",
+                "detail": "Honorarium",
+                "amount": 26705
+              },
+              {
+                "category": "Band Support",
+                "detail": "Office and other",
+                "amount": 27762
+              },
+              {
+                "category": "Band Support",
+                "detail": "Professional fees",
+                "amount": 25753
+              },
+              {
+                "category": "Band Support",
+                "detail": "Repairs and maintenance",
+                "amount": 5800
+              },
+              {
+                "category": "Band Support",
+                "detail": "Telephone",
+                "amount": 10492
+              },
+              {
+                "category": "Band Support",
+                "detail": "Travel",
+                "amount": 26444
+              },
+              {
+                "category": "Band Support",
+                "detail": "Wages and Benefits",
+                "amount": 34948
+              },
+              {
+                "category": "Operations and Maintenance",
+                "detail": "Buildings and furnishings",
+                "amount": 175
+              },
+              {
+                "category": "Operations and Maintenance",
+                "detail": "Equipment purchases",
+                "amount": 771
+              },
+              {
+                "category": "Operations and Maintenance",
+                "detail": "Garbage disposal",
+                "amount": 4544
+              },
+              {
+                "category": "Operations and Maintenance",
+                "detail": "Insurance",
+                "amount": 3770
+              },
+              {
+                "category": "Operations and Maintenance",
+                "detail": "Repairs and maintenance",
+                "amount": 4622
+              },
+              {
+                "category": "Operations and Maintenance",
+                "detail": "Supplies",
+                "amount": 92
+              },
+              {
+                "category": "Operations and Maintenance",
+                "detail": "Travel",
+                "amount": 2040
+              },
+              {
+                "category": "Operations and Maintenance",
+                "detail": "Utilities",
+                "amount": 2267
+              },
+              {
+                "category": "Operations and Maintenance",
+                "detail": "Wages and benefits",
+                "amount": 17918
+              },
+              {
+                "category": "Social Development",
+                "detail": "Basic needs",
+                "amount": 95843
+              },
+              {
+                "category": "Social Development",
+                "detail": "Family violence",
+                "amount": 4190
+              },
+              {
+                "category": "Social Development",
+                "detail": "Guardian financial assistance",
+                "amount": 7204
+              },
+              {
+                "category": "Social Development",
+                "detail": "In-home care",
+                "amount": 17505
+              },
+              {
+                "category": "Social Development",
+                "detail": "National child benefit",
+                "amount": 14420
+              },
+              {
+                "category": "Social Development",
+                "detail": "Service delivery",
+                "amount": 5033
+              },
+              {
+                "category": "Social Development",
+                "detail": "Special needs",
+                "amount": 4481
+              },
+              {
+                "category": "Social Development",
+                "detail": "Training and education support initiative",
+                "amount": 5864
+              },
+              {
+                "category": "Education",
+                "detail": "Elementary and Secondary - Contract labour",
+                "amount": 7725
+              },
+              {
+                "category": "Education",
+                "detail": "Post-Secondary - Books and supplies",
+                "amount": 636
+              },
+              {
+                "category": "Education",
+                "detail": "Post-Secondary - Travel",
+                "amount": 60
+              },
+              {
+                "category": "Education",
+                "detail": "Post-Secondary - Tuition and allowances",
+                "amount": 34184
+              },
+              {
+                "category": "Economic Development",
+                "detail": "Materials and supplies",
+                "amount": 6939
+              },
+              {
+                "category": "Health and Welfare",
+                "detail": "Office and other",
+                "amount": 8784
+              },
+              {
+                "category": "Health and Welfare",
+                "detail": "Patient travel",
+                "amount": 36234
+              },
+              {
+                "category": "Health and Welfare",
+                "detail": "Wages and benefits",
+                "amount": 29294
+              },
+              {
+                "category": "Human Resources Development Canada",
+                "detail": "Administration",
+                "amount": 12901
+              },
+              {
+                "category": "Human Resources Development Canada",
+                "detail": "Bank charges and interest",
+                "amount": 44
+              },
+              {
+                "category": "Human Resources Development Canada",
+                "detail": "Employment services",
+                "amount": 782
+              },
+              {
+                "category": "Human Resources Development Canada",
+                "detail": "Training and workshops",
+                "amount": 1193
+              },
+              {
+                "category": "Human Resources Development Canada",
+                "detail": "Wages and benefits",
+                "amount": 27562
+              },
+              {
+                "category": "Capacity Development",
+                "detail": "Contract services",
+                "amount": 28000
+              },
+              {
+                "category": "Capital - New On-Reserve Housing Approach",
+                "detail": "Contract services",
+                "amount": 12317
+              },
+              {
+                "category": "Investment Fund",
+                "detail": "Funerals and other member benefits",
+                "amount": 29377
+              }
+            ],
+            "balanceSheet": {
+              "currentAssets": 98904,
+              "capitalAssets": 222404,
+              "totalAssets": 832410,
+              "currentLiabilities": 100098,
+              "totalLiabilities": 100098,
+              "equityInCapitalAssets": 222404,
+              "accumulatedSurplus": 732312,
+              "netAssetsOrEquity": 732312
+            },
+            "declaredTotal": 357229,
+            "computedTotal": 402229,
+            "computedExpenditureTotal": 623075,
+            "surplusDeficit": 398182,
+            "notes": "declaredTotal is INAC revenue per financial statements as shown on INAC reconciliation page (band number 729). Total summary revenue across all funds was 1021257. The balance sheet includes investments of 509970 and trust moneys of 1132 in addition to current assets and capital assets. Long-term liabilities not separately stated; deferred revenue of 45000 and loan payable of 26403 are included in current liabilities total of 100098. Health and Welfare revenue sourced from Carrier Sekani Family Services (103896), not INAC. Human Resources Development Canada revenue sourced from Prince George Nechako Aboriginal Employment and Training Association (65730), not INAC directly."
+          }
+        },
+        {
+          "fiscalYear": "2004-2005",
+          "documentName": "Skin Tyee20042005.pdf",
+          "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=729&FY=2004-2005&lang=eng",
+          "extractStatus": "pending",
+          "jobId": "b9ba9610-959d-4f5d-b9fc-1141a63eac4f",
+          "attempts": 0
+        },
+        {
+          "fiscalYear": "2005-2006",
+          "documentName": "Skin Tyee20052006.pdf",
+          "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=729&FY=2005-2006&lang=eng",
+          "extractStatus": "cached",
+          "extracted": {
+            "fiscalYear": "2005-2006",
+            "bandNumber": "729",
+            "bandName": "Skin Tyee Nation",
+            "transfers": [
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Elementary/Secondary Education - Comprehensive education support services - Ancillary services",
+                "amount": 385,
+                "notes": "Federal Funding Received"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Elementary/Secondary Education - Comprehensive education support services - Guidance and counselling",
+                "amount": 1100,
+                "notes": "Federal Funding Received"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Elementary/Secondary Education - Comprehensive education support services - Guidance and counselling (additional)",
+                "amount": 804,
+                "notes": "Federal Funding Received"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Post-secondary Education",
+                "amount": 53135,
+                "notes": "Federal Funding Received"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Economic Development - CEDO planning and development",
+                "amount": 13718,
+                "notes": "Federal Funding Received"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Indian Government Support - Band support funding",
+                "amount": 121780,
+                "notes": "Federal Funding Received"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Indian Government Support - IMD training and development",
+                "amount": 25000,
+                "notes": "Federal Funding Received"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Indian Registry Administration",
+                "amount": 1153,
+                "notes": "Federal Funding Received"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Community Infrastructure - Roads and bridges",
+                "amount": 5101,
+                "notes": "Federal Funding Received"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Community Infrastructure - Wastewater systems",
+                "amount": 5212,
+                "notes": "Federal Funding Received"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Community Infrastructure - Municipal services",
+                "amount": 3245,
+                "notes": "Federal Funding Received"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Community Infrastructure - Training - Fire Protection",
+                "amount": 600,
+                "notes": "Federal Funding Received"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Capital project #6929",
+                "amount": 0,
+                "notes": "Unexpended funding from prior year only; no federal funding received this year"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Capital project #7212",
+                "amount": 0,
+                "notes": "Unexpended funding from prior year only; no federal funding received this year"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Capital project #7382",
+                "amount": 0,
+                "notes": "Unexpended funding from prior year only; no federal funding received this year"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Capital project #7387",
+                "amount": 0,
+                "notes": "Unexpended funding from prior year only; no federal funding received this year"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Social Support Services - Basic needs",
+                "amount": 111447,
+                "notes": "Federal Funding Received"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Social Support Services - Guardian financial assistance",
+                "amount": 21251,
+                "notes": "Federal Funding Received"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Social Support Services - Special needs",
+                "amount": 3322,
+                "notes": "Federal Funding Received"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Social Support Services (continued) - In-home care",
+                "amount": 8546,
+                "notes": "Federal Funding Received"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Social Support Services (continued) - Service delivery",
+                "amount": 19721,
+                "notes": "Federal Funding Received"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Social Support Services (continued) - National child benefit reinvestment",
+                "amount": 14079,
+                "notes": "Federal Funding Received"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Social Support Services (continued) - Prevention projects",
+                "amount": 4190,
+                "notes": "Federal Funding Received"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Other - Employment and training",
+                "amount": 2530,
+                "notes": "Federal Funding Received"
+              },
+              {
+                "department": "Health Canada (direct) and c/o Carrier Sekani",
+                "program": "Family Services",
+                "amount": 97978,
+                "notes": "Federal Funding Received"
+              },
+              {
+                "department": "CMHC",
+                "program": "Section 95 Social Housing Program",
+                "amount": 1025,
+                "notes": "Federal Funding Received"
+              },
+              {
+                "department": "Canadian Heritage",
+                "program": "Canadian Heritage",
+                "amount": 19800,
+                "notes": "Federal Funding Received"
+              }
+            ],
+            "declaredTotal": 1173019,
+            "computedTotal": 535122,
+            "notes": "Document is the Schedule of Federal Government Funding only (revenue side). Auditor issued a disclaimer of opinion due to serious deficiencies in accounting records. Total Expenditures from All Sources per schedule: $1,173,019. Total Federal Funding Received: $535,122. Unexpended funding beginning of year: $135,853. Adjustments: ($3,456)."
+          }
+        },
+        {
+          "fiscalYear": "2006-2007",
+          "documentName": "Skin Tyee20062007.pdf",
+          "documentUrl": "https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search/DisplayBinaryData.aspx?BAND_NUMBER=729&FY=2006-2007&lang=eng",
+          "extractStatus": "cached",
+          "extracted": {
+            "fiscalYear": "2006-2007",
+            "bandNumber": "729",
+            "bandName": "Skin Tyee Nation",
+            "transfers": [
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Band Support",
+                "amount": 119544,
+                "notes": "Band support funding"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Operations and Maintenance - Roads and Bridges",
+                "amount": 3634,
+                "notes": ""
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Operations and Maintenance - Sanitation Systems",
+                "amount": 5452,
+                "notes": ""
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Operations and Maintenance - Municipal Services",
+                "amount": 810,
+                "notes": ""
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Operations and Maintenance - Training Fire Protection",
+                "amount": 540,
+                "notes": ""
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Elementary and Secondary Education - Comprehensive Education Support Services",
+                "amount": 539,
+                "notes": ""
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Elementary and Secondary Education - Ancillary Services",
+                "amount": 1540,
+                "notes": ""
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Elementary and Secondary Education - Financial Assistance",
+                "amount": 330,
+                "notes": ""
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Elementary and Secondary Education - Guidance and Counselling",
+                "amount": 938,
+                "notes": ""
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Post-Secondary Education",
+                "amount": 23120,
+                "notes": ""
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Economic Development - CEDO Planning and Operations",
+                "amount": 3141,
+                "notes": ""
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Indian Registry Administration",
+                "amount": 1060,
+                "notes": ""
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Family Violence - Prevention Projects",
+                "amount": 4190,
+                "notes": ""
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Training Education Support Initiative - Social Assistance Employment and Training",
+                "amount": 2622,
+                "notes": ""
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "National Child Benefit Reinvestment",
+                "amount": 14180,
+                "notes": ""
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Basic Needs",
+                "amount": 107337,
+                "notes": "Current funding"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Guardian Financial Assistance",
+                "amount": 29174,
+                "notes": "Current funding"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Special Needs",
+                "amount": 3498,
+                "notes": ""
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "In-Home Care",
+                "amount": 8819,
+                "notes": ""
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Service Delivery - General",
+                "amount": 18220,
+                "notes": ""
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Service Delivery - In-Home Care",
+                "amount": 1556,
+                "notes": ""
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Capital - Retro Fit of Community Building",
+                "amount": 663,
+                "notes": "Project #7382; net of deferred revenue"
+              },
+              {
+                "department": "Indian and Northern Affairs Canada",
+                "program": "Capital - Housing Renovations 2005/2006",
+                "amount": 17303,
+                "notes": "Project #8099; received but deferred"
+              }
+            ],
+            "expenditures": [
+              {
+                "category": "Band Support",
+                "detail": "Bad debts",
+                "amount": 198098,
+                "notes": ""
+              },
+              {
+                "category": "Band Support",
+                "detail": "Band member distributions",
+                "amount": 12313,
+                "notes": ""
+              },
+              {
+                "category": "Band Support",
+                "detail": "Bank charges and interest",
+                "amount": 1275,
+                "notes": ""
+              },
+              {
+                "category": "Band Support",
+                "detail": "Contract administration services",
+                "amount": 297645,
+                "notes": ""
+              },
+              {
+                "category": "Band Support",
+                "detail": "Election costs",
+                "amount": 100,
+                "notes": ""
+              },
+              {
+                "category": "Band Support",
+                "detail": "Equipment purchases",
+                "amount": 5103,
+                "notes": ""
+              },
+              {
+                "category": "Band Support",
+                "detail": "Honorarium",
+                "amount": 6875,
+                "notes": ""
+              },
+              {
+                "category": "Band Support",
+                "detail": "Office and other",
+                "amount": 11023,
+                "notes": ""
+              },
+              {
+                "category": "Band Support",
+                "detail": "Professional fees",
+                "amount": 19840,
+                "notes": ""
+              },
+              {
+                "category": "Band Support",
+                "detail": "Repairs and maintenance",
+                "amount": 280,
+                "notes": ""
+              },
+              {
+                "category": "Band Support",
+                "detail": "Telephone",
+                "amount": 7315,
+                "notes": ""
+              },
+              {
+                "category": "Band Support",
+                "detail": "Travel",
+                "amount": 7041,
+                "notes": ""
+              },
+              {
+                "category": "Band Support",
+                "detail": "Wages and benefits",
+                "amount": 25065,
+                "notes": ""
+              },
+              {
+                "category": "Operations and Maintenance",
+                "detail": "Equipment purchases",
+                "amount": 612,
+                "notes": ""
+              },
+              {
+                "category": "Operations and Maintenance",
+                "detail": "Garbage disposal",
+                "amount": 6964,
+                "notes": ""
+              },
+              {
+                "category": "Operations and Maintenance",
+                "detail": "Insurance",
+                "amount": 790,
+                "notes": ""
+              },
+              {
+                "category": "Operations and Maintenance",
+                "detail": "Repairs and maintenance",
+                "amount": 2322,
+                "notes": ""
+              },
+              {
+                "category": "Operations and Maintenance",
+                "detail": "Travel",
+                "amount": 470,
+                "notes": ""
+              },
+              {
+                "category": "Operations and Maintenance",
+                "detail": "Utilities",
+                "amount": 385,
+                "notes": ""
+              },
+              {
+                "category": "Operations and Maintenance",
+                "detail": "Wages and benefits",
+                "amount": 635,
+                "notes": ""
+              },
+              {
+                "category": "Education",
+                "detail": "Elementary and Secondary - Administration",
+                "amount": 400,
+                "notes": ""
+              },
+              {
+                "category": "Education",
+                "detail": "Post-Secondary - Tuition and allowances",
+                "amount": 7378,
+                "notes": ""
+              },
+              {
+                "category": "Economic Development",
+                "detail": "Administration",
+                "amount": 6859,
+                "notes": ""
+              },
+              {
+                "category": "Indian Management Development",
+                "detail": "Contract services",
+                "amount": 380,
+                "notes": ""
+              },
+              {
+                "category": "Indian Registry Administration",
+                "detail": "Program expenditures",
+                "amount": 200,
+                "notes": ""
+              },
+              {
+                "category": "Work Crew",
+                "detail": "Cultural craft",
+                "amount": 3107,
+                "notes": ""
+              },
+              {
+                "category": "Health and Welfare",
+                "detail": "Patient travel",
+                "amount": 2879,
+                "notes": ""
+              },
+              {
+                "category": "Health and Welfare",
+                "detail": "Community health representative - travel",
+                "amount": 2557,
+                "notes": ""
+              },
+              {
+                "category": "Health and Welfare",
+                "detail": "National native alcohol and drug abuse program",
+                "amount": 1179,
+                "notes": ""
+              },
+              {
+                "category": "Health and Welfare",
+                "detail": "Wages and benefits - community health representative",
+                "amount": 12264,
+                "notes": ""
+              },
+              {
+                "category": "Human Resources Development Canada",
+                "detail": "Employment services",
+                "amount": 457,
+                "notes": ""
+              },
+              {
+                "category": "Human Resources Development Canada",
+                "detail": "Travel",
+                "amount": 150,
+                "notes": ""
+              },
+              {
+                "category": "Family Violence",
+                "detail": "Program expenditures",
+                "amount": 200,
+                "notes": ""
+              },
+              {
+                "category": "Training Education Support Initiative",
+                "detail": "Program expenditures",
+                "amount": 885,
+                "notes": ""
+              },
+              {
+                "category": "National Child Benefit Reinvestment",
+                "detail": "Program expenditures",
+                "amount": 4948,
+                "notes": ""
+              },
+              {
+                "category": "Basic Needs",
+                "detail": "Program expenditures",
+                "amount": 77661,
+                "notes": ""
+              },
+              {
+                "category": "Guardian Financial Assistance",
+                "detail": "Program expenditures",
+                "amount": 17064,
+                "notes": ""
+              },
+              {
+                "category": "Special Needs",
+                "detail": "Program expenditures",
+                "amount": 4544,
+                "notes": ""
+              },
+              {
+                "category": "In-Home Care",
+                "detail": "Program expenditures",
+                "amount": 4635,
+                "notes": ""
+              },
+              {
+                "category": "Service Delivery",
+                "detail": "Program expenditures",
+                "amount": 1800,
+                "notes": ""
+              },
+              {
+                "category": "Elder's Committee",
+                "detail": "Honorarium",
+                "amount": 7300,
+                "notes": ""
+              },
+              {
+                "category": "Pipeline Project",
+                "detail": "Honorarium",
+                "amount": 77528,
+                "notes": ""
+              },
+              {
+                "category": "Pipeline Project",
+                "detail": "Professional fees",
+                "amount": 1473,
+                "notes": ""
+              },
+              {
+                "category": "Pipeline Project",
+                "detail": "Travel",
+                "amount": 1626,
+                "notes": ""
+              },
+              {
+                "category": "Pipeline Project",
+                "detail": "Bank charges",
+                "amount": 20,
+                "notes": ""
+              },
+              {
+                "category": "Investment Fund",
+                "detail": "Funerals and other member benefits",
+                "amount": 287,
+                "notes": ""
+              },
+              {
+                "category": "Social Housing Fund",
+                "detail": "Insurance",
+                "amount": 2250,
+                "notes": ""
+              },
+              {
+                "category": "Social Housing Fund",
+                "detail": "Mortgage interest",
+                "amount": 13520,
+                "notes": ""
+              },
+              {
+                "category": "Social Housing Fund",
+                "detail": "Mortgage principal repayments",
+                "amount": 6594,
+                "notes": ""
+              },
+              {
+                "category": "Social Housing Fund",
+                "detail": "Appropriations to Replacement Reserve Fund",
+                "amount": 4250,
+                "notes": ""
+              }
+            ],
+            "balanceSheet": {
+              "currentAssets": 182233,
+              "capitalAssets": 535840,
+              "totalAssets": 720481,
+              "currentLiabilities": 126286,
+              "longTermLiabilities": 283820,
+              "totalLiabilities": 410106,
+              "accumulatedSurplus": 310375,
+              "netAssetsOrEquity": 310375
+            },
+            "declaredTotal": -229115,
+            "computedTotal": 368210,
+            "computedExpenditureTotal": 868546,
+            "surplusDeficit": -1093411,
+            "notes": "Total revenue per Summary Statement of Revenue and Expenditures was $(229,115) (net of negative operating fund revenue of $(198,196)), with total expenditures of $864,296, yielding an excess of expenditures over revenue of $(1,093,411). Band number 729 per federal FN Profiles. No Schedule of Federal Funding page present; transfers derived from individual program schedules. Pipeline project revenue was from non-federal sources (Pacific Trail Pipelines, Pembina Pipeline Corporation, Province of BC). Forestry revenue was from BC Ministry of Forests."
+          }
+        }
+      ],
+      "summary": {
+        "byYear": [
+          {
+            "fiscalYear": "2003-2004",
+            "total": 402229,
+            "count": 17
+          },
+          {
+            "fiscalYear": "2005-2006",
+            "total": 535122,
+            "count": 23
+          },
+          {
+            "fiscalYear": "2006-2007",
+            "total": 368210,
+            "count": 23
+          }
+        ],
+        "byDepartment": [
+          {
+            "department": "Indian and Northern Affairs Canada",
+            "total": 1186758,
+            "count": 60
+          },
+          {
+            "department": "Health Canada (direct) and c/o Carrier Sekani",
+            "total": 97978,
+            "count": 1
+          },
+          {
+            "department": "Canadian Heritage",
+            "total": 19800,
+            "count": 1
+          },
+          {
+            "department": "CMHC",
+            "total": 1025,
+            "count": 1
+          }
+        ],
+        "byProgram": [
+          {
+            "program": "Band Support",
+            "total": 185440,
+            "count": 2
+          },
+          {
+            "program": "Indian Government Support - Band support funding",
+            "total": 121780,
+            "count": 1
+          },
+          {
+            "program": "Social Support Services - Basic needs",
+            "total": 111447,
+            "count": 1
+          },
+          {
+            "program": "Basic Needs",
+            "total": 107337,
+            "count": 1
+          },
+          {
+            "program": "Family Services",
+            "total": 97978,
+            "count": 1
+          },
+          {
+            "program": "Post-Secondary Education",
+            "total": 76554,
+            "count": 2
+          },
+          {
+            "program": "Social Development - Basic Needs",
+            "total": 74548,
+            "count": 1
+          },
+          {
+            "program": "Operations and Maintenance",
+            "total": 66649,
+            "count": 1
+          },
+          {
+            "program": "Post-secondary Education",
+            "total": 53135,
+            "count": 1
+          },
+          {
+            "program": "New On-Reserve Housing Approach (Capital Fund)",
+            "total": 45000,
+            "count": 1
+          },
+          {
+            "program": "Guardian Financial Assistance",
+            "total": 29174,
+            "count": 1
+          },
+          {
+            "program": "Capacity Development",
+            "total": 28000,
+            "count": 1
+          },
+          {
+            "program": "Indian Government Support - IMD training and development",
+            "total": 25000,
+            "count": 1
+          },
+          {
+            "program": "Social Support Services - Guardian financial assistance",
+            "total": 21251,
+            "count": 1
+          },
+          {
+            "program": "Canadian Heritage",
+            "total": 19800,
+            "count": 1
+          },
+          {
+            "program": "Social Support Services (continued) - Service delivery",
+            "total": 19721,
+            "count": 1
+          },
+          {
+            "program": "Service Delivery - General",
+            "total": 18220,
+            "count": 1
+          },
+          {
+            "program": "Social Development - Service Delivery",
+            "total": 17614,
+            "count": 1
+          },
+          {
+            "program": "Capital - Housing Renovations 2005/2006",
+            "total": 17303,
+            "count": 1
+          },
+          {
+            "program": "Social Development - National Child Benefit",
+            "total": 14420,
+            "count": 1
+          },
+          {
+            "program": "National Child Benefit Reinvestment",
+            "total": 14180,
+            "count": 1
+          },
+          {
+            "program": "Social Support Services (continued) - National child benefit reinvestment",
+            "total": 14079,
+            "count": 1
+          },
+          {
+            "program": "Economic Development - CEDO planning and development",
+            "total": 13718,
+            "count": 1
+          },
+          {
+            "program": "In-Home Care",
+            "total": 8819,
+            "count": 1
+          },
+          {
+            "program": "Social Support Services (continued) - In-home care",
+            "total": 8546,
+            "count": 1
+          },
+          {
+            "program": "Social Development - In-Home Care",
+            "total": 7642,
+            "count": 1
+          },
+          {
+            "program": "Economic Development",
+            "total": 6939,
+            "count": 1
+          },
+          {
+            "program": "Social Development - Guardian Financial Assistance",
+            "total": 6374,
+            "count": 1
+          },
+          {
+            "program": "Social Development - Training and Education Support Initiative",
+            "total": 5864,
+            "count": 1
+          },
+          {
+            "program": "Operations and Maintenance - Sanitation Systems",
+            "total": 5452,
+            "count": 1
+          },
+          {
+            "program": "Community Infrastructure - Wastewater systems",
+            "total": 5212,
+            "count": 1
+          },
+          {
+            "program": "Community Infrastructure - Roads and bridges",
+            "total": 5101,
+            "count": 1
+          },
+          {
+            "program": "Social Development - Family Violence",
+            "total": 4190,
+            "count": 1
+          },
+          {
+            "program": "Social Support Services (continued) - Prevention projects",
+            "total": 4190,
+            "count": 1
+          },
+          {
+            "program": "Family Violence - Prevention Projects",
+            "total": 4190,
+            "count": 1
+          },
+          {
+            "program": "Operations and Maintenance - Roads and Bridges",
+            "total": 3634,
+            "count": 1
+          },
+          {
+            "program": "Special Needs",
+            "total": 3498,
+            "count": 1
+          },
+          {
+            "program": "Social Support Services - Special needs",
+            "total": 3322,
+            "count": 1
+          },
+          {
+            "program": "Social Development - Special Needs",
+            "total": 3250,
+            "count": 1
+          },
+          {
+            "program": "Community Infrastructure - Municipal services",
+            "total": 3245,
+            "count": 1
+          },
+          {
+            "program": "Economic Development - CEDO Planning and Operations",
+            "total": 3141,
+            "count": 1
+          },
+          {
+            "program": "Training Education Support Initiative - Social Assistance Employment and Training",
+            "total": 2622,
+            "count": 1
+          },
+          {
+            "program": "Other - Employment and training",
+            "total": 2530,
+            "count": 1
+          },
+          {
+            "program": "Indian Registry Administration",
+            "total": 2213,
+            "count": 2
+          },
+          {
+            "program": "Elementary and Secondary Education - Ancillary Services",
+            "total": 1980,
+            "count": 2
+          },
+          {
+            "program": "Service Delivery - In-Home Care",
+            "total": 1556,
+            "count": 1
+          },
+          {
+            "program": "Elementary and Secondary Education - Comprehensive Education Support Services",
+            "total": 1363,
+            "count": 2
+          },
+          {
+            "program": "Social Development - Service Delivery (2)",
+            "total": 1145,
+            "count": 1
+          },
+          {
+            "program": "Elementary/Secondary Education - Comprehensive education support services - Guidance and counselling",
+            "total": 1100,
+            "count": 1
+          },
+          {
+            "program": "Section 95 Social Housing Program",
+            "total": 1025,
+            "count": 1
+          },
+          {
+            "program": "Elementary and Secondary Education - Guidance and Counselling",
+            "total": 938,
+            "count": 1
+          },
+          {
+            "program": "Operations and Maintenance - Municipal Services",
+            "total": 810,
+            "count": 1
+          },
+          {
+            "program": "Elementary/Secondary Education - Comprehensive education support services - Guidance and counselling (additional)",
+            "total": 804,
+            "count": 1
+          },
+          {
+            "program": "Capital - Retro Fit of Community Building",
+            "total": 663,
+            "count": 1
+          },
+          {
+            "program": "Community Infrastructure - Training - Fire Protection",
+            "total": 600,
+            "count": 1
+          },
+          {
+            "program": "Operations and Maintenance - Training Fire Protection",
+            "total": 540,
+            "count": 1
+          },
+          {
+            "program": "Elementary/Secondary Education - Comprehensive education support services - Ancillary services",
+            "total": 385,
+            "count": 1
+          },
+          {
+            "program": "Elementary and Secondary Education - Financial Assistance",
+            "total": 330,
+            "count": 1
+          }
+        ]
+      },
+      "federal": {
+        "recipientNameSearched": "Skin Tyee",
+        "totalRecords": 0,
+        "records": [],
+        "byYear": [],
+        "byDepartment": []
+      },
+      "comparison": {
+        "byYear": [
+          {
+            "fiscalYear": "2003-2004",
+            "pdfTotal": 402229
+          },
+          {
+            "fiscalYear": "2005-2006",
+            "pdfTotal": 535122
+          },
+          {
+            "fiscalYear": "2006-2007",
+            "pdfTotal": 368210
+          }
+        ]
+      }
+    },
+    "fnfta": {
+      "searchUrl": "https://www.sac-isc.gc.ca/eng/1322056355024/1571080676226"
+    },
+    "geo": {
+      "features": [
+        {
+          "name": "SKINS LAKE 15",
+          "adminAreaId": "07465",
+          "rings": [
+            [
+              [
+                -125.91232647122344,
+                53.8018602847509
+              ],
+              [
+                -125.92453897366616,
+                53.801867182807435
+              ],
+              [
+                -125.9286968744335,
+                53.80186928230204
+              ],
+              [
+                -125.92869007163188,
+                53.79737418197556
+              ],
+              [
+                -125.93663137455556,
+                53.79737788120043
+              ],
+              [
+                -125.93663517195834,
+                53.7937492806047
+              ],
+              [
+                -125.9366389714938,
+                53.790143780687615
+              ],
+              [
+                -125.93289607087434,
+                53.7901432812135
+              ],
+              [
+                -125.92443026918465,
+                53.79014178203829
+              ],
+              [
+                -125.91211026697691,
+                53.79013848441293
+              ],
+              [
+                -125.91219356853061,
+                53.79465608415035
+              ],
+              [
+                -125.91224367064234,
+                53.79737098449601
+              ],
+              [
+                -125.91232647122344,
+                53.8018602847509
+              ]
+            ]
+          ],
+          "centroid": [
+            -125.9238737097227,
+            53.7960425211839
+          ],
+          "bbox": [
+            -125.9366389714938,
+            53.79013848441293,
+            -125.91211026697691,
+            53.80186928230204
+          ]
+        },
+        {
+          "name": "SKINS LAKE 16A",
+          "adminAreaId": "07466",
+          "rings": [
+            [
+              [
+                -125.87341554099767,
+                54.001809594438626
+              ],
+              [
+                -125.885685843569,
+                54.001814692128235
+              ],
+              [
+                -125.88554264092559,
+                53.9946949925617
+              ],
+              [
+                -125.88187573975073,
+                53.99469139275939
+              ],
+              [
+                -125.88171584031679,
+                53.99469119324213
+              ],
+              [
+                -125.88163013987014,
+                53.99469109313843
+              ],
+              [
+                -125.87551563892895,
+                53.994684693490136
+              ],
+              [
+                -125.87327853880292,
+                53.99468229439299
+              ],
+              [
+                -125.87341554099767,
+                54.001809594438626
+              ]
+            ]
+          ],
+          "centroid": [
+            -125.87911949601772,
+            53.997063282287804
+          ],
+          "bbox": [
+            -125.885685843569,
+            53.99468229439299,
+            -125.87327853880292,
+            54.001814692128235
+          ]
+        },
+        {
+          "name": "SKINS LAKE 16B",
+          "adminAreaId": "07467",
+          "rings": [
+            [
+              [
+                -125.64482538499222,
+                53.9480441233901
+              ],
+              [
+                -125.6448111864994,
+                53.951665623192476
+              ],
+              [
+                -125.65707198887922,
+                53.951674022089094
+              ],
+              [
+                -125.65710088793169,
+                53.94807162161064
+              ],
+              [
+                -125.6571205856405,
+                53.94493422148732
+              ],
+              [
+                -125.65712308607735,
+                53.94462212117322
+              ],
+              [
+                -125.65712458589135,
+                53.944445521735766
+              ],
+              [
+                -125.65662348617167,
+                53.94444392137983
+              ],
+              [
+                -125.65344088558702,
+                53.94443412160469
+              ],
+              [
+                -125.6448396837123,
+                53.94440502325982
+              ],
+              [
+                -125.64482538499222,
+                53.9480441233901
+              ]
+            ]
+          ],
+          "centroid": [
+            -125.65226428603408,
+            53.946798585846636
+          ],
+          "bbox": [
+            -125.65712458589135,
+            53.94440502325982,
+            -125.6448111864994,
+            53.951674022089094
+          ]
+        },
+        {
+          "name": "TATLA'T EAST 2",
+          "adminAreaId": "08375",
+          "rings": [
+            [
+              [
+                -126.48423192901092,
+                53.98495111294311
+              ],
+              [
+                -126.48422702950282,
+                53.98584181310868
+              ],
+              [
+                -126.48420203179442,
+                53.990353312811926
+              ],
+              [
+                -126.49032873181382,
+                53.99036411162433
+              ],
+              [
+                -126.49350913312657,
+                53.99036961140399
+              ],
+              [
+                -126.49353713000818,
+                53.98468731159537
+              ],
+              [
+                -126.49354843028915,
+                53.98237981147959
+              ],
+              [
+                -126.49341982916862,
+                53.98237661152227
+              ],
+              [
+                -126.49332612923114,
+                53.98237751102909
+              ],
+              [
+                -126.4930028286601,
+                53.982353111578334
+              ],
+              [
+                -126.49283862995928,
+                53.98233761162293
+              ],
+              [
+                -126.49226112955841,
+                53.98231381135972
+              ],
+              [
+                -126.49192422885311,
+                53.98228611136363
+              ],
+              [
+                -126.49125342865909,
+                53.98221341148928
+              ],
+              [
+                -126.49091832967275,
+                53.98220851191576
+              ],
+              [
+                -126.49064822869782,
+                53.982198312031215
+              ],
+              [
+                -126.49048212880793,
+                53.98219781188514
+              ],
+              [
+                -126.49025242841162,
+                53.98219101171552
+              ],
+              [
+                -126.49006832929385,
+                53.98217321151896
+              ],
+              [
+                -126.48960542913541,
+                53.98213561209508
+              ],
+              [
+                -126.48922072791626,
+                53.98209811181381
+              ],
+              [
+                -126.48911712865075,
+                53.982092512272814
+              ],
+              [
+                -126.48882142811527,
+                53.98205951194068
+              ],
+              [
+                -126.48816872800637,
+                53.98196941216504
+              ],
+              [
+                -126.48771882826335,
+                53.981917712026274
+              ],
+              [
+                -126.48706022872139,
+                53.98185581204618
+              ],
+              [
+                -126.48691612735794,
+                53.98185761207311
+              ],
+              [
+                -126.4861970284929,
+                53.9818997127058
+              ],
+              [
+                -126.48580832841981,
+                53.98194121194829
+              ],
+              [
+                -126.48495572870003,
+                53.98200161229173
+              ],
+              [
+                -126.48480132841242,
+                53.981999212050056
+              ],
+              [
+                -126.48466362794285,
+                53.98198491247116
+              ],
+              [
+                -126.48452772767166,
+                53.98196411237423
+              ],
+              [
+                -126.48434712769897,
+                53.98194311238557
+              ],
+              [
+                -126.48424852737074,
+                53.98193631243149
+              ],
+              [
+                -126.48424852749633,
+                53.9819466127524
+              ],
+              [
+                -126.48423192901092,
+                53.98495111294311
+              ]
+            ]
+          ],
+          "centroid": [
+            -126.48861185329473,
+            53.98310076607529
+          ],
+          "bbox": [
+            -126.49354843028915,
+            53.98185581204618,
+            -126.48420203179442,
+            53.99036961140399
+          ]
+        },
+        {
+          "name": "TYEE UNCHA LAKE INDIAN RESERVE",
+          "adminAreaId": "10212",
+          "rings": [
+            [
+              [
+                -125.6719011836853,
+                53.93309751933247
+              ],
+              [
+                -125.67190248413542,
+                53.93318551876079
+              ],
+              [
+                -125.67193918347536,
+                53.9332468196315
+              ],
+              [
+                -125.67203188355494,
+                53.933389319753665
+              ],
+              [
+                -125.67204178351649,
+                53.933464619279306
+              ],
+              [
+                -125.67209348401653,
+                53.93351901906799
+              ],
+              [
+                -125.67204388465488,
+                53.933606419228404
+              ],
+              [
+                -125.67193208353554,
+                53.933625919109566
+              ],
+              [
+                -125.6718520840084,
+                53.93366521954718
+              ],
+              [
+                -125.6717937835842,
+                53.933735119225666
+              ],
+              [
+                -125.67173118336856,
+                53.933784819212796
+              ],
+              [
+                -125.67171348416932,
+                53.933854219670486
+              ],
+              [
+                -125.67167158488719,
+                53.93391841939136
+              ],
+              [
+                -125.67171058469708,
+                53.93398591928644
+              ],
+              [
+                -125.67175278466179,
+                53.934013419102854
+              ],
+              [
+                -125.67185128488838,
+                53.9340422194028
+              ],
+              [
+                -125.67192848469193,
+                53.934115918868855
+              ],
+              [
+                -125.67203198446674,
+                53.93414521894594
+              ],
+              [
+                -125.67205188440464,
+                53.934253719486
+              ],
+              [
+                -125.67216318381782,
+                53.93434141917717
+              ],
+              [
+                -125.67215708459983,
+                53.93436501948732
+              ],
+              [
+                -125.67215708521596,
+                53.93442091941643
+              ],
+              [
+                -125.67224558483507,
+                53.93443991883148
+              ],
+              [
+                -125.67224988412978,
+                53.9344623194253
+              ],
+              [
+                -125.67223998385259,
+                53.93447441934438
+              ],
+              [
+                -125.67221718449085,
+                53.93448071928088
+              ],
+              [
+                -125.67230788473617,
+                53.93448761898156
+              ],
+              [
+                -125.67238488507682,
+                53.934579419029895
+              ],
+              [
+                -125.67250018532434,
+                53.93466491945342
+              ],
+              [
+                -125.67248718377925,
+                53.934682118991795
+              ],
+              [
+                -125.67319648464505,
+                53.934842919251906
+              ],
+              [
+                -125.67493988537765,
+                53.935501918925326
+              ],
+              [
+                -125.67582788587644,
+                53.93605701877393
+              ],
+              [
+                -125.67626008632092,
+                53.93639651842652
+              ],
+              [
+                -125.676264784894,
+                53.934735819337874
+              ],
+              [
+                -125.67626548580031,
+                53.93447801904516
+              ],
+              [
+                -125.67606808413383,
+                53.93443991855497
+              ],
+              [
+                -125.67582638525718,
+                53.93433241873318
+              ],
+              [
+                -125.67553548490787,
+                53.93425081863799
+              ],
+              [
+                -125.67526408445487,
+                53.934170019391594
+              ],
+              [
+                -125.67498888513391,
+                53.93408321896452
+              ],
+              [
+                -125.67470898411976,
+                53.934007918850604
+              ],
+              [
+                -125.67443928414382,
+                53.93392681912801
+              ],
+              [
+                -125.67391988438227,
+                53.9337004185719
+              ],
+              [
+                -125.67369678414553,
+                53.933581319636666
+              ],
+              [
+                -125.67345698454893,
+                53.93348481893511
+              ],
+              [
+                -125.67295568377197,
+                53.93329651877139
+              ],
+              [
+                -125.67267638461564,
+                53.933195518909976
+              ],
+              [
+                -125.67245918384278,
+                53.93312281925539
+              ],
+              [
+                -125.67218178341771,
+                53.9330633190056
+              ],
+              [
+                -125.6719011836853,
+                53.93309751933247
+              ]
+            ],
+            [
+              [
+                -125.66551498390726,
+                53.93742391998289
+              ],
+              [
+                -125.67013728537792,
+                53.93742901981441
+              ],
+              [
+                -125.67609648710037,
+                53.937435218903865
+              ],
+              [
+                -125.67625658593713,
+                53.93743541942249
+              ],
+              [
+                -125.67625908613309,
+                53.93669691925925
+              ],
+              [
+                -125.6755984861652,
+                53.93617691852162
+              ],
+              [
+                -125.67474298469946,
+                53.9356421187007
+              ],
+              [
+                -125.67305748415848,
+                53.9350050189325
+              ],
+              [
+                -125.67240328490448,
+                53.93485651920665
+              ],
+              [
+                -125.67238398507412,
+                53.934930619138875
+              ],
+              [
+                -125.67242928498122,
+                53.93496701912153
+              ],
+              [
+                -125.67250728547637,
+                53.93505661918615
+              ],
+              [
+                -125.67243298490936,
+                53.93510121902638
+              ],
+              [
+                -125.67236358456192,
+                53.93510071966833
+              ],
+              [
+                -125.67236708470773,
+                53.935181219798885
+              ],
+              [
+                -125.6723329845323,
+                53.935197919442615
+              ],
+              [
+                -125.67229498527172,
+                53.93524521919147
+              ],
+              [
+                -125.67225258442772,
+                53.935318419244474
+              ],
+              [
+                -125.67224818520717,
+                53.93535331963772
+              ],
+              [
+                -125.67225408497335,
+                53.935427919532984
+              ],
+              [
+                -125.67214908472997,
+                53.93543441908899
+              ],
+              [
+                -125.67201778461259,
+                53.935431719340045
+              ],
+              [
+                -125.67192638528046,
+                53.9354666193202
+              ],
+              [
+                -125.6718202845104,
+                53.93552521996516
+              ],
+              [
+                -125.67174278444148,
+                53.93554611991909
+              ],
+              [
+                -125.67157468485739,
+                53.93554401888245
+              ],
+              [
+                -125.67155068430577,
+                53.935517819045145
+              ],
+              [
+                -125.67149738483562,
+                53.93550821983638
+              ],
+              [
+                -125.67137638403787,
+                53.93544801952563
+              ],
+              [
+                -125.67126078507327,
+                53.93544861979959
+              ],
+              [
+                -125.67120008522731,
+                53.93546801963678
+              ],
+              [
+                -125.67110318548586,
+                53.93546381952324
+              ],
+              [
+                -125.67092988439036,
+                53.935497019986094
+              ],
+              [
+                -125.67087428498141,
+                53.93552861950966
+              ],
+              [
+                -125.67084638474674,
+                53.93559741899051
+              ],
+              [
+                -125.6707998848342,
+                53.93559761966187
+              ],
+              [
+                -125.67075948480814,
+                53.935623019846325
+              ],
+              [
+                -125.6707563855984,
+                53.93565551960056
+              ],
+              [
+                -125.67076058433199,
+                53.935724219303964
+              ],
+              [
+                -125.67074008453318,
+                53.935744219614854
+              ],
+              [
+                -125.67075638447993,
+                53.9357700198912
+              ],
+              [
+                -125.67070718557098,
+                53.93581961975875
+              ],
+              [
+                -125.67067718429635,
+                53.93585401976106
+              ],
+              [
+                -125.6706053844387,
+                53.93584941943165
+              ],
+              [
+                -125.67059308473448,
+                53.9358597191676
+              ],
+              [
+                -125.67060208512129,
+                53.935878619618414
+              ],
+              [
+                -125.6705501839939,
+                53.93589791952284
+              ],
+              [
+                -125.67046128455218,
+                53.93594811925099
+              ],
+              [
+                -125.67037038520868,
+                53.935953419878345
+              ],
+              [
+                -125.6703808845048,
+                53.93605751930877
+              ],
+              [
+                -125.6701956844504,
+                53.93611991936733
+              ],
+              [
+                -125.67020268494983,
+                53.93614721974259
+              ],
+              [
+                -125.67011918499705,
+                53.93621561934463
+              ],
+              [
+                -125.6700572853388,
+                53.936219519927285
+              ],
+              [
+                -125.66991448527247,
+                53.936182619750255
+              ],
+              [
+                -125.6698746847457,
+                53.936215219536784
+              ],
+              [
+                -125.66983818518466,
+                53.93620311919969
+              ],
+              [
+                -125.66974058405104,
+                53.93625771936394
+              ],
+              [
+                -125.66971088425946,
+                53.936286219363694
+              ],
+              [
+                -125.66968848530975,
+                53.936290019788906
+              ],
+              [
+                -125.6696576841725,
+                53.93630571973161
+              ],
+              [
+                -125.66966448453363,
+                53.936324919249316
+              ],
+              [
+                -125.66952568517236,
+                53.936373119532576
+              ],
+              [
+                -125.66946958477872,
+                53.93633912014806
+              ],
+              [
+                -125.6693291845033,
+                53.93635262024724
+              ],
+              [
+                -125.66915608527755,
+                53.93632471958451
+              ],
+              [
+                -125.66902368457144,
+                53.936366719965605
+              ],
+              [
+                -125.66893658426154,
+                53.93633751939727
+              ],
+              [
+                -125.66890258458275,
+                53.936349319977296
+              ],
+              [
+                -125.66883268466172,
+                53.93636202025107
+              ],
+              [
+                -125.66882828483124,
+                53.93641561972474
+              ],
+              [
+                -125.66885748489297,
+                53.93641761995875
+              ],
+              [
+                -125.66878978501224,
+                53.9365127195953
+              ],
+              [
+                -125.66866798475245,
+                53.93648332001568
+              ],
+              [
+                -125.66860068426558,
+                53.93653001965448
+              ],
+              [
+                -125.66862808418769,
+                53.93657841968774
+              ],
+              [
+                -125.66836648444975,
+                53.93664242020482
+              ],
+              [
+                -125.66836938440422,
+                53.93667771951789
+              ],
+              [
+                -125.66831258478216,
+                53.93668261971515
+              ],
+              [
+                -125.66825138473354,
+                53.93673141992357
+              ],
+              [
+                -125.66819868419155,
+                53.93670271955594
+              ],
+              [
+                -125.6681242846185,
+                53.93668241972651
+              ],
+              [
+                -125.66800958419185,
+                53.93670172012153
+              ],
+              [
+                -125.6678447841739,
+                53.93673092013792
+              ],
+              [
+                -125.66781508514885,
+                53.93678142015672
+              ],
+              [
+                -125.66755438405251,
+                53.93684222026717
+              ],
+              [
+                -125.66749698417262,
+                53.93687252040027
+              ],
+              [
+                -125.6674502848714,
+                53.93685651967856
+              ],
+              [
+                -125.66735508444323,
+                53.93685421992149
+              ],
+              [
+                -125.66722108484605,
+                53.936857019870914
+              ],
+              [
+                -125.66694228461152,
+                53.93690891991044
+              ],
+              [
+                -125.66686498414823,
+                53.93692872027263
+              ],
+              [
+                -125.66682878466024,
+                53.93694472013688
+              ],
+              [
+                -125.66658348410144,
+                53.93707812048329
+              ],
+              [
+                -125.66641718435004,
+                53.93706572035929
+              ],
+              [
+                -125.66635358409816,
+                53.93704962040846
+              ],
+              [
+                -125.66628118390041,
+                53.937080520158545
+              ],
+              [
+                -125.6662683850659,
+                53.93713682016757
+              ],
+              [
+                -125.66618508407984,
+                53.93716302025345
+              ],
+              [
+                -125.66616088446014,
+                53.93718441992029
+              ],
+              [
+                -125.66615168534017,
+                53.93720332030386
+              ],
+              [
+                -125.66601238511716,
+                53.937224120021064
+              ],
+              [
+                -125.66604498507557,
+                53.93726172011909
+              ],
+              [
+                -125.66587598376263,
+                53.93734292008573
+              ],
+              [
+                -125.66577648529342,
+                53.93729722020721
+              ],
+              [
+                -125.66570248511763,
+                53.937355920483924
+              ],
+              [
+                -125.6656049850126,
+                53.937345920203185
+              ],
+              [
+                -125.66551498390726,
+                53.93742391998289
+              ]
+            ]
+          ],
+          "centroid": [
+            -125.67301801775953,
+            53.93407477992478
+          ],
+          "bbox": [
+            -125.67626548580031,
+            53.9330633190056,
+            -125.67167158488719,
+            53.93639651842652
+          ]
+        },
+        {
+          "name": "UNCHA LAKE 13A",
+          "adminAreaId": "07463",
+          "rings": [
+            [
+              [
+                -125.67052858306037,
+                53.933556619364836
+              ],
+              [
+                -125.67236488399625,
+                53.934654218972156
+              ],
+              [
+                -125.67245018380254,
+                53.93467351923742
+              ],
+              [
+                -125.67245858434201,
+                53.93466041983946
+              ],
+              [
+                -125.67235218423907,
+                53.93459221906259
+              ],
+              [
+                -125.67229908449738,
+                53.93449771958317
+              ],
+              [
+                -125.67219818492858,
+                53.93448831942668
+              ],
+              [
+                -125.67220608397727,
+                53.93447001904004
+              ],
+              [
+                -125.67223418404942,
+                53.93446121909807
+              ],
+              [
+                -125.67222268493892,
+                53.934449819414155
+              ],
+              [
+                -125.67217848456364,
+                53.934447619349825
+              ],
+              [
+                -125.67213358371217,
+                53.93442441912539
+              ],
+              [
+                -125.67213878451409,
+                53.93434691966829
+              ],
+              [
+                -125.67214368433537,
+                53.93433361930519
+              ],
+              [
+                -125.67203378504503,
+                53.93425021945313
+              ],
+              [
+                -125.67201728405104,
+                53.93415561946395
+              ],
+              [
+                -125.6719237845255,
+                53.93412051963551
+              ],
+              [
+                -125.67183538418101,
+                53.93405171968102
+              ],
+              [
+                -125.67174328390671,
+                53.93402261967598
+              ],
+              [
+                -125.67169818366176,
+                53.933990219626764
+              ],
+              [
+                -125.67165508490453,
+                53.93391971940636
+              ],
+              [
+                -125.67169728432546,
+                53.93385011954839
+              ],
+              [
+                -125.67171658455926,
+                53.93378141925397
+              ],
+              [
+                -125.67178278379856,
+                53.93373101891787
+              ],
+              [
+                -125.67183778369608,
+                53.93366221909769
+              ],
+              [
+                -125.6719235843893,
+                53.933618418993746
+              ],
+              [
+                -125.67203798450227,
+                53.93360121897962
+              ],
+              [
+                -125.67207848448159,
+                53.9335209195096
+              ],
+              [
+                -125.67203008465424,
+                53.93346801942783
+              ],
+              [
+                -125.67202018374513,
+                53.93339191928861
+              ],
+              [
+                -125.67192558463233,
+                53.93324951921214
+              ],
+              [
+                -125.67188918305384,
+                53.933187319275575
+              ],
+              [
+                -125.67188668350384,
+                53.93309761941137
+              ],
+              [
+                -125.67185178360032,
+                53.93307571964922
+              ],
+              [
+                -125.6715010844309,
+                53.93302281964859
+              ],
+              [
+                -125.67118848345541,
+                53.933000219002935
+              ],
+              [
+                -125.67090598428076,
+                53.93301791940288
+              ],
+              [
+                -125.67061408297808,
+                53.93296591923613
+              ],
+              [
+                -125.67032008384551,
+                53.9329517191347
+              ],
+              [
+                -125.67002158322724,
+                53.93289421916572
+              ],
+              [
+                -125.66974648353515,
+                53.93289241969004
+              ],
+              [
+                -125.66948358266897,
+                53.93286601937647
+              ],
+              [
+                -125.66890758289048,
+                53.932771119446706
+              ],
+              [
+                -125.6687024835831,
+                53.93267762003966
+              ],
+              [
+                -125.66822248242187,
+                53.93248511993414
+              ],
+              [
+                -125.66854608295296,
+                53.93275311945807
+              ],
+              [
+                -125.66890358318055,
+                53.93294482024299
+              ],
+              [
+                -125.67052858306037,
+                53.933556619364836
+              ]
+            ],
+            [
+              [
+                -125.66401618432265,
+                53.93742232023709
+              ],
+              [
+                -125.66544478478845,
+                53.93742382023951
+              ],
+              [
+                -125.66558398480306,
+                53.93732192065705
+              ],
+              [
+                -125.66570608377712,
+                53.93733662000032
+              ],
+              [
+                -125.66576658488863,
+                53.93728002024274
+              ],
+              [
+                -125.6658643850193,
+                53.93731001975952
+              ],
+              [
+                -125.66602018466742,
+                53.93725702049051
+              ],
+              [
+                -125.66598138409279,
+                53.93721222023821
+              ],
+              [
+                -125.66608428544914,
+                53.937171120368305
+              ],
+              [
+                -125.66616038511177,
+                53.93715822029109
+              ],
+              [
+                -125.66623408492225,
+                53.937122920144354
+              ],
+              [
+                -125.66626188386932,
+                53.9370701198489
+              ],
+              [
+                -125.66636528487734,
+                53.93701982051988
+              ],
+              [
+                -125.66656878449426,
+                53.93706132016061
+              ],
+              [
+                -125.6668444847548,
+                53.93691711955065
+              ],
+              [
+                -125.6669101845683,
+                53.93686012015529
+              ],
+              [
+                -125.6669359838162,
+                53.936866719970006
+              ],
+              [
+                -125.66720438405585,
+                53.936810220368024
+              ],
+              [
+                -125.66735708376764,
+                53.936836819966054
+              ],
+              [
+                -125.66746438436587,
+                53.93683791985414
+              ],
+              [
+                -125.66750198516267,
+                53.93685171972205
+              ],
+              [
+                -125.66753798460874,
+                53.93682921956791
+              ],
+              [
+                -125.66779148472224,
+                53.93676451949627
+              ],
+              [
+                -125.66781738419964,
+                53.93671732026901
+              ],
+              [
+                -125.66798018514733,
+                53.936687820242206
+              ],
+              [
+                -125.66813718468863,
+                53.936668520270935
+              ],
+              [
+                -125.66821878551077,
+                53.9366926199827
+              ],
+              [
+                -125.66824728416236,
+                53.93671821962607
+              ],
+              [
+                -125.66829708441819,
+                53.936664919509575
+              ],
+              [
+                -125.66833548392445,
+                53.93666641989414
+              ],
+              [
+                -125.66834068455141,
+                53.93663041976912
+              ],
+              [
+                -125.66861258506859,
+                53.936571019436286
+              ],
+              [
+                -125.66857658389351,
+                53.936525319919596
+              ],
+              [
+                -125.66865798487481,
+                53.936464420092975
+              ],
+              [
+                -125.66877868459599,
+                53.936494820239815
+              ],
+              [
+                -125.6688318849742,
+                53.93642711922471
+              ],
+              [
+                -125.66879888419382,
+                53.936420219503006
+              ],
+              [
+                -125.66881298429865,
+                53.93635671939635
+              ],
+              [
+                -125.66889678397281,
+                53.93633621999337
+              ],
+              [
+                -125.66893328434172,
+                53.93631942002045
+              ],
+              [
+                -125.66902468475472,
+                53.936340519513934
+              ],
+              [
+                -125.66914768418943,
+                53.93630932009499
+              ],
+              [
+                -125.66933548424663,
+                53.93633491957871
+              ],
+              [
+                -125.66948148440983,
+                53.93632331936511
+              ],
+              [
+                -125.66952168495133,
+                53.93635331913999
+              ],
+              [
+                -125.66962178462138,
+                53.93632892003975
+              ],
+              [
+                -125.66961048441449,
+                53.93631621968863
+              ],
+              [
+                -125.66964838421302,
+                53.93628731999471
+              ],
+              [
+                -125.66968488441589,
+                53.93627801952616
+              ],
+              [
+                -125.66971948490877,
+                53.936255119346015
+              ],
+              [
+                -125.6698459848371,
+                53.936190619250084
+              ],
+              [
+                -125.66986868523337,
+                53.93619471924296
+              ],
+              [
+                -125.66992718448078,
+                53.936171519581656
+              ],
+              [
+                -125.67008758516306,
+                53.936203119087985
+              ],
+              [
+                -125.67010238543054,
+                53.93619851939293
+              ],
+              [
+                -125.67018848497192,
+                53.93614441973928
+              ],
+              [
+                -125.67017458482135,
+                53.9361153199185
+              ],
+              [
+                -125.6703663850109,
+                53.9360468192696
+              ],
+              [
+                -125.67035708428183,
+                53.935942219812475
+              ],
+              [
+                -125.67045448570794,
+                53.935939219689445
+              ],
+              [
+                -125.67052928457603,
+                53.9358924192923
+              ],
+              [
+                -125.6705789854252,
+                53.93587341961626
+              ],
+              [
+                -125.67057358521359,
+                53.935863119179636
+              ],
+              [
+                -125.67058738488622,
+                53.935837619296144
+              ],
+              [
+                -125.67064638496463,
+                53.93584081894778
+              ],
+              [
+                -125.67072128457629,
+                53.935767820067376
+              ],
+              [
+                -125.6707162845497,
+                53.93573981935957
+              ],
+              [
+                -125.6707486848412,
+                53.93572731924298
+              ],
+              [
+                -125.67074798369589,
+                53.93565351932766
+              ],
+              [
+                -125.67074198493852,
+                53.93561781903634
+              ],
+              [
+                -125.67078628453105,
+                53.93559371926043
+              ],
+              [
+                -125.67083408535451,
+                53.93559391977976
+              ],
+              [
+                -125.67085808396456,
+                53.93552381951846
+              ],
+              [
+                -125.67091228380905,
+                53.935491719413264
+              ],
+              [
+                -125.67097768504831,
+                53.93544911953512
+              ],
+              [
+                -125.67109528422826,
+                53.93545171977479
+              ],
+              [
+                -125.67118918460068,
+                53.93545671946451
+              ],
+              [
+                -125.67125298482891,
+                53.93543651977331
+              ],
+              [
+                -125.67137118548467,
+                53.93541851945757
+              ],
+              [
+                -125.67151728445106,
+                53.935493319337
+              ],
+              [
+                -125.67157428527287,
+                53.935502319591286
+              ],
+              [
+                -125.6715792852596,
+                53.935529419544146
+              ],
+              [
+                -125.67173038524257,
+                53.93553051936709
+              ],
+              [
+                -125.6718037845564,
+                53.93551901984248
+              ],
+              [
+                -125.6718701848748,
+                53.93544521914981
+              ],
+              [
+                -125.6719202844711,
+                53.93545821954599
+              ],
+              [
+                -125.67200308469914,
+                53.935419519740165
+              ],
+              [
+                -125.67209138518801,
+                53.935406719093166
+              ],
+              [
+                -125.6721405850939,
+                53.93533131923612
+              ],
+              [
+                -125.67221258481672,
+                53.935286019333596
+              ],
+              [
+                -125.67227348561462,
+                53.93524551940122
+              ],
+              [
+                -125.67234708456873,
+                53.93518171967287
+              ],
+              [
+                -125.67233008401551,
+                53.93512181903824
+              ],
+              [
+                -125.6723493844902,
+                53.93509181886326
+              ],
+              [
+                -125.67241838534879,
+                53.93508791957476
+              ],
+              [
+                -125.67248878438448,
+                53.935063019115
+              ],
+              [
+                -125.67236398497468,
+                53.93496411950425
+              ],
+              [
+                -125.67230488396038,
+                53.934927418999656
+              ],
+              [
+                -125.67233068409402,
+                53.93491261912027
+              ],
+              [
+                -125.67236308468506,
+                53.9348474193883
+              ],
+              [
+                -125.67219328439485,
+                53.934808918932944
+              ],
+              [
+                -125.67033488313025,
+                53.93369801951798
+              ],
+              [
+                -125.6687168831079,
+                53.93308891961075
+              ],
+              [
+                -125.66831578377943,
+                53.932873819641614
+              ],
+              [
+                -125.66738538258753,
+                53.93210322003942
+              ],
+              [
+                -125.66736988183527,
+                53.93209101969877
+              ],
+              [
+                -125.6673534823421,
+                53.93207911959616
+              ],
+              [
+                -125.66733628346546,
+                53.932067619949244
+              ],
+              [
+                -125.66731818239487,
+                53.9320566195064
+              ],
+              [
+                -125.66729938371041,
+                53.93204602004134
+              ],
+              [
+                -125.66727978218883,
+                53.9320360199976
+              ],
+              [
+                -125.66725948233557,
+                53.932026420121716
+              ],
+              [
+                -125.66723858278957,
+                53.93201731982233
+              ],
+              [
+                -125.66721698289234,
+                53.932008820275094
+              ],
+              [
+                -125.66719478225976,
+                53.932000919575245
+              ],
+              [
+                -125.66717198336796,
+                53.93199352006891
+              ],
+              [
+                -125.66714878205363,
+                53.93198662002666
+              ],
+              [
+                -125.6671249824839,
+                53.93198042010636
+              ],
+              [
+                -125.6671008833058,
+                53.931974819830025
+              ],
+              [
+                -125.6670762824153,
+                53.93196981976928
+              ],
+              [
+                -125.66705138263204,
+                53.93196542016114
+              ],
+              [
+                -125.66702618291275,
+                53.931961720277044
+              ],
+              [
+                -125.66700078326122,
+                53.931958620173496
+              ],
+              [
+                -125.66697518230504,
+                53.931956120273824
+              ],
+              [
+                -125.66694938246064,
+                53.93195431981184
+              ],
+              [
+                -125.66692348307812,
+                53.93195312007673
+              ],
+              [
+                -125.66689748239637,
+                53.931952619531
+              ],
+              [
+                -125.66687158290581,
+                53.93195271956403
+              ],
+              [
+                -125.66684558283076,
+                53.931953519595524
+              ],
+              [
+                -125.66681978258205,
+                53.93195501961522
+              ],
+              [
+                -125.666793982469,
+                53.931957120499526
+              ],
+              [
+                -125.66632958204596,
+                53.932005920149514
+              ],
+              [
+                -125.66543238260086,
+                53.93197801972737
+              ],
+              [
+                -125.665398882267,
+                53.931976819954606
+              ],
+              [
+                -125.66536538253789,
+                53.93197502010983
+              ],
+              [
+                -125.66533198238255,
+                53.93197242059389
+              ],
+              [
+                -125.66529878284997,
+                53.93196922005182
+              ],
+              [
+                -125.66526588192656,
+                53.931965320198046
+              ],
+              [
+                -125.66523308266633,
+                53.93196081998851
+              ],
+              [
+                -125.66520058201856,
+                53.93195562046776
+              ],
+              [
+                -125.66516848273184,
+                53.931949819776904
+              ],
+              [
+                -125.66513668206076,
+                53.93194331977549
+              ],
+              [
+                -125.66510528210001,
+                53.93193621983716
+              ],
+              [
+                -125.66507428285072,
+                53.93192851996237
+              ],
+              [
+                -125.66504378190584,
+                53.931920219905074
+              ],
+              [
+                -125.66501378168509,
+                53.93191121997073
+              ],
+              [
+                -125.66498428290093,
+                53.931901719897965
+              ],
+              [
+                -125.66495538243464,
+                53.931891519702816
+              ],
+              [
+                -125.66492708171589,
+                53.931880819933085
+              ],
+              [
+                -125.66489938211625,
+                53.931869620165955
+              ],
+              [
+                -125.66487238155818,
+                53.93185782007492
+              ],
+              [
+                -125.66484598245081,
+                53.9318454199067
+              ],
+              [
+                -125.66482038245334,
+                53.93183252044524
+              ],
+              [
+                -125.6647955818892,
+                53.931819220539374
+              ],
+              [
+                -125.66477148173938,
+                53.9318053198885
+              ],
+              [
+                -125.664748282138,
+                53.93179102055232
+              ],
+              [
+                -125.66465768212579,
+                53.93173302066104
+              ],
+              [
+                -125.6646284818261,
+                53.931714819928125
+              ],
+              [
+                -125.66459858220576,
+                53.93169712065506
+              ],
+              [
+                -125.66456788176343,
+                53.93167982019311
+              ],
+              [
+                -125.6645364826539,
+                53.931663019957085
+              ],
+              [
+                -125.66450438174826,
+                53.931646619903205
+              ],
+              [
+                -125.66447158184356,
+                53.931630820154574
+              ],
+              [
+                -125.66443808151328,
+                53.93161542016333
+              ],
+              [
+                -125.66440398186224,
+                53.93160062061594
+              ],
+              [
+                -125.66436918178478,
+                53.93158622082455
+              ],
+              [
+                -125.66433388271807,
+                53.931572420383134
+              ],
+              [
+                -125.6642978815208,
+                53.931559120200575
+              ],
+              [
+                -125.6642613820498,
+                53.93154642017593
+              ],
+              [
+                -125.66422438254722,
+                53.931534219842185
+              ],
+              [
+                -125.6641867826792,
+                53.93152252029113
+              ],
+              [
+                -125.66414878212461,
+                53.93151142065069
+              ],
+              [
+                -125.66411028257403,
+                53.93150092035682
+              ],
+              [
+                -125.66407138233396,
+                53.93149101997251
+              ],
+              [
+                -125.66403198244123,
+                53.93148172016619
+              ],
+              [
+                -125.6640317819109,
+                53.931543020184044
+              ],
+              [
+                -125.66401618432265,
+                53.93742232023709
+              ]
+            ],
+            [
+              [
+                -125.66674558235083,
+                53.931778620176104
+              ],
+              [
+                -125.66677808198071,
+                53.93177592008203
+              ],
+              [
+                -125.66681068175231,
+                53.9317739198347
+              ],
+              [
+                -125.6668432827051,
+                53.93177262010526
+              ],
+              [
+                -125.66687608171942,
+                53.931771919893535
+              ],
+              [
+                -125.66690878328473,
+                53.93177201971935
+              ],
+              [
+                -125.66694158258164,
+                53.93177272015761
+              ],
+              [
+                -125.66697418298946,
+                53.93177412002935
+              ],
+              [
+                -125.66700678217418,
+                53.931776320114146
+              ],
+              [
+                -125.66703918279818,
+                53.931779119551855
+              ],
+              [
+                -125.6670713825138,
+                53.931782620079524
+              ],
+              [
+                -125.6671033823007,
+                53.931786720383975
+              ],
+              [
+                -125.66713508320309,
+                53.93179162006606
+              ],
+              [
+                -125.66716648312891,
+                53.931797119811364
+              ],
+              [
+                -125.66719748207545,
+                53.9318033195636
+              ],
+              [
+                -125.66722818213701,
+                53.931810119765416
+              ],
+              [
+                -125.66725838291325,
+                53.93181761941402
+              ],
+              [
+                -125.66728808270489,
+                53.931825720085136
+              ],
+              [
+                -125.66731738250004,
+                53.931834419451356
+              ],
+              [
+                -125.66734598267013,
+                53.931843720375475
+              ],
+              [
+                -125.66737408284209,
+                53.931853719939205
+              ],
+              [
+                -125.66740158267703,
+                53.93186422030921
+              ],
+              [
+                -125.66742838282528,
+                53.93187532019707
+              ],
+              [
+                -125.66745448223995,
+                53.93188691994595
+              ],
+              [
+                -125.66747988268665,
+                53.931899120023
+              ],
+              [
+                -125.6675045820774,
+                53.931911920043014
+              ],
+              [
+                -125.66752838241584,
+                53.9319251203798
+              ],
+              [
+                -125.6675514830699,
+                53.93193892023725
+              ],
+              [
+                -125.6675736825829,
+                53.931953120027
+              ],
+              [
+                -125.66759498272037,
+                53.93196782021619
+              ],
+              [
+                -125.66761538308738,
+                53.931982919915406
+              ],
+              [
+                -125.66763488231238,
+                53.93199841954865
+              ],
+              [
+                -125.66808708323174,
+                53.93237231956552
+              ],
+              [
+                -125.66802238374194,
+                53.93230211999564
+              ],
+              [
+                -125.66786678293002,
+                53.93214531976095
+              ],
+              [
+                -125.66747558275834,
+                53.93186661938239
+              ],
+              [
+                -125.66715088319312,
+                53.93174882001315
+              ],
+              [
+                -125.66674458299366,
+                53.93177201985487
+              ],
+              [
+                -125.66647708309299,
+                53.93174202017046
+              ],
+              [
+                -125.66606668178684,
+                53.93172141979116
+              ],
+              [
+                -125.66576248252727,
+                53.93171082054356
+              ],
+              [
+                -125.66545358295245,
+                53.93169451988569
+              ],
+              [
+                -125.66509788257588,
+                53.931600120333165
+              ],
+              [
+                -125.66485348201522,
+                53.93150052010048
+              ],
+              [
+                -125.66432388126948,
+                53.931352920112566
+              ],
+              [
+                -125.66417868185884,
+                53.93132171988724
+              ],
+              [
+                -125.66422058227599,
+                53.93133212021684
+              ],
+              [
+                -125.66426198199936,
+                53.931343220394524
+              ],
+              [
+                -125.66430308242309,
+                53.93135482011638
+              ],
+              [
+                -125.6643435824872,
+                53.93136692061856
+              ],
+              [
+                -125.66438368115521,
+                53.931379620220866
+              ],
+              [
+                -125.66442328188722,
+                53.931392819898
+              ],
+              [
+                -125.66446228193169,
+                53.93140662043811
+              ],
+              [
+                -125.66450078195382,
+                53.93142092066858
+              ],
+              [
+                -125.66453878195448,
+                53.93143572059002
+              ],
+              [
+                -125.66457608257653,
+                53.93145101992333
+              ],
+              [
+                -125.66461288219423,
+                53.93146692026218
+              ],
+              [
+                -125.66464898139458,
+                53.931483220356995
+              ],
+              [
+                -125.66468448298605,
+                53.931500020391375
+              ],
+              [
+                -125.66471928174172,
+                53.93151731987819
+              ],
+              [
+                -125.66475338288721,
+                53.93153502031807
+              ],
+              [
+                -125.66478688224794,
+                53.9315532199281
+              ],
+              [
+                -125.66481958190053,
+                53.93157192004796
+              ],
+              [
+                -125.66485148217554,
+                53.931591020597715
+              ],
+              [
+                -125.66488278236771,
+                53.93161051981554
+              ],
+              [
+                -125.66497308202845,
+                53.93166832057544
+              ],
+              [
+                -125.66499158197799,
+                53.93167962054524
+              ],
+              [
+                -125.66501088134926,
+                53.93169052007198
+              ],
+              [
+                -125.66503078221804,
+                53.93170102049466
+              ],
+              [
+                -125.66505148283852,
+                53.93171102039268
+              ],
+              [
+                -125.66507278214989,
+                53.93172061999096
+              ],
+              [
+                -125.66509468152898,
+                53.93172961993669
+              ],
+              [
+                -125.66511708233682,
+                53.93173811974751
+              ],
+              [
+                -125.6651401825614,
+                53.931746120125126
+              ],
+              [
+                -125.6651636827746,
+                53.93175351976125
+              ],
+              [
+                -125.66518768167248,
+                53.93176042010823
+              ],
+              [
+                -125.66521218199657,
+                53.93176682031883
+              ],
+              [
+                -125.66523698262694,
+                53.93177261964776
+              ],
+              [
+                -125.66526228298633,
+                53.931777820414815
+              ],
+              [
+                -125.66528778188139,
+                53.9317824197748
+              ],
+              [
+                -125.66531358251466,
+                53.93178641987061
+              ],
+              [
+                -125.66533968279624,
+                53.93178982031635
+              ],
+              [
+                -125.66536598199859,
+                53.93179272024429
+              ],
+              [
+                -125.66539248286712,
+                53.93179491987841
+              ],
+              [
+                -125.66541898296943,
+                53.931796519868115
+              ],
+              [
+                -125.66544568303519,
+                53.93179752006803
+              ],
+              [
+                -125.66631178267515,
+                53.93182062005316
+              ],
+              [
+                -125.66674558235083,
+                53.931778620176104
+              ]
+            ]
+          ],
+          "centroid": [
+            -125.67135596101433,
+            53.93367921731541
+          ],
+          "bbox": [
+            -125.67245858434201,
+            53.93248511993414,
+            -125.66822248242187,
+            53.93467351923742
+          ]
+        },
+        {
+          "name": "WESTERN ISLAND 14",
+          "adminAreaId": "07464",
+          "rings": [
+            [
+              [
+                -125.68433588575192,
+                53.93181651758776
+              ],
+              [
+                -125.6847901857086,
+                53.931865517369125
+              ],
+              [
+                -125.68515978470401,
+                53.931768517259606
+              ],
+              [
+                -125.6855886849352,
+                53.93161861748974
+              ],
+              [
+                -125.68585108522764,
+                53.93141321744772
+              ],
+              [
+                -125.68602028582063,
+                53.931121317660825
+              ],
+              [
+                -125.6861384852156,
+                53.930815716911404
+              ],
+              [
+                -125.68609878447039,
+                53.930587517239644
+              ],
+              [
+                -125.68584188527575,
+                53.93048991781399
+              ],
+              [
+                -125.68550948502538,
+                53.930386517842024
+              ],
+              [
+                -125.68499278514304,
+                53.93033891755184
+              ],
+              [
+                -125.6846049856794,
+                53.93034761779307
+              ],
+              [
+                -125.68417228539168,
+                53.930438617925276
+              ],
+              [
+                -125.68384248490639,
+                53.93057151749905
+              ],
+              [
+                -125.68334238435816,
+                53.93078221737475
+              ],
+              [
+                -125.68303618467095,
+                53.930892517307775
+              ],
+              [
+                -125.68266708529119,
+                53.930996817845894
+              ],
+              [
+                -125.68238778465039,
+                53.93113601742447
+              ],
+              [
+                -125.68218408483672,
+                53.93128091791705
+              ],
+              [
+                -125.68216448467673,
+                53.93143911747463
+              ],
+              [
+                -125.68232438534714,
+                53.93151421796673
+              ],
+              [
+                -125.68277168570636,
+                53.93165201769058
+              ],
+              [
+                -125.68324318491413,
+                53.93177451745643
+              ],
+              [
+                -125.683685785483,
+                53.931838417475596
+              ],
+              [
+                -125.68391008564764,
+                53.931818717986474
+              ],
+              [
+                -125.68433588575192,
+                53.93181651758776
+              ]
+            ]
+          ],
+          "centroid": [
+            -125.68419231209964,
+            53.93117392526535
+          ],
+          "bbox": [
+            -125.6861384852156,
+            53.93033891755184,
+            -125.68216448467673,
+            53.931865517369125
+          ]
+        }
+      ],
+      "bbox": [
+        -126.49354843028915,
+        53.79013848441293,
+        -125.6448111864994,
+        54.001814692128235
+      ]
+    }
+  }
+}

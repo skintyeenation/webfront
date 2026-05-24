@@ -1,0 +1,349 @@
+{
+  "fetchedAt": "2026-05-24T00:36:21.106Z",
+  "data": {
+    "fiscalYear": "2003-2004",
+    "bandNumber": "729",
+    "bandName": "Skin Tyee Nation",
+    "transfers": [
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Band Support",
+        "amount": 65896,
+        "notes": "Schedule 3-1"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Operations and Maintenance",
+        "amount": 66649,
+        "notes": "Schedule 3-2"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development - Basic Needs",
+        "amount": 74548,
+        "notes": "Schedule 3-3; current funding"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development - Family Violence",
+        "amount": 4190,
+        "notes": "Schedule 3-3"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development - Guardian Financial Assistance",
+        "amount": 6374,
+        "notes": "Schedule 3-3; current funding"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development - In-Home Care",
+        "amount": 7642,
+        "notes": "Schedule 3-3"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development - National Child Benefit",
+        "amount": 14420,
+        "notes": "Schedule 3-3"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development - Service Delivery",
+        "amount": 17614,
+        "notes": "Schedule 3-3"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development - Service Delivery (2)",
+        "amount": 1145,
+        "notes": "Schedule 3-3"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development - Special Needs",
+        "amount": 3250,
+        "notes": "Schedule 3-3"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development - Training and Education Support Initiative",
+        "amount": 5864,
+        "notes": "Schedule 3-3"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Elementary and Secondary Education - Comprehensive Education Support Services",
+        "amount": 824,
+        "notes": "Schedule 3-4"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Elementary and Secondary Education - Ancillary Services",
+        "amount": 440,
+        "notes": "Schedule 3-4"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Post-Secondary Education",
+        "amount": 53434,
+        "notes": "Schedule 3-5"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Economic Development",
+        "amount": 6939,
+        "notes": "Schedule 3-6"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Capacity Development",
+        "amount": 28000,
+        "notes": "Schedule 3-14"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "New On-Reserve Housing Approach (Capital Fund)",
+        "amount": 45000,
+        "notes": "Schedule 7-1; gross receipt, current year deferred revenue of 45000 netted out in revenue"
+      }
+    ],
+    "expenditures": [
+      {
+        "category": "Band Support",
+        "detail": "Administration",
+        "amount": 26779
+      },
+      {
+        "category": "Band Support",
+        "detail": "Bank charges and interest",
+        "amount": 1080
+      },
+      {
+        "category": "Band Support",
+        "detail": "Election costs",
+        "amount": 9943
+      },
+      {
+        "category": "Band Support",
+        "detail": "Equipment purchases",
+        "amount": 598
+      },
+      {
+        "category": "Band Support",
+        "detail": "Honorarium",
+        "amount": 26705
+      },
+      {
+        "category": "Band Support",
+        "detail": "Office and other",
+        "amount": 27762
+      },
+      {
+        "category": "Band Support",
+        "detail": "Professional fees",
+        "amount": 25753
+      },
+      {
+        "category": "Band Support",
+        "detail": "Repairs and maintenance",
+        "amount": 5800
+      },
+      {
+        "category": "Band Support",
+        "detail": "Telephone",
+        "amount": 10492
+      },
+      {
+        "category": "Band Support",
+        "detail": "Travel",
+        "amount": 26444
+      },
+      {
+        "category": "Band Support",
+        "detail": "Wages and Benefits",
+        "amount": 34948
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Buildings and furnishings",
+        "amount": 175
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Equipment purchases",
+        "amount": 771
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Garbage disposal",
+        "amount": 4544
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Insurance",
+        "amount": 3770
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Repairs and maintenance",
+        "amount": 4622
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Supplies",
+        "amount": 92
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Travel",
+        "amount": 2040
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Utilities",
+        "amount": 2267
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Wages and benefits",
+        "amount": 17918
+      },
+      {
+        "category": "Social Development",
+        "detail": "Basic needs",
+        "amount": 95843
+      },
+      {
+        "category": "Social Development",
+        "detail": "Family violence",
+        "amount": 4190
+      },
+      {
+        "category": "Social Development",
+        "detail": "Guardian financial assistance",
+        "amount": 7204
+      },
+      {
+        "category": "Social Development",
+        "detail": "In-home care",
+        "amount": 17505
+      },
+      {
+        "category": "Social Development",
+        "detail": "National child benefit",
+        "amount": 14420
+      },
+      {
+        "category": "Social Development",
+        "detail": "Service delivery",
+        "amount": 5033
+      },
+      {
+        "category": "Social Development",
+        "detail": "Special needs",
+        "amount": 4481
+      },
+      {
+        "category": "Social Development",
+        "detail": "Training and education support initiative",
+        "amount": 5864
+      },
+      {
+        "category": "Education",
+        "detail": "Elementary and Secondary - Contract labour",
+        "amount": 7725
+      },
+      {
+        "category": "Education",
+        "detail": "Post-Secondary - Books and supplies",
+        "amount": 636
+      },
+      {
+        "category": "Education",
+        "detail": "Post-Secondary - Travel",
+        "amount": 60
+      },
+      {
+        "category": "Education",
+        "detail": "Post-Secondary - Tuition and allowances",
+        "amount": 34184
+      },
+      {
+        "category": "Economic Development",
+        "detail": "Materials and supplies",
+        "amount": 6939
+      },
+      {
+        "category": "Health and Welfare",
+        "detail": "Office and other",
+        "amount": 8784
+      },
+      {
+        "category": "Health and Welfare",
+        "detail": "Patient travel",
+        "amount": 36234
+      },
+      {
+        "category": "Health and Welfare",
+        "detail": "Wages and benefits",
+        "amount": 29294
+      },
+      {
+        "category": "Human Resources Development Canada",
+        "detail": "Administration",
+        "amount": 12901
+      },
+      {
+        "category": "Human Resources Development Canada",
+        "detail": "Bank charges and interest",
+        "amount": 44
+      },
+      {
+        "category": "Human Resources Development Canada",
+        "detail": "Employment services",
+        "amount": 782
+      },
+      {
+        "category": "Human Resources Development Canada",
+        "detail": "Training and workshops",
+        "amount": 1193
+      },
+      {
+        "category": "Human Resources Development Canada",
+        "detail": "Wages and benefits",
+        "amount": 27562
+      },
+      {
+        "category": "Capacity Development",
+        "detail": "Contract services",
+        "amount": 28000
+      },
+      {
+        "category": "Capital - New On-Reserve Housing Approach",
+        "detail": "Contract services",
+        "amount": 12317
+      },
+      {
+        "category": "Investment Fund",
+        "detail": "Funerals and other member benefits",
+        "amount": 29377
+      }
+    ],
+    "balanceSheet": {
+      "currentAssets": 98904,
+      "capitalAssets": 222404,
+      "totalAssets": 832410,
+      "currentLiabilities": 100098,
+      "totalLiabilities": 100098,
+      "equityInCapitalAssets": 222404,
+      "accumulatedSurplus": 732312,
+      "netAssetsOrEquity": 732312
+    },
+    "declaredTotal": 357229,
+    "computedTotal": 402229,
+    "computedExpenditureTotal": 623075,
+    "surplusDeficit": 398182,
+    "notes": "declaredTotal is INAC revenue per financial statements as shown on INAC reconciliation page (band number 729). Total summary revenue across all funds was 1021257. The balance sheet includes investments of 509970 and trust moneys of 1132 in addition to current assets and capital assets. Long-term liabilities not separately stated; deferred revenue of 45000 and loan payable of 26403 are included in current liabilities total of 100098. Health and Welfare revenue sourced from Carrier Sekani Family Services (103896), not INAC. Human Resources Development Canada revenue sourced from Prince George Nechako Aboriginal Employment and Training Association (65730), not INAC directly."
+  }
+}

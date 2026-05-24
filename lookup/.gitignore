@@ -1,6 +1,14 @@
 node_modules
 api/out
-api/data
+# The lookup tool's JSON file store at api/data/ IS checked into the repo as
+# seed data (band cache, OCR'd federal funding PDFs, available-grants
+# catalogue, BCFSC list, settled worker-queue history). Two subtrees are
+# excluded because they're either too large or transient:
+#   bc-spatial — ~130 MB GeoJSON, regenerable via `pnpm fetch:bc-spatial`
+#   scratch    — throwaway working PDFs the worker re-fetches
+# (.gitignore doesn't support trailing comments — patterns must be alone.)
+api/data/bc-spatial
+api/data/scratch
 backups
 .env
 .env.local

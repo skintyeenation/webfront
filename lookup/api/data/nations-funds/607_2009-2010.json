@@ -1,0 +1,157 @@
+{
+  "fetchedAt": "2026-05-24T01:45:34.328Z",
+  "data": {
+    "fiscalYear": "2009-2010",
+    "bandNumber": "607",
+    "bandName": "Lake Babine Nation",
+    "transfers": [
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Elementary / Secondary/Post sec",
+        "amount": 4424560,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Economic Development",
+        "amount": 219321,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Indian Government Support",
+        "amount": 623999,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Operation and maintenance",
+        "amount": 442821,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Community Infrastructure",
+        "amount": 278626,
+        "notes": "Federal Funding Received; Unexpended Funding Beginning of Year: 2444"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Self-government",
+        "amount": 46077,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Assistance",
+        "amount": 2349134,
+        "notes": "Federal Funding Received; Adjustment: -146337"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Support Services",
+        "amount": 221943,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Wild Life Harvest",
+        "amount": 24000,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Canada Economic Action Plan",
+        "amount": 45469,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Negotiation Land Use",
+        "amount": 74500,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "TESI",
+        "amount": 84042,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Other",
+        "amount": 50430,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Health Canada",
+        "program": "Health Services",
+        "amount": 1610922,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Health Canada",
+        "program": "Home Care Support",
+        "amount": 320964,
+        "notes": "Federal Funding Received; Adjustment: -12669"
+      },
+      {
+        "department": "Health Canada",
+        "program": "Health Plan",
+        "amount": 0,
+        "notes": "Federal Funding Received; Total Funding Available: 83000"
+      },
+      {
+        "department": "Health Canada",
+        "program": "Patient Travel",
+        "amount": 568422,
+        "notes": "Federal Funding Received; Adjustment: 33218"
+      },
+      {
+        "department": "Health Canada",
+        "program": "AIDS",
+        "amount": 4788,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Health Canada",
+        "program": "Diabetes",
+        "amount": 30996,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Health Canada",
+        "program": "Safe Drinking Water",
+        "amount": 27822,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "CMHC",
+        "program": "CMHC",
+        "amount": 567454,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "Fisheries and Oceans",
+        "program": "Fisheries and Oceans",
+        "amount": 625450,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "National Assoc. culture",
+        "program": "National Assoc. culture",
+        "amount": 31595,
+        "notes": "Federal Funding Received"
+      },
+      {
+        "department": "BC Treaty Commission",
+        "program": "BC Treaty Commission",
+        "amount": 940500,
+        "notes": "Federal Funding Received"
+      }
+    ],
+    "declaredTotal": 13613835,
+    "computedTotal": 13613835,
+    "notes": "Total Federal Funding Received per schedule: 13,613,835. Total Funding Available (including unexpended prior year and adjustments): 13,573,491. Total Expenditures from All Sources: 16,033,694. INAC Revenue per SFGF reconciliation: $8,966,016; Gross Budget per INAC TPMS: $9,993,601. Health Plan and Short Term Crisis rows show zero federal funding received with some amounts in other columns. Document is the Schedule of Federal Government Funding only; no full audited financial statements (expenditures, balance sheet) are included in the provided pages."
+  }
+}

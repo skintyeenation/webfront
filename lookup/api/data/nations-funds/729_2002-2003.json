@@ -1,0 +1,525 @@
+{
+  "fetchedAt": "2026-05-24T01:00:45.676Z",
+  "data": {
+    "fiscalYear": "2002-2003",
+    "bandNumber": "729",
+    "bandName": "Skin Tyee Band",
+    "transfers": [
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Band Support",
+        "amount": 63102,
+        "notes": "Schedule 3-1"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Operations and Maintenance",
+        "amount": 59804,
+        "notes": "Schedule 3-2"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development - Basic Needs current funding",
+        "amount": 74000,
+        "notes": "Schedule 3-3"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development - Basic Needs prior years deficit coverage",
+        "amount": 44146,
+        "notes": "Schedule 3-3, Note 15"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development - Community Based Services",
+        "amount": 1438,
+        "notes": "Schedule 3-3"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development - Family Violence",
+        "amount": 4190,
+        "notes": "Schedule 3-3"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development - Guardian Financial Assistance current funding",
+        "amount": 4800,
+        "notes": "Schedule 3-3"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development - Guardian Financial Assistance prior years deficit coverage",
+        "amount": 3137,
+        "notes": "Schedule 3-3, Note 15"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development - In-home Care",
+        "amount": 9136,
+        "notes": "Schedule 3-3"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development - National Child Benefit",
+        "amount": 13282,
+        "notes": "Schedule 3-3"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development - Service Delivery",
+        "amount": 17983,
+        "notes": "Schedule 3-3"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development - Special Needs",
+        "amount": 3227,
+        "notes": "Schedule 3-3"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development - Training and Education Support Initiative",
+        "amount": 3239,
+        "notes": "Schedule 3-3"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Elementary and Secondary Education - Computer Education Support Services",
+        "amount": 1165,
+        "notes": "Schedule 3-4"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Elementary and Secondary Education - Ancillary Services",
+        "amount": 1100,
+        "notes": "Schedule 3-4"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Post-Secondary Education",
+        "amount": 52981,
+        "notes": "Schedule 3-5"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Economic Development",
+        "amount": 7033,
+        "notes": "Schedule 3-6"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Indian Management Development",
+        "amount": 57500,
+        "notes": "Schedule 3-7"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Professional Development",
+        "amount": 6000,
+        "notes": "Schedule 3-8"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Welfare Reform",
+        "amount": 23336,
+        "notes": "Schedule 3-9"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Resource Access Negotiations",
+        "amount": 23000,
+        "notes": "Schedule 3-10"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "New On-Reserve Housing Approach",
+        "amount": 60000,
+        "notes": "Schedule 7-1; $45,000 deferred to subsequent year; $15,000 recognized as revenue"
+      },
+      {
+        "department": "Canada Mortgage and Housing Corporation",
+        "program": "Home Adaptations for Seniors Independence",
+        "amount": 2500,
+        "notes": "Schedule 3-13"
+      },
+      {
+        "department": "BC Hydro",
+        "program": "Band Support - BC Hydro",
+        "amount": 2000,
+        "notes": "Schedule 3-1"
+      },
+      {
+        "department": "Carrier Sekani Family Services",
+        "program": "Health and Welfare",
+        "amount": 5566,
+        "notes": "Schedule 3-11; revenue from Carrier Sekani Family Services"
+      },
+      {
+        "department": "Prince George Nechako Aboriginal Employment and Training Association",
+        "program": "Human Resources Development Canada",
+        "amount": 36307,
+        "notes": "Schedule 3-12"
+      },
+      {
+        "department": "First Nations Education Steering Committee",
+        "program": "Elementary and Secondary Education",
+        "amount": 5817,
+        "notes": "Schedule 3-4"
+      }
+    ],
+    "expenditures": [
+      {
+        "category": "Band Support",
+        "detail": "Administration",
+        "amount": 22535,
+        "notes": "Schedule 3-1"
+      },
+      {
+        "category": "Band Support",
+        "detail": "Bad debts",
+        "amount": 5591,
+        "notes": "Schedule 3-1"
+      },
+      {
+        "category": "Band Support",
+        "detail": "Bank charges and interest",
+        "amount": 131,
+        "notes": "Schedule 3-1"
+      },
+      {
+        "category": "Band Support",
+        "detail": "Consulting",
+        "amount": 750,
+        "notes": "Schedule 3-1"
+      },
+      {
+        "category": "Band Support",
+        "detail": "Equipment purchases",
+        "amount": 1199,
+        "notes": "Schedule 3-1"
+      },
+      {
+        "category": "Band Support",
+        "detail": "Honorarium",
+        "amount": 16657,
+        "notes": "Schedule 3-1"
+      },
+      {
+        "category": "Band Support",
+        "detail": "Office and other",
+        "amount": 3167,
+        "notes": "Schedule 3-1"
+      },
+      {
+        "category": "Band Support",
+        "detail": "Professional fees",
+        "amount": 4188,
+        "notes": "Schedule 3-1"
+      },
+      {
+        "category": "Band Support",
+        "detail": "Repairs and maintenance",
+        "amount": 552,
+        "notes": "Schedule 3-1"
+      },
+      {
+        "category": "Band Support",
+        "detail": "Telephone",
+        "amount": 8467,
+        "notes": "Schedule 3-1"
+      },
+      {
+        "category": "Band Support",
+        "detail": "Travel",
+        "amount": 14820,
+        "notes": "Schedule 3-1"
+      },
+      {
+        "category": "Band Support",
+        "detail": "Wages and Benefits",
+        "amount": 5703,
+        "notes": "Schedule 3-1"
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Buildings and furnishings",
+        "amount": 263,
+        "notes": "Schedule 3-2"
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Contract services",
+        "amount": 245,
+        "notes": "Schedule 3-2"
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Equipment purchases",
+        "amount": 692,
+        "notes": "Schedule 3-2"
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Garbage disposal",
+        "amount": 4978,
+        "notes": "Schedule 3-2"
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Insurance",
+        "amount": 7658,
+        "notes": "Schedule 3-2"
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Repairs and maintenance",
+        "amount": 6307,
+        "notes": "Schedule 3-2"
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Road maintenance contracts",
+        "amount": 574,
+        "notes": "Schedule 3-2"
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Sewer",
+        "amount": 360,
+        "notes": "Schedule 3-2"
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Supplies",
+        "amount": 4632,
+        "notes": "Schedule 3-2"
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Travel",
+        "amount": 7319,
+        "notes": "Schedule 3-2"
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Utilities",
+        "amount": 1879,
+        "notes": "Schedule 3-2"
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Wages and benefits",
+        "amount": 24055,
+        "notes": "Schedule 3-2"
+      },
+      {
+        "category": "Social Development",
+        "detail": "Basic needs",
+        "amount": 76485,
+        "notes": "Schedule 3-3"
+      },
+      {
+        "category": "Social Development",
+        "detail": "Community based services",
+        "amount": 1400,
+        "notes": "Schedule 3-3"
+      },
+      {
+        "category": "Social Development",
+        "detail": "Family violence",
+        "amount": 2250,
+        "notes": "Schedule 3-3"
+      },
+      {
+        "category": "Social Development",
+        "detail": "Guardian financial assistance",
+        "amount": 3623,
+        "notes": "Schedule 3-3"
+      },
+      {
+        "category": "Social Development",
+        "detail": "In-home care",
+        "amount": 12959,
+        "notes": "Schedule 3-3"
+      },
+      {
+        "category": "Social Development",
+        "detail": "National child benefit",
+        "amount": 23078,
+        "notes": "Schedule 3-3"
+      },
+      {
+        "category": "Social Development",
+        "detail": "Service delivery",
+        "amount": 10657,
+        "notes": "Schedule 3-3"
+      },
+      {
+        "category": "Social Development",
+        "detail": "Special needs",
+        "amount": 4520,
+        "notes": "Schedule 3-3"
+      },
+      {
+        "category": "Social Development",
+        "detail": "Training and education support initiative",
+        "amount": 2479,
+        "notes": "Schedule 3-3"
+      },
+      {
+        "category": "Elementary and Secondary Education",
+        "detail": "Contract labour",
+        "amount": 3552,
+        "notes": "Schedule 3-4"
+      },
+      {
+        "category": "Post-Secondary Education",
+        "detail": "Books and supplies",
+        "amount": 1837,
+        "notes": "Schedule 3-5"
+      },
+      {
+        "category": "Post-Secondary Education",
+        "detail": "Travel",
+        "amount": 388,
+        "notes": "Schedule 3-5"
+      },
+      {
+        "category": "Post-Secondary Education",
+        "detail": "Tuition and allowances",
+        "amount": 30239,
+        "notes": "Schedule 3-5"
+      },
+      {
+        "category": "Economic Development",
+        "detail": "Materials and supplies",
+        "amount": 5000,
+        "notes": "Schedule 3-6"
+      },
+      {
+        "category": "Indian Management Development",
+        "detail": "Administration",
+        "amount": 114,
+        "notes": "Schedule 3-7"
+      },
+      {
+        "category": "Indian Management Development",
+        "detail": "Contract services",
+        "amount": 58023,
+        "notes": "Schedule 3-7"
+      },
+      {
+        "category": "Indian Management Development",
+        "detail": "Office and other",
+        "amount": 3274,
+        "notes": "Schedule 3-7"
+      },
+      {
+        "category": "Professional Development",
+        "detail": "Contract services",
+        "amount": 6000,
+        "notes": "Schedule 3-8"
+      },
+      {
+        "category": "Welfare Reform",
+        "detail": "Contract labour",
+        "amount": 25000,
+        "notes": "Schedule 3-9"
+      },
+      {
+        "category": "Resource Access Negotiations",
+        "detail": "Contract services",
+        "amount": 20585,
+        "notes": "Schedule 3-10"
+      },
+      {
+        "category": "Resource Access Negotiations",
+        "detail": "Office and other",
+        "amount": 4000,
+        "notes": "Schedule 3-10"
+      },
+      {
+        "category": "Health and Welfare",
+        "detail": "Patient travel",
+        "amount": 6470,
+        "notes": "Schedule 3-11"
+      },
+      {
+        "category": "Human Resources Development Canada",
+        "detail": "Administration",
+        "amount": 3836,
+        "notes": "Schedule 3-12"
+      },
+      {
+        "category": "Human Resources Development Canada",
+        "detail": "Bank charges and interest",
+        "amount": 319,
+        "notes": "Schedule 3-12"
+      },
+      {
+        "category": "Human Resources Development Canada",
+        "detail": "Employment services",
+        "amount": 28288,
+        "notes": "Schedule 3-12"
+      },
+      {
+        "category": "Human Resources Development Canada",
+        "detail": "Training and workshops",
+        "amount": 6152,
+        "notes": "Schedule 3-12"
+      },
+      {
+        "category": "Human Resources Development Canada",
+        "detail": "Wage subsidy",
+        "amount": 4200,
+        "notes": "Schedule 3-12"
+      },
+      {
+        "category": "Home Adaptations for Seniors Independence",
+        "detail": "Contract services",
+        "amount": 1241,
+        "notes": "Schedule 3-13"
+      },
+      {
+        "category": "Capital Fund - New On-Reserve Housing Approach",
+        "detail": "Contract services",
+        "amount": 15000,
+        "notes": "Schedule 7-1"
+      },
+      {
+        "category": "Investment Fund",
+        "detail": "Administration",
+        "amount": 9000,
+        "notes": "Schedule 9"
+      },
+      {
+        "category": "Investment Fund",
+        "detail": "Permits and licenses",
+        "amount": 23271,
+        "notes": "Schedule 9"
+      },
+      {
+        "category": "Investment Fund",
+        "detail": "Wages and benefits",
+        "amount": 10748,
+        "notes": "Schedule 9"
+      }
+    ],
+    "balanceSheet": {
+      "currentAssets": 193781,
+      "capitalAssets": 231604,
+      "totalAssets": 589485,
+      "currentLiabilities": 63416,
+      "totalLiabilities": 242160,
+      "equityInCapitalAssets": 231604,
+      "accumulatedSurplus": 347329,
+      "netAssetsOrEquity": 347329
+    },
+    "declaredTotal": 584952,
+    "computedTotal": 585789,
+    "computedExpenditureTotal": 546710,
+    "surplusDeficit": 38242,
+    "notes": "Summary Statement of Revenue and Expenditures shows total revenue $584,952 and total expenditures $546,710 giving surplus $38,242 for year ended March 31 2003. Balance sheet figures consolidated across Operating Fund (Schedule 1), Capital Fund (Schedule 4), Investment Fund (Schedule 8) and Trust Fund (Schedule 10). Total assets computed as: Operating Fund $193,781 + Capital Fund $231,604 + Investment Fund $163,370 + Trust Fund $734 = $589,489 (inter-fund eliminations applied in summary). Band number not visible in document; supplied from context."
+  }
+}

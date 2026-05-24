@@ -1,0 +1,68 @@
+{
+  "fetchedAt": "2026-05-24T01:19:12.538Z",
+  "data": {
+    "fiscalYear": "2001-2002",
+    "bandNumber": "545",
+    "bandName": "West Moberly First Nations",
+    "transfers": [
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Elementary Education",
+        "amount": 17538
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Post-Secondary Education",
+        "amount": 85162
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Economic Development",
+        "amount": 9551
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Indian Government Support",
+        "amount": 156300
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Community Infrastructure",
+        "amount": 121868
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Housing",
+        "amount": 348490
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Assistance",
+        "amount": 62262
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Support Services",
+        "amount": 25344
+      },
+      {
+        "department": "Health Canada",
+        "program": "Community Health Services",
+        "amount": 107025
+      },
+      {
+        "department": "Health Canada",
+        "program": "Environmental Health",
+        "amount": 6003
+      },
+      {
+        "department": "CMHC",
+        "program": "Non-Profit On-Reserve Housing",
+        "amount": 5582
+      }
+    ],
+    "declaredTotal": 945125,
+    "computedTotal": 945125,
+    "notes": "Federal Funding Received column used as transfer amounts. Total funding available (including unexpended beginning of year carry-forwards) was 1,077,198. Funding expended was 856,536. Unexpended funding end of year was 220,662. Document contains only the Schedule of Federal Government Funding; no full audited financial statements included."
+  }
+}

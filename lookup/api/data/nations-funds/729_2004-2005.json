@@ -1,0 +1,621 @@
+{
+  "fetchedAt": "2026-05-24T01:02:54.905Z",
+  "data": {
+    "fiscalYear": "2004-2005",
+    "bandNumber": "729",
+    "bandName": "Skin Tyee Nation",
+    "transfers": [
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Band Support",
+        "amount": 68755,
+        "notes": "Band support funding"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Operations and Maintenance - Roads and Bridges",
+        "amount": 4923,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Operations and Maintenance - Sanitation Systems",
+        "amount": 5024,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Operations and Maintenance - Water Systems",
+        "amount": 16273,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Operations and Maintenance - Community Buildings",
+        "amount": 481,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Operations and Maintenance - Training Fire Protection",
+        "amount": 600,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development - Basic Needs (current funding)",
+        "amount": 88305,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development - Basic Needs (prior years deficit coverage)",
+        "amount": 21565,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development - Guardian Financial Assistance (current funding)",
+        "amount": 13388,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development - Guardian Financial Assistance (prior years deficit coverage)",
+        "amount": 830,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development - In-Home Care",
+        "amount": 6549,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development - Service Delivery",
+        "amount": 17985,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development - Service Delivery (additional)",
+        "amount": 1156,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Social Development - Special Needs",
+        "amount": 3209,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Elementary and Secondary Education - Comprehensive Education Support Services",
+        "amount": 1376,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Elementary and Secondary Education - Ancillary Services",
+        "amount": 1320,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Post-Secondary Education",
+        "amount": 52600,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Economic Development - CEDO Planning and Operations",
+        "amount": 6641,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Indian Management Development",
+        "amount": 25000,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Special Services - Bottled Water",
+        "amount": 7876,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Indian Registry Administration",
+        "amount": 863,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Family Violence - Prevention Projects",
+        "amount": 4190,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Training Education Support Initiative - Social Assistance Employment and Training",
+        "amount": 3128,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "National Child Benefit Reinvestment",
+        "amount": 14118,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Capital - New On-Reserve Housing Approach",
+        "amount": 30000,
+        "notes": "Project #6338; includes prior year deferred revenue of $45,000 less current year deferred $15,000"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Capital - Physical Development Plan #5472",
+        "amount": 22084,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Capital - 6 Unit Initial Inspection #6871",
+        "amount": 1200,
+        "notes": "Gross received; $1,200 deferred to subsequent year"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Capital - Renovations 2003/2004 6 Units #6929",
+        "amount": 90510,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Capital - Renovations 2004/2005 3 Units #7212",
+        "amount": 52100,
+        "notes": "Gross received; full amount deferred"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Capital - ACRS 2004 #7105",
+        "amount": 3000,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Capital - Retro Fit of Community Building #7382",
+        "amount": 30000,
+        "notes": "Gross received; $12,848 deferred"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Capital - Band Owned Housing Construction #7387",
+        "amount": 69698,
+        "notes": "Gross received; full amount deferred"
+      }
+    ],
+    "expenditures": [
+      {
+        "category": "Band Support",
+        "detail": "Administration",
+        "amount": 5300,
+        "notes": ""
+      },
+      {
+        "category": "Band Support",
+        "detail": "Bad Debts",
+        "amount": 42605,
+        "notes": ""
+      },
+      {
+        "category": "Band Support",
+        "detail": "Bank Charges and Interest",
+        "amount": 1154,
+        "notes": ""
+      },
+      {
+        "category": "Band Support",
+        "detail": "Consulting Administration Services",
+        "amount": 410802,
+        "notes": ""
+      },
+      {
+        "category": "Band Support",
+        "detail": "Equipment Purchases",
+        "amount": 1397,
+        "notes": ""
+      },
+      {
+        "category": "Band Support",
+        "detail": "Honorarium",
+        "amount": 17650,
+        "notes": ""
+      },
+      {
+        "category": "Band Support",
+        "detail": "Office and Other",
+        "amount": 29927,
+        "notes": ""
+      },
+      {
+        "category": "Band Support",
+        "detail": "Professional Fees",
+        "amount": 11270,
+        "notes": ""
+      },
+      {
+        "category": "Band Support",
+        "detail": "Rent",
+        "amount": 7200,
+        "notes": ""
+      },
+      {
+        "category": "Band Support",
+        "detail": "Repairs and Maintenance",
+        "amount": 3400,
+        "notes": ""
+      },
+      {
+        "category": "Band Support",
+        "detail": "Telephone",
+        "amount": 11620,
+        "notes": ""
+      },
+      {
+        "category": "Band Support",
+        "detail": "Travel",
+        "amount": 17156,
+        "notes": ""
+      },
+      {
+        "category": "Band Support",
+        "detail": "Wages and Benefits",
+        "amount": 53138,
+        "notes": ""
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Equipment Purchases",
+        "amount": 730,
+        "notes": ""
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Garbage Disposal",
+        "amount": 4416,
+        "notes": ""
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Insurance",
+        "amount": 6814,
+        "notes": ""
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Repairs and Maintenance",
+        "amount": 7617,
+        "notes": ""
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Road Maintenance Contracts",
+        "amount": 2372,
+        "notes": ""
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Sewer",
+        "amount": 210,
+        "notes": ""
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Supplies",
+        "amount": 120,
+        "notes": ""
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Utilities",
+        "amount": 4654,
+        "notes": ""
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Wages and Benefits",
+        "amount": 53,
+        "notes": ""
+      },
+      {
+        "category": "Social Development",
+        "detail": "Administration",
+        "amount": 18171,
+        "notes": ""
+      },
+      {
+        "category": "Social Development",
+        "detail": "Basic Needs",
+        "amount": 91982,
+        "notes": ""
+      },
+      {
+        "category": "Social Development",
+        "detail": "Guardian Financial Assistance",
+        "amount": 9932,
+        "notes": ""
+      },
+      {
+        "category": "Social Development",
+        "detail": "In-Home Care",
+        "amount": 30000,
+        "notes": ""
+      },
+      {
+        "category": "Social Development",
+        "detail": "Service Delivery",
+        "amount": 970,
+        "notes": ""
+      },
+      {
+        "category": "Social Development",
+        "detail": "Special Needs",
+        "amount": 4326,
+        "notes": ""
+      },
+      {
+        "category": "Elementary and Secondary Education",
+        "detail": "Administration",
+        "amount": 8796,
+        "notes": ""
+      },
+      {
+        "category": "Elementary and Secondary Education",
+        "detail": "Contract Labour",
+        "amount": 1086,
+        "notes": ""
+      },
+      {
+        "category": "Post-Secondary Education",
+        "detail": "Books and Supplies",
+        "amount": 1444,
+        "notes": ""
+      },
+      {
+        "category": "Post-Secondary Education",
+        "detail": "Tuition and Allowances",
+        "amount": 19963,
+        "notes": ""
+      },
+      {
+        "category": "Economic Development",
+        "detail": "Administration",
+        "amount": 6641,
+        "notes": ""
+      },
+      {
+        "category": "Indian Management Development",
+        "detail": "Administration",
+        "amount": 25000,
+        "notes": ""
+      },
+      {
+        "category": "Special Services - Bottled Water",
+        "detail": "Administration Fees",
+        "amount": 10832,
+        "notes": ""
+      },
+      {
+        "category": "Special Services - Bottled Water",
+        "detail": "Program Expenditures",
+        "amount": 5664,
+        "notes": ""
+      },
+      {
+        "category": "Indian Registry Administration",
+        "detail": "Program Expenditures",
+        "amount": 81,
+        "notes": ""
+      },
+      {
+        "category": "Indian Registry Administration",
+        "detail": "Wages and Benefits",
+        "amount": 446,
+        "notes": ""
+      },
+      {
+        "category": "Health and Welfare",
+        "detail": "Administration",
+        "amount": 5082,
+        "notes": ""
+      },
+      {
+        "category": "Health and Welfare",
+        "detail": "Office and Other",
+        "amount": 800,
+        "notes": ""
+      },
+      {
+        "category": "Health and Welfare",
+        "detail": "Patient Travel",
+        "amount": 11805,
+        "notes": ""
+      },
+      {
+        "category": "Health and Welfare",
+        "detail": "Travel - Community Health Representative",
+        "amount": 15956,
+        "notes": ""
+      },
+      {
+        "category": "Health and Welfare",
+        "detail": "Travel - National Native Alcohol and Drug Abuse Program",
+        "amount": 4500,
+        "notes": ""
+      },
+      {
+        "category": "Health and Welfare",
+        "detail": "Wages and Benefits - Community Health Representative",
+        "amount": 56193,
+        "notes": ""
+      },
+      {
+        "category": "Human Resources Development Canada",
+        "detail": "Administration",
+        "amount": 27912,
+        "notes": ""
+      },
+      {
+        "category": "Human Resources Development Canada",
+        "detail": "Bank Charges and Interest",
+        "amount": 59,
+        "notes": ""
+      },
+      {
+        "category": "Human Resources Development Canada",
+        "detail": "Employment Services",
+        "amount": 1652,
+        "notes": ""
+      },
+      {
+        "category": "Human Resources Development Canada",
+        "detail": "Training and Workshops",
+        "amount": 6237,
+        "notes": ""
+      },
+      {
+        "category": "Forestry",
+        "detail": "Contract Services",
+        "amount": 465,
+        "notes": "Ministry of Forests funded"
+      },
+      {
+        "category": "Capacity Development",
+        "detail": "Contract Services",
+        "amount": 4268,
+        "notes": ""
+      },
+      {
+        "category": "First Nations Forestry Program",
+        "detail": "Administration Fees",
+        "amount": 24800,
+        "notes": ""
+      },
+      {
+        "category": "First Nations Forestry Program",
+        "detail": "Materials and Supplies",
+        "amount": 200,
+        "notes": ""
+      },
+      {
+        "category": "Family Violence",
+        "detail": "Administration",
+        "amount": 4190,
+        "notes": ""
+      },
+      {
+        "category": "Training Education Support Initiative",
+        "detail": "Administration",
+        "amount": 3128,
+        "notes": ""
+      },
+      {
+        "category": "National Child Benefit Reinvestment",
+        "detail": "Administration",
+        "amount": 8911,
+        "notes": ""
+      },
+      {
+        "category": "National Child Benefit Reinvestment",
+        "detail": "Program Expenditures",
+        "amount": 5368,
+        "notes": ""
+      },
+      {
+        "category": "Work Crew",
+        "detail": "Contract Services",
+        "amount": 8931,
+        "notes": ""
+      },
+      {
+        "category": "Work Crew",
+        "detail": "Office and Other",
+        "amount": 35,
+        "notes": ""
+      },
+      {
+        "category": "Work Crew",
+        "detail": "Wages and Benefits",
+        "amount": 62855,
+        "notes": ""
+      },
+      {
+        "category": "Capital - New On-Reserve Housing Approach",
+        "detail": "Administration",
+        "amount": 30000,
+        "notes": ""
+      },
+      {
+        "category": "Capital - Physical Development Plan",
+        "detail": "Contract Services",
+        "amount": 22068,
+        "notes": ""
+      },
+      {
+        "category": "Capital - Physical Development Plan",
+        "detail": "Office and Other",
+        "amount": 36,
+        "notes": ""
+      },
+      {
+        "category": "Capital - Renovations 2003/2004 6 Units",
+        "detail": "Contract Services",
+        "amount": 89303,
+        "notes": ""
+      },
+      {
+        "category": "Capital - ACRS 2004",
+        "detail": "Administration",
+        "amount": 3000,
+        "notes": ""
+      },
+      {
+        "category": "Capital - Retro Fit of Community Building",
+        "detail": "Contract Services",
+        "amount": 16988,
+        "notes": ""
+      },
+      {
+        "category": "Capital - Retro Fit of Community Building",
+        "detail": "Office and Other",
+        "amount": 164,
+        "notes": ""
+      },
+      {
+        "category": "Investment Fund",
+        "detail": "Funerals and Other Member Benefits",
+        "amount": 2475,
+        "notes": ""
+      }
+    ],
+    "balanceSheet": {
+      "currentAssets": 724046,
+      "capitalAssets": 212813,
+      "totalAssets": 1351724,
+      "currentLiabilities": 257111,
+      "totalLiabilities": 257111,
+      "equityInCapitalAssets": 212813,
+      "accumulatedSurplus": 1094613,
+      "netAssetsOrEquity": 1094613
+    },
+    "declaredTotal": 1484753,
+    "computedTotal": 664747,
+    "computedExpenditureTotal": 1292320,
+    "surplusDeficit": 371892,
+    "notes": "Total revenue of $1,484,753 includes Operating Fund $1,637,271, Capital Fund $162,746, Investment income $1,725, Share of loss from controlled entity (Skin Tyee Development Ltd.) ($317,392), and Trust Fund $403. Band number not printed on document; assigned per federal FN Profiles. No Schedule of Federal Funding page present; transfers derived from individual program schedules."
+  }
+}

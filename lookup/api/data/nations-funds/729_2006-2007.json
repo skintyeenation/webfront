@@ -1,0 +1,465 @@
+{
+  "fetchedAt": "2026-05-24T00:40:32.162Z",
+  "data": {
+    "fiscalYear": "2006-2007",
+    "bandNumber": "729",
+    "bandName": "Skin Tyee Nation",
+    "transfers": [
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Band Support",
+        "amount": 119544,
+        "notes": "Band support funding"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Operations and Maintenance - Roads and Bridges",
+        "amount": 3634,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Operations and Maintenance - Sanitation Systems",
+        "amount": 5452,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Operations and Maintenance - Municipal Services",
+        "amount": 810,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Operations and Maintenance - Training Fire Protection",
+        "amount": 540,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Elementary and Secondary Education - Comprehensive Education Support Services",
+        "amount": 539,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Elementary and Secondary Education - Ancillary Services",
+        "amount": 1540,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Elementary and Secondary Education - Financial Assistance",
+        "amount": 330,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Elementary and Secondary Education - Guidance and Counselling",
+        "amount": 938,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Post-Secondary Education",
+        "amount": 23120,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Economic Development - CEDO Planning and Operations",
+        "amount": 3141,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Indian Registry Administration",
+        "amount": 1060,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Family Violence - Prevention Projects",
+        "amount": 4190,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Training Education Support Initiative - Social Assistance Employment and Training",
+        "amount": 2622,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "National Child Benefit Reinvestment",
+        "amount": 14180,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Basic Needs",
+        "amount": 107337,
+        "notes": "Current funding"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Guardian Financial Assistance",
+        "amount": 29174,
+        "notes": "Current funding"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Special Needs",
+        "amount": 3498,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "In-Home Care",
+        "amount": 8819,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Service Delivery - General",
+        "amount": 18220,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Service Delivery - In-Home Care",
+        "amount": 1556,
+        "notes": ""
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Capital - Retro Fit of Community Building",
+        "amount": 663,
+        "notes": "Project #7382; net of deferred revenue"
+      },
+      {
+        "department": "Indian and Northern Affairs Canada",
+        "program": "Capital - Housing Renovations 2005/2006",
+        "amount": 17303,
+        "notes": "Project #8099; received but deferred"
+      }
+    ],
+    "expenditures": [
+      {
+        "category": "Band Support",
+        "detail": "Bad debts",
+        "amount": 198098,
+        "notes": ""
+      },
+      {
+        "category": "Band Support",
+        "detail": "Band member distributions",
+        "amount": 12313,
+        "notes": ""
+      },
+      {
+        "category": "Band Support",
+        "detail": "Bank charges and interest",
+        "amount": 1275,
+        "notes": ""
+      },
+      {
+        "category": "Band Support",
+        "detail": "Contract administration services",
+        "amount": 297645,
+        "notes": ""
+      },
+      {
+        "category": "Band Support",
+        "detail": "Election costs",
+        "amount": 100,
+        "notes": ""
+      },
+      {
+        "category": "Band Support",
+        "detail": "Equipment purchases",
+        "amount": 5103,
+        "notes": ""
+      },
+      {
+        "category": "Band Support",
+        "detail": "Honorarium",
+        "amount": 6875,
+        "notes": ""
+      },
+      {
+        "category": "Band Support",
+        "detail": "Office and other",
+        "amount": 11023,
+        "notes": ""
+      },
+      {
+        "category": "Band Support",
+        "detail": "Professional fees",
+        "amount": 19840,
+        "notes": ""
+      },
+      {
+        "category": "Band Support",
+        "detail": "Repairs and maintenance",
+        "amount": 280,
+        "notes": ""
+      },
+      {
+        "category": "Band Support",
+        "detail": "Telephone",
+        "amount": 7315,
+        "notes": ""
+      },
+      {
+        "category": "Band Support",
+        "detail": "Travel",
+        "amount": 7041,
+        "notes": ""
+      },
+      {
+        "category": "Band Support",
+        "detail": "Wages and benefits",
+        "amount": 25065,
+        "notes": ""
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Equipment purchases",
+        "amount": 612,
+        "notes": ""
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Garbage disposal",
+        "amount": 6964,
+        "notes": ""
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Insurance",
+        "amount": 790,
+        "notes": ""
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Repairs and maintenance",
+        "amount": 2322,
+        "notes": ""
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Travel",
+        "amount": 470,
+        "notes": ""
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Utilities",
+        "amount": 385,
+        "notes": ""
+      },
+      {
+        "category": "Operations and Maintenance",
+        "detail": "Wages and benefits",
+        "amount": 635,
+        "notes": ""
+      },
+      {
+        "category": "Education",
+        "detail": "Elementary and Secondary - Administration",
+        "amount": 400,
+        "notes": ""
+      },
+      {
+        "category": "Education",
+        "detail": "Post-Secondary - Tuition and allowances",
+        "amount": 7378,
+        "notes": ""
+      },
+      {
+        "category": "Economic Development",
+        "detail": "Administration",
+        "amount": 6859,
+        "notes": ""
+      },
+      {
+        "category": "Indian Management Development",
+        "detail": "Contract services",
+        "amount": 380,
+        "notes": ""
+      },
+      {
+        "category": "Indian Registry Administration",
+        "detail": "Program expenditures",
+        "amount": 200,
+        "notes": ""
+      },
+      {
+        "category": "Work Crew",
+        "detail": "Cultural craft",
+        "amount": 3107,
+        "notes": ""
+      },
+      {
+        "category": "Health and Welfare",
+        "detail": "Patient travel",
+        "amount": 2879,
+        "notes": ""
+      },
+      {
+        "category": "Health and Welfare",
+        "detail": "Community health representative - travel",
+        "amount": 2557,
+        "notes": ""
+      },
+      {
+        "category": "Health and Welfare",
+        "detail": "National native alcohol and drug abuse program",
+        "amount": 1179,
+        "notes": ""
+      },
+      {
+        "category": "Health and Welfare",
+        "detail": "Wages and benefits - community health representative",
+        "amount": 12264,
+        "notes": ""
+      },
+      {
+        "category": "Human Resources Development Canada",
+        "detail": "Employment services",
+        "amount": 457,
+        "notes": ""
+      },
+      {
+        "category": "Human Resources Development Canada",
+        "detail": "Travel",
+        "amount": 150,
+        "notes": ""
+      },
+      {
+        "category": "Family Violence",
+        "detail": "Program expenditures",
+        "amount": 200,
+        "notes": ""
+      },
+      {
+        "category": "Training Education Support Initiative",
+        "detail": "Program expenditures",
+        "amount": 885,
+        "notes": ""
+      },
+      {
+        "category": "National Child Benefit Reinvestment",
+        "detail": "Program expenditures",
+        "amount": 4948,
+        "notes": ""
+      },
+      {
+        "category": "Basic Needs",
+        "detail": "Program expenditures",
+        "amount": 77661,
+        "notes": ""
+      },
+      {
+        "category": "Guardian Financial Assistance",
+        "detail": "Program expenditures",
+        "amount": 17064,
+        "notes": ""
+      },
+      {
+        "category": "Special Needs",
+        "detail": "Program expenditures",
+        "amount": 4544,
+        "notes": ""
+      },
+      {
+        "category": "In-Home Care",
+        "detail": "Program expenditures",
+        "amount": 4635,
+        "notes": ""
+      },
+      {
+        "category": "Service Delivery",
+        "detail": "Program expenditures",
+        "amount": 1800,
+        "notes": ""
+      },
+      {
+        "category": "Elder's Committee",
+        "detail": "Honorarium",
+        "amount": 7300,
+        "notes": ""
+      },
+      {
+        "category": "Pipeline Project",
+        "detail": "Honorarium",
+        "amount": 77528,
+        "notes": ""
+      },
+      {
+        "category": "Pipeline Project",
+        "detail": "Professional fees",
+        "amount": 1473,
+        "notes": ""
+      },
+      {
+        "category": "Pipeline Project",
+        "detail": "Travel",
+        "amount": 1626,
+        "notes": ""
+      },
+      {
+        "category": "Pipeline Project",
+        "detail": "Bank charges",
+        "amount": 20,
+        "notes": ""
+      },
+      {
+        "category": "Investment Fund",
+        "detail": "Funerals and other member benefits",
+        "amount": 287,
+        "notes": ""
+      },
+      {
+        "category": "Social Housing Fund",
+        "detail": "Insurance",
+        "amount": 2250,
+        "notes": ""
+      },
+      {
+        "category": "Social Housing Fund",
+        "detail": "Mortgage interest",
+        "amount": 13520,
+        "notes": ""
+      },
+      {
+        "category": "Social Housing Fund",
+        "detail": "Mortgage principal repayments",
+        "amount": 6594,
+        "notes": ""
+      },
+      {
+        "category": "Social Housing Fund",
+        "detail": "Appropriations to Replacement Reserve Fund",
+        "amount": 4250,
+        "notes": ""
+      }
+    ],
+    "balanceSheet": {
+      "currentAssets": 182233,
+      "capitalAssets": 535840,
+      "totalAssets": 720481,
+      "currentLiabilities": 126286,
+      "longTermLiabilities": 283820,
+      "totalLiabilities": 410106,
+      "accumulatedSurplus": 310375,
+      "netAssetsOrEquity": 310375
+    },
+    "declaredTotal": -229115,
+    "computedTotal": 368210,
+    "computedExpenditureTotal": 868546,
+    "surplusDeficit": -1093411,
+    "notes": "Total revenue per Summary Statement of Revenue and Expenditures was $(229,115) (net of negative operating fund revenue of $(198,196)), with total expenditures of $864,296, yielding an excess of expenditures over revenue of $(1,093,411). Band number 729 per federal FN Profiles. No Schedule of Federal Funding page present; transfers derived from individual program schedules. Pipeline project revenue was from non-federal sources (Pacific Trail Pipelines, Pembina Pipeline Corporation, Province of BC). Forestry revenue was from BC Ministry of Forests."
+  }
+}
