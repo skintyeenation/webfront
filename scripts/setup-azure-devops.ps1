@@ -32,17 +32,41 @@
 #
 # Usage:
 #   pwsh scripts/setup-azure-devops.ps1
+#   pwsh scripts/setup-azure-devops.ps1 -Project myproj
+#   pwsh scripts/setup-azure-devops.ps1 -Org foo -Project bar -Repo baz
 #   $env:ORG='skintyeenation'; pwsh scripts/setup-azure-devops.ps1
 #   pwsh scripts/setup-azure-devops.ps1 -DryRun
+#   pwsh scripts/setup-azure-devops.ps1 -Yes      # skip "Enter to accept" prompts
+#
+# Three ways to provide org / project / repo names — first one that
+# matches wins:
+#   1. CLI parameter (-Org, -Project, -Repo)            — wins
+#   2. Environment variable (ORG / PROJECT / REPO)
+#   3. Interactive prompt with defaults pre-filled       — last resort
 
 param(
   [string]$Org = ($env:ORG ?? 'skintyeenation'),
   [string]$Project = ($env:PROJECT ?? 'webfront'),
   [string]$Repo = ($env:REPO ?? 'webfront'),
-  [switch]$DryRun
+  [switch]$DryRun,
+  [Alias('Y', 'NoPrompt')]
+  [switch]$Yes
 )
 
 $ErrorActionPreference = 'Stop'
+
+# Interactive prompts — only if running attached to a console and the user
+# didn't pass -Yes. Pressing Enter accepts the default.
+if (-not $Yes -and [Environment]::UserInteractive -and $Host.UI.RawUI) {
+  Write-Host "▸ confirming names (press Enter to accept default in brackets):"
+  $reply = Read-Host -Prompt ("    Organization name [{0}]" -f $Org)
+  if ($reply) { $Org = $reply }
+  $reply = Read-Host -Prompt ("    Project name      [{0}]" -f $Project)
+  if ($reply) { $Project = $reply }
+  $reply = Read-Host -Prompt ("    Repo name         [{0}]" -f $Repo)
+  if ($reply) { $Repo = $reply }
+  Write-Host ""
+}
 
 $OrgUrl = "https://dev.azure.com/$Org"
 

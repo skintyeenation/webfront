@@ -35,17 +35,64 @@
 #
 # Usage:
 #   bash scripts/setup-azure-devops.sh
+#   bash scripts/setup-azure-devops.sh --project myproj
+#   bash scripts/setup-azure-devops.sh --org foo --project bar --repo baz
 #   ORG=skintyeenation PROJECT=webfront REPO=webfront bash scripts/setup-azure-devops.sh
 #   bash scripts/setup-azure-devops.sh --dry-run     # print actions, no API calls
+#   bash scripts/setup-azure-devops.sh --yes         # skip the interactive
+#                                                   #   "press Enter to accept" prompts
+#                                                   #   (use the defaults silently)
+#
+# Three ways to provide org / project / repo names — first one that matches
+# wins:
+#   1. CLI flag (--org, --project, --repo)        — wins
+#   2. Environment variable (ORG / PROJECT / REPO)
+#   3. Interactive prompt with defaults pre-filled
+#                                                  — last resort
 
 set -euo pipefail
 
 ORG="${ORG:-skintyeenation}"
 PROJECT="${PROJECT:-webfront}"
 REPO="${REPO:-webfront}"
-ORG_URL="https://dev.azure.com/${ORG}"
 DRY_RUN=0
-if [ "${1:-}" = "--dry-run" ]; then DRY_RUN=1; fi
+SKIP_PROMPTS=0
+
+# CLI arg parsing.
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --org)      ORG="$2"; shift 2 ;;
+    --project)  PROJECT="$2"; shift 2 ;;
+    --repo)     REPO="$2"; shift 2 ;;
+    --dry-run)  DRY_RUN=1; shift ;;
+    -y|--yes|--no-prompt) SKIP_PROMPTS=1; shift ;;
+    -h|--help)
+      sed -n '/^# Usage:/,/^$/p' "$0" | sed 's/^# \{0,1\}//'
+      exit 0 ;;
+    *)
+      echo "✗ unknown argument: $1" >&2
+      echo "  see --help" >&2
+      exit 1 ;;
+  esac
+done
+
+# Interactive prompts — only if stdin is a TTY and the user didn't pass --yes.
+# Pressing Enter accepts the default (the current value, set above).
+if [ "$SKIP_PROMPTS" = "0" ] && [ -t 0 ]; then
+  echo "▸ confirming names (press Enter to accept default in brackets):"
+  printf "    Organization name [%s]: " "$ORG"
+  read -r ans < /dev/tty
+  ORG="${ans:-$ORG}"
+  printf "    Project name      [%s]: " "$PROJECT"
+  read -r ans < /dev/tty
+  PROJECT="${ans:-$PROJECT}"
+  printf "    Repo name         [%s]: " "$REPO"
+  read -r ans < /dev/tty
+  REPO="${ans:-$REPO}"
+  echo
+fi
+
+ORG_URL="https://dev.azure.com/${ORG}"
 
 # ----- helpers ---------------------------------------------------------------
 
