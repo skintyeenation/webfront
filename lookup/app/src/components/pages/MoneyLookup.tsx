@@ -92,7 +92,10 @@ export default function MoneyLookup({ navigation }: any) {
     });
   };
 
-  const canRun = keyword.trim().length > 0 && selected.size > 0;
+  // Funding sources all handle an empty keyword gracefully — they return their
+  // default browse view (latest tenders, all available grant programs, recent
+  // high-dollar transfers, etc.). So Run is gated only by source selection.
+  const canRun = selected.size > 0;
 
   const run = async () => {
     const options = {
@@ -164,15 +167,20 @@ export default function MoneyLookup({ navigation }: any) {
 
       <TextInput
         mode="outlined"
-        label="Keyword"
+        label="Keyword (optional)"
         value={keyword}
         onChangeText={setKeyword}
-        style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}
+        style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 4 }}
         textColor={theme.colors.text}
         outlineColor={theme.colors.defaultBorder}
         activeOutlineColor={theme.colors.accent}
-        placeholder='e.g. "First Nation infrastructure"'
+        placeholder='e.g. "First Nation infrastructure" — leave blank to browse'
       />
+      <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginBottom: 12, marginLeft: 4 }}>
+        {keyword.trim()
+          ? `Searching for "${keyword.trim()}"`
+          : 'Leave blank to browse the default view of each source (latest tenders, all available grant programs, top transfers).'}
+      </Text>
 
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <TextInput

@@ -126,7 +126,13 @@ export default function Results({ route, navigation }: any) {
     <PageContainer>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <View style={{ flex: 1 }}>
-          <Text style={{ color: theme.colors.primary, fontSize: 18, fontWeight: '700' }}>{job.options.target}</Text>
+          <Text style={{ color: theme.colors.primary, fontSize: 18, fontWeight: '700' }}>
+            {job.options.target ? job.options.target : (
+              <Text style={{ fontStyle: 'italic', color: theme.colors.textDarker }}>
+                Browsing (no keyword)
+              </Text>
+            )}
+          </Text>
           <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginBottom: 18 }}>
             {job.options.mode} · {job.options.sourceIds.length} sources · {job.options.indigenousOnly ? 'Indigenous-only' : 'all'}
           </Text>
