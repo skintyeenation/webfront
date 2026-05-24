@@ -18,6 +18,7 @@ proof-of-concept built for the proposal.
 | &nbsp;&nbsp;&nbsp;&nbsp;[Layout](#layout) | Repo / workspace structure |
 | **Infrastructure & people** | |
 | &nbsp;&nbsp;&nbsp;&nbsp;[Microsoft 365 integration](#microsoft-365-integration) | Entra ID, shared mailboxes, SharePoint docs auto-publish |
+| &nbsp;&nbsp;&nbsp;&nbsp;[Source control & CI/CD](#source-control--cicd) | Azure DevOps primary, GitHub mirror (per ADR-9) + the SharePoint publisher Pipeline |
 | &nbsp;&nbsp;&nbsp;&nbsp;[Staff onboarding](#staff-onboarding) | New-staff sequence: Outlook (with mandatory password change) → 1Password → shared mailboxes → band apps |
 | &nbsp;&nbsp;&nbsp;&nbsp;[Password management](#password-management) | Vaults, groups, recovery (1Password Business) |
 | &nbsp;&nbsp;&nbsp;&nbsp;[Domains (GoDaddy)](#domains-godaddy) | `skintyee.ca` registrar + Azure DNS |
@@ -179,6 +180,34 @@ Related email services: **[ImprovMX](docs/improvmx/README.md)** (forwarding
 aliases / secondary domains into M365) and **[Mailgun](docs/mailgun/README.md)**
 (transactional / app-sent email).
 
+## Source control & CI/CD
+
+Source code lives on **Azure DevOps** as the canonical Git host
+(`dev.azure.com/skintyeenation`) with GitHub as a read-only mirror for
+public discoverability. CI/CD runs on **Azure Pipelines** for
+consistency with the rest of the Microsoft footprint. Per
+[ADR-9](docs/architecture-decisions.md#adr-9--source-control-azure-devops-as-primary-github-as-mirror).
+
+🛠️ **[Azure DevOps overview →](docs/devops/README.md)** — why Azure
+primary, what's on GitHub, the four runbooks linked from below.
+
+⚙️ **[One-time setup walkthrough →](docs/devops/azure-devops-setup.md)**
+— `scripts/setup-azure-devops.sh` (bash) / `.ps1` (PowerShell mirror)
+creates the `skintyeenation` org, the `webfront` project, the repo,
+pushes the existing Git history, and sets branch policy on `master`.
+
+🔁 **[GitHub mirror push →](docs/devops/azure-primary-github-mirror.md)**
+— how every push to Azure auto-mirrors to GitHub in ~60s via a small
+Azure Pipeline using a repo-scoped deploy key.
+
+📦 **[Migrating CI workflows →](docs/devops/migrate-ci-workflows.md)**
+— porting the SharePoint docs publisher from `.github/workflows/`
+to `azure-pipelines/` with **federated credentials** (no more
+24-month `AZURE_CLIENT_SECRET` rotation).
+
+🤖 **[Self-hosted agents →](docs/devops/agents.md)** — when to bring
+them in (TL;DR: not yet — hosted free-tier minutes cover us).
+
 ## Staff onboarding
 
 The end-user-facing onboarding sequence for new Skin Tyee staff. Companion to
@@ -268,7 +297,12 @@ tax-deductible operating expenses under Canadian law.
 - [`docs/365/entra-id.md`](docs/365/entra-id.md) — Entra ID, the admin account, Entra Connect, SSO + device/server access
 - [`docs/365/shared-mailboxes.md`](docs/365/shared-mailboxes.md) — Microsoft 365 shared mailbox setup + adding users
 - [`docs/365/pricing.md`](docs/365/pricing.md) — Microsoft 365 per-user pricing, tax deductibility, offboarding
-- [`docs/365/sharepoint-docs-publish.md`](docs/365/sharepoint-docs-publish.md) — auto-publish `docs/` to SharePoint via GitHub Actions + Microsoft Graph (Entra ID app + `Sites.Selected`), 9-step one-time Azure setup
+- [`docs/365/sharepoint-docs-publish.md`](docs/365/sharepoint-docs-publish.md) — auto-publish `docs/` to SharePoint via GitHub Actions + Microsoft Graph (Entra ID app + `Sites.Selected`), 9-step one-time Azure setup (being migrated to Azure Pipelines — see `devops/migrate-ci-workflows.md`)
+- [`docs/devops/README.md`](docs/devops/README.md) — Azure DevOps overview (primary git host + CI/CD)
+- [`docs/devops/azure-devops-setup.md`](docs/devops/azure-devops-setup.md) — create the `skintyeenation` org + `webfront` project + repo; ships `scripts/setup-azure-devops.sh` + `.ps1`
+- [`docs/devops/azure-primary-github-mirror.md`](docs/devops/azure-primary-github-mirror.md) — wire the Azure-to-GitHub read-only mirror push
+- [`docs/devops/migrate-ci-workflows.md`](docs/devops/migrate-ci-workflows.md) — port the SharePoint publisher from GitHub Actions to Azure Pipelines with federated credentials
+- [`docs/devops/agents.md`](docs/devops/agents.md) — self-hosted ADO agent guidance
 - [`docs/onboarding/README.md`](docs/onboarding/README.md) — new-staff onboarding sequence (M365 + 1Password)
 - [`docs/onboarding/outlook-skintyee-ca.md`](docs/onboarding/outlook-skintyee-ca.md) — activate `firstname.lastname@skintyee.ca`, register MFA, add to Outlook on macOS / Windows / iOS / Android / web, shared-mailbox auto-mapping
 - [`docs/onboarding/1password.md`](docs/onboarding/1password.md) — accept invite, set Master Password + save Emergency Kit, install desktop + browser-extension + mobile apps, migrate browser passwords, join shared vaults
