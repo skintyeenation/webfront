@@ -241,11 +241,106 @@ If you've lost the Emergency Kit AND forgotten the Master Password:
 
 ---
 
+## Step 6 — Connect 1Password to Entra ID (Unlock with SSO)
+
+After everything above is working with your Master Password, you can
+switch to **Unlock with SSO** — sign in to 1Password using your
+`@skintyee.ca` Entra ID account (the same one Outlook uses), with MFA
+through the Microsoft Authenticator you set up in
+[outlook-skintyee-ca.md](./outlook-skintyee-ca.md). Once enabled, you
+no longer type your Master Password to unlock — biometrics
+(Touch ID / Face ID / Windows Hello) plus the Entra ID session do the
+work.
+
+**You only need to do Step 6 if the admin has already enabled the
+Entra ID SSO connection at the org level.** Ask them — if it's set
+up, your 1Password account profile will show a "Sign in with SSO"
+toggle on **My Profile → Sign-in & Recovery**. If you don't see it,
+skip Step 6; the admin work is documented in
+[`docs/1password/setup.md`](../1password/setup.md#entra-id-sso) and
+they need to finish it first.
+
+### What changes when you turn on Unlock with SSO
+
+| Before | After |
+|---|---|
+| Type Master Password every time the vault locks | Sign in once via Entra ID; biometrics unlock thereafter |
+| Lose access if you forget Master Password (need Emergency Kit) | Lose access if you can't sign in to Entra ID — the admin can reset Entra; Master Password is no longer the recovery path |
+| Secret Key required on every new device install | Still required on every new device install (zero-knowledge architecture is unchanged) |
+| One credential to roll if compromised | Roll your Entra ID password; 1Password unlock follows automatically |
+
+> ⚠️ **You can't undo SSO easily.** Once you enable Unlock with SSO,
+> switching back to a Master Password account requires the admin to
+> reset your account (you lose Private vault contents in the process,
+> same as the recovery path on the previous section). **Make sure you
+> have the Emergency Kit saved before flipping the switch.**
+
+### Enabling Unlock with SSO on your account
+
+1. Open <https://skintyee.1password.ca/> in a browser (signed in with
+   your Master Password as usual).
+2. **My Profile → Sign-in & Recovery → Sign in with SSO** → click
+   **Get started**.
+3. The page redirects to **login.microsoftonline.com**. Sign in with
+   your `firstname.lastname@skintyee.ca` Entra ID account + approve
+   the MFA prompt.
+4. Microsoft asks **"This app needs the following permissions"** —
+   for the 1Password app the scopes are `openid`, `profile`,
+   `email`, and `User.Read`. Approve.
+5. You're redirected back to 1Password. The screen now reads
+   **"Sign in with SSO is enabled."**
+6. Sign out of all your 1Password apps (desktop, mobile, browser
+   extension) and sign back in. The sign-in flow now starts with
+   **"Sign in with SSO"** — click that, get bounced to Entra ID,
+   and you're in.
+7. Re-enable biometrics on each device — they were tied to your
+   old Master Password and need to be re-paired with the SSO
+   session. Mac: **1Password → Settings → Security → Touch ID**.
+   Windows: **Settings → Security → Windows Hello**.
+
+### Day-to-day after SSO is on
+
+- **Desktop:** the 1Password app shows your `@skintyee.ca` email
+  on the lock screen. Click **Sign in with SSO** → quick Entra ID
+  redirect (no password if your Entra session is still live) →
+  biometrics. Total: 2 seconds.
+- **Mobile:** same flow, biometrics after the first SSO unlock per
+  session.
+- **Browser extension:** signs in automatically while the desktop app
+  is unlocked, same as before.
+- **The Secret Key is still required when installing on a NEW
+  device.** Keep the Emergency Kit safe.
+
+### Troubleshooting
+
+**"Sign in with SSO" toggle isn't visible**
+- The org-level integration isn't enabled. Ask the admin to follow
+  the steps in [`docs/1password/setup.md → Entra ID SSO`](../1password/setup.md#entra-id-sso).
+
+**Entra ID login loops back to the SSO selection screen**
+- Usually means your Entra ID account is in a state where MFA wasn't
+  satisfied. Sign in to <https://outlook.office.com> first to clear
+  the MFA challenge, then retry 1Password.
+
+**"You don't have access to this resource"**
+- The admin hasn't assigned you to the 1Password Enterprise app in
+  Entra ID. They need to add you to the **1Password Users** group in
+  Entra (or assign you directly to the app in Enterprise applications
+  → 1Password → Users and groups).
+
+**Biometrics no longer work after enabling SSO**
+- Re-pair as in step 7 above. The OS keystore links biometric unlock
+  to a specific 1Password account session; flipping to SSO created a
+  new session.
+
+---
+
 ## What's next
 
-Onboarding is mostly done after these two steps. Anything else (the
-Skin Tyee app, shared mailbox access, WordPress editor, etc.) is
-per-role — your admin will point you at the right doc.
+Onboarding is mostly done after these steps. Anything else (the Skin
+Tyee app, shared mailbox access, WordPress editor, etc.) is per-role
+— your admin will point you at the right doc.
 
 **Admin-side companion** (you don't need to read this, but it's
-where the admin manages your account): [`docs/1password/setup.md`](../1password/setup.md).
+where the admin manages your account + the Entra ID SSO integration):
+[`docs/1password/setup.md`](../1password/setup.md).

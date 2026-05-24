@@ -71,6 +71,11 @@ Entra ID is the **SSO provider** — one login (with MFA) for:
   roles / groups map to the app's `member` / `staff` / `admin` roles.
 - **Other SaaS** (e.g., 1Password, the ERP) can be connected to Entra SSO so
   staff have **one identity + MFA** across tools instead of separate passwords.
+  The **1Password integration is documented** in
+  [`../1password/setup.md → Entra ID SSO`](../1password/setup.md#entra-id-sso)
+  (admin-side, ~60 min one-time setup) and
+  [`../onboarding/1password.md → Step 6`](../onboarding/1password.md#step-6--connect-1password-to-entra-id-unlock-with-sso)
+  (end-user side, switching an existing account to Unlock with SSO).
 
 ## Workstation & server access via Entra ID
 
