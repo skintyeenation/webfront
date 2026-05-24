@@ -191,7 +191,18 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === 'POST' && path === '/api/run') {
       const body = JSON.parse((await readBody(req)) || '{}') as RunBody;
-      if (!body.mode || !body.target) return json(res, 400, { error: 'mode + target required' });
+      if (!body.mode) return json(res, 400, { error: 'mode required' });
+      // For business / nations modes a target name is required (the search is
+      // for-a-specific-thing). Funding mode's sources gracefully handle an
+      // empty query — they return their default browse view (latest tenders,
+      // all available grant programs, top transfers, etc.) — so we accept a
+      // blank target there.
+      if (body.mode !== 'money' && !body.target) {
+        return json(res, 400, { error: `${body.mode} mode requires a target` });
+      }
+      // Normalise empty target to empty string so downstream code doesn't
+      // have to handle `undefined`.
+      if (!body.target) body.target = '';
       const sourceIds = body.sourceIds?.length
         ? body.sourceIds
         : defaultSelected(body.mode, !!body.indigenousOnly);
