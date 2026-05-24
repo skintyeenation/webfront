@@ -36,14 +36,18 @@ export const fnProfiles: Source = {
         await page.waitForSelector('#plcMain_txtName', { timeout: 10000 });
         // The form's own hint reads: "use full or partial name. For a partial
         // name search, enter the '%' before the text." So prepend a leading
-        // `%` to make every query a substring match.
-        const term = q.startsWith('%') ? q : `%${q}`;
+        // `%` to make every query a substring match — an empty query becomes
+        // just '%' which is "everything", giving us the full region listing.
+        const trimmed = q.trim();
+        const term = trimmed ? (trimmed.startsWith('%') ? trimmed : `%${trimmed}`) : '%';
         await page.type('#plcMain_txtName', term);
         // Optional region narrow (e.g. BC = '9'). plcMain_ddlRegion is the
         // ISC regional office dropdown.
         if (opts.regionId) {
           await page.select('#plcMain_ddlRegion', opts.regionId).catch(() => {});
         }
+        // (ddlHitsPerPage lives on the FNListGrid response page, not here —
+        // we paginate by clicking Next on the results page below.)
         // The form has SIX submit buttons (btnFirstNation / btnTribalCouncil /
         // btnReserve / btnPoliticalOrganization / btnFNFTA / btnSearch); the
         // first input[type=submit] is the category-nav, NOT the search. The
@@ -55,7 +59,22 @@ export const fnProfiles: Source = {
         ]);
         // The search posts back to FNListGrid.aspx with a table of matches.
         await new Promise((r) => setTimeout(r, 1000));
-        return page.evaluate(() => {
+        // Bump page size to the results-page max (100). The dropdown is an
+        // ASP.NET AutoPostBack — selecting + dispatching 'change' triggers
+        // a server postback that re-renders with the new page size.
+        try {
+          await page.select('#plcMain_ddlHitsPerPage', '100');
+          await Promise.all([
+            page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 }).catch(() => {}),
+            page.evaluate(() => {
+              const el = document.querySelector('#plcMain_ddlHitsPerPage');
+              el?.dispatchEvent(new Event('change', { bubbles: true }));
+            }),
+          ]);
+        } catch {
+          /* dropdown not present — single-page result, fine */
+        }
+        const collectPage = () => page.evaluate(() => {
           // The result table contains pairs of <a> per Nation: one wraps the
           // band number, one wraps the Nation name. Dedupe by BAND_NUMBER and
           // prefer the row whose anchor text is non-numeric (the name).
@@ -99,8 +118,38 @@ export const fnProfiles: Source = {
               },
             });
           }
-          return rows.slice(0, 25);
+          return rows.slice(0, 500);
         });
+        // Accumulate across pagination. Look for an enabled "Next" link in
+        // the FNListGrid pager; click it; re-collect. Cap at 10 pages
+        // (1,000 rows) so a runaway response can't lock the worker.
+        const all = new Map<string, any>();
+        for (let p2 = 0; p2 < 10; p2 += 1) {
+          const batch = await collectPage();
+          for (const r of batch) {
+            const key = String(r.fields?.band_number || r.title);
+            if (!all.has(key)) all.set(key, r);
+          }
+          const hasNext = await page.evaluate(() => {
+            // The pager renders enabled-Next as a clickable <a>; disabled as
+            // a non-clickable span. Find an <a> whose text is "Next" or "»".
+            const anchors = Array.from(document.querySelectorAll('a, button'));
+            const next = anchors.find((a) =>
+              /^next\s*»?$|^»$/i.test((a.textContent || '').trim()) ||
+              /pageNext|btnNext/i.test(a.id || ''),
+            ) as HTMLElement | undefined;
+            if (!next) return false;
+            const disabled = (next as any).disabled || (next.getAttribute('aria-disabled') === 'true');
+            if (disabled) return false;
+            next.scrollIntoView({ block: 'center' });
+            (next as HTMLAnchorElement).click();
+            return true;
+          });
+          if (!hasNext) break;
+          await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 }).catch(() => {});
+          await new Promise((r) => setTimeout(r, 500));
+        }
+        return [...all.values()];
       });
       const sourceItems: SourceItem[] = items.map((it) => ({
         title: it.title,
