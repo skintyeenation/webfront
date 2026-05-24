@@ -3,7 +3,7 @@ import { Linking, Platform, Pressable, Text, View } from 'react-native';
 import { ActivityIndicator, Button, Card, Chip, Divider, IconButton, Menu, Snackbar } from 'react-native-paper';
 import { PageContainer, ReserveMap } from 'lookup/components/layout';
 import { theme } from 'lookup/styles';
-import { getNationDetail, retryFundingOcr, type BandDetail } from 'lookup/services/lookupApi';
+import { getNationDetail, getQueueSnapshot, retryFundingOcr, type BandDetail, type QueueSnapshot } from 'lookup/services/lookupApi';
 
 type Tab = 'general' | 'governance' | 'reserves' | 'population' | 'funds' | 'fnfta';
 
@@ -137,6 +137,9 @@ export default function NationDetail({ route, navigation }: any) {
   // Transient toast at the bottom of the screen — used to confirm retries
   // (otherwise the user clicks and nothing visible changes for ~15s).
   const [toast, setToast] = useState<string>('');
+  // Worker-queue snapshot for the OCR progress banner. Polled every 5s
+  // while this band has pending/running OCR jobs.
+  const [queue, setQueue] = useState<QueueSnapshot | undefined>();
   // Year selector on the Funding tab. 'all' (default) shows the aggregate
   // panels; a specific fiscal year shows just that year's transfers /
   // expenditures / balance sheet / surplus-deficit.
@@ -171,15 +174,24 @@ export default function NationDetail({ route, navigation }: any) {
 
   // While any PDF OCR is pending / running in the background worker, poll
   // the band-detail endpoint every 15s so the chart populates without a
-  // manual refresh.
+  // manual refresh; and poll the queue every 5s so the progress banner
+  // updates more responsively than the heavier band fetch.
   useEffect(() => {
     if (!detail?.funds?.extracted) return;
     const pending = detail.funds.extracted.some(
       (e) => e.extractStatus === 'pending' || e.extractStatus === 'running',
     );
     if (!pending) return;
-    const t = setInterval(() => void load(false), 15000);
-    return () => clearInterval(t);
+    const bandT = setInterval(() => void load(false), 15000);
+    const queueT = setInterval(() => {
+      getQueueSnapshot().then(setQueue).catch(() => {});
+    }, 5000);
+    // Fire the queue once immediately too.
+    getQueueSnapshot().then(setQueue).catch(() => {});
+    return () => {
+      clearInterval(bandT);
+      clearInterval(queueT);
+    };
   }, [detail]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const title = detail?.general?.officialName || `Band ${bandNumber}`;

@@ -246,6 +246,29 @@ export async function listNations(regionId = '9', refresh = false): Promise<Nati
   return res.json();
 }
 
+export interface QueueJob {
+  id: string;
+  type: string;
+  key: string;
+  status: 'pending' | 'running' | 'done' | 'failed';
+  enqueuedAt: string;
+  claimedAt?: string;
+  completedAt?: string;
+  attempts: number;
+  error?: string;
+}
+
+export interface QueueSnapshot {
+  counts: { pending: number; running: number; done: number; failed: number };
+  items: QueueJob[];
+}
+
+export async function getQueueSnapshot(): Promise<QueueSnapshot> {
+  const res = await fetch(`${API_BASE}/api/queue`);
+  if (!res.ok) throw new Error(`GET /api/queue → ${res.status}`);
+  return res.json();
+}
+
 export async function retryFundingOcr(bandNumber: string, fiscalYear: string): Promise<void> {
   const res = await fetch(
     `${API_BASE}/api/nations/${bandNumber}/funds/${encodeURIComponent(fiscalYear)}/retry`,
