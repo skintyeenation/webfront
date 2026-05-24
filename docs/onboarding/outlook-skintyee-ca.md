@@ -5,44 +5,61 @@ Your work email — `firstname.lastname@skintyee.ca` — runs on
 through activating the account and adding it to Outlook on every
 device you'll use.
 
-> **Before you start** — the admin should have sent you two pieces of
-> info:
+> **Before you start** — the admin should have sent you the following
+> by email (usually to your personal email address you gave them):
 >
-> 1. An email to your **personal** email address inviting you to
->    "Microsoft 365 Business Standard for Skin Tyee First Nation".
-> 2. A **temporary password** (usually in a separate text/SMS — never
->    in the same email as the username).
+> 1. Your new work username — `firstname.lastname@skintyee.ca`.
+> 2. A **temporary password** for the account.
 >
-> If you don't have both, message the admin before going further.
+> ⚠️ **The temporary password expires the first time you sign in —
+> you'll be forced to set a new one immediately.** That's by design.
+> The temp password is a one-time bootstrap; the password you set on
+> first sign-in is what you'll use from then on (and what goes into
+> 1Password in Step 2 of onboarding).
+>
+> If either piece of info is missing, message the admin before going
+> further. Don't try to share the temp password through any other
+> channel — it's already expired-on-first-use, so it has no value to
+> anyone else.
 
 ---
 
 ## Step 1 — First sign-in (in your web browser, takes ~5 min)
 
-This step activates your account, forces you to set a new password,
-and prompts you to register a phone number for password-reset and
-multi-factor authentication.
+This step activates your account, **forces you to change the temp
+password to one of your own**, and prompts you to register MFA. Do
+this in a web browser (not the Outlook app) — the password-change
+prompt is easier to deal with there.
 
 1. Open <https://outlook.office.com> in any browser.
 2. Enter your full work email: `firstname.lastname@skintyee.ca`.
-3. Enter the **temporary password** you were sent.
-4. You'll be told the password is expired and need to set a new one:
-   - **Current password:** the temporary one.
+3. Enter the **temporary password** from the admin's email.
+4. **You'll be told the password is expired — set a new one
+   immediately.** This is mandatory; you can't skip it.
+   - **Current password:** the temporary one from the email.
    - **New password:** at least 14 characters, mixed case + number +
-     symbol. **Don't reuse a personal password.** Put this in 1Password
-     once you've set up step 2 — for now write it on paper.
+     symbol. **Don't reuse a personal password.** **Don't reuse the
+     temp password.**
+   - Write the new password down on paper for now — you'll save it
+     to 1Password as the first thing you do in [Step 2 of
+     onboarding](./1password.md). Until 1Password is installed, paper
+     is the safe spot.
 5. Microsoft will prompt **"More information required"** — set up
    authenticator now. Two options:
    - **Microsoft Authenticator app** (recommended) — install on your
      phone from the App Store / Play Store, then scan the QR code
-     shown on the screen.
+     shown on the screen. Future sign-ins will push a "approve?"
+     notification to the app.
    - **Phone (text/call)** — enter your mobile number; Microsoft will
-     text you a 6-digit code.
+     text you a 6-digit code. Slower than the Authenticator app and
+     uses up SMS rather than data, so prefer the app if possible.
 6. You should land in Outlook on the Web. Send yourself a test email
    from your personal address to confirm it arrives.
 
-You're now signed in to **all of M365** with that one password — Teams,
-OneDrive, SharePoint, the Skin Tyee app (once it's wired up).
+> 🎉 **Done with Step 1.** You're now signed in to **all of M365**
+> with that one password you just set — Teams, OneDrive, SharePoint,
+> the Skin Tyee app (once it's wired up). The temp password is
+> dead; don't keep a copy of it anywhere.
 
 ---
 

@@ -5,12 +5,23 @@
 logins, software keys) lives in 1Password and nowhere else — not in
 your browser's saved passwords, not in a notebook, not in a Notes app.
 
-> **Before you start** — the admin should have sent you two pieces of
-> info, in separate channels:
+> **Before you start** — complete
+> [Step 1 of onboarding (Outlook + @skintyee.ca activation)](./outlook-skintyee-ca.md)
+> first. You need to have:
 >
-> 1. A **1Password invite email** with a "Join your team" button.
->    Subject is usually "You've been invited to join Skin Tyee First
->    Nation on 1Password".
+> - Changed your **temp Microsoft 365 password** to one of your own
+>   (Step 1 forces this on first sign-in).
+> - The new M365 password written down on paper — you'll save it into
+>   1Password as the very first thing once you're set up here.
+> - A working `@skintyee.ca` inbox so you can receive the 1Password
+>   invite email (the admin sends it to your work address).
+>
+> Then the admin should have sent you two pieces of info, in separate
+> channels:
+>
+> 1. A **1Password invite email** to your `@skintyee.ca` inbox with a
+>    "Join your team" button. Subject is usually "You've been invited
+>    to join Skin Tyee First Nation on 1Password".
 > 2. A **Secret Key** — printed on paper, sealed in an envelope, or
 >    sent as a separately-delivered PDF. **Without this, you cannot
 >    sign in.** Don't email or text it. The admin should have given
@@ -23,19 +34,140 @@ your browser's saved passwords, not in a notebook, not in a Notes app.
 
 ## Why 1Password (and not the browser's "save password"?)
 
-- **Encrypted, not just stored.** Browser password vaults sit in your
-  user profile and are accessible to anyone who unlocks the laptop.
-  1Password uses your Master Password + Secret Key — even if a thief
-  has your laptop, they can't get into the vault.
+**1Password is a bank-grade product, not a hobbyist tool.** It's used
+by major Canadian and US banks for staff credential management,
+audited by independent security firms, and built on a **zero-knowledge
+architecture** that means even 1Password the company can't read your
+vault. Per their security white paper, "If 1Password's servers were
+fully compromised, an attacker would have access to your encrypted
+vault — but not the means to decrypt it." That's the bar we're
+choosing because the Nation handles sensitive band, member, and
+financial data; "saved in the browser" doesn't clear it.
+
+Concretely:
+
+- **Encrypted at rest with two factors you control.** Your **Master
+  Password** (something you know) and your **Secret Key** (something
+  you have — printed paper / sealed envelope / USB) are both needed
+  to decrypt. Browser password vaults, by contrast, sit in your user
+  profile and are accessible to anyone who unlocks the laptop. With
+  1Password, even if a thief has your laptop, they can't get into
+  the vault.
 - **Shared vaults.** The comms team can share the social-media logins
   via a vault without anyone ever knowing the actual password. When
   someone leaves, the admin removes them and they lose access
-  immediately. No password rotation drama.
+  immediately — no "rotate every password we ever told them" drama.
 - **Works on every device.** Same vault on your laptop, phone, tablet,
   and any browser you sign into.
 - **Audit trail.** The admin can see when a vault item was last used
   (not the password value — just the access timestamp). Catches
   unauthorized access.
+- **Used by people you'd expect to be careful.** Named on 1Password's
+  own customers page (<https://1password.com/customers>): **Reddit,
+  Associated Press, Intercom, Duke University, Oracle Red Bull
+  Racing, Canva, Asana, Elastic, BuzzFeed, JetBrains, ClickUp, Under
+  Armour, Drift,** and 20+ others spanning media, software, sport,
+  and higher-ed. SOC 2 Type II + ISO 27001 audits make it eligible
+  for regulated industries; 1Password's own marketing positions it
+  as the choice when "saved in the browser" isn't acceptable.
+
+### Security model + liability (for council / governance review)
+
+Reasonable question to ask before staff put band passwords into a
+third-party service: **what protects us, and what's 1Password on the
+hook for if they get breached?**
+
+#### What protects you, technically
+
+1. **Zero-knowledge architecture.** 1Password's servers store your
+   vault as an opaque encrypted blob. The decryption key is built
+   from your **Master Password** (you know) + your **Secret Key**
+   (on paper in your Emergency Kit). The Secret Key is *never sent*
+   to 1Password's servers — it's combined with your Master Password
+   on your device to derive the decryption key. **Even with full
+   access to 1Password's database**, an attacker would have
+   encrypted blobs and no key to decrypt them.
+   - Reference: <https://support.1password.com/secret-key-security/>
+   - Full security model: <https://1passwordstatic.com/files/security/1password-white-paper.pdf>
+2. **Items, vault names, *and URLs* are all encrypted.** This is the
+   detail that distinguishes 1Password from LastPass — the 2022
+   LastPass breach exposed which sites each user had accounts on
+   (URLs were unencrypted metadata), giving phishers a target list.
+   With 1Password, that metadata is encrypted too.
+3. **No single point of failure on 1Password's side.** The Secret Key
+   lives only on your devices and on your paper Emergency Kit. A
+   1Password employee, a court order on 1Password, or a state-actor
+   server takeover can't produce the Secret Key — it doesn't exist
+   in their infrastructure.
+4. **SOC 2 Type II + ISO 27001 certified.** Independent annual
+   audits of operational security (employee access, change
+   management, incident response). Reports available under NDA.
+   <https://1password.com/legal/trust>
+5. **Bug bounty + continuous pen-testing.** 1Password runs a
+   public bug bounty on Bugcrowd; pays out up to $1M for
+   architecture-breaking bugs.
+
+#### What 1Password is contractually liable for
+
+The straight answer: **1Password's contractual liability is capped at
+the fees you paid them in the prior 12 months.** That's standard
+B2B SaaS, and the Skin Tyee Business plan is in the low-hundreds-of-
+dollars-per-year range, so the dollar number is small. Source:
+1Password Business Master Services Agreement § Limitation of
+Liability — <https://1password.com/legal/terms-of-service>.
+
+This is **deliberately not the protection layer.** You're not relying
+on 1Password to write a recovery cheque if something goes wrong.
+You're relying on the architecture (above) to make the breach
+ineffective in the first place. Compare:
+
+- **LastPass 2022 breach:** vaults stolen, partially encrypted; URL
+  metadata leaked; LastPass paid out via a class-action settlement
+  but most users had to rotate every password they'd ever stored.
+- **1Password equivalent scenario:** encrypted blobs stolen, no
+  metadata leaked, Secret Keys never on 1Password's servers.
+  Affected users rotate the Master Password as a precaution; vault
+  contents stay safe because the encryption holds.
+
+The architecture is why we picked 1Password over alternatives, not
+the (limited) contract terms.
+
+#### What you should do to keep your own risk low
+
+1. **Keep your Master Password long and unique.** 14 characters
+   minimum; nothing you've used anywhere else.
+2. **Keep your Emergency Kit physically secure.** Paper copy in a
+   safe / fireproof drawer; not in your laptop bag.
+3. **Enable Unlock with SSO** (Step 6 below) once it's available —
+   moves your primary credential to Entra ID, where Microsoft adds
+   their own conditional-access and risk-detection layer on top.
+4. **Don't email or text the Secret Key, ever**, even to yourself.
+5. **Report suspicious 1Password emails immediately** — phishers
+   target password-manager users specifically. The admin can
+   confirm via the admin console whether a notification is real.
+
+#### Incident-response plan if 1Password is breached
+
+The admin's runbook:
+
+1. **Read 1Password's incident bulletin** at
+   <https://1password.com/security/> (they publish breach details
+   within 48 hours, with technical scope + remediation guidance).
+2. **Rotate every staff Master Password** — admin sends a forced
+   reset via the admin console; staff sign in once with a new
+   Master Password.
+3. **Re-print Emergency Kits** for everyone — the Secret Key
+   stays the same (it never left 1Password's servers, but the
+   reissue makes the documentation match).
+4. **Audit access** for the period of the breach using
+   1Password's per-item access logs.
+5. **Notify council + members** if any band-specific sensitive
+   data could have been derived from the breach (per Skin Tyee's
+   privacy obligations).
+
+For our scale, the realistic worst case is **password rotation
+fatigue and 2-3 days of admin time**, not exposure of decrypted
+vault contents. That's the bet we're making by adopting it.
 
 ---
 
