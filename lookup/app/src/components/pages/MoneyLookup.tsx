@@ -92,16 +92,28 @@ export default function MoneyLookup({ navigation }: any) {
     });
   };
 
+  // When the user runs a lookup, only the active sub-tab's sources are
+  // included — otherwise the defaults from other tabs (e.g.
+  // bc-ministry-contracts pre-selected from the Contracts sub-tab) would fire
+  // a contracts-flavoured search even when the user is browsing Grants. The
+  // chip counts make this discoverable: "(N/M)" on each pill is the live
+  // selection size for that tab.
+  const sourceIdsForRun = useMemo(
+    () => visibleSources.filter((s) => selected.has(s.id)).map((s) => s.id),
+    [visibleSources, selected],
+  );
+
   // Funding sources all handle an empty keyword gracefully — they return their
   // default browse view (latest tenders, all available grant programs, recent
-  // high-dollar transfers, etc.). So Run is gated only by source selection.
-  const canRun = selected.size > 0;
+  // high-dollar transfers, etc.). So Run is gated only by source selection in
+  // the current sub-tab.
+  const canRun = sourceIdsForRun.length > 0;
 
   const run = async () => {
     const options = {
       mode: 'money' as const,
       target: keyword.trim(),
-      sourceIds: [...selected],
+      sourceIds: sourceIdsForRun,
       indigenousOnly,
       vendor: vendor.trim() || undefined,
       fromYear: fromYear ? Number(fromYear) : undefined,
@@ -236,7 +248,7 @@ export default function MoneyLookup({ navigation }: any) {
         disabled={!canRun}
         style={{ marginTop: 18, alignSelf: 'flex-start' }}
       >
-        Run lookup
+        Run {SUBTAB_DEFS.find((d) => d.id === subtab)?.label.toLowerCase()} lookup ({sourceIdsForRun.length})
       </Button>
     </PageContainer>
   );
