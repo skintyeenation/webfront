@@ -1,0 +1,47 @@
+name: Publish docs to SharePoint
+
+# Pushes every .md under docs/ — plus a pandoc-rendered .html sibling —
+# into the band's SharePoint document library on every change to docs/
+# on master. See `docs/365/sharepoint-docs-publish.md` for the one-time
+# Entra ID + SharePoint setup.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'docs/**'
+      - 'scripts/publish-docs-to-sharepoint.sh'
+      - '.github/workflows/publish-docs-to-sharepoint.yml'
+  workflow_dispatch:
+    # Manual trigger from the GitHub UI — useful for a full re-sync after
+    # a setup change without having to touch docs/.
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    concurrency:
+      # Avoid two concurrent uploads racing on the same SharePoint files.
+      group: sharepoint-docs
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pandoc + jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends pandoc jq
+          pandoc --version | head -1
+          jq --version
+
+      - name: Publish to SharePoint
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          SHAREPOINT_SITE_ID: ${{ secrets.SHAREPOINT_SITE_ID }}
+          SHAREPOINT_DRIVE_NAME: ${{ secrets.SHAREPOINT_DRIVE_NAME }}
+          SHAREPOINT_TARGET_PATH: ${{ vars.SHAREPOINT_TARGET_PATH }}
+        run: bash scripts/publish-docs-to-sharepoint.sh
