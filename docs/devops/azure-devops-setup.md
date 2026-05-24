@@ -19,6 +19,12 @@ containing the `webfront` Git repo, modelled on the existing
 - A Microsoft 365 admin account on the Skin Tyee tenant
   (`admin@skintyeenation.onmicrosoft.com` or your delegated admin).
   See [`../365/entra-id.md`](../365/entra-id.md).
+- **An active Azure subscription** on the same tenant. Microsoft
+  changed the rules in 2026 — creating a new Azure DevOps org now
+  requires an active subscription (existing orgs were grandfathered).
+  Confirm at <https://portal.azure.com/#view/Microsoft_Azure_Billing/SubscriptionsBladeV2>
+  that at least one subscription is in **Active** state and tied to
+  the Skin Tyee tenant.
 - **Azure CLI** installed locally — `az` 2.50 or newer.
   - macOS: `brew install azure-cli`
   - Windows: <https://aka.ms/installazurecliwindows>
@@ -32,16 +38,32 @@ containing the `webfront` Git repo, modelled on the existing
 Microsoft doesn't expose an API for creating new ADO orgs — you must
 use the web UI.
 
-1. Open <https://aka.ms/AzureDevOpsAccountCreate>.
+> ⚠️ **Don't use `aka.ms/AzureDevOpsAccountCreate`** — that shortlink
+> was retired by Microsoft and now redirects to a Bing search results
+> page. Use the URL below.
+
+1. Open <https://dev.azure.com/>.
 2. Sign in with your Skin Tyee admin account
-   (`firstname.lastname@skintyee.ca`).
-3. **Organization name:** `skintyeenation`. The URL ends up at
-   `https://dev.azure.com/skintyeenation`.
-4. **Region:** Canada Central (data residency in Canada — matches the
-   M365 + Azure DB regions we already use; this is the NGO
-   accountability + privacy posture from
-   [`../architecture-decisions.md`](../architecture-decisions.md)).
+   (`firstname.lastname@skintyee.ca`). If you land on a project list
+   instead of an empty dashboard, that's fine — the next step is the
+   same.
+3. Click **New organization** (top-left of the dashboard, in the
+   left-hand nav).
+4. Fill the create-organization dialog:
+   - **Organization name:** `skintyeenation`. The URL ends up at
+     `https://dev.azure.com/skintyeenation`.
+   - **Geography (hosting):** **Canada Central**. Data residency in
+     Canada — matches the M365 + Azure DB regions we already use;
+     supports the NGO accountability + privacy posture from
+     [`../architecture-decisions.md`](../architecture-decisions.md).
+   - **Azure subscription:** pick the active Skin Tyee subscription.
+     (See prerequisites above — Microsoft requires this for new
+     orgs since 2026.)
 5. Click **Continue**. The org is created; you land on its dashboard.
+
+If you don't see a "New organization" button, you're signed in to
+the wrong account — sign out, sign back in with the admin account
+listed above.
 
 ## Step 2 — Run the setup script
 
@@ -188,7 +210,20 @@ the project on first run.
 ## Troubleshooting
 
 **`az : command not found`**
-- Install per the prerequisites section.
+- Install per the prerequisites section (`brew install azure-cli` on macOS).
+
+**Clicking the "create org" link sent me to a Bing search page**
+- You were probably following an old `aka.ms/AzureDevOpsAccountCreate`
+  link — Microsoft retired that shortlink in 2026 and it now
+  redirects through Bing. Use <https://dev.azure.com/> instead, sign
+  in, and click **New organization** there.
+
+**"Subscription required" error when trying to create the org**
+- Microsoft now requires an active Azure subscription on the tenant
+  to create new ADO orgs. Check
+  <https://portal.azure.com/#view/Microsoft_Azure_Billing/SubscriptionsBladeV2>;
+  if no subscription exists, create one (Pay-as-you-go is fine — no
+  immediate charge if no resources are deployed).
 
 **Script says "can't reach $ORG_URL"** even after step 1
 - Wait ~30 seconds. ADO org creation has a propagation delay before
