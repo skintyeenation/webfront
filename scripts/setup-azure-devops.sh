@@ -3,9 +3,14 @@
 #
 # What this does (idempotent — safe to re-run):
 #   1. Confirms `az` CLI + `az devops` extension are installed.
-#   2. Opens https://aka.ms/AzureDevOpsAccountCreate in your browser
-#      so you can create the `skintyeenation` org (one-time, manual).
-#      Skipped automatically if the org already exists.
+#   2. Opens https://dev.azure.com/ in your browser so you can sign in
+#      and click "New organization" to create `skintyeenation`
+#      (one-time, manual — Microsoft only allows org creation via the
+#      web). Skipped automatically if the org already exists.
+#
+#      Prerequisite: an active Azure subscription on the same tenant
+#      (Microsoft requires this for new orgs as of 2026; existing orgs
+#      created before the change still work without one).
 #   3. Creates the `webfront` project in that org if missing.
 #   4. Creates the `webfront` Git repo in that project if missing.
 #   5. Adds an `azure` remote to your local clone pointing at the
@@ -110,18 +115,27 @@ if [ "$DRY_RUN" -eq 0 ] && ! az devops project list --organization "$ORG_URL" --
   browser — there's no \`az devops org create\` command. Steps:
 
     1. The browser will open in 3 seconds (or open it yourself):
-       https://aka.ms/AzureDevOpsAccountCreate
+       https://dev.azure.com/
     2. Sign in with your Skin Tyee admin account
        (firstname.lastname@skintyee.ca).
-    3. When prompted for the organization name, enter:  ${ORG}
-       (the URL will be: ${ORG_URL})
-    4. Pick "Canada Central" as the region.
-    5. After the org is created, re-run this script.
+    3. Click "New organization" (top-left after sign-in).
+    4. Enter:    Organization name = ${ORG}
+       Geography = Canada Central
+       Azure subscription = pick the Skin Tyee subscription
+         (ACTIVE Azure subscription is REQUIRED for new orgs as of
+          2026; existing orgs were grandfathered).
+       Click Continue.
+    5. Org lands at: ${ORG_URL}
+    6. After the org is created, re-run this script.
+
+  (The older 'aka.ms/AzureDevOpsAccountCreate' shortlink was retired
+  by Microsoft and now redirects to Bing search — use the URL above
+  instead.)
 
   Press ENTER when you've finished creating the org, or Ctrl-C to abort.
 MSG
   sleep 3
-  open_url "https://aka.ms/AzureDevOpsAccountCreate"
+  open_url "https://dev.azure.com/"
   read -r -p "" _ < /dev/tty
   # Re-check after the user comes back.
   if ! az devops project list --organization "$ORG_URL" --only-show-errors >/dev/null 2>&1; then
