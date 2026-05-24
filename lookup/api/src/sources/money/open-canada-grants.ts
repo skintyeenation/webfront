@@ -42,20 +42,80 @@ export const openCanadaGrants: Source = {
     const $ = cheerio.load(html);
     const items: SourceItem[] = [];
 
-    // Same WET layout as contracts: `<a href="/grants/record/..."><h3>RECIPIENT</h3></a>`.
+    // The Open Canada Solr/WET layout for grants is:
+    //
+    //   <a href="/grants/record/..."> <p>RECIPIENT (may contain <mark>...</mark>)</p> </a>
+    //   <h4>$VALUE</h4>
+    //   <h5>DATE</h5>
+    //   ...followed by a metadata row with <strong>Field:</strong> <p>value</p> blocks
+    //     (Agreement / Agreement Number / Duration / Description / Organization /
+    //      Program Name / Location).
+    //
+    // We walk up to the per-record container (the nearest ancestor whose own
+    // descendants include both the <a> and the value+meta block), then pull
+    // structured fields off it.
+    const dedup = new Set<string>();
     $('a[href*="/grants/record/"]').each((_, a) => {
       const $a = $(a);
-      const title = $a.find('h3').first().text().trim() || $a.text().trim();
       const href = $a.attr('href');
-      if (!title || !href) return;
-      const $row = $a.closest('div.row').parent().closest('div.row');
-      const valueText = $row.find('h3').filter((__, h) => /value/i.test($(h).text())).first().text().trim();
-      const meta = $row.find('strong').map((__, s) => $(s).text().replace(':', '').trim() + ': ' + ($(s).parent().next().text().trim() || '')).get().join(' · ');
+      if (!href) return;
+      // Strip ?amendments / fragment so we dedupe by canonical record URL.
+      const recordPath = href.split('?')[0];
+      if (dedup.has(recordPath)) return;
+      dedup.add(recordPath);
+      // Pull title from the <p> inside the anchor, stripping <mark> highlights.
+      const title = $a.find('p').first().text().trim() || $a.text().trim();
+      if (!title) return;
+      // The recipient anchor lives inside an <h4> > <div.col-sm-8>; walk up two
+      // levels to the outer .row that also contains the value <h4>.
+      const $card = $a.closest('div.row').parent();
+      // Value sits in the right-side col-sm-4 as $h4.
+      const valueText = $card
+        .find('div.col-sm-4 h4')
+        .first()
+        .text()
+        .replace(/\s+/g, ' ')
+        .trim();
+      const startDate = $card.find('div.col-sm-4 h5').first().text().trim();
+      // Pull each "<strong>Label:</strong> <p>val</p>" pair into a map. The
+      // value `<p>` is the next sibling in some cases and inline text in
+      // others; cheerio's `.contents()` gives us both.
+      const fields: Record<string, string> = {};
+      $card.find('strong').each((__, s) => {
+        const $s = $(s);
+        const label = $s.text().replace(':', '').trim();
+        if (!label) return;
+        // Take the text after the <strong> — either a sibling <p> or inline.
+        const $parent = $s.parent();
+        const parentText = $parent.text().replace(/\s+/g, ' ').trim();
+        const value = parentText.replace(`${label}:`, '').trim();
+        if (value && !fields[label]) fields[label] = value;
+      });
+      const organization = fields['Organization'] || '';
+      const programName = fields['Program Name'] || '';
+      const location = fields['Location'] || '';
+      const description = fields['Description'] || '';
+      const subtitle = [valueText, organization].filter(Boolean).join(' · ') || undefined;
+      const snippet =
+        [programName && `Program: ${programName}`, description, location && `Location: ${location}`, startDate && `Start ${startDate}`]
+          .filter(Boolean)
+          .join(' · ')
+          .slice(0, 320) || undefined;
       items.push({
         title: title.slice(0, 180),
-        subtitle: valueText || undefined,
-        snippet: meta.slice(0, 320) || undefined,
+        subtitle,
+        snippet,
         url: new URL(href, BASE).toString(),
+        fields: {
+          ...(valueText ? { agreement_value: valueText } : {}),
+          ...(startDate ? { start_date: startDate } : {}),
+          ...(organization ? { funding_organization: organization } : {}),
+          ...(programName ? { program_name: programName } : {}),
+          ...(location ? { location } : {}),
+          ...(description ? { description } : {}),
+          ...(fields['Agreement Number'] ? { agreement_number: fields['Agreement Number'] } : {}),
+          ...(fields['Duration'] ? { duration: fields['Duration'] } : {}),
+        },
       });
     });
 
