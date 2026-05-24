@@ -32,6 +32,28 @@ containing the `webfront` Git repo, modelled on the existing
 - **(Windows only)** PowerShell 7 if you want to use the
   `.ps1` mirror script: <https://aka.ms/install-pwsh>.
 - A local clone of the `webfront` repo with your current history.
+- **An SSH public key uploaded to Azure DevOps.** The setup script
+  defaults to SSH for the `azure` git remote (faster pushes, no
+  reauth prompts). One-time setup:
+  1. Generate a key locally if you don't already have one:
+     `ssh-keygen -t ed25519 -C "your.name@skintyee.ca"`
+  2. Copy the public key:
+     - macOS:  `pbcopy < ~/.ssh/id_ed25519.pub`
+     - Windows Git Bash:  `clip < ~/.ssh/id_ed25519.pub`
+     - Linux:  `xclip -sel clip < ~/.ssh/id_ed25519.pub`
+  3. Paste it at
+     <https://dev.azure.com/skintyeenation/_usersSettings/keys> →
+     **SSH public keys** → **+ New key** → name it (e.g. "macbook")
+     → paste → **Add**.
+  4. Test with `ssh -T git@ssh.dev.azure.com` — should reply
+     with something like `remote: Shell access is not supported.`
+     (that's the success signature — auth worked, but ADO doesn't
+     give you a shell).
+
+  If you'd rather skip SSH setup for now, pass `--https` to the
+  script and it'll use HTTPS for the `azure` remote (works
+  unconditionally; switch to SSH later with `git remote set-url
+  azure git@ssh.dev.azure.com:v3/skintyeenation/devops/webfront`).
 
 ## Step 1 — Create the `skintyeenation` Azure DevOps organization
 

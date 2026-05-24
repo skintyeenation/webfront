@@ -37,11 +37,16 @@
 #   bash scripts/setup-azure-devops.sh
 #   bash scripts/setup-azure-devops.sh --project myproj
 #   bash scripts/setup-azure-devops.sh --org foo --project bar --repo baz
-#   ORG=skintyeenation PROJECT=webfront REPO=webfront bash scripts/setup-azure-devops.sh
+#   ORG=skintyeenation PROJECT=devops REPO=webfront bash scripts/setup-azure-devops.sh
 #   bash scripts/setup-azure-devops.sh --dry-run     # print actions, no API calls
 #   bash scripts/setup-azure-devops.sh --yes         # skip the interactive
 #                                                   #   "press Enter to accept" prompts
 #                                                   #   (use the defaults silently)
+#   bash scripts/setup-azure-devops.sh --https       # use HTTPS for the `azure`
+#                                                   #   remote URL (default is SSH;
+#                                                   #   pass --https on a machine
+#                                                   #   that hasn't uploaded an SSH
+#                                                   #   public key to ADO yet)
 #
 # Three ways to provide org / project / repo names — first one that matches
 # wins:
@@ -49,6 +54,12 @@
 #   2. Environment variable (ORG / PROJECT / REPO)
 #   3. Interactive prompt with defaults pre-filled
 #                                                  — last resort
+#
+# Remote protocol default is SSH (faster, no reauth prompts). Requires you
+# to have uploaded an SSH public key to ADO under
+# User settings → SSH public keys. Pass --https (or set
+# REMOTE_PROTOCOL=https in env) to fall back to HTTPS — works without any
+# SSH setup but each push prompts for auth.
 
 set -euo pipefail
 
@@ -62,6 +73,7 @@ PROJECT="${PROJECT:-devops}"
 REPO="${REPO:-webfront}"
 DRY_RUN=0
 SKIP_PROMPTS=0
+REMOTE_PROTOCOL="${REMOTE_PROTOCOL:-ssh}"
 
 # CLI arg parsing.
 while [ $# -gt 0 ]; do
@@ -69,6 +81,8 @@ while [ $# -gt 0 ]; do
     --org)      ORG="$2"; shift 2 ;;
     --project)  PROJECT="$2"; shift 2 ;;
     --repo)     REPO="$2"; shift 2 ;;
+    --ssh)      REMOTE_PROTOCOL=ssh; shift ;;
+    --https)    REMOTE_PROTOCOL=https; shift ;;
     --dry-run)  DRY_RUN=1; shift ;;
     -y|--yes|--no-prompt) SKIP_PROMPTS=1; shift ;;
     -h|--help)
@@ -269,7 +283,20 @@ else
   fi
 fi
 
-REPO_URL="$ORG_URL/$PROJECT/_git/$REPO"
+# Use SSH for the `azure` remote by default — faster pushes, no reauth
+# prompts. Pass `--https` (handled at arg-parse time, see top of file) to
+# fall back to HTTPS for first-time setups before you've added an SSH key.
+case "${REMOTE_PROTOCOL:-ssh}" in
+  ssh)
+    REPO_URL="git@ssh.dev.azure.com:v3/$ORG/$PROJECT/$REPO"
+    ;;
+  https)
+    REPO_URL="$ORG_URL/$PROJECT/_git/$REPO"
+    ;;
+  *)
+    die "unknown REMOTE_PROTOCOL=${REMOTE_PROTOCOL:-} (use 'ssh' or 'https')"
+    ;;
+esac
 
 # ----- 6) push existing history from local clone -----------------------------
 
