@@ -9,15 +9,26 @@
 # removed from the repo are NOT removed from SharePoint (intentional —
 # SharePoint keeps version history).
 #
-# Auth: app-only Microsoft Graph via client_credentials. The Entra ID
-# app needs `Sites.Selected` application permission, admin-granted to
-# the specific target site. See `docs/365/sharepoint-docs-publish.md`
-# for the one-time Azure portal setup.
+# Auth: app-only Microsoft Graph against an Entra ID app with the
+# `Sites.Selected` application permission, admin-granted to the specific
+# target site. See `docs/365/sharepoint-docs-publish.md` for the one-time
+# Azure portal setup.
 #
-# Required env (when called from GitHub Actions, these come from secrets):
-#   AZURE_TENANT_ID            — Entra ID tenant ID (GUID)
-#   AZURE_CLIENT_ID            — App registration's Application (client) ID
-#   AZURE_CLIENT_SECRET        — Client secret value
+# Two token-acquisition paths supported:
+#
+#   A) GRAPH_TOKEN_PREACQUIRED — used by `azure-pipelines/publish-docs-to-sharepoint.yml`.
+#      The Azure Pipeline mints a Graph token via workload identity
+#      federation (`az account get-access-token`) and exports it as this
+#      env var. NO client_secret involved anywhere. This is the
+#      post-migration default per ADR-9.
+#
+#   B) AZURE_CLIENT_SECRET + AZURE_TENANT_ID + AZURE_CLIENT_ID — legacy
+#      client_credentials flow. Used by the GitHub Actions workflow
+#      (`.github/workflows/publish-docs-to-sharepoint.yml`) which stays
+#      in-tree as a fallback until the Azure Pipeline is verified, and by
+#      local dev (where the secret lives in `lookup/.env`).
+#
+# Always required:
 #   SHAREPOINT_SITE_ID         — Graph site-id: `{hostname},{site-guid},{web-guid}`
 #   SHAREPOINT_DRIVE_NAME      — Document library display name (e.g. "Documents")
 #   SHAREPOINT_TARGET_PATH     — (optional) Subfolder inside the drive
@@ -42,11 +53,16 @@ for cmd in pandoc jq curl; do
 done
 
 if [ "$DRY_RUN" -eq 0 ]; then
-  : "${AZURE_TENANT_ID:?missing AZURE_TENANT_ID}"
-  : "${AZURE_CLIENT_ID:?missing AZURE_CLIENT_ID}"
-  : "${AZURE_CLIENT_SECRET:?missing AZURE_CLIENT_SECRET}"
   : "${SHAREPOINT_SITE_ID:?missing SHAREPOINT_SITE_ID}"
   : "${SHAREPOINT_DRIVE_NAME:?missing SHAREPOINT_DRIVE_NAME}"
+  # AZURE_CLIENT_SECRET is only required for the legacy client_credentials
+  # path — if `GRAPH_TOKEN_PREACQUIRED` is set (Azure Pipelines path with
+  # federated credentials), we skip the client_credentials env vars.
+  if [ -z "${GRAPH_TOKEN_PREACQUIRED:-}" ]; then
+    : "${AZURE_TENANT_ID:?missing AZURE_TENANT_ID (or set GRAPH_TOKEN_PREACQUIRED)}"
+    : "${AZURE_CLIENT_ID:?missing AZURE_CLIENT_ID (or set GRAPH_TOKEN_PREACQUIRED)}"
+    : "${AZURE_CLIENT_SECRET:?missing AZURE_CLIENT_SECRET (or set GRAPH_TOKEN_PREACQUIRED)}"
+  fi
 fi
 TARGET_PATH="${SHAREPOINT_TARGET_PATH:-webfront-docs}"
 
@@ -60,18 +76,37 @@ trap 'rm -rf "$RENDER_DIR"' EXIT
 TOKEN=""
 DRIVE_ID=""
 if [ "$DRY_RUN" -eq 0 ]; then
-  echo "▸ acquiring Graph token (tenant ${AZURE_TENANT_ID:0:8}…)"
-  TOKEN=$(curl -sf -X POST \
-    "https://login.microsoftonline.com/${AZURE_TENANT_ID}/oauth2/v2.0/token" \
-    -H "content-type: application/x-www-form-urlencoded" \
-    --data-urlencode "client_id=${AZURE_CLIENT_ID}" \
-    --data-urlencode "client_secret=${AZURE_CLIENT_SECRET}" \
-    --data-urlencode "scope=https://graph.microsoft.com/.default" \
-    --data-urlencode "grant_type=client_credentials" \
-    | jq -r '.access_token')
-  if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
-    echo "✗ token acquisition failed" >&2
-    exit 1
+  # Two token-acquisition paths, in priority order:
+  #
+  #  1. GRAPH_TOKEN_PREACQUIRED set — used by the Azure Pipelines path
+  #     (`azure-pipelines/publish-docs-to-sharepoint.yml` mints a token
+  #     via the federated-credential service connection and exports it).
+  #     This is the post-migration default: NO client_secret involved
+  #     anywhere.
+  #
+  #  2. AZURE_CLIENT_SECRET set — legacy client_credentials path used by
+  #     the GitHub Actions workflow (now retired per ADR-9) and by local
+  #     dev (where the secret lives in `lookup/.env`).
+  #
+  # The conditional means a single publisher script serves all three
+  # contexts without code duplication.
+  if [ -n "${GRAPH_TOKEN_PREACQUIRED:-}" ]; then
+    echo "▸ using pre-acquired Graph token (federated credential path)"
+    TOKEN="$GRAPH_TOKEN_PREACQUIRED"
+  else
+    echo "▸ acquiring Graph token via client_credentials (tenant ${AZURE_TENANT_ID:0:8}…)"
+    TOKEN=$(curl -sf -X POST \
+      "https://login.microsoftonline.com/${AZURE_TENANT_ID}/oauth2/v2.0/token" \
+      -H "content-type: application/x-www-form-urlencoded" \
+      --data-urlencode "client_id=${AZURE_CLIENT_ID}" \
+      --data-urlencode "client_secret=${AZURE_CLIENT_SECRET}" \
+      --data-urlencode "scope=https://graph.microsoft.com/.default" \
+      --data-urlencode "grant_type=client_credentials" \
+      | jq -r '.access_token')
+    if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+      echo "✗ token acquisition failed" >&2
+      exit 1
+    fi
   fi
 
   echo "▸ resolving drive id for '$SHAREPOINT_DRIVE_NAME' on site"

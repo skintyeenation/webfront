@@ -1,0 +1,90 @@
+name: publish-docs-to-sharepoint
+
+# Mirrors `docs/` to SharePoint on every push to master that touches docs.
+# Replaces the legacy GitHub Actions workflow
+# `.github/workflows/publish-docs-to-sharepoint.yml` per ADR-9.
+#
+# Auth: workload identity federation through an ADO service connection.
+# NO long-lived client_secret involved — the ADO project's federated
+# identity is trusted by the `webfront-docs-publisher` Entra ID app, and
+# this pipeline mints a Graph token just-in-time per run.
+#
+# Setup walkthrough:  docs/devops/migrate-ci-workflows.md
+# Underlying publisher script: scripts/publish-docs-to-sharepoint.sh
+#
+# Prerequisites BEFORE this pipeline can succeed (one-time, admin tasks):
+#   1. Federated credential added to `webfront-docs-publisher` Entra app
+#      with subject `sc://skintyeenation/devops/sharepoint-docs-sc`.
+#      See docs/devops/migrate-ci-workflows.md § 1.
+#   2. ADO service connection `sharepoint-docs-sc` created in the
+#      `devops` project, using workload identity federation.
+#      See docs/devops/migrate-ci-workflows.md § 2.
+#   3. Variable group `sharepoint-docs` in ADO Library with:
+#        AZURE_TENANT_ID, AZURE_CLIENT_ID, SHAREPOINT_SITE_ID,
+#        SHAREPOINT_DRIVE_NAME
+#      (No AZURE_CLIENT_SECRET — that's the whole point of federated.)
+#      See docs/devops/migrate-ci-workflows.md § 4.
+
+trigger:
+  branches:
+    include: [master]
+  paths:
+    include:
+      - docs/**
+      - scripts/publish-docs-to-sharepoint.sh
+      - azure-pipelines/publish-docs-to-sharepoint.yml
+pr: none   # only the merged result publishes — not in-progress PRs
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  - group: sharepoint-docs
+  - name: SHAREPOINT_TARGET_PATH
+    value: 'webfront-docs'
+
+jobs:
+  - job: publish
+    displayName: Publish docs/ tree to SharePoint
+    steps:
+      - checkout: self
+        fetchDepth: 1
+
+      - script: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends pandoc jq
+          pandoc --version | head -1
+          jq --version
+        displayName: Install pandoc + jq
+
+      - task: AzureCLI@2
+        displayName: Mint Graph token via federated credential + run publisher
+        inputs:
+          azureSubscription: sharepoint-docs-sc   # the service connection (workload identity federation)
+          scriptType: bash
+          scriptLocation: inlineScript
+          inlineScript: |
+            set -euo pipefail
+
+            # Mint a Microsoft Graph token using the service connection's
+            # federated identity. No client_secret crosses the wire — ADO
+            # exchanges its OIDC token for an Entra access token via the
+            # federated credential we configured on the publisher app.
+            export GRAPH_TOKEN_PREACQUIRED="$(az account get-access-token \
+              --resource https://graph.microsoft.com \
+              --query accessToken -o tsv)"
+
+            # The publisher reads GRAPH_TOKEN_PREACQUIRED if set; otherwise
+            # falls back to client_credentials (legacy GHA + local dev).
+            # AZURE_CLIENT_SECRET is intentionally NOT exported here.
+            export SHAREPOINT_TARGET_PATH
+
+            bash scripts/publish-docs-to-sharepoint.sh
+        env:
+          # Non-secret values pulled from the `sharepoint-docs` variable group.
+          # AZURE_CLIENT_SECRET is *not* in the variable group — the whole
+          # point of moving to federated credentials is to retire it.
+          SHAREPOINT_SITE_ID: $(SHAREPOINT_SITE_ID)
+          SHAREPOINT_DRIVE_NAME: $(SHAREPOINT_DRIVE_NAME)
+          AZURE_TENANT_ID: $(AZURE_TENANT_ID)
+          AZURE_CLIENT_ID: $(AZURE_CLIENT_ID)
