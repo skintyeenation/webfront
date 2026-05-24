@@ -1,0 +1,369 @@
+#!/usr/bin/env bash
+# Automate the four admin tasks needed to make
+# `azure-pipelines/publish-docs-to-sharepoint.yml` run for the first time:
+#
+#   1. Add a federated credential to the `webfront-docs-publisher` Entra
+#      app pointing at the ADO service connection we're about to create.
+#   2. Create the ADO service connection `sharepoint-docs-sc` in the
+#      `devops` project using workload identity federation.
+#   3. Create the ADO Library variable group `sharepoint-docs` with the
+#      non-secret SharePoint config.
+#   4. Register the pipeline so ADO knows about the YAML in the repo.
+#
+# Idempotent: re-running is safe (existing federated credential, SC,
+# variable group, and pipeline are detected and skipped).
+#
+# Companion docs:
+#   docs/devops/migrate-ci-workflows.md  — the manual walkthrough this
+#                                          script automates
+#   scripts/setup-azure-devops.sh        — must have been run first
+#   azure-pipelines/publish-docs-to-sharepoint.yml — the pipeline YAML
+#
+# Required env / flags — these were captured during the ADR-8 setup
+# (`docs/365/sharepoint-docs-publish.md`) and you stored them as GitHub
+# Actions secrets. Pass them here too:
+#
+#   --entra-app-id        ID of the `webfront-docs-publisher` Entra app
+#                         (the GUID, not the display name).
+#                         Default: discovered via `az ad app list`
+#                         filtering on display name.
+#   --tenant-id           Entra ID tenant ID.
+#                         Default: discovered via `az account show`.
+#   --sharepoint-site-id  Graph site-id: `{host},{site-guid},{web-guid}`
+#   --sharepoint-drive    Document library display name (e.g. "Documents")
+#   --org                 ADO org name (default: skintyeenation)
+#   --project             ADO project name (default: devops)
+#   --repo                ADO repo name where the YAML lives
+#                         (default: webfront)
+#   --sc-name             ADO service connection name
+#                         (default: sharepoint-docs-sc)
+#   --vargroup-name       Variable group name (default: sharepoint-docs)
+#   --pipeline-name       Pipeline name (default: publish-docs-to-sharepoint)
+#   --yaml-path           Path to the YAML inside the repo
+#                         (default: azure-pipelines/publish-docs-to-sharepoint.yml)
+#
+# ─── WHAT'S AUTOMATED ─────────────────────────────────────────────────────────
+# 1) Federated credential on the Entra app — `az ad app federated-credential
+#    create`. Idempotent (checked first).
+# 2) ADO service connection (workload identity federation) — `az rest` POST
+#    to the ADO service-endpoint REST API (no direct `az devops` subcommand
+#    for WIF as of the current az 2.86 / devops ext 1.x). Idempotent.
+# 3) Variable group + variables — `az pipelines variable-group create`.
+#    Idempotent.
+# 4) Pipeline registration pointing at the YAML — `az pipelines create`.
+#    Idempotent.
+#
+# ─── WHAT'S *NOT* AUTOMATED (must be done by a human first) ───────────────────
+# All five are one-time per environment. The script detects each missing
+# piece and exits with a clear error pointing at the doc.
+#
+# A. `az login` on the first run. The script prompts you to do it
+#    interactively if you're not signed in. Not really un-automated —
+#    just inherently interactive.
+#
+# B. Entra ID role on the running user. You need **Application
+#    Administrator** (or Cloud Application Administrator) to add a
+#    federated credential. If you don't have it, ask the M365 admin
+#    (see docs/365/entra-id.md for who that is).
+#
+# C. ADO **Project Administrator** role on the `devops` project. You
+#    need this to create service connections + pipelines + variable
+#    groups. If you don't have it, ask whoever runs the org.
+#
+# D. The `webfront-docs-publisher` Entra app + its
+#    Sites.Selected permission + the **site-level Sites.Selected
+#    grant** via PnP PowerShell `Grant-PnPAzureADAppSitePermission`.
+#    These are documented in `docs/365/sharepoint-docs-publish.md`
+#    steps 2-5. The script verifies the app exists and surfaces the
+#    doc reference if it doesn't.
+#
+#    PnP PowerShell can technically be wrapped in another script, but
+#    it requires `pwsh` + the `PnP.PowerShell` module installed AND an
+#    interactive sign-in to SharePoint — for a one-time per-site setup
+#    that's worse UX than the four-line PowerShell snippet in the doc.
+#
+# E. **First-run pipeline authorization** in the ADO UI. The first
+#    time the pipeline tries to use the service connection or variable
+#    group, ADO may require a human in the UI to click "Permit"
+#    (Pipelines → the new pipeline → Run → Review and approve). This
+#    is an ADO UX safeguard, not an API gap. Subsequent runs are
+#    fully automatic.
+
+set -euo pipefail
+
+# ----- defaults --------------------------------------------------------------
+
+ENTRA_APP_DISPLAY_NAME="webfront-docs-publisher"
+ENTRA_APP_ID=""
+TENANT_ID=""
+SHAREPOINT_SITE_ID=""
+SHAREPOINT_DRIVE="Documents"
+ORG="skintyeenation"
+PROJECT="devops"
+REPO="webfront"
+SC_NAME="sharepoint-docs-sc"
+VARGROUP_NAME="sharepoint-docs"
+PIPELINE_NAME="publish-docs-to-sharepoint"
+YAML_PATH="azure-pipelines/publish-docs-to-sharepoint.yml"
+DRY_RUN=0
+
+# ----- arg parsing -----------------------------------------------------------
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --entra-app-id)        ENTRA_APP_ID="$2"; shift 2 ;;
+    --entra-app-name)      ENTRA_APP_DISPLAY_NAME="$2"; shift 2 ;;
+    --tenant-id)           TENANT_ID="$2"; shift 2 ;;
+    --sharepoint-site-id)  SHAREPOINT_SITE_ID="$2"; shift 2 ;;
+    --sharepoint-drive)    SHAREPOINT_DRIVE="$2"; shift 2 ;;
+    --org)                 ORG="$2"; shift 2 ;;
+    --project)             PROJECT="$2"; shift 2 ;;
+    --repo)                REPO="$2"; shift 2 ;;
+    --sc-name)             SC_NAME="$2"; shift 2 ;;
+    --vargroup-name)       VARGROUP_NAME="$2"; shift 2 ;;
+    --pipeline-name)       PIPELINE_NAME="$2"; shift 2 ;;
+    --yaml-path)           YAML_PATH="$2"; shift 2 ;;
+    --dry-run)             DRY_RUN=1; shift ;;
+    -h|--help)
+      sed -n '/^# Automate/,/^$/p' "$0" | sed 's/^# \{0,1\}//'
+      exit 0 ;;
+    *)
+      echo "✗ unknown argument: $1" >&2
+      echo "  see --help" >&2
+      exit 1 ;;
+  esac
+done
+
+ORG_URL="https://dev.azure.com/${ORG}"
+SC_SUBJECT="sc://${ORG}/${PROJECT}/${SC_NAME}"
+SC_ISSUER="https://vstoken.dev.azure.com"  # ADO's OIDC issuer
+
+# ----- helpers ---------------------------------------------------------------
+
+say() { printf '▸ %s\n' "$*"; }
+ok()  { printf '  ✓ %s\n' "$*"; }
+warn(){ printf '  ⚠ %s\n' "$*" >&2; }
+die() { printf '  ✗ %s\n' "$*" >&2; exit 1; }
+
+run() {
+  if [ "$DRY_RUN" -eq 1 ]; then
+    printf '  (dry-run) %s\n' "$*"
+    return 0
+  fi
+  "$@"
+}
+
+# ----- 0) prereqs ------------------------------------------------------------
+
+command -v az >/dev/null 2>&1 \
+  || die "Azure CLI not installed. https://docs.microsoft.com/cli/azure/install-azure-cli"
+az extension show --name azure-devops --only-show-errors >/dev/null 2>&1 \
+  || run az extension add --name azure-devops --yes --only-show-errors
+az devops configure --defaults "organization=$ORG_URL" "project=$PROJECT" 2>/dev/null
+
+if ! az account show --only-show-errors >/dev/null 2>&1; then
+  warn "not signed in to Azure — running az login"
+  [ "$DRY_RUN" -eq 0 ] && az login --only-show-errors >/dev/null
+fi
+
+# Resolve tenant + app IDs if not provided ------------------------------------
+
+if [ -z "$TENANT_ID" ]; then
+  TENANT_ID=$(az account show --query tenantId -o tsv 2>/dev/null || echo "")
+fi
+[ -n "$TENANT_ID" ] || die "couldn't determine tenant ID — pass --tenant-id"
+say "tenant: ${TENANT_ID:0:8}…"
+
+if [ -z "$ENTRA_APP_ID" ]; then
+  say "looking up Entra app '$ENTRA_APP_DISPLAY_NAME' by display name…"
+  ENTRA_APP_ID=$(az ad app list \
+    --display-name "$ENTRA_APP_DISPLAY_NAME" \
+    --query '[0].appId' -o tsv --only-show-errors 2>/dev/null || echo "")
+  [ -n "$ENTRA_APP_ID" ] && [ "$ENTRA_APP_ID" != "null" ] \
+    || die "Entra app '$ENTRA_APP_DISPLAY_NAME' not found. Create it per docs/365/sharepoint-docs-publish.md, or pass --entra-app-id."
+fi
+ok "Entra app id: $ENTRA_APP_ID"
+
+# Confirm we have everything else --------------------------------------------
+
+[ -n "$SHAREPOINT_SITE_ID" ] \
+  || die "missing --sharepoint-site-id (Graph site-id triple). Get it via the curl call in docs/365/sharepoint-docs-publish.md § 6."
+
+# Resolve the Entra app's object ID (different from appId; needed for some calls).
+ENTRA_APP_OBJ_ID=$(az ad app show --id "$ENTRA_APP_ID" --query id -o tsv --only-show-errors 2>/dev/null || echo "")
+[ -n "$ENTRA_APP_OBJ_ID" ] || die "couldn't resolve object ID for app $ENTRA_APP_ID"
+
+# ----- 1) federated credential on the Entra app ------------------------------
+
+say "checking federated credential on Entra app for subject '$SC_SUBJECT'…"
+EXISTING_FED_CRED=$(az ad app federated-credential list \
+  --id "$ENTRA_APP_ID" \
+  --query "[?subject=='$SC_SUBJECT'].id | [0]" -o tsv --only-show-errors 2>/dev/null || echo "")
+if [ -n "$EXISTING_FED_CRED" ] && [ "$EXISTING_FED_CRED" != "null" ]; then
+  ok "federated credential already exists (id $EXISTING_FED_CRED)"
+else
+  say "creating federated credential…"
+  FED_CRED_JSON=$(cat <<EOF
+{
+  "name": "ado-${ORG}-${PROJECT}-${SC_NAME}",
+  "issuer": "$SC_ISSUER",
+  "subject": "$SC_SUBJECT",
+  "description": "ADO service connection $SC_NAME for the SharePoint docs publisher pipeline",
+  "audiences": ["api://AzureADTokenExchange"]
+}
+EOF
+)
+  if [ "$DRY_RUN" -eq 1 ]; then
+    printf '  (dry-run) az ad app federated-credential create --id %s --parameters <json>\n' "$ENTRA_APP_ID"
+  else
+    echo "$FED_CRED_JSON" | az ad app federated-credential create \
+      --id "$ENTRA_APP_ID" \
+      --parameters @/dev/stdin \
+      --only-show-errors >/dev/null
+  fi
+  ok "federated credential created"
+fi
+
+# ----- 2) ADO service connection (workload identity federation) --------------
+
+say "checking ADO service connection '$SC_NAME'…"
+SC_ID=$(az devops service-endpoint list \
+  --organization "$ORG_URL" --project "$PROJECT" \
+  --query "[?name=='$SC_NAME'].id | [0]" -o tsv --only-show-errors 2>/dev/null || echo "")
+if [ -n "$SC_ID" ] && [ "$SC_ID" != "null" ]; then
+  ok "service connection '$SC_NAME' already exists (id $SC_ID)"
+else
+  say "creating service connection '$SC_NAME' (workload identity federation, manual subject)…"
+  # We pre-declared the subject as $SC_SUBJECT, and the federated credential
+  # on the Entra app trusts that subject (step 1 above). Now we tell ADO
+  # which Entra app + subject to use.
+  #
+  # `az devops` doesn't have a direct subcommand for WIF service
+  # connections, so we POST to the REST API. The body shape is documented at
+  # https://learn.microsoft.com/en-us/rest/api/azure/devops/serviceendpoint/endpoints/create
+  SC_BODY=$(cat <<EOF
+{
+  "name": "$SC_NAME",
+  "type": "azurerm",
+  "url": "https://management.azure.com/",
+  "authorization": {
+    "scheme": "WorkloadIdentityFederation",
+    "parameters": {
+      "tenantid": "$TENANT_ID",
+      "serviceprincipalid": "$ENTRA_APP_ID"
+    }
+  },
+  "data": {
+    "subscriptionId": "$(az account show --query id -o tsv)",
+    "subscriptionName": "$(az account show --query name -o tsv)",
+    "environment": "AzureCloud",
+    "scopeLevel": "Subscription",
+    "creationMode": "Manual"
+  },
+  "isShared": false,
+  "isReady": true,
+  "serviceEndpointProjectReferences": [
+    {
+      "projectReference": {
+        "id": "$(az devops project show --project "$PROJECT" --organization "$ORG_URL" --query id -o tsv)",
+        "name": "$PROJECT"
+      },
+      "name": "$SC_NAME",
+      "description": "SharePoint docs publisher — Sites.Selected scoped to $ENTRA_APP_DISPLAY_NAME via federated credentials"
+    }
+  ]
+}
+EOF
+)
+  if [ "$DRY_RUN" -eq 1 ]; then
+    printf '  (dry-run) POST %s/_apis/serviceendpoint/endpoints?api-version=7.1-preview.4 with WIF body\n' "$ORG_URL"
+    SC_ID="DRY-RUN-SC-ID"
+  else
+    SC_ID=$(echo "$SC_BODY" | az rest \
+      --method POST \
+      --uri "$ORG_URL/_apis/serviceendpoint/endpoints?api-version=7.1-preview.4" \
+      --headers content-type=application/json \
+      --body @/dev/stdin \
+      --query id -o tsv 2>/dev/null)
+    [ -n "$SC_ID" ] && [ "$SC_ID" != "null" ] \
+      || die "service connection creation failed (check Entra app + subscription perms)"
+  fi
+  ok "service connection '$SC_NAME' created (id $SC_ID)"
+fi
+
+# ----- 3) Library variable group ---------------------------------------------
+
+say "checking variable group '$VARGROUP_NAME'…"
+VG_ID=$(az pipelines variable-group list \
+  --organization "$ORG_URL" --project "$PROJECT" \
+  --query "[?name=='$VARGROUP_NAME'].id | [0]" -o tsv --only-show-errors 2>/dev/null || echo "")
+if [ -n "$VG_ID" ] && [ "$VG_ID" != "null" ]; then
+  ok "variable group '$VARGROUP_NAME' already exists (id $VG_ID)"
+else
+  say "creating variable group '$VARGROUP_NAME'…"
+  if [ "$DRY_RUN" -eq 1 ]; then
+    printf '  (dry-run) az pipelines variable-group create --name %s --variables AZURE_TENANT_ID=… AZURE_CLIENT_ID=… SHAREPOINT_SITE_ID=… SHAREPOINT_DRIVE_NAME=%s\n' "$VARGROUP_NAME" "$SHAREPOINT_DRIVE"
+    VG_ID="DRY-RUN-VG-ID"
+  else
+    VG_ID=$(az pipelines variable-group create \
+      --organization "$ORG_URL" --project "$PROJECT" \
+      --name "$VARGROUP_NAME" \
+      --description "SharePoint docs publisher config (no secrets — workload identity federation)" \
+      --authorize true \
+      --variables \
+        "AZURE_TENANT_ID=$TENANT_ID" \
+        "AZURE_CLIENT_ID=$ENTRA_APP_ID" \
+        "SHAREPOINT_SITE_ID=$SHAREPOINT_SITE_ID" \
+        "SHAREPOINT_DRIVE_NAME=$SHAREPOINT_DRIVE" \
+      --query id -o tsv --only-show-errors)
+  fi
+  ok "variable group '$VARGROUP_NAME' created (id $VG_ID)"
+fi
+
+# ----- 4) register the pipeline ----------------------------------------------
+
+say "checking pipeline '$PIPELINE_NAME'…"
+PIPELINE_ID=$(az pipelines list \
+  --organization "$ORG_URL" --project "$PROJECT" \
+  --query "[?name=='$PIPELINE_NAME'].id | [0]" -o tsv --only-show-errors 2>/dev/null || echo "")
+if [ -n "$PIPELINE_ID" ] && [ "$PIPELINE_ID" != "null" ]; then
+  ok "pipeline '$PIPELINE_NAME' already exists (id $PIPELINE_ID)"
+else
+  say "creating pipeline '$PIPELINE_NAME' pointing at $YAML_PATH…"
+  if [ "$DRY_RUN" -eq 1 ]; then
+    printf '  (dry-run) az pipelines create --name %s --repository %s --branch master --yaml-path %s\n' "$PIPELINE_NAME" "$REPO" "$YAML_PATH"
+    PIPELINE_ID="DRY-RUN-PIPELINE-ID"
+  else
+    PIPELINE_ID=$(az pipelines create \
+      --organization "$ORG_URL" --project "$PROJECT" \
+      --name "$PIPELINE_NAME" \
+      --description "Publish docs/ to SharePoint via Microsoft Graph (federated credentials)" \
+      --repository "$REPO" \
+      --repository-type tfsgit \
+      --branch master \
+      --yaml-path "$YAML_PATH" \
+      --skip-first-run true \
+      --query id -o tsv --only-show-errors)
+  fi
+  ok "pipeline '$PIPELINE_NAME' created (id $PIPELINE_ID)"
+fi
+
+# ----- done ------------------------------------------------------------------
+
+cat <<EOF
+
+✔ SharePoint publisher pipeline wired up.
+
+  Entra app:              $ENTRA_APP_DISPLAY_NAME ($ENTRA_APP_ID)
+  Federated credential:   $SC_SUBJECT
+  Service connection:     $SC_NAME (id $SC_ID)
+  Variable group:         $VARGROUP_NAME (id $VG_ID)
+  Pipeline:               $PIPELINE_NAME (id $PIPELINE_ID)
+
+Test it:
+  1) Edit any file under docs/ and push to master.
+  2) Watch the run at:
+     $ORG_URL/$PROJECT/_build?definitionId=$PIPELINE_ID
+  3) Once it's green for ~30 days, retire the legacy GitHub Actions
+     workflow per docs/devops/migrate-ci-workflows.md § 6-7.
+EOF
