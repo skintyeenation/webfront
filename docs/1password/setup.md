@@ -3,6 +3,12 @@
 How Skin Tyee's 1Password (Business) account is organized, and how we add,
 provision, and remove users. Companion to [`pricing.md`](pricing.md).
 
+> **End-user view:** if you're a *new staff member* trying to *use* 1Password
+> rather than administer it, follow
+> [`docs/onboarding/1password.md`](../onboarding/1password.md) instead.
+> That walks through accepting the invite, saving the Emergency Kit, installing
+> on every device, and joining shared vaults.
+
 > 1Password is a core **security control**: credentials live in encrypted
 > **vaults** with per-team/per-role access, so staff never email passwords and
 > access can be cut off instantly when someone leaves.

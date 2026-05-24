@@ -310,6 +310,25 @@ Related email services: **[ImprovMX](docs/improvmx/README.md)** (forwarding
 aliases / secondary domains into M365) and **[Mailgun](docs/mailgun/README.md)**
 (transactional / app-sent email).
 
+## Staff onboarding
+
+The end-user-facing onboarding sequence for new Skin Tyee staff (M365 +
+1Password setup, walking through every device + every "I'm stuck" symptom).
+Companion to the admin-side docs above.
+
+👋 **[Onboarding sequence →](docs/onboarding/README.md)** — the order to run
+the setup in, what the admin sends you, and what you end up with at the end.
+
+📧 **[Outlook setup with `@skintyee.ca` →](docs/onboarding/outlook-skintyee-ca.md)**
+— activate the M365 account, register MFA, add the address to Outlook on
+macOS + Windows + iOS + Android + the web, and pick up auto-mapped shared
+mailboxes (`info@`, `chief@`, `admin@`).
+
+🔐 **[1Password install + setup →](docs/onboarding/1password.md)** — accept
+the invite, set the Master Password, save the Emergency Kit, install the
+desktop + browser-extension + mobile apps, migrate any existing browser-saved
+passwords, and join the shared vaults for your role.
+
 ## Password management (1Password)
 
 Credentials and secrets live in **1Password (Business)** — encrypted vaults with
@@ -367,6 +386,9 @@ tax-deductible operating expenses under Canadian law.
 - [`docs/365/shared-mailboxes.md`](docs/365/shared-mailboxes.md) — Microsoft 365 shared mailbox setup + adding users
 - [`docs/365/pricing.md`](docs/365/pricing.md) — Microsoft 365 per-user pricing, tax deductibility, offboarding
 - [`docs/365/sharepoint-docs-publish.md`](docs/365/sharepoint-docs-publish.md) — auto-publish `docs/` to SharePoint via GitHub Actions + Microsoft Graph (Entra ID app + `Sites.Selected`), 9-step one-time Azure setup
+- [`docs/onboarding/README.md`](docs/onboarding/README.md) — new-staff onboarding sequence (M365 + 1Password)
+- [`docs/onboarding/outlook-skintyee-ca.md`](docs/onboarding/outlook-skintyee-ca.md) — activate `firstname.lastname@skintyee.ca`, register MFA, add to Outlook on macOS / Windows / iOS / Android / web, shared-mailbox auto-mapping
+- [`docs/onboarding/1password.md`](docs/onboarding/1password.md) — accept invite, set Master Password + save Emergency Kit, install desktop + browser-extension + mobile apps, migrate browser passwords, join shared vaults
 - [`scripts/publish-docs-to-sharepoint.sh`](scripts/publish-docs-to-sharepoint.sh) — the SharePoint publisher script (bash + curl + pandoc + jq)
 - [`.github/workflows/publish-docs-to-sharepoint.yml`](.github/workflows/publish-docs-to-sharepoint.yml) — push-to-master trigger + manual `workflow_dispatch`
 - [`docs/improvmx/README.md`](docs/improvmx/README.md) — ImprovMX email forwarding + pricing
