@@ -7,6 +7,28 @@ The site is a self-hosted WordPress install migrated from the previous
 Site123-hosted `skintyeefirstnation.org`. The app is a React Native + Expo
 proof-of-concept built for the proposal.
 
+## Contents
+
+| Section | What's in it |
+|---|---|
+| [Purpose](#purpose) | What we're building and why — identity, transparency, community, NGO priorities |
+| [Architecture](#architecture) | Top-level diagram of the platform |
+| [Visual walkthroughs](#visual-walkthroughs) | App + website screenshot tours |
+| [Layout](#layout) | Repo / workspace structure |
+| [app/](#app--skin-tyee-community-app) | `@skintyee/app` — Skin Tyee community app (React Native + Expo) |
+| [api/](#api--skin-tyee-api-proposed) | `@skintyee/api` — API contract + stub server |
+| [lookup/](#lookup--skin-tyee-lookup-tool) | `@skintyee/lookup-api` + `@skintyee/lookup-app` — Canadian business / funding / Nations lookup tool |
+| [Getting started](#getting-started) | `pnpm install` + first-run commands |
+| [Deployment](#deployment) | WordPress site via Azure DevOps; app via EAS Build |
+| [Microsoft 365 integration](#microsoft-365-integration) | Entra ID, shared mailboxes, SharePoint docs auto-publish |
+| [Staff onboarding](#staff-onboarding) | New-staff sequence: Outlook (with mandatory password change) → 1Password → shared mailboxes → band apps |
+| [Password management (1Password)](#password-management-1password) | Vaults, groups, recovery |
+| [Domains (GoDaddy)](#domains-godaddy) | `skintyee.ca` registrar + Azure DNS |
+| [Developer tools](#developer-tools) | IntelliJ Ultimate + Claude Max |
+| [Costs](#costs) | All recurring + one-time software costs (M365, 1Password, GoDaddy, Azure, dev tools) |
+| [Documentation](#documentation) | Index of every doc in this repo |
+| [Conventions](#conventions) | Git workflow + branch rules |
+
 ## Purpose
 
 Give Skin Tyee First Nation a **modern, self-owned digital platform** —
