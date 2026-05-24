@@ -46,7 +46,12 @@
 
 param(
   [string]$Org = ($env:ORG ?? 'skintyeenation'),
-  [string]$Project = ($env:PROJECT ?? 'webfront'),
+  # Project name defaults to `devops` (one Azure DevOps project per
+  # organisation, holding multiple repos as siblings). Repo name defaults
+  # to `webfront` (this repo). Future repos under the same project might
+  # be `app`, `api`, etc. — pass `-Project devops -Repo <name>` when
+  # adding them.
+  [string]$Project = ($env:PROJECT ?? 'devops'),
   [string]$Repo = ($env:REPO ?? 'webfront'),
   [switch]$DryRun,
   [Alias('Y', 'NoPrompt')]

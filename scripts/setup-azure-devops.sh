@@ -53,7 +53,12 @@
 set -euo pipefail
 
 ORG="${ORG:-skintyeenation}"
-PROJECT="${PROJECT:-webfront}"
+# Project name defaults to `devops` (one Azure DevOps project per
+# organisation, holding multiple repos as siblings). Repo name defaults
+# to `webfront` (this repo). Future repos under the same project might
+# be `app`, `api`, etc. — pass `--project devops --repo <name>` when
+# adding them.
+PROJECT="${PROJECT:-devops}"
 REPO="${REPO:-webfront}"
 DRY_RUN=0
 SKIP_PROMPTS=0

@@ -1,7 +1,7 @@
 # Azure DevOps — org, project, and repo setup
 
 One-time setup for the Nation's Azure DevOps tenant. Result: a new
-`dev.azure.com/skintyeenation` organization with a `webfront` project
+`dev.azure.com/skintyeenation` organization with a `devops` project
 containing the `webfront` Git repo, modelled on the existing
 `dev.azure.com/dotproperties` org.
 
@@ -120,13 +120,13 @@ The script is idempotent — re-running is safe. It will:
 | 2.1 | Verify Azure CLI + `azure-devops` extension installed | n/a — exits if missing |
 | 2.2 | `az login` if not already signed in | already signed in |
 | 2.3 | Confirm `skintyeenation` org is reachable | re-prompts you to do step 1 |
-| 2.4 | Create the `webfront` project | already exists |
+| 2.4 | Create the `devops` project | already exists |
 | 2.5 | Create the `webfront` repo | already exists |
 | 2.6 | Add `azure` remote to your local clone | already configured |
 | 2.7 | Push every branch + tag via `git push azure --mirror` | remote already has commits |
 | 2.8 | Set a branch policy on `master` (require PR, no force-push) | policy already exists |
 
-End state: <https://dev.azure.com/skintyeenation/webfront/_git/webfront>
+End state: <https://dev.azure.com/skintyeenation/devops/_git/webfront>
 contains the same commit history as GitHub, with `master` protected.
 
 ### What if I want to do it manually?
@@ -146,7 +146,7 @@ need a different name, use **Repos → … → New repository**.
 In your local clone:
 
 ```bash
-git remote add azure https://dev.azure.com/skintyeenation/webfront/_git/webfront
+git remote add azure https://dev.azure.com/skintyeenation/devops/_git/webfront
 git push azure --mirror     # seeds the empty repo with every branch + tag
 ```
 
@@ -217,7 +217,7 @@ non-policy-protected branches; PRs into `master`).
 
 | Action | Effect |
 |---|---|
-| Admin adds user to `skintyee-developers` in Entra ID | User can `git clone https://dev.azure.com/skintyeenation/webfront/_git/webfront` within 5 min |
+| Admin adds user to `skintyee-developers` in Entra ID | User can `git clone https://dev.azure.com/skintyeenation/devops/_git/webfront` within 5 min |
 | Admin removes user from `skintyee-developers` | Push/clone fails immediately |
 | Admin disables the user's Entra ID account entirely | All M365 + Azure + ADO access cut off in one move |
 
@@ -231,7 +231,7 @@ not be public on GitHub):
 
 ```bash
 ORG=skintyeenation \
-PROJECT=webfront \
+PROJECT=devops \
 REPO=internal-finance \
 bash scripts/setup-azure-devops.sh
 ```

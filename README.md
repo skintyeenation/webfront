@@ -193,7 +193,7 @@ primary, what's on GitHub, the four runbooks linked from below.
 
 ⚙️ **[One-time setup walkthrough →](docs/devops/azure-devops-setup.md)**
 — `scripts/setup-azure-devops.sh` (bash) / `.ps1` (PowerShell mirror)
-creates the `skintyeenation` org, the `webfront` project, the repo,
+creates the `skintyeenation` org, the `devops` project, the repo,
 pushes the existing Git history, and sets branch policy on `master`.
 
 🔁 **[GitHub mirror push →](docs/devops/azure-primary-github-mirror.md)**
