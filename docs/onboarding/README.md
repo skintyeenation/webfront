@@ -15,6 +15,7 @@ this section is the **end-user view**.
 |---|---|---|---|
 | 1 | Activate your `@skintyee.ca` Outlook account | The admin sends you a Microsoft 365 invite + a temporary password | [outlook-skintyee-ca.md](./outlook-skintyee-ca.md) |
 | 2 | Install + sign into 1Password | The admin sends you a 1Password invite email and (separately) a printed/sealed Secret Key envelope or PDF | [1password.md](./1password.md) |
+| 2b | (Optional, if the admin has enabled it) Switch 1Password to "Unlock with SSO" so your Entra ID account unlocks the vault | Admin confirms the org-level Entra ID ↔ 1Password integration is on | [1password.md → Step 6](./1password.md#step-6--connect-1password-to-entra-id-unlock-with-sso) |
 | 3 | (If applicable) Get access to a shared mailbox like `info@`, `chief@`, `admin@` | The admin grants you Full Access + Send-As permission | See [shared mailboxes](../365/shared-mailboxes.md) — once granted, the mailbox appears automatically in Outlook within ~24h |
 | 4 | (If applicable) Get access to band software | The admin invites you to the apps you need (the Skin Tyee app, WordPress site editor, Azure DevOps, etc.) | _Per-app — your admin will point you at the right doc_ |
 
