@@ -19,7 +19,7 @@ developer   git push origin master
         ┌─────────────────────────────────┐
         │  Azure DevOps                   │
         │  dev.azure.com/skintyeenation   │
-        │  /webfront/_git/webfront        │
+        │  /devops/_git/webfront          │
         └─────────────────┬───────────────┘
                           │  Pipeline trigger
                           │  on push to master

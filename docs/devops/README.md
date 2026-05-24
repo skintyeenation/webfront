@@ -36,7 +36,7 @@ the canonical source of truth is Azure.
 
 | Doc | When you need it |
 |---|---|
-| [azure-devops-setup.md](./azure-devops-setup.md) | **One-time** — create the `skintyeenation` org + the `webfront` project + the repo. Push existing Git history. |
+| [azure-devops-setup.md](./azure-devops-setup.md) | **One-time** — create the `skintyeenation` org + the `devops` project + the repo. Push existing Git history. |
 | [azure-primary-github-mirror.md](./azure-primary-github-mirror.md) | **One-time** — wire the Azure → GitHub mirror push so every Azure-side merge appears on GitHub within minutes. |
 | [migrate-ci-workflows.md](./migrate-ci-workflows.md) | **One-time per workflow** — port the SharePoint docs publisher (and any future GitHub Actions) into an Azure Pipeline. |
 | [agents.md](./agents.md) | When ADO Pipelines minutes get expensive or you need a runner with access to the band's internal network. |
