@@ -16,13 +16,6 @@ proof-of-concept built for the proposal.
 | &nbsp;&nbsp;&nbsp;&nbsp;[Architecture](#architecture) | Top-level diagram of the platform |
 | &nbsp;&nbsp;&nbsp;&nbsp;[Visual walkthroughs](#visual-walkthroughs) | App + website screenshot tours |
 | &nbsp;&nbsp;&nbsp;&nbsp;[Layout](#layout) | Repo / workspace structure |
-| **Packages** | |
-| &nbsp;&nbsp;&nbsp;&nbsp;[app/](#app--skin-tyee-community-app) | `@skintyee/app` — Skin Tyee community app (React Native + Expo) |
-| &nbsp;&nbsp;&nbsp;&nbsp;[api/](#api--skin-tyee-api-proposed) | `@skintyee/api` — API contract + stub server |
-| &nbsp;&nbsp;&nbsp;&nbsp;[lookup/](#lookup--skin-tyee-lookup-tool) | `@skintyee/lookup-api` + `@skintyee/lookup-app` — Canadian business / funding / Nations lookup tool |
-| **Run & deploy** | |
-| &nbsp;&nbsp;&nbsp;&nbsp;[Getting started](#getting-started) | `pnpm install` + first-run commands |
-| &nbsp;&nbsp;&nbsp;&nbsp;[Deployment](#deployment) | WordPress site via Azure DevOps; app via EAS Build |
 | **Infrastructure & people** | |
 | &nbsp;&nbsp;&nbsp;&nbsp;[Microsoft 365 integration](#microsoft-365-integration) | Entra ID, shared mailboxes, SharePoint docs auto-publish |
 | &nbsp;&nbsp;&nbsp;&nbsp;[Staff onboarding](#staff-onboarding) | New-staff sequence: Outlook (with mandatory password change) → 1Password → shared mailboxes → band apps |
@@ -33,6 +26,13 @@ proof-of-concept built for the proposal.
 | &nbsp;&nbsp;&nbsp;&nbsp;[Pricing & costs](#pricing--costs) | Pricing for all software / services — recurring + one-time (M365, 1Password, GoDaddy, Azure, app stores, dev tools), each with tax-deductibility |
 | &nbsp;&nbsp;&nbsp;&nbsp;[Documentation](#documentation) | Index of every doc in this repo |
 | &nbsp;&nbsp;&nbsp;&nbsp;[Conventions](#conventions) | Git workflow + branch rules |
+| **Packages** | |
+| &nbsp;&nbsp;&nbsp;&nbsp;[app/](#app--skin-tyee-community-app) | `@skintyee/app` — Skin Tyee community app (React Native + Expo) |
+| &nbsp;&nbsp;&nbsp;&nbsp;[api/](#api--skin-tyee-api-proposed) | `@skintyee/api` — API contract + stub server |
+| &nbsp;&nbsp;&nbsp;&nbsp;[lookup/](#lookup--skin-tyee-lookup-tool) | `@skintyee/lookup-api` + `@skintyee/lookup-app` — Canadian business / funding / Nations lookup tool |
+| **Run & deploy** | |
+| &nbsp;&nbsp;&nbsp;&nbsp;[Getting started](#getting-started) | `pnpm install` + first-run commands |
+| &nbsp;&nbsp;&nbsp;&nbsp;[Deployment](#deployment) | WordPress site via Azure DevOps; app via EAS Build |
 
 ## Purpose
 
@@ -149,6 +149,155 @@ ERP / band-delegation pieces. Full detail in
 `website/` is vendored as a **git subtree** (not an npm package). Pull/push it
 with `git subtree pull|push --prefix=website <remote> <branch>`.
 
+## Microsoft 365 integration
+
+Email/identity run on **Microsoft 365** (the Outlook Cloud "Email Relay" in the
+architecture diagram). Role addresses like `info@skintyee.ca`, `admin@skintyee.ca`,
+and `chief@skintyee.ca` are **shared mailboxes** that licensed staff work from
+with their own logins.
+
+🆔 **[Entra ID, admin account & access →](docs/365/entra-id.md)** — the
+`admin@…onmicrosoft.com` break-glass admin (governs 365 + Azure), Entra ID
+Connect (hybrid identity), and how Entra ID drives SSO and workstation/server
+access.
+
+📬 **[Shared mailbox setup & adding users →](docs/365/shared-mailboxes.md)** —
+how shared mailboxes are created in the M365 admin center and how individual
+(licensed) users are granted access (Full Access / Send As / Send on Behalf),
+with reference screenshots and the current mailbox/member list.
+
+💲 **[Microsoft 365 pricing & tax →](docs/365/pricing.md)** — Business Standard
+(with Teams) per-user cost, why it's 100% tax-deductible under Canadian law, and
+the rule to **unlicense departed/terminated staff immediately**.
+
+🔁 **[SharePoint docs auto-publish →](docs/365/sharepoint-docs-publish.md)** —
+every push to `master` that touches `docs/` mirrors the tree (markdown +
+pandoc-rendered HTML) to a SharePoint document library via Microsoft Graph.
+One-time Entra ID app + `Sites.Selected` setup walkthrough.
+
+Related email services: **[ImprovMX](docs/improvmx/README.md)** (forwarding
+aliases / secondary domains into M365) and **[Mailgun](docs/mailgun/README.md)**
+(transactional / app-sent email).
+
+## Staff onboarding
+
+The end-user-facing onboarding sequence for new Skin Tyee staff. Companion to
+the admin-side docs above — the admin does their part (creating accounts,
+assigning licenses, granting access) and the staff member walks the four-step
+sequence below to get set up on every device.
+
+| # | Step | What the admin sends you | Walkthrough |
+|---|---|---|---|
+| 1 | Activate your `@skintyee.ca` Outlook account (set a new password, register MFA) | Your work username + a **temporary** password by email — **expires on first sign-in, you'll be forced to change it** | [outlook-skintyee-ca.md](docs/onboarding/outlook-skintyee-ca.md) |
+| 2 | Install + sign into 1Password | A 1Password invite email + (separately) your Secret Key on paper or sealed PDF | [1password.md](docs/onboarding/1password.md) |
+| 2b | _(optional)_ Switch 1Password to "Unlock with SSO" so your Entra ID account unlocks the vault | Admin confirms org-level Entra ID ↔ 1Password integration is enabled | [1password.md § Step 6](docs/onboarding/1password.md#step-6--connect-1password-to-entra-id-unlock-with-sso) |
+| 3 | _(if applicable)_ Get added to shared mailboxes (`info@`, `chief@`, `admin@`) | Admin grants Full Access + Send-As permission | [365/shared-mailboxes.md](docs/365/shared-mailboxes.md) (auto-maps in Outlook within ~24h — no extra password) |
+| 4 | _(if applicable)_ Get added to band apps (Skin Tyee app, WordPress editor, Azure DevOps, etc.) | Per-app invitation | Per-app — admin points you at the right doc |
+
+**End state** when steps 1-2 are done:
+- A working **`firstname.lastname@skintyee.ca`** address on your laptop, phone, and the web.
+- Membership in any **shared mailboxes** you need — auto-mapped in Outlook, no second password.
+- **1Password** with your own vault + the shared vaults for your role.
+- **Single sign-on** into Microsoft 365 (Outlook, Teams, OneDrive, SharePoint, the Skin Tyee app) using the same `@skintyee.ca` login.
+
+> **For governance review:** the 1Password walkthrough includes a
+> [Security model + liability section](docs/onboarding/1password.md#security-model--liability-for-council--governance-review)
+> that documents the zero-knowledge architecture, the contractual liability
+> ceiling (capped at fees paid — standard B2B SaaS), and the admin's
+> incident-response runbook if 1Password ever reports a breach. Council
+> can review this before signing off.
+
+👋 **[Open the full onboarding section →](docs/onboarding/README.md)** — the
+sequence table above with the "if you get stuck" troubleshooting bucket, the
+section's scope (what it covers and explicitly doesn't), and links to the
+admin-side companion docs.
+
+## Password management (1Password)
+
+Credentials and secrets live in **1Password (Business)** — encrypted vaults with
+per-team/role access, so staff never email passwords and access is cut off
+instantly when someone leaves.
+
+🔐 **[1Password setup & user management →](docs/1password/setup.md)** — vaults,
+groups, provisioning users, and offboarding.
+💲 **[1Password pricing & tax →](docs/1password/pricing.md)** — per-user cost,
+100% Canadian tax-deductibility, and immediate deprovisioning of departed staff.
+
+## Domains (GoDaddy)
+
+Domains are registered at **GoDaddy** — `skintyee.ca` (primary) plus
+`skintyee.com` / `.org` / `.net` (defensive, forwarded to `.ca`) — with DNS in
+**Azure DNS**. The foundation for the website, `app.skintyee.ca`, and
+`@skintyee.ca` email.
+
+🌐 **[Domains & DNS →](docs/godaddy/domains.md)** — registrar account, Azure DNS
+delegation, the key records (web, app, M365 email), and renewal/safety.
+💲 **[Domain pricing & tax →](docs/godaddy/pricing.md)** — annual cost, 100%
+Canadian tax-deductibility, and "don't lose the domain".
+
+## Developer tools
+
+Tooling used to build/maintain the software: **JetBrains IntelliJ IDEA Ultimate**
+(1 seat) and **Claude (Anthropic) Max** — the Claude Code AI assistant (1 seat).
+
+🛠️ **[Developer tools & cost →](docs/developer-tools.md)** — IDE + AI assistant,
+pricing, and 100% Canadian tax-deductibility.
+
+## Pricing & costs
+
+💰 **[Pricing overview →](docs/pricing-overview.md)** — all software/service
+costs in one place — recurring and one-time (Microsoft 365, 1Password, GoDaddy,
+Azure, the **Apple/Google app-store** accounts, and developer tools) — each
+linking to its detailed cost record, with a worked example. All are 100%
+tax-deductible operating expenses under Canadian law.
+
+## Documentation
+
+- [`CLAUDE.md`](CLAUDE.md) — workspace overview, conventions, and decisions
+- [`docs/app-plan.md`](docs/app-plan.md) — app build plan
+- [`docs/architecture-decisions.md`](docs/architecture-decisions.md) — service ADRs (Entra ID, Azure Blob, Ferrus/Adagio, WordPress categories, SharePoint docs publishing)
+- [`docs/roadmap.md`](docs/roadmap.md) — 3-month engagement timeline
+- [`docs/pricing-overview.md`](docs/pricing-overview.md) — software/service costs summary, recurring + one-time (M365, 1Password, GoDaddy, Azure, app stores, dev tools) + tax
+- [`docs/app-distribution-costs.md`](docs/app-distribution-costs.md) — Apple Developer + Google Play costs, tax deductibility
+- [`docs/developer-tools.md`](docs/developer-tools.md) — developer tooling (IntelliJ IDEA Ultimate, Claude Max) + tax
+- [`docs/testing-strategy.md`](docs/testing-strategy.md) — testing + TestFlight/Google Play
+- [`api/openapi.yaml`](api/openapi.yaml) — proposed API contract · [`api/README.md`](api/README.md) — API stack recommendation
+- [`docs/walkthrough.md`](docs/walkthrough.md) — app visual screen-by-screen walkthrough
+- [`docs/website-walkthrough.md`](docs/website-walkthrough.md) — website (skintyee.ca) page-by-page screenshots
+- [`docs/wordpress-runbook.md`](docs/wordpress-runbook.md) — run / recover / back up the WordPress site
+- [`docs/365/entra-id.md`](docs/365/entra-id.md) — Entra ID, the admin account, Entra Connect, SSO + device/server access
+- [`docs/365/shared-mailboxes.md`](docs/365/shared-mailboxes.md) — Microsoft 365 shared mailbox setup + adding users
+- [`docs/365/pricing.md`](docs/365/pricing.md) — Microsoft 365 per-user pricing, tax deductibility, offboarding
+- [`docs/365/sharepoint-docs-publish.md`](docs/365/sharepoint-docs-publish.md) — auto-publish `docs/` to SharePoint via GitHub Actions + Microsoft Graph (Entra ID app + `Sites.Selected`), 9-step one-time Azure setup
+- [`docs/onboarding/README.md`](docs/onboarding/README.md) — new-staff onboarding sequence (M365 + 1Password)
+- [`docs/onboarding/outlook-skintyee-ca.md`](docs/onboarding/outlook-skintyee-ca.md) — activate `firstname.lastname@skintyee.ca`, register MFA, add to Outlook on macOS / Windows / iOS / Android / web, shared-mailbox auto-mapping
+- [`docs/onboarding/1password.md`](docs/onboarding/1password.md) — accept invite, set Master Password + save Emergency Kit, install desktop + browser-extension + mobile apps, migrate browser passwords, join shared vaults
+- [`scripts/publish-docs-to-sharepoint.sh`](scripts/publish-docs-to-sharepoint.sh) — the SharePoint publisher script (bash + curl + pandoc + jq)
+- [`.github/workflows/publish-docs-to-sharepoint.yml`](.github/workflows/publish-docs-to-sharepoint.yml) — push-to-master trigger + manual `workflow_dispatch`
+- [`docs/improvmx/README.md`](docs/improvmx/README.md) — ImprovMX email forwarding + pricing
+- [`docs/mailgun/README.md`](docs/mailgun/README.md) — Mailgun transactional email + pricing
+- [`docs/1password/setup.md`](docs/1password/setup.md) — 1Password vaults, groups, user management
+- [`docs/1password/pricing.md`](docs/1password/pricing.md) — 1Password per-user pricing, tax deductibility, offboarding
+- [`docs/godaddy/domains.md`](docs/godaddy/domains.md) — GoDaddy domains + Azure DNS records
+- [`docs/godaddy/pricing.md`](docs/godaddy/pricing.md) — domain pricing, tax deductibility
+- [`docs/research/canadian-business-lookups.md`](docs/research/canadian-business-lookups.md) — Canadian/BC business, First Nations & government contract lookup resources
+- [`docs/research/lookup-endpoints.md`](docs/research/lookup-endpoints.md) — verified search endpoints + params for business / money lookups (Indigenous filter)
+- [`docs/research/lookup-funding-architecture.md`](docs/research/lookup-funding-architecture.md) — Funding tab sub-tabs + multi-mode sources + `available-grants` aggregator
+- [`docs/research/indigenous-funding-landscape.md`](docs/research/indigenous-funding-landscape.md) — full Canadian Indigenous funding ecosystem (federal departments, NACCA + AFIs, BC provincial, philanthropic, IBAs) with which sources are searchable in the app
+- [`docs/research/lookup-tool-plan.md`](docs/research/lookup-tool-plan.md) — proposed `@skintyee/lookup` CLI + web tool plan
+- [`docs/research/nations-tab-plan.md`](docs/research/nations-tab-plan.md) — Nations tab plan + per-source scraping notes
+- [`docs/research/bc-spatial-datasets.md`](docs/research/bc-spatial-datasets.md) — SLRP, Publicly Available LUP, Recreation Sites, Mineral Deposit Profiles — download + schemas
+- [`lookup/`](lookup) — Skin Tyee Lookup tool: [`@skintyee/lookup-api`](lookup/api) (CLI + HTTP/SSE) + [`@skintyee/lookup-app`](lookup/app) (RN + Expo)
+- [`docs/Skintyee-App-Proposal.pptx`](docs/Skintyee-App-Proposal.pptx) — proposal deck
+- [`app/STUBS.md`](app/STUBS.md) — catalogue of POC stubs
+- [`docs/hosting-costs.md`](docs/hosting-costs.md) — hosting cost basis + rationale
+- [`website/README.md`](website/README.md) — WordPress migration tooling
+
+## Conventions
+
+Default branch is `master`. Work on `feature/*` branches and merge with
+`git merge --no-ff` using the subject
+`Merge branch 'feature/<name>' into '<target>'`.
 ## app/ — Skin Tyee community app
 
 A React Native + Expo app (iOS, Android, web) that reuses the proven "ppt"
@@ -306,153 +455,3 @@ Database for MySQL – Flexible Server** in production
 
 The app distributes via **EAS Build** to **TestFlight** (iOS) and **Google Play**
 (Android) — see [`docs/testing-strategy.md`](docs/testing-strategy.md).
-
-## Microsoft 365 integration
-
-Email/identity run on **Microsoft 365** (the Outlook Cloud "Email Relay" in the
-architecture diagram). Role addresses like `info@skintyee.ca`, `admin@skintyee.ca`,
-and `chief@skintyee.ca` are **shared mailboxes** that licensed staff work from
-with their own logins.
-
-🆔 **[Entra ID, admin account & access →](docs/365/entra-id.md)** — the
-`admin@…onmicrosoft.com` break-glass admin (governs 365 + Azure), Entra ID
-Connect (hybrid identity), and how Entra ID drives SSO and workstation/server
-access.
-
-📬 **[Shared mailbox setup & adding users →](docs/365/shared-mailboxes.md)** —
-how shared mailboxes are created in the M365 admin center and how individual
-(licensed) users are granted access (Full Access / Send As / Send on Behalf),
-with reference screenshots and the current mailbox/member list.
-
-💲 **[Microsoft 365 pricing & tax →](docs/365/pricing.md)** — Business Standard
-(with Teams) per-user cost, why it's 100% tax-deductible under Canadian law, and
-the rule to **unlicense departed/terminated staff immediately**.
-
-🔁 **[SharePoint docs auto-publish →](docs/365/sharepoint-docs-publish.md)** —
-every push to `master` that touches `docs/` mirrors the tree (markdown +
-pandoc-rendered HTML) to a SharePoint document library via Microsoft Graph.
-One-time Entra ID app + `Sites.Selected` setup walkthrough.
-
-Related email services: **[ImprovMX](docs/improvmx/README.md)** (forwarding
-aliases / secondary domains into M365) and **[Mailgun](docs/mailgun/README.md)**
-(transactional / app-sent email).
-
-## Staff onboarding
-
-The end-user-facing onboarding sequence for new Skin Tyee staff. Companion to
-the admin-side docs above — the admin does their part (creating accounts,
-assigning licenses, granting access) and the staff member walks the four-step
-sequence below to get set up on every device.
-
-| # | Step | What the admin sends you | Walkthrough |
-|---|---|---|---|
-| 1 | Activate your `@skintyee.ca` Outlook account (set a new password, register MFA) | Your work username + a **temporary** password by email — **expires on first sign-in, you'll be forced to change it** | [outlook-skintyee-ca.md](docs/onboarding/outlook-skintyee-ca.md) |
-| 2 | Install + sign into 1Password | A 1Password invite email + (separately) your Secret Key on paper or sealed PDF | [1password.md](docs/onboarding/1password.md) |
-| 2b | _(optional)_ Switch 1Password to "Unlock with SSO" so your Entra ID account unlocks the vault | Admin confirms org-level Entra ID ↔ 1Password integration is enabled | [1password.md § Step 6](docs/onboarding/1password.md#step-6--connect-1password-to-entra-id-unlock-with-sso) |
-| 3 | _(if applicable)_ Get added to shared mailboxes (`info@`, `chief@`, `admin@`) | Admin grants Full Access + Send-As permission | [365/shared-mailboxes.md](docs/365/shared-mailboxes.md) (auto-maps in Outlook within ~24h — no extra password) |
-| 4 | _(if applicable)_ Get added to band apps (Skin Tyee app, WordPress editor, Azure DevOps, etc.) | Per-app invitation | Per-app — admin points you at the right doc |
-
-**End state** when steps 1-2 are done:
-- A working **`firstname.lastname@skintyee.ca`** address on your laptop, phone, and the web.
-- Membership in any **shared mailboxes** you need — auto-mapped in Outlook, no second password.
-- **1Password** with your own vault + the shared vaults for your role.
-- **Single sign-on** into Microsoft 365 (Outlook, Teams, OneDrive, SharePoint, the Skin Tyee app) using the same `@skintyee.ca` login.
-
-> **For governance review:** the 1Password walkthrough includes a
-> [Security model + liability section](docs/onboarding/1password.md#security-model--liability-for-council--governance-review)
-> that documents the zero-knowledge architecture, the contractual liability
-> ceiling (capped at fees paid — standard B2B SaaS), and the admin's
-> incident-response runbook if 1Password ever reports a breach. Council
-> can review this before signing off.
-
-👋 **[Open the full onboarding section →](docs/onboarding/README.md)** — the
-sequence table above with the "if you get stuck" troubleshooting bucket, the
-section's scope (what it covers and explicitly doesn't), and links to the
-admin-side companion docs.
-
-## Password management (1Password)
-
-Credentials and secrets live in **1Password (Business)** — encrypted vaults with
-per-team/role access, so staff never email passwords and access is cut off
-instantly when someone leaves.
-
-🔐 **[1Password setup & user management →](docs/1password/setup.md)** — vaults,
-groups, provisioning users, and offboarding.
-💲 **[1Password pricing & tax →](docs/1password/pricing.md)** — per-user cost,
-100% Canadian tax-deductibility, and immediate deprovisioning of departed staff.
-
-## Domains (GoDaddy)
-
-Domains are registered at **GoDaddy** — `skintyee.ca` (primary) plus
-`skintyee.com` / `.org` / `.net` (defensive, forwarded to `.ca`) — with DNS in
-**Azure DNS**. The foundation for the website, `app.skintyee.ca`, and
-`@skintyee.ca` email.
-
-🌐 **[Domains & DNS →](docs/godaddy/domains.md)** — registrar account, Azure DNS
-delegation, the key records (web, app, M365 email), and renewal/safety.
-💲 **[Domain pricing & tax →](docs/godaddy/pricing.md)** — annual cost, 100%
-Canadian tax-deductibility, and "don't lose the domain".
-
-## Developer tools
-
-Tooling used to build/maintain the software: **JetBrains IntelliJ IDEA Ultimate**
-(1 seat) and **Claude (Anthropic) Max** — the Claude Code AI assistant (1 seat).
-
-🛠️ **[Developer tools & cost →](docs/developer-tools.md)** — IDE + AI assistant,
-pricing, and 100% Canadian tax-deductibility.
-
-## Pricing & costs
-
-💰 **[Pricing overview →](docs/pricing-overview.md)** — all software/service
-costs in one place — recurring and one-time (Microsoft 365, 1Password, GoDaddy,
-Azure, the **Apple/Google app-store** accounts, and developer tools) — each
-linking to its detailed cost record, with a worked example. All are 100%
-tax-deductible operating expenses under Canadian law.
-
-## Documentation
-
-- [`CLAUDE.md`](CLAUDE.md) — workspace overview, conventions, and decisions
-- [`docs/app-plan.md`](docs/app-plan.md) — app build plan
-- [`docs/architecture-decisions.md`](docs/architecture-decisions.md) — service ADRs (Entra ID, Azure Blob, Ferrus/Adagio, WordPress categories, SharePoint docs publishing)
-- [`docs/roadmap.md`](docs/roadmap.md) — 3-month engagement timeline
-- [`docs/pricing-overview.md`](docs/pricing-overview.md) — software/service costs summary, recurring + one-time (M365, 1Password, GoDaddy, Azure, app stores, dev tools) + tax
-- [`docs/app-distribution-costs.md`](docs/app-distribution-costs.md) — Apple Developer + Google Play costs, tax deductibility
-- [`docs/developer-tools.md`](docs/developer-tools.md) — developer tooling (IntelliJ IDEA Ultimate, Claude Max) + tax
-- [`docs/testing-strategy.md`](docs/testing-strategy.md) — testing + TestFlight/Google Play
-- [`api/openapi.yaml`](api/openapi.yaml) — proposed API contract · [`api/README.md`](api/README.md) — API stack recommendation
-- [`docs/walkthrough.md`](docs/walkthrough.md) — app visual screen-by-screen walkthrough
-- [`docs/website-walkthrough.md`](docs/website-walkthrough.md) — website (skintyee.ca) page-by-page screenshots
-- [`docs/wordpress-runbook.md`](docs/wordpress-runbook.md) — run / recover / back up the WordPress site
-- [`docs/365/entra-id.md`](docs/365/entra-id.md) — Entra ID, the admin account, Entra Connect, SSO + device/server access
-- [`docs/365/shared-mailboxes.md`](docs/365/shared-mailboxes.md) — Microsoft 365 shared mailbox setup + adding users
-- [`docs/365/pricing.md`](docs/365/pricing.md) — Microsoft 365 per-user pricing, tax deductibility, offboarding
-- [`docs/365/sharepoint-docs-publish.md`](docs/365/sharepoint-docs-publish.md) — auto-publish `docs/` to SharePoint via GitHub Actions + Microsoft Graph (Entra ID app + `Sites.Selected`), 9-step one-time Azure setup
-- [`docs/onboarding/README.md`](docs/onboarding/README.md) — new-staff onboarding sequence (M365 + 1Password)
-- [`docs/onboarding/outlook-skintyee-ca.md`](docs/onboarding/outlook-skintyee-ca.md) — activate `firstname.lastname@skintyee.ca`, register MFA, add to Outlook on macOS / Windows / iOS / Android / web, shared-mailbox auto-mapping
-- [`docs/onboarding/1password.md`](docs/onboarding/1password.md) — accept invite, set Master Password + save Emergency Kit, install desktop + browser-extension + mobile apps, migrate browser passwords, join shared vaults
-- [`scripts/publish-docs-to-sharepoint.sh`](scripts/publish-docs-to-sharepoint.sh) — the SharePoint publisher script (bash + curl + pandoc + jq)
-- [`.github/workflows/publish-docs-to-sharepoint.yml`](.github/workflows/publish-docs-to-sharepoint.yml) — push-to-master trigger + manual `workflow_dispatch`
-- [`docs/improvmx/README.md`](docs/improvmx/README.md) — ImprovMX email forwarding + pricing
-- [`docs/mailgun/README.md`](docs/mailgun/README.md) — Mailgun transactional email + pricing
-- [`docs/1password/setup.md`](docs/1password/setup.md) — 1Password vaults, groups, user management
-- [`docs/1password/pricing.md`](docs/1password/pricing.md) — 1Password per-user pricing, tax deductibility, offboarding
-- [`docs/godaddy/domains.md`](docs/godaddy/domains.md) — GoDaddy domains + Azure DNS records
-- [`docs/godaddy/pricing.md`](docs/godaddy/pricing.md) — domain pricing, tax deductibility
-- [`docs/research/canadian-business-lookups.md`](docs/research/canadian-business-lookups.md) — Canadian/BC business, First Nations & government contract lookup resources
-- [`docs/research/lookup-endpoints.md`](docs/research/lookup-endpoints.md) — verified search endpoints + params for business / money lookups (Indigenous filter)
-- [`docs/research/lookup-funding-architecture.md`](docs/research/lookup-funding-architecture.md) — Funding tab sub-tabs + multi-mode sources + `available-grants` aggregator
-- [`docs/research/indigenous-funding-landscape.md`](docs/research/indigenous-funding-landscape.md) — full Canadian Indigenous funding ecosystem (federal departments, NACCA + AFIs, BC provincial, philanthropic, IBAs) with which sources are searchable in the app
-- [`docs/research/lookup-tool-plan.md`](docs/research/lookup-tool-plan.md) — proposed `@skintyee/lookup` CLI + web tool plan
-- [`docs/research/nations-tab-plan.md`](docs/research/nations-tab-plan.md) — Nations tab plan + per-source scraping notes
-- [`docs/research/bc-spatial-datasets.md`](docs/research/bc-spatial-datasets.md) — SLRP, Publicly Available LUP, Recreation Sites, Mineral Deposit Profiles — download + schemas
-- [`lookup/`](lookup) — Skin Tyee Lookup tool: [`@skintyee/lookup-api`](lookup/api) (CLI + HTTP/SSE) + [`@skintyee/lookup-app`](lookup/app) (RN + Expo)
-- [`docs/Skintyee-App-Proposal.pptx`](docs/Skintyee-App-Proposal.pptx) — proposal deck
-- [`app/STUBS.md`](app/STUBS.md) — catalogue of POC stubs
-- [`docs/hosting-costs.md`](docs/hosting-costs.md) — hosting cost basis + rationale
-- [`website/README.md`](website/README.md) — WordPress migration tooling
-
-## Conventions
-
-Default branch is `master`. Work on `feature/*` branches and merge with
-`git merge --no-ff` using the subject
-`Merge branch 'feature/<name>' into '<target>'`.
