@@ -544,3 +544,44 @@ can't be filtered (or routes them through ISC IBD / CCAB as the seed list).
   <https://opencorporates.com/api_accounts/new>.
 - Several sources (PPSA, BC Corporate Online paid summary, CSO documents,
   ISNetworld) are **paywalled** and excluded from automation by design.
+
+### Open Canada CKAN — `q=` full-text search caveat
+
+The Open Canada CKAN datastore disables full-text search on resources
+>100 000 rows ("Invalid request. Full text search is not supported for
+data with more than 100000 rows"). Both federal Contracts (>$10K) and
+Grants & Contributions exceed that. `datastore_search_sql` is also
+disabled ("Action name not known"). What works is the `filters={col:val}`
+parameter — **exact-string match only**. Demonstrated:
+
+```
+filters={"recipient_legal_name":"Lake Babine Nation"}   → 5 records
+filters={"recipient_legal_name":"BABINE"}                → 0 records
+```
+
+For fuzzy search, use the **Solr-backed HTML search** at
+`https://search.open.canada.ca/{contracts,grants}/?search_text={q}` —
+that's what `open-canada-contracts` and `open-canada-grants` scrape.
+Official Open Canada Connect API docs:
+<https://open.canada.ca/en/working-data-api/connect-api>.
+
+### TODOs
+
+- **Cross-list `open-canada-grants` in Business lookup mode.** Right
+  now the federal grants Solr search is `mode: 'money'` only. A typical
+  business-due-diligence flow ("has this vendor received federal
+  grants?") needs this same data in the Business tab. Either lift
+  `mode` to `SourceMode[]` (cleanest) or clone with a `-business`
+  suffix. Requested by user 2026-05-23.
+- Available-vs-historical grants UX. The current Funding tab returns
+  **historical grant disclosures** (what's already been paid). For
+  "what programs can a band/business apply to **now**" the data
+  sources are: `fed-funding-finder`, `isc-funding`, `ch-indigenous-
+  languages`, `nacca`, `fpcc`, `bcafn` (all link-only). Consider
+  splitting the Funding tab into "Open opportunities" + "Historical
+  disclosures" sub-tabs.
+- **BC Bid + CivicInfo BC** scraping. SciQuest browser_check on BC Bid
+  serves a CAPTCHA on every load; CivicInfo BC is Cloudflare-protected.
+  Both link-only. Replacement: BC Ministry Contract Awards on the
+  Open Data CKAN datastore (already implemented). If CAPTCHA-solving
+  is on the table later, look at 2captcha or Anti-Captcha.
