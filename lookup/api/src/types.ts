@@ -79,7 +79,13 @@ export interface Source {
   id: string;
   /** Human-readable name. */
   name: string;
-  mode: SourceMode;
+  /**
+   * Which lookup tab(s) this source belongs to. A single value means the
+   * source appears only there; an array surfaces it in every listed mode
+   * (e.g. federal grants are useful in both Funding *and* Business — the
+   * latter answers "has this vendor received federal grants?").
+   */
+  mode: SourceMode | SourceMode[];
   format: SourceFormat;
   /** Group heading (matches sections in lookup-endpoints.md). */
   category: string;

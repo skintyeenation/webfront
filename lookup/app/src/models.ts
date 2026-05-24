@@ -3,7 +3,8 @@ export type Mode = 'business' | 'money' | 'nations';
 export interface SourceMeta {
   id: string;
   name: string;
-  mode: Mode;
+  /** Single mode or list of modes the source appears under. */
+  mode: Mode | Mode[];
   format: 'json-api' | 'html-search' | 'ckan' | 'csv-bulk' | 'link-only';
   category: string;
   homepage: string;
@@ -12,6 +13,11 @@ export interface SourceMeta {
   indigenousFilter: 'inherent' | 'flag' | 'org-filter' | 'keyword-or' | 'none';
   autoSelectOnIndigenous: boolean;
   requiresAuth: 'api-key' | 'paid' | false;
+}
+
+/** True if a SourceMeta is exposed in the given mode (handles both shapes). */
+export function sourceInMode(s: SourceMeta, mode: Mode): boolean {
+  return Array.isArray(s.mode) ? s.mode.includes(mode) : s.mode === mode;
 }
 
 export interface SourceItem {

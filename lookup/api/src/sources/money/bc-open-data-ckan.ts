@@ -32,7 +32,7 @@ export const bcOpenDataCkan: Source = {
   name: 'BC Open Data — datasets (CKAN)',
   mode: 'money',
   format: 'ckan',
-  category: 'Open-data catalogues',
+  category: 'Reference — Open-data catalogues',
   homepage: 'https://catalogue.data.gov.bc.ca/',
   indigenousFilter: 'keyword-or',
   description: 'BC provincial open-data catalogue — surface BC grant/funding datasets.',

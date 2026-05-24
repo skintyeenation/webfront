@@ -123,7 +123,7 @@ export const bcMinistryContracts: Source = {
   name: 'BC Ministry Contract Awards (BC Bid replacement)',
   mode: 'money',
   format: 'csv-bulk',
-  category: 'Provincial bids',
+  category: 'Historical disclosures — BC ministry contracts',
   homepage: HUMAN_URL,
   indigenousFilter: 'keyword-or',
   description:
