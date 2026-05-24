@@ -27,7 +27,18 @@ import { openCanadaGrants } from './money/open-canada-grants.js';
 import { openCanadaCkan } from './money/open-canada-ckan.js';
 import { bcOpenDataCkan } from './money/bc-open-data-ckan.js';
 import { merx } from './money/merx.js';
-import { bcBid, civicInfoBc, sedarPlus, contractsCsv, grantsCsv } from './money/link-only.js';
+import { canadabuys } from './money/canadabuys.js';
+import {
+  bcBid,
+  civicInfoBc,
+  sedarPlus,
+  contractsCsv,
+  grantsCsv,
+  psib,
+  innovativeSolutionsCanada,
+  defenceProcurement,
+  bcHydroTenders,
+} from './money/link-only.js';
 
 export const ALL_SOURCES: Source[] = [
   // Business
@@ -44,17 +55,23 @@ export const ALL_SOURCES: Source[] = [
   bccsaCor,
   cso,
   website,
-  // Money
+  // Money — federal procurement first (CanadaBuys = the GoC portal), then
+  // bulk datasets, then provincial / Crown corp / municipal.
+  canadabuys,
   openCanadaContracts,
   openCanadaGrants,
   openCanadaCkan,
-  bcOpenDataCkan,
+  psib,
+  innovativeSolutionsCanada,
+  defenceProcurement,
   merx,
-  bcBid,
-  civicInfoBc,
-  sedarPlus,
   contractsCsv,
   grantsCsv,
+  bcOpenDataCkan,
+  bcBid,
+  bcHydroTenders,
+  civicInfoBc,
+  sedarPlus,
   // Nations
   fnProfiles,
   fnFma,
