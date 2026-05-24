@@ -327,19 +327,24 @@ export const itac: Source = {
  */
 export const bcFundingFinder: Source = {
   id: 'bc-funding-finder',
-  name: 'BC Funding Opportunities (Province-wide)',
+  name: 'BC Funding Search — Aboriginal facet',
   mode: 'money',
   format: 'link-only',
   category: 'Open opportunities — Provincial grants',
-  // `gov/content/funding` is the canonical BC Government Funding
-  // Opportunities landing page (title "Funding Opportunities - Province
-  // of British Columbia"). The `gov/content/employment-business/...`
-  // path that appears in some search results is 404 as of 2026-05.
-  homepage: 'https://www2.gov.bc.ca/gov/content/funding',
-  indigenousFilter: 'keyword-or',
+  // BC government Funding Search with the Aboriginal People facet
+  // pre-applied — returns ~22 Indigenous-eligible BC programs.
+  // (The `gov/content/funding` landing is the unfiltered hub; this is
+  // the same search with the facet pre-checked.) The same URL is also
+  // scraped inline by `available-grants` so users see the programs as
+  // structured items.
+  homepage:
+    'https://www2.gov.bc.ca/gov/search?id=06772BB02F5D4E5C9A15E9CA4B0146AC&q=indigenous%2Binmeta%3Abcgov_fundingSubject%3DAboriginal+People&tab=1',
+  indigenousFilter: 'inherent',
+  autoSelectOnIndigenous: true,
   description:
-    'BC government cross-ministry funding-opportunities hub. Use the on-page filter for Indigenous-eligible streams.',
-  searchUrl: () => 'https://www2.gov.bc.ca/gov/content/funding',
+    'BC government Funding Search with the Aboriginal People facet pre-applied — ~22 Indigenous-eligible BC programs (Indigenous Entrepreneur Loan, First Citizens Fund, First Nations Clean Energy Business Fund, NRT Equity Match Grant, etc.). The same URL is also scraped inline by `available-grants`.',
+  searchUrl: () =>
+    'https://www2.gov.bc.ca/gov/search?id=06772BB02F5D4E5C9A15E9CA4B0146AC&q=indigenous%2Binmeta%3Abcgov_fundingSubject%3DAboriginal+People&tab=1',
 };
 
 /**

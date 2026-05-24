@@ -55,6 +55,11 @@ interface HubDef {
    *  drop site-specific nav cruft that survives the base filter — e.g.
    *  NACCA's "Meet the Team" or NRT's "About Us" links. */
   skipPatterns?: RegExp[];
+  /** Optional CSS selector to scope the anchor harvest. Defaults to the chain
+   *  `[property='mainContentOfPage']` → `main` → `body`. Override for sites
+   *  that don't use the canada.ca WET template — e.g. the BC government's
+   *  React-based funding search uses `.right-column`. */
+  rootSelector?: string;
 }
 
 const HUBS: HubDef[] = [
@@ -157,12 +162,15 @@ const HUBS: HubDef[] = [
     ],
   },
   {
+    // NACCA's `/programs/` URL 404s in the browser (verified 2026-05) even
+    // though it renders some content. The homepage links to each real
+    // program page (IWE, IYE, Indigenous Growth Fund, AEP).
     agency: 'NACCA — Aboriginal Financial Institutions',
-    url: 'https://nacca.ca/programs/',
+    url: 'https://nacca.ca/',
     minTextLen: 8,
     maxTextLen: 120,
     skipPatterns: [
-      /^(meet the team|history|membership|partnerships|news|contact|about)/i,
+      /^(meet the team|history|membership|partnerships|news|contact|about|home|donate)/i,
       /facebook|twitter|linkedin|instagram/i,
     ],
   },
@@ -184,6 +192,21 @@ const HUBS: HubDef[] = [
       /^(about|contact|news|board|team|home|funding application process|grant portal|program staff|funding guidelines)/i,
     ],
   },
+  {
+    // BC government Funding Search page with the Aboriginal People facet
+    // pre-applied (returns ~22 Indigenous-eligible BC programs: Indigenous
+    // Entrepreneur Loan, First Citizens Fund, First Nations Clean Energy
+    // Business Fund, NRT Equity Match Grant, etc.). React-based — class
+    // names are hashed but `.right-column` is the stable container.
+    agency: 'BC Government — Funding Search (Aboriginal facet)',
+    url: 'https://www2.gov.bc.ca/gov/search?id=06772BB02F5D4E5C9A15E9CA4B0146AC&q=indigenous%2Binmeta%3Abcgov_fundingSubject%3DAboriginal+People&tab=1',
+    minTextLen: 8,
+    maxTextLen: 120,
+    rootSelector: '.right-column',
+    skipPatterns: [
+      /^(search entire site|searching the entire site|subject:|find ways to contact)/i,
+    ],
+  },
 ];
 
 const CACHE_KEY = 'all-hubs';
@@ -191,17 +214,22 @@ const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 async function scrapeHub(hub: HubDef): Promise<HubProgram[]> {
   return withPage(async (page) => {
-    await page.goto(hub.url, { waitUntil: 'domcontentloaded', timeout: 25000 });
-    // Settle for any deferred content blocks (Akamai serves a stale shell
-    // first, then hydrates).
-    await new Promise((r) => setTimeout(r, 1500));
+    await page.goto(hub.url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    // Settle for any deferred content blocks. React-rendered pages
+    // (e.g. the BC funding search) take a few seconds to populate; the
+    // canada.ca + rcaanc Drupal-WET pages are ready almost immediately.
+    await new Promise((r) => setTimeout(r, hub.rootSelector ? 5000 : 1500));
     const skipPatternSources = (hub.skipPatterns || []).map((re) => re.source);
+    const rootSelector = hub.rootSelector || '';
     const items = await page.evaluate(
-      ({ agency, hubUrl, min, max, skipSrcs }) => {
-        // Restrict to the main content region — canada.ca + rcaanc both use
-        // <main> or [property="mainContentOfPage"] for the page body.
+      ({ agency, hubUrl, min, max, skipSrcs, rootSel }) => {
+        // Per-hub root selector takes precedence; otherwise fall back to the
+        // canada.ca + rcaanc default chain.
         const root =
-          document.querySelector("[property='mainContentOfPage']") || document.querySelector('main') || document.body;
+          (rootSel && document.querySelector(rootSel as string)) ||
+          document.querySelector("[property='mainContentOfPage']") ||
+          document.querySelector('main') ||
+          document.body;
         const seen = new Set<string>();
         const out: Array<{ agency: string; hubUrl: string; name: string; applyUrl: string }> = [];
         const skipRegexes = (skipSrcs as string[]).map((s) => new RegExp(s, 'i'));
@@ -233,6 +261,7 @@ async function scrapeHub(hub: HubDef): Promise<HubProgram[]> {
         min: hub.minTextLen,
         max: hub.maxTextLen,
         skipSrcs: skipPatternSources,
+        rootSel: rootSelector,
       },
     );
     return items;
@@ -279,7 +308,7 @@ export const availableGrants: Source = {
   homepage: HUMAN_URL,
   indigenousFilter: 'keyword-or',
   description:
-    'Searchable list of grant + funding programs currently accepting applications. Aggregated from 16 hubs — 12 federal departments (CIRNAC, Canadian Heritage, ESDC, NRCan, ECCC, DFO, Justice, PacifiCan, PrairiesCan, ACOA, CanNor, Infrastructure Canada) and 4 BC + Indigenous-controlled funders (New Relationship Trust, NACCA, Indspire, FPCC). Cached 24h.',
+    'Searchable list of grant + funding programs currently accepting applications. Aggregated from 17 hubs — 12 federal departments (CIRNAC, Canadian Heritage, ESDC, NRCan, ECCC, DFO, Justice, PacifiCan, PrairiesCan, ACOA, CanNor, Infrastructure Canada), 4 Indigenous-controlled / BC funders (New Relationship Trust, NACCA, Indspire, FPCC), and the BC Government Funding Search with the Aboriginal facet pre-applied. Cached 24h.',
   searchUrl: (q) => buildHumanUrl(q),
   async scrape(q): Promise<ScrapeResult> {
     try {
