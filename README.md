@@ -169,6 +169,89 @@ geospatial support for land allocation / GIS mapping + map pins. Full rationale:
 pnpm --filter @skintyee/api dev       # http://localhost:4000/docs (Swagger UI)
 ```
 
+## lookup/ — Skin Tyee Lookup tool
+
+A research tool built alongside the main app to discover Canadian / BC
+**businesses, federal funding, and First Nation profiles** for due-diligence
+and grant-finding workflows. Same workspace, same React Native + Paper +
+Redux + TypeScript stack as the app — but a separate pnpm package pair.
+
+It's the answer to: *"What grants can this Nation apply to?"*, *"What's the
+ownership and standing of this contractor?"*, *"Has this vendor received
+federal money?"*, *"What land use plans cover this territory?"*.
+
+### Tabs
+
+| Tab | What it answers | Default mode |
+|---|---|---|
+| **Nations** | Browse + lookup of every ISC band by region; per-band detail with governance, reserves (Leaflet map of NRCan CLSS Aboriginal Lands), population breakdown, **federal funding charts** with Claude-OCR'd Schedule of Federal Funding PDFs, FNFTA standing | Browse (BC bands by default) |
+| **Business** | Cross-jurisdiction company lookup: OrgBook BC (JSON API), MRAS, Corporations Canada, CRA Charities, ISC Indigenous Business Directory, CCAB, BCFSC SAFE Companies, plus federal grants received by the entity | Search by name |
+| **Funding** | Three sub-tabs — **Contracts & bids** (CanadaBuys, MERX, BC Ministry Contract Awards), **Grants & funding** (138 federal funding programs via `available-grants` Puppeteer scraper, plus ISC/CIRNAC/Heritage/NACCA/FPCC/BCAFN, plus historical disclosures from Open Canada and BC CRF Government Transfers), **Reference** (open-data catalogues, SEDAR+) | Browse (no keyword required) |
+
+### How it works
+
+- **`lookup/api`** (`@skintyee/lookup-api`) — Node 20 + tsx, no Express. CLI
+  (`pnpm lookup`) + HTTP/SSE server on `http://127.0.0.1:5050` (`pnpm serve`).
+  Background worker for Claude OCR of Schedule of Federal Funding PDFs
+  (rate-limit-aware, 65s polite gap, JSON-file-backed FIFO queue).
+- **`lookup/app`** (`@skintyee/lookup-app`) — React Native + Expo (same stack
+  as the main app), React Native Paper MD2DarkTheme cyan/orange. Same path
+  alias style (`lookup/*` → `lookup/app/src/*`).
+- **Caching** — `data/<bucket>/<key>.json` per-record envelope
+  `{ fetchedAt, data }`. Stale-while-revalidate where it matters
+  (24h on band detail + BCFSC; 7d on registry; 24h on the
+  `available-grants` Puppeteer-aggregated catalogue).
+- **Scraping** — `cheerio` for HTML, `puppeteer-core` driving installed
+  Chrome for ASP.NET/JS-required sites (ISC First Nation Profiles, ISC IBD,
+  CCAB, CanadaBuys tender hubs). CKAN `datastore_search` for BC Ministry
+  Contract Awards + BC Government Transfers (the structured back-door for
+  BC Bid, which is captcha-locked).
+
+### Geo data
+
+`pnpm fetch:bc-spatial` mirrors four BC Open Data spatial datasets into
+gitignored `lookup/api/data/bc-spatial/` — Strategic Land and Resource Plans
+(~130 MB GeoJSON, 101 features), Publicly Available Land Use Plans
+(6 First-Nation–BC co-led boundaries), Recreation Sites/Reserves/Interpretive
+Forests (~3 MB, 2 268 features), and the Mineral Deposit Profiles reference
+table. See [`docs/research/bc-spatial-datasets.md`](docs/research/bc-spatial-datasets.md).
+
+### Documentation
+
+- [`docs/research/lookup-funding-architecture.md`](docs/research/lookup-funding-architecture.md)
+  — the Funding tab sub-tabs, multi-mode sources, scoped-run behaviour,
+  category taxonomy, and the `available-grants` aggregator.
+- [`docs/research/lookup-endpoints.md`](docs/research/lookup-endpoints.md)
+  — per-source endpoint reference: URL shapes, query params, Indigenous
+  filter notes, the Open Canada CKAN `q=` >100k-row caveat, and TODOs.
+- [`docs/research/canadian-business-lookups.md`](docs/research/canadian-business-lookups.md)
+  — the original research catalogue that seeded the tool.
+- [`docs/research/nations-tab-plan.md`](docs/research/nations-tab-plan.md)
+  — the Nations tab plan + scraping notes.
+- [`docs/research/lookup-tool-plan.md`](docs/research/lookup-tool-plan.md)
+  — the initial CLI + web-tool proposal.
+
+### Run it
+
+```bash
+# Backend (CLI + HTTP/SSE server, port 5050) + in-process OCR worker
+pnpm --filter @skintyee/lookup-api serve
+
+# Standalone worker (alternative — separate process, takes the in-process
+# off, useful when developing the API itself)
+LOOKUP_DISABLE_INPROC_WORKER=1 pnpm --filter @skintyee/lookup-api worker
+
+# Frontend (Expo dev server; press w for web)
+pnpm --filter @skintyee/lookup-app start
+
+# CLI: one-shot run (skips the server)
+pnpm --filter @skintyee/lookup-api lookup -- --mode money --target "skin tyee"
+```
+
+For Claude PDF OCR set `ANTHROPIC_API_KEY` in `lookup/.env` (gitignored).
+Without it, Schedule of Federal Funding PDFs still appear in the UI but with
+an "OCR disabled" badge.
+
 ## Getting started
 
 ```bash
@@ -286,7 +369,10 @@ tax-deductible operating expenses under Canadian law.
 - [`docs/godaddy/pricing.md`](docs/godaddy/pricing.md) — domain pricing, tax deductibility
 - [`docs/research/canadian-business-lookups.md`](docs/research/canadian-business-lookups.md) — Canadian/BC business, First Nations & government contract lookup resources
 - [`docs/research/lookup-endpoints.md`](docs/research/lookup-endpoints.md) — verified search endpoints + params for business / money lookups (Indigenous filter)
+- [`docs/research/lookup-funding-architecture.md`](docs/research/lookup-funding-architecture.md) — Funding tab sub-tabs + multi-mode sources + `available-grants` aggregator
 - [`docs/research/lookup-tool-plan.md`](docs/research/lookup-tool-plan.md) — proposed `@skintyee/lookup` CLI + web tool plan
+- [`docs/research/nations-tab-plan.md`](docs/research/nations-tab-plan.md) — Nations tab plan + per-source scraping notes
+- [`docs/research/bc-spatial-datasets.md`](docs/research/bc-spatial-datasets.md) — SLRP, Publicly Available LUP, Recreation Sites, Mineral Deposit Profiles — download + schemas
 - [`lookup/`](lookup) — Skin Tyee Lookup tool: [`@skintyee/lookup-api`](lookup/api) (CLI + HTTP/SSE) + [`@skintyee/lookup-app`](lookup/app) (RN + Expo)
 - [`docs/Skintyee-App-Proposal.pptx`](docs/Skintyee-App-Proposal.pptx) — proposal deck
 - [`app/STUBS.md`](app/STUBS.md) — catalogue of POC stubs
