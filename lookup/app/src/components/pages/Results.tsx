@@ -49,7 +49,7 @@ export default function Results({ route, navigation }: any) {
     });
   };
 
-  const renderItems = (items: JobSourceResult['items'], compact: boolean) => {
+  const renderItems = (items: JobSourceResult['items'], compact: boolean, onSeeAll?: () => void) => {
     const list = compact ? items.slice(0, 6) : items;
     return (
       <View>
@@ -103,9 +103,17 @@ export default function Results({ route, navigation }: any) {
           </View>
         ))}
         {compact && items.length > 6 ? (
-          <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginTop: 6 }}>
-            +{items.length - 6} more — tap "Open" to see all.
-          </Text>
+          onSeeAll ? (
+            <Pressable onPress={onSeeAll} style={{ marginTop: 8, alignSelf: 'flex-start' }}>
+              <Text style={{ color: theme.colors.primary, fontSize: 12, fontWeight: '600' }}>
+                Show all {items.length} →
+              </Text>
+            </Pressable>
+          ) : (
+            <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginTop: 6 }}>
+              +{items.length - 6} more — tap "View report" above to see all.
+            </Text>
+          )
         ) : null}
       </View>
     );
@@ -250,7 +258,9 @@ export default function Results({ route, navigation }: any) {
               ))}
 
               {isExpanded && items.length > 0 ? (
-                <View style={{ marginTop: 8 }}>{renderItems(items, true)}</View>
+                <View style={{ marginTop: 8 }}>
+                  {renderItems(items, true, () => setModalSourceId(sid))}
+                </View>
               ) : null}
             </Card.Content>
           </Card>
