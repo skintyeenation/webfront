@@ -53,6 +53,11 @@ param(
   # adding them.
   [string]$Project = ($env:PROJECT ?? 'devops'),
   [string]$Repo = ($env:REPO ?? 'webfront'),
+  # Remote protocol for the local `azure` remote. SSH (default) is faster
+  # and doesn't reauth; HTTPS is the fallback for machines without an SSH
+  # public key uploaded to ADO yet.
+  [ValidateSet('ssh', 'https')]
+  [string]$Protocol = ($env:REMOTE_PROTOCOL ?? 'ssh'),
   [switch]$DryRun,
   [Alias('Y', 'NoPrompt')]
   [switch]$Yes
@@ -245,7 +250,11 @@ if ($repoId -and $repoId -ne 'null') {
   }
 }
 
-$repoUrl = "$OrgUrl/$Project/_git/$Repo"
+$repoUrl = if ($Protocol -eq 'ssh') {
+  "git@ssh.dev.azure.com:v3/$Org/$Project/$Repo"
+} else {
+  "$OrgUrl/$Project/_git/$Repo"
+}
 
 # ----- 6) push existing history from local clone -----------------------------
 
