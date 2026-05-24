@@ -51,6 +51,10 @@ interface HubDef {
    *  "Skip to main content" and the like. */
   minTextLen: number;
   maxTextLen: number;
+  /** Additional per-hub anchor-text skip patterns (case-insensitive). Used to
+   *  drop site-specific nav cruft that survives the base filter — e.g.
+   *  NACCA's "Meet the Team" or NRT's "About Us" links. */
+  skipPatterns?: RegExp[];
 }
 
 const HUBS: HubDef[] = [
@@ -139,6 +143,47 @@ const HUBS: HubDef[] = [
     minTextLen: 10,
     maxTextLen: 140,
   },
+  // BC + Indigenous-controlled funders (verified scrapable 2026-05).
+  // These don't use the canada.ca WET template — different markup, more
+  // site-specific nav cruft — so they each get a `skipPatterns` list.
+  {
+    agency: 'New Relationship Trust (BC)',
+    url: 'https://www.newrelationshiptrust.ca/funding/',
+    minTextLen: 8,
+    maxTextLen: 120,
+    skipPatterns: [
+      /^(about|contact|news|board|team|home|donate|annual report)/i,
+      /facebook|twitter|linkedin|instagram/i,
+    ],
+  },
+  {
+    agency: 'NACCA — Aboriginal Financial Institutions',
+    url: 'https://nacca.ca/programs/',
+    minTextLen: 8,
+    maxTextLen: 120,
+    skipPatterns: [
+      /^(meet the team|history|membership|partnerships|news|contact|about)/i,
+      /facebook|twitter|linkedin|instagram/i,
+    ],
+  },
+  {
+    agency: 'Indspire (Indigenous education bursaries)',
+    url: 'https://indspire.ca/programs/students/',
+    minTextLen: 8,
+    maxTextLen: 120,
+    skipPatterns: [
+      /^(accessing your t4a|eft instructions|guidelines|thank you letter|words of encouragement|supporters)/i,
+    ],
+  },
+  {
+    agency: 'First Peoples\' Cultural Council (BC)',
+    url: 'https://fpcc.ca/grants/',
+    minTextLen: 8,
+    maxTextLen: 120,
+    skipPatterns: [
+      /^(about|contact|news|board|team|home|funding application process|grant portal|program staff|funding guidelines)/i,
+    ],
+  },
 ];
 
 const CACHE_KEY = 'all-hubs';
@@ -150,14 +195,16 @@ async function scrapeHub(hub: HubDef): Promise<HubProgram[]> {
     // Settle for any deferred content blocks (Akamai serves a stale shell
     // first, then hydrates).
     await new Promise((r) => setTimeout(r, 1500));
+    const skipPatternSources = (hub.skipPatterns || []).map((re) => re.source);
     const items = await page.evaluate(
-      ({ agency, hubUrl, min, max }) => {
+      ({ agency, hubUrl, min, max, skipSrcs }) => {
         // Restrict to the main content region — canada.ca + rcaanc both use
         // <main> or [property="mainContentOfPage"] for the page body.
         const root =
           document.querySelector("[property='mainContentOfPage']") || document.querySelector('main') || document.body;
         const seen = new Set<string>();
         const out: Array<{ agency: string; hubUrl: string; name: string; applyUrl: string }> = [];
+        const skipRegexes = (skipSrcs as string[]).map((s) => new RegExp(s, 'i'));
         const anchors = root.querySelectorAll('a');
         for (const a of Array.from(anchors)) {
           const text = (a.textContent || '').replace(/\s+/g, ' ').trim();
@@ -167,6 +214,8 @@ async function scrapeHub(hub: HubDef): Promise<HubProgram[]> {
           // Skip nav-y / breadcrumb words.
           if (/^(home|menu|skip|search|main|government|sign\s*in|sign\s*up|français|english|share|print)$/i.test(text))
             continue;
+          // Per-hub skip patterns.
+          if (skipRegexes.some((re) => re.test(text))) continue;
           if (/canada.ca home page|government of canada|contact the government/i.test(text)) continue;
           if (/^canada\.ca$/i.test(text)) continue;
           // Build absolute URL.
@@ -178,7 +227,13 @@ async function scrapeHub(hub: HubDef): Promise<HubProgram[]> {
         }
         return out;
       },
-      { agency: hub.agency, hubUrl: hub.url, min: hub.minTextLen, max: hub.maxTextLen },
+      {
+        agency: hub.agency,
+        hubUrl: hub.url,
+        min: hub.minTextLen,
+        max: hub.maxTextLen,
+        skipSrcs: skipPatternSources,
+      },
     );
     return items;
   });
@@ -224,7 +279,7 @@ export const availableGrants: Source = {
   homepage: HUMAN_URL,
   indigenousFilter: 'keyword-or',
   description:
-    'Searchable list of federal grant + funding programs currently accepting applications. Aggregated from 11 departmental funding hubs (CIRNAC, Canadian Heritage, ESDC, NRCan, ECCC, DFO, Justice, PacifiCan, PrairiesCan, ACOA, CanNor, Infrastructure Canada). Cached 24h.',
+    'Searchable list of grant + funding programs currently accepting applications. Aggregated from 16 hubs — 12 federal departments (CIRNAC, Canadian Heritage, ESDC, NRCan, ECCC, DFO, Justice, PacifiCan, PrairiesCan, ACOA, CanNor, Infrastructure Canada) and 4 BC + Indigenous-controlled funders (New Relationship Trust, NACCA, Indspire, FPCC). Cached 24h.',
   searchUrl: (q) => buildHumanUrl(q),
   async scrape(q): Promise<ScrapeResult> {
     try {
