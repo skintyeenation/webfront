@@ -1,5 +1,13 @@
 name: Publish docs to SharePoint
 
+# ⚠️ LEGACY — being migrated to Azure Pipelines per ADR-9
+# (https://github.com/skintyeenation/webfront/blob/master/docs/architecture-decisions.md#adr-9).
+# The canonical workflow file post-migration is
+# `azure-pipelines/publish-docs-to-sharepoint.yml`; see
+# `docs/devops/migrate-ci-workflows.md` for the porting walkthrough.
+# This file stays in-tree until the Azure Pipeline is verified, then
+# will be deleted with a "GitHub Actions retired" commit.
+#
 # Pushes every .md under docs/ — plus a pandoc-rendered .html sibling —
 # into the band's SharePoint document library on every change to docs/
 # on master. See `docs/365/sharepoint-docs-publish.md` for the one-time

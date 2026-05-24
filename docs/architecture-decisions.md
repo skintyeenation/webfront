@@ -151,6 +151,67 @@ Decision record for the Skin Tyee app (`@skintyee/app`, in `app/`). Lives in the
   rendered, 56 (md + html) uploads queued, zero `node_modules` junk
   contaminating the list.
 
+### ADR-9 — Source control: Azure DevOps as primary, GitHub as mirror
+- **Decision:** **Azure DevOps** (`dev.azure.com/skintyeenation`) is the
+  canonical Git host. **GitHub** (`github.com/skintyeenation`) stays as
+  an automated, read-only **mirror** for public discoverability and
+  off-Microsoft backup.
+- **Replaces:** GitHub-as-primary, which was the implicit default during
+  initial development.
+- **Why:**
+  - **Single Microsoft identity for everything.** Same Entra ID
+    `firstname.lastname@skintyee.ca` account signs into Outlook, Azure
+    portal, the Skin Tyee app, **and** Azure DevOps. No separate GitHub
+    account to provision/deprovision when staff turn over — Entra ID
+    is the single off-switch.
+  - **Single billing surface.** ADO Pipelines minutes, hosted agents,
+    artifact storage, and the Azure subscription all roll up under the
+    same Microsoft account as Microsoft 365 + Azure. One invoice, one
+    tax record (per [`365/pricing.md`](./365/pricing.md)) — simpler
+    NGO accounting.
+  - **First-class Azure deployment.** ADO Pipelines + service
+    connections with **workload identity federation** give clean
+    no-secret access to Azure Container Apps, Azure DNS, Azure Storage,
+    Azure DB. The website's `azure-pipelines.yml` is in production on
+    this pattern today.
+  - **Self-hosted agent reuse.** The `props-agents` Docker pattern
+    (sibling repo) can register agents into the new
+    `skintyeenation` org with zero new work if/when we exceed
+    hosted-minute quota.
+- **What stays on GitHub:** A read-only mirror of `master` (and tags),
+  pushed automatically by an Azure Pipeline. GitHub's role:
+  - **Public discoverability** — youth, schools, and the open-source
+    community can read the code without an MSFT account (the
+    open-source posture from the README's _Purpose → Education &
+    open source_).
+  - **Off-Microsoft backup** — if the M365 tenant is ever locked
+    out, GitHub still has the history.
+  - **External contributions** — pull requests on GitHub can be
+    triaged manually and re-applied on Azure. (No automated
+    GitHub-PR → Azure-PR sync — that's a future enhancement.)
+- **What this reverses:** [ADR-8](#adr-8--docs-distribution-sharepoint-mirror-push-triggered-via-github-actions)
+  picked GitHub Actions over Azure DevOps for the SharePoint docs
+  publisher because at the time the repo lived on GitHub and there was
+  no existing ADO pipeline for webfront. Both halves of that rationale
+  now change. The SharePoint publisher gets ported to Azure Pipelines
+  (`docs/devops/migrate-ci-workflows.md`), with a federated-credential
+  improvement: no more long-lived `AZURE_CLIENT_SECRET` stored anywhere.
+- **Cost:** $0 incremental.
+  - Azure DevOps **free tier** for private projects: 5 users, unlimited
+    private repos, 1,800 Pipeline minutes/mo, 2 GiB artifact storage.
+    We comfortably fit.
+  - GitHub stays on the **Free** tier (public mirrors only — no
+    Actions minutes consumed since CI moves to ADO).
+- **Status:** **documented; pending one-time setup.**
+  - Setup walkthrough + automation script (`scripts/setup-azure-devops.sh`
+    + `.ps1` mirror) in [`devops/azure-devops-setup.md`](./devops/azure-devops-setup.md).
+  - Azure → GitHub mirror push pipeline in [`devops/azure-primary-github-mirror.md`](./devops/azure-primary-github-mirror.md).
+  - SharePoint publisher migration in [`devops/migrate-ci-workflows.md`](./devops/migrate-ci-workflows.md).
+  - Self-hosted agent guidance in [`devops/agents.md`](./devops/agents.md).
+  - The legacy `.github/workflows/publish-docs-to-sharepoint.yml`
+    stays in-tree until the Azure Pipeline is verified, then gets
+    deleted.
+
 ## Summary: ppt → Skin Tyee service swaps
 
 | Concern | ppt (AWS) | Skin Tyee (Azure) | Status |
@@ -161,4 +222,5 @@ Decision record for the Skin Tyee app (`@skintyee/app`, in `app/`). Lives in the
 | Financial / program data | — | **Ferrus ASAP Suite + Adagio / Sage 300** | mocked (transparency + financials) |
 | Notifications taxonomy | — | **skintyee.ca WordPress categories** | modelled; push + feed stubbed |
 | App packaging | source lib + app-shell submodules | **single self-contained app** | done |
-| Docs distribution | — | **SharePoint mirror via GitHub Actions + Graph (Sites.Selected)** | implemented; pending 1× Azure app + Sites.Selected grant (ADR-8) |
+| Docs distribution | — | **SharePoint mirror via GitHub Actions + Graph (Sites.Selected)** | implemented; pending 1× Azure app + Sites.Selected grant (ADR-8) — to be ported to Azure Pipelines per ADR-9 |
+| Source control | _(GitHub-as-primary, implicit)_ | **Azure DevOps primary + GitHub mirror** | documented; pending 1× org + repo creation (ADR-9) |
