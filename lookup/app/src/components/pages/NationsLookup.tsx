@@ -233,26 +233,41 @@ export default function NationsLookup({ navigation }: any) {
           />
 
           {/* Meta + manual refresh */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 8, flexWrap: 'wrap' }}>
-            <Text style={{ color: theme.colors.textDarker, fontSize: 11, flex: 1 }}>
-              {browseLoading
-                ? 'Fetching the ISC band registry CSV…'
-                : browseError
-                  ? `⚠ ${browseError}`
-                  : `${filteredBrowse.length} of ${browseList.length} Nation${browseList.length === 1 ? '' : 's'}${browseCached ? ` · 📦 cached ${browseFetchedAt ? new Date(browseFetchedAt).toLocaleString() : ''}` : ` · ✨ fresh ${browseFetchedAt ? new Date(browseFetchedAt).toLocaleString() : ''}`}`}
-            </Text>
-            <Button
-              mode="text"
-              compact
-              icon="refresh"
-              loading={browseLoading}
-              disabled={browseLoading}
-              textColor={theme.colors.primary}
-              onPress={() => void loadBrowse(true)}
-            >
-              {browseLoading ? 'Refreshing…' : 'Refresh list'}
-            </Button>
-          </View>
+          {(() => {
+            const totalReg = filteredBrowse.reduce((s, b) => s + (b.population || 0), 0);
+            const fullReg = browseList.reduce((s, b) => s + (b.population || 0), 0);
+            return (
+              <View style={{ marginBottom: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <Text style={{ color: theme.colors.textDarker, fontSize: 11, flex: 1 }}>
+                    {browseLoading
+                      ? 'Fetching the ISC band registry CSV…'
+                      : browseError
+                        ? `⚠ ${browseError}`
+                        : `${filteredBrowse.length} of ${browseList.length} Nation${browseList.length === 1 ? '' : 's'}${browseCached ? ` · 📦 cached ${browseFetchedAt ? new Date(browseFetchedAt).toLocaleString() : ''}` : ` · ✨ fresh ${browseFetchedAt ? new Date(browseFetchedAt).toLocaleString() : ''}`}`}
+                  </Text>
+                  <Button
+                    mode="text"
+                    compact
+                    icon="refresh"
+                    loading={browseLoading}
+                    disabled={browseLoading}
+                    textColor={theme.colors.primary}
+                    onPress={() => void loadBrowse(true)}
+                  >
+                    {browseLoading ? 'Refreshing…' : 'Refresh list'}
+                  </Button>
+                </View>
+                {!browseLoading && !browseError && totalReg > 0 ? (
+                  <Text style={{ color: theme.colors.success, fontSize: 11, marginTop: 4 }}>
+                    {filter.trim()
+                      ? `Σ Registered population in filtered ${filteredBrowse.length} Nation${filteredBrowse.length === 1 ? '' : 's'}: ${totalReg.toLocaleString()} (of ${fullReg.toLocaleString()} region-wide)`
+                      : `Σ Registered population across all ${browseList.length} Nations: ${fullReg.toLocaleString()}`}
+                  </Text>
+                ) : null}
+              </View>
+            );
+          })()}
 
           {browseLoading && browseList.length === 0 ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginVertical: 16 }}>
