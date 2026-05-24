@@ -12,6 +12,7 @@
     "test:e2e": "tsx test/e2e-sources.ts",
     "fetch:bulk": "bash scripts/fetch-bulk.sh",
     "fetch:bc-spatial": "bash scripts/fetch-bc-spatial.sh",
+    "backup:db": "bash scripts/backup-db.sh",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

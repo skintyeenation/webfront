@@ -1,6 +1,7 @@
 node_modules
 api/out
 api/data
+backups
 .env
 .env.local
 *.log
