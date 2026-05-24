@@ -75,4 +75,5 @@ export function ageMs<T>(record: Record<T>): number {
 export const BUCKETS = {
   nations: 'nations',
   bcfscSafe: 'bcfsc-safe',
+  availableGrants: 'available-grants',
 } as const;
