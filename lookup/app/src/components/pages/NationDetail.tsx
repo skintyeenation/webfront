@@ -331,32 +331,162 @@ export default function NationDetail({ route, navigation }: any) {
       ) : null}
 
       {tab === 'funds' && detail?.funds ? (
-        <Card style={{ backgroundColor: theme.colors.darkDefault }}>
-          <Card.Title
-            title="Schedule of Federal Funding"
-            subtitle={`${detail.funds.rows.length} fiscal years on record`}
-            titleStyle={{ color: theme.colors.accent }}
-            subtitleStyle={{ color: theme.colors.textDarker, fontSize: 12 }}
-          />
-          <Card.Content>
-            {detail.funds.rows.length === 0 ? (
-              <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>No fiscal years on record.</Text>
-            ) : (
-              detail.funds.rows.map((r) => (
-                <View key={r.fiscalYear} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderBottomColor: theme.colors.defaultBorder, borderBottomWidth: 1 }}>
-                  <Text style={{ color: theme.colors.text, fontSize: 13, width: 100 }}>{r.fiscalYear}</Text>
-                  {r.documentUrl ? (
-                    <Pressable onPress={() => Linking.openURL(r.documentUrl!)}>
-                      <Text style={{ color: theme.colors.primary, fontSize: 13 }}>{r.documentName} ↗</Text>
-                    </Pressable>
-                  ) : (
-                    <Text style={{ color: theme.colors.textDarker, fontSize: 13 }}>{r.documentName}</Text>
-                  )}
+        <View>
+          {/* Year-over-year totals — PDF-extracted vs federal Grants & Contributions */}
+          {(detail.funds.summary?.byYear?.length || detail.funds.federal?.byYear?.length) ? (
+            <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
+              <Card.Title
+                title="Year-over-year federal transfers"
+                subtitle="Two independent sources — Schedule of Federal Funding PDFs (OCR'd via Claude) vs the federal Proactive Disclosure of Grants & Contributions"
+                titleStyle={{ color: theme.colors.accent }}
+                subtitleStyle={{ color: theme.colors.textDarker, fontSize: 11 }}
+              />
+              <Card.Content>
+                {(() => {
+                  const years = Array.from(
+                    new Set([
+                      ...(detail.funds.summary?.byYear ?? []).map((y) => y.fiscalYear),
+                      ...(detail.funds.federal?.byYear ?? []).map((y) => y.fiscalYear),
+                    ]),
+                  ).sort();
+                  const pdfMap = new Map((detail.funds.summary?.byYear ?? []).map((y) => [y.fiscalYear, y.total]));
+                  const fedMap = new Map((detail.funds.federal?.byYear ?? []).map((y) => [y.fiscalYear, y.total]));
+                  const max = Math.max(
+                    1,
+                    ...years.map((y) => Math.max(pdfMap.get(y) ?? 0, fedMap.get(y) ?? 0)),
+                  );
+                  return years.map((y) => {
+                    const p = pdfMap.get(y) ?? 0;
+                    const f = fedMap.get(y) ?? 0;
+                    return (
+                      <View key={y} style={{ marginBottom: 10 }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                          <Text style={{ color: theme.colors.text, fontSize: 12, fontWeight: '600' }}>{y}</Text>
+                          <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>
+                            {p ? `PDF $${p.toLocaleString()}` : 'PDF —'} · {f ? `Federal $${f.toLocaleString()}` : 'Federal —'}
+                          </Text>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                          <Text style={{ width: 50, fontSize: 10, color: theme.colors.textDarker }}>PDF</Text>
+                          <View style={{ flex: 1, height: 8, backgroundColor: theme.colors.secondary }}>
+                            <View style={{ width: `${(p / max) * 100}%`, height: '100%', backgroundColor: theme.colors.accent }} />
+                          </View>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                          <Text style={{ width: 50, fontSize: 10, color: theme.colors.textDarker }}>Federal</Text>
+                          <View style={{ flex: 1, height: 8, backgroundColor: theme.colors.secondary }}>
+                            <View style={{ width: `${(f / max) * 100}%`, height: '100%', backgroundColor: theme.colors.primary }} />
+                          </View>
+                        </View>
+                      </View>
+                    );
+                  });
+                })()}
+                <View style={{ flexDirection: 'row', gap: 12, marginTop: 4 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <View style={{ width: 12, height: 12, backgroundColor: theme.colors.accent }} />
+                    <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>Schedule of Federal Funding PDF (Claude OCR)</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <View style={{ width: 12, height: 12, backgroundColor: theme.colors.primary }} />
+                    <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>Open Canada Grants & Contributions</Text>
+                  </View>
                 </View>
-              ))
-            )}
-          </Card.Content>
-        </Card>
+              </Card.Content>
+            </Card>
+          ) : null}
+
+          {/* Per-department breakdown (pie, from whichever side has data) */}
+          {detail.funds.summary?.byDepartment?.length ? (
+            <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
+              <Card.Title title="By funding department (from PDFs)" titleStyle={{ color: theme.colors.success }} />
+              <Card.Content>
+                <PieSlices
+                  slices={detail.funds.summary.byDepartment.slice(0, 6).map((d, i) => ({
+                    label: d.department,
+                    value: d.total,
+                    color: CHART_COLORS[i % CHART_COLORS.length],
+                  }))}
+                />
+              </Card.Content>
+            </Card>
+          ) : null}
+
+          {/* Cross-check table */}
+          {detail.funds.comparison?.byYear?.length ? (
+            <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
+              <Card.Title
+                title="Cross-check: PDF vs Federal records"
+                subtitle="Δ > 0 → the band's PDF reports more than federal proactive disclosure shows"
+                titleStyle={{ color: theme.colors.primary }}
+                subtitleStyle={{ color: theme.colors.textDarker, fontSize: 11 }}
+              />
+              <Card.Content>
+                {detail.funds.comparison.byYear.map((r) => (
+                  <View key={r.fiscalYear} style={{ flexDirection: 'row', paddingVertical: 4, borderBottomColor: theme.colors.defaultBorder, borderBottomWidth: 1 }}>
+                    <Text style={{ color: theme.colors.text, fontSize: 12, width: 90 }}>{r.fiscalYear}</Text>
+                    <Text style={{ color: theme.colors.textDarker, fontSize: 12, flex: 1 }}>
+                      PDF {r.pdfTotal !== undefined ? `$${r.pdfTotal.toLocaleString()}` : '—'} · Fed {r.federalTotal !== undefined ? `$${r.federalTotal.toLocaleString()}` : '—'}
+                    </Text>
+                    {r.delta !== undefined ? (
+                      <Text style={{ color: Math.abs(r.delta) < 1 ? theme.colors.textDarker : r.delta > 0 ? theme.colors.success : theme.colors.error, fontSize: 12, width: 110, textAlign: 'right' }}>
+                        Δ ${Math.abs(r.delta).toLocaleString()}{r.deltaPct !== undefined ? ` (${r.deltaPct.toFixed(0)}%)` : ''}
+                      </Text>
+                    ) : null}
+                  </View>
+                ))}
+                <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginTop: 8 }}>
+                  Sources rarely align perfectly: PDFs include all federal payments per the band's audited submission; the federal Grants & Contributions disclosure only covers agreements ≥ the disclosure threshold and only post-1998 with varying coverage. Use the comparison directionally, not as a strict reconciliation.
+                </Text>
+              </Card.Content>
+            </Card>
+          ) : null}
+
+          {/* Original PDF list */}
+          <Card style={{ backgroundColor: theme.colors.darkDefault }}>
+            <Card.Title
+              title="Schedule of Federal Funding (audited submissions)"
+              subtitle={`${detail.funds.rows.length} fiscal years on record — scanned PDFs from the federal FN Profiles archive`}
+              titleStyle={{ color: theme.colors.accent }}
+              subtitleStyle={{ color: theme.colors.textDarker, fontSize: 12 }}
+            />
+            <Card.Content>
+              {detail.funds.rows.length === 0 ? (
+                <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>No fiscal years on record.</Text>
+              ) : (
+                detail.funds.rows.map((r) => {
+                  const e = detail.funds!.extracted?.find((x) => x.fiscalYear === r.fiscalYear);
+                  return (
+                    <View key={r.fiscalYear} style={{ paddingVertical: 6, borderBottomColor: theme.colors.defaultBorder, borderBottomWidth: 1 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <Text style={{ color: theme.colors.text, fontSize: 13, width: 100 }}>{r.fiscalYear}</Text>
+                        {r.documentUrl ? (
+                          <Pressable onPress={() => Linking.openURL(r.documentUrl!)}>
+                            <Text style={{ color: theme.colors.primary, fontSize: 13 }}>{r.documentName} ↗</Text>
+                          </Pressable>
+                        ) : (
+                          <Text style={{ color: theme.colors.textDarker, fontSize: 13 }}>{r.documentName}</Text>
+                        )}
+                        {e?.extracted ? (
+                          <Text style={{ color: theme.colors.success, fontSize: 11, marginLeft: 8 }}>
+                            ✔ {e.extracted.transfers.length} transfers · ${e.extracted.computedTotal.toLocaleString()}
+                            {e.extractCached ? ' (cached)' : ''}
+                          </Text>
+                        ) : e?.extractError ? (
+                          <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginLeft: 8 }}>
+                            {e.extractError.includes('ANTHROPIC_API_KEY')
+                              ? 'OCR disabled — set ANTHROPIC_API_KEY to enable.'
+                              : `OCR failed: ${e.extractError}`}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </View>
+                  );
+                })
+              )}
+            </Card.Content>
+          </Card>
+        </View>
       ) : null}
 
       {tab === 'fnfta' ? (

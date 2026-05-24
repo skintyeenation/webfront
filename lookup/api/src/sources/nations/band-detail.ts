@@ -18,6 +18,13 @@
 
 import { getJson } from '../../util/http.js';
 import { withPage } from '../../util/puppet.js';
+import { extractFundsRows, summarizeFunds, type FundsRowWithExtract } from './funds-extract.js';
+import {
+  compareFundingSources,
+  fetchFederalFunding,
+  type FederalFundingHistory,
+  type FundingComparison,
+} from './funds-federal.js';
 
 const BASE = 'https://fnp-ppn.aadnc-aandc.gc.ca/fnp/Main/Search';
 
@@ -44,6 +51,12 @@ export interface FundsRow {
   fiscalYear: string;
   documentName: string;
   documentUrl?: string;
+}
+
+export interface FundsSummary {
+  byYear: Array<{ fiscalYear: string; total: number; count: number }>;
+  byDepartment: Array<{ department: string; total: number; count: number }>;
+  byProgram: Array<{ program: string; total: number; count: number }>;
 }
 
 export interface GeoFeature {
@@ -78,7 +91,14 @@ export interface BandDetail {
   governance?: { rows: Array<{ role?: string; name?: string; term?: string }>; raw?: string };
   reserves?: { rows: Array<{ name?: string; size?: string; community?: string; url?: string }>; raw?: string };
   population?: PopulationBreakdown;
-  funds?: { rows: FundsRow[]; raw?: string };
+  funds?: {
+    rows: FundsRow[];
+    extracted?: FundsRowWithExtract[];
+    summary?: FundsSummary;
+    federal?: FederalFundingHistory;
+    comparison?: FundingComparison;
+    raw?: string;
+  };
   fnfta?: { searchUrl: string };
   geo?: GeoSection;
   /** Section-level errors. */
@@ -282,7 +302,7 @@ export async function getBandDetail(bandNumber: string, sections: Section[] = AL
               return { rows: rows.filter((r) => !/Total Registered/i.test(r.label)), total, asOf, summary };
             });
           } else if (section === 'funds') {
-            detail.funds = await page.evaluate((base) => {
+            const fundsRows = await page.evaluate((base) => {
               const rows: Array<{ fiscalYear: string; documentName: string; documentUrl?: string }> = [];
               const tables = Array.from(document.querySelectorAll('table'));
               for (const t of tables) {
@@ -300,8 +320,21 @@ export async function getBandDetail(bandNumber: string, sections: Section[] = AL
                 }
                 break;
               }
-              return { rows };
+              return rows;
             }, BASE);
+            // Fan out: OCR each PDF via Claude (no-op if no API key) + pull
+            // the federal Grants & Contributions records for the same Nation
+            // for cross-check. Both run in parallel.
+            const bandName = detail.general?.officialName;
+            const [extracted, federal] = await Promise.all([
+              extractFundsRows(bandNumber, bandName, fundsRows),
+              bandName ? fetchFederalFunding(bandName).catch(() => undefined) : Promise.resolve(undefined),
+            ]);
+            const summary = summarizeFunds(extracted);
+            const comparison = federal
+              ? compareFundingSources(summary.byYear, federal.byYear)
+              : undefined;
+            detail.funds = { rows: fundsRows, extracted, summary, federal, comparison };
           } else if (section === 'governance' || section === 'reserves') {
             const data = await page.evaluate(() => {
               const tables = Array.from(document.querySelectorAll('main table, [property="mainContentOfPage"] table'));
