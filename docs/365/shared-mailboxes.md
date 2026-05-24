@@ -3,6 +3,12 @@
 How Skin Tyee's shared mailboxes are set up in Microsoft 365, and how we add
 individual (licensed) users to them.
 
+> **End-user view:** if you're a *new staff member* trying to *use* a shared
+> mailbox in Outlook (it should auto-map to your folder list within 24 hours of
+> being granted access), see
+> [`docs/onboarding/outlook-skintyee-ca.md`](../onboarding/outlook-skintyee-ca.md).
+> This doc is the admin-side companion for creating mailboxes and granting access.
+>
 > Context: email runs through Microsoft 365 / Outlook Cloud (the "Email Relay"
 > in `docs/SkinTyee.drawio.pdf`). Shared mailboxes are role/address inboxes
 > (e.g. `info@skintyee.ca`, `admin@skintyee.ca`) that several staff work from

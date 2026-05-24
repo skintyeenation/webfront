@@ -1,0 +1,197 @@
+# Outlook setup with `@skintyee.ca`
+
+Your work email — `firstname.lastname@skintyee.ca` — runs on
+**Microsoft 365** (Outlook + Teams + Office). This page walks you
+through activating the account and adding it to Outlook on every
+device you'll use.
+
+> **Before you start** — the admin should have sent you two pieces of
+> info:
+>
+> 1. An email to your **personal** email address inviting you to
+>    "Microsoft 365 Business Standard for Skin Tyee First Nation".
+> 2. A **temporary password** (usually in a separate text/SMS — never
+>    in the same email as the username).
+>
+> If you don't have both, message the admin before going further.
+
+---
+
+## Step 1 — First sign-in (in your web browser, takes ~5 min)
+
+This step activates your account, forces you to set a new password,
+and prompts you to register a phone number for password-reset and
+multi-factor authentication.
+
+1. Open <https://outlook.office.com> in any browser.
+2. Enter your full work email: `firstname.lastname@skintyee.ca`.
+3. Enter the **temporary password** you were sent.
+4. You'll be told the password is expired and need to set a new one:
+   - **Current password:** the temporary one.
+   - **New password:** at least 14 characters, mixed case + number +
+     symbol. **Don't reuse a personal password.** Put this in 1Password
+     once you've set up step 2 — for now write it on paper.
+5. Microsoft will prompt **"More information required"** — set up
+   authenticator now. Two options:
+   - **Microsoft Authenticator app** (recommended) — install on your
+     phone from the App Store / Play Store, then scan the QR code
+     shown on the screen.
+   - **Phone (text/call)** — enter your mobile number; Microsoft will
+     text you a 6-digit code.
+6. You should land in Outlook on the Web. Send yourself a test email
+   from your personal address to confirm it arrives.
+
+You're now signed in to **all of M365** with that one password — Teams,
+OneDrive, SharePoint, the Skin Tyee app (once it's wired up).
+
+---
+
+## Step 2 — Add the account to Outlook on your laptop
+
+### macOS
+
+1. Open **Outlook** (comes with Microsoft 365 — install from
+   <https://office.com>'s "Install Office" button if not present).
+2. **File → Add Account** _or_ on first launch the wizard appears
+   automatically.
+3. Enter `firstname.lastname@skintyee.ca` → **Continue**.
+4. Sign in with the password you set in Step 1. Approve the MFA prompt
+   on your phone.
+5. Wait ~1 minute for your inbox to sync. You should see your test
+   email from Step 1.
+6. **Default profile** — if this is your first Outlook account, it's
+   already default. If you have a personal account too, set the
+   `@skintyee.ca` one as default in **Outlook → Preferences →
+   General → Default mail account**.
+
+### Windows
+
+1. Open **Outlook** (Start menu → Outlook). Install from
+   <https://office.com> if not present.
+2. **File → Add Account** _or_ first-launch wizard.
+3. Same steps as macOS above.
+4. **Profile management** — Windows uses Outlook profiles. If you ever
+   need to re-add the account from scratch:
+   - **Control Panel → Mail → Show Profiles**.
+   - Add a new profile with just the `@skintyee.ca` account; set it
+     as default.
+
+### Shared mailboxes appear automatically
+
+If the admin has granted you Full Access to a shared mailbox (e.g.
+`info@skintyee.ca`), it **shows up under your folder list within
+~24 hours** of the grant — no extra password, no extra account. You'll
+see something like:
+
+```
+Folders
+├── firstname.lastname@skintyee.ca
+│   ├── Inbox
+│   ├── Sent
+│   └── …
+└── info@skintyee.ca     ← shared mailbox, auto-mapped
+    ├── Inbox
+    └── …
+```
+
+To **send as** the shared address (e.g. "From: info@…"), compose a new
+email and click the **From** field at the top — pick the shared address
+from the dropdown.
+
+---
+
+## Step 3 — Add to your phone
+
+### iOS (iPhone / iPad)
+
+**Option A — Microsoft Outlook app (recommended)**
+
+1. Install **Microsoft Outlook** from the App Store.
+2. Open it → **Add Account** → enter `firstname.lastname@skintyee.ca`.
+3. Sign in with your password + approve MFA.
+4. Done. The app handles Outlook calendar + contacts too.
+
+**Option B — Apple Mail**
+
+1. **Settings → Mail → Accounts → Add Account → Microsoft Exchange**.
+2. Enter the email + a description ("Skin Tyee").
+3. Tap **Sign In** (not Configure Manually) — opens the Microsoft
+   sign-in flow.
+4. Approve MFA.
+5. Choose what to sync (Mail / Contacts / Calendars / Reminders / Notes).
+
+### Android
+
+1. Install **Microsoft Outlook** from the Play Store.
+2. Same flow as iOS — Add Account → email → password → approve MFA.
+3. The native Gmail app also supports Exchange — use the Outlook app
+   if your phone is a work phone; either works on personal phones.
+
+---
+
+## Step 4 — Outlook on the Web (any device)
+
+You don't need anything installed — <https://outlook.office.com> works
+in any browser. Useful if you're on a friend's computer or a band
+office workstation that doesn't have your account.
+
+**Bookmark this** — staff use it as a fallback when the desktop app
+is having a bad day, and Outlook on the Web has features the desktop
+app doesn't (e.g. Booking, integration with Teams meetings).
+
+---
+
+## Troubleshooting
+
+### "Sign in failed" / wrong password
+
+- Check you're using your **new** password, not the temporary one.
+- Reset it at <https://passwordreset.microsoftonline.com> (this works
+  if you registered MFA in Step 1).
+
+### "Multi-factor authentication is taking forever"
+
+- Pull down the Microsoft Authenticator app and check for a pending
+  request — sometimes the push doesn't arrive but the request is
+  there if you open the app.
+- If MFA is broken, the admin can temporarily disable it from the
+  admin center to let you back in, then you re-register.
+
+### Outlook desktop shows the wrong account / I want to re-add from scratch
+
+- **macOS:** **Outlook → Preferences → Accounts** → select the account
+  → click **−** → re-add.
+- **Windows:** **File → Account Settings → Account Settings** → select
+  → **Remove** → re-add. Or wipe the whole profile from **Control
+  Panel → Mail → Show Profiles**.
+
+### The shared mailbox isn't showing up
+
+- Shared mailboxes auto-map within ~24 hours of the admin granting
+  Full Access. If it's been a day:
+  - Restart Outlook.
+  - If still missing, ask the admin to verify the permission grant
+    (see [`docs/365/shared-mailboxes.md`](../365/shared-mailboxes.md)).
+
+### Old emails from before today aren't appearing
+
+- Outlook syncs the most recent ~30 days by default. To see further
+  back:
+  - **macOS:** **Outlook → Preferences → Accounts → Advanced → Sync
+    settings** → change to "All".
+  - **Windows:** **File → Account Settings → select account → Change
+    → "Use Cached Exchange Mode" → Mail to keep offline: All**.
+
+### "How do I share a calendar?"
+
+- **Outlook → Calendar → right-click your calendar → Sharing
+  Permissions → Add** the colleague's `@skintyee.ca` address, pick a
+  permission level (Can view / Can edit / Delegate).
+
+---
+
+## What's next
+
+Once Outlook is working, move to **[Step 2 of onboarding — 1Password
+install + setup →](./1password.md)** so you have somewhere safe to
+store the password you just set and every other work credential.
