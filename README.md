@@ -19,7 +19,7 @@ proof-of-concept built for the proposal.
 | **Infrastructure & people** | |
 | &nbsp;&nbsp;&nbsp;&nbsp;[Microsoft 365 integration](#microsoft-365-integration) | Entra ID, shared mailboxes, SharePoint docs auto-publish |
 | &nbsp;&nbsp;&nbsp;&nbsp;[Staff onboarding](#staff-onboarding) | New-staff sequence: Outlook (with mandatory password change) → 1Password → shared mailboxes → band apps |
-| &nbsp;&nbsp;&nbsp;&nbsp;[Password management (1Password)](#password-management-1password) | Vaults, groups, recovery |
+| &nbsp;&nbsp;&nbsp;&nbsp;[Password management](#password-management) | Vaults, groups, recovery (1Password Business) |
 | &nbsp;&nbsp;&nbsp;&nbsp;[Domains (GoDaddy)](#domains-godaddy) | `skintyee.ca` registrar + Azure DNS |
 | &nbsp;&nbsp;&nbsp;&nbsp;[Developer tools](#developer-tools) | IntelliJ Ultimate + Claude Max |
 | **Reference** | |
@@ -212,7 +212,7 @@ sequence table above with the "if you get stuck" troubleshooting bucket, the
 section's scope (what it covers and explicitly doesn't), and links to the
 admin-side companion docs.
 
-## Password management (1Password)
+## Password management
 
 Credentials and secrets live in **1Password (Business)** — encrypted vaults with
 per-team/role access, so staff never email passwords and access is cut off
