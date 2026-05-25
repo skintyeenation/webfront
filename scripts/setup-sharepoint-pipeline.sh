@@ -273,6 +273,39 @@ M365_CLI_LEGACY_APP_ID="${M365_CLI_LEGACY_APP_ID:-31359c7f-bd7e-475c-86db-fdb8c9
 if [ "$SKIP_SITE_GRANT" = "1" ]; then
   say "skipping site grant (--skip-site-grant set)"
 else
+  # Node version check — m365 CLI v11 needs Node 20.12+ (uses `styleText`
+  # from `node:util`, added in 20.12). Earlier Nodes throw a cryptic
+  # `SyntaxError: The requested module 'node:util' does not provide an
+  # export named 'styleText'` from `m365 setup` etc. Catch upfront with
+  # a clear message.
+  if command -v node >/dev/null 2>&1; then
+    NODE_VER=$(node --version 2>/dev/null | sed 's/^v//')
+    NODE_MAJOR="${NODE_VER%%.*}"
+    NODE_MINOR=$(printf '%s' "$NODE_VER" | awk -F. '{print $2}')
+    if [ "$NODE_MAJOR" -lt 20 ] || { [ "$NODE_MAJOR" -eq 20 ] && [ "${NODE_MINOR:-0}" -lt 12 ]; }; then
+      cat >&2 <<MSG
+
+  ✗ Node $NODE_VER is too old for m365 CLI v11 (requires Node 20.12+).
+
+  Fastest fix (uses nvm — already present on this machine):
+
+    nvm install 22       # current LTS — fine for everything
+    nvm use 22
+    npm install -g @pnp/cli-microsoft365   # re-install on the new Node
+    bash scripts/setup-sharepoint-pipeline.sh
+
+  Or stay on 20.x and just bump past 20.12:
+
+    nvm install 20.18
+    nvm use 20.18
+    npm install -g @pnp/cli-microsoft365
+    bash scripts/setup-sharepoint-pipeline.sh
+
+MSG
+      die "Node version $NODE_VER < 20.12 required by m365 CLI"
+    fi
+  fi
+
   # Auto-install m365 CLI if missing. Uses npm which we expect to be on
   # PATH given this is a pnpm workspace. Falls back with a clear error if
   # npm itself is missing.
@@ -284,7 +317,14 @@ else
     run npm install -g @pnp/cli-microsoft365 >/dev/null 2>&1 \
       || die "npm install of @pnp/cli-microsoft365 failed — try \`npm install -g @pnp/cli-microsoft365\` directly for the full error."
   fi
-  ok "m365 CLI ready ($(m365 version 2>/dev/null || echo 'version unknown'))"
+  # m365 itself can throw the styleText error on `m365 version`. Catch it.
+  if ! M365_VER_OUTPUT=$(m365 version 2>&1); then
+    if echo "$M365_VER_OUTPUT" | grep -q 'styleText'; then
+      die "m365 CLI was installed under an older Node and inherited a binary that needs Node 20.12+. After upgrading Node (see message above), re-run \`npm install -g @pnp/cli-microsoft365\` to rebuild for the new Node version."
+    fi
+    die "m365 CLI failed to start: $M365_VER_OUTPUT"
+  fi
+  ok "m365 CLI ready ($M365_VER_OUTPUT)"
 
   # Bind m365 to the legacy well-known Entra app id so `m365 login` doesn't
   # fail with `appId is required` (m365 v11+ removed the built-in default).
