@@ -283,6 +283,25 @@ if [ "$DRY_RUN" -eq 0 ]; then
     warn "  delete manually in Entra → App registrations → $ENTRA_APP_DISPLAY_NAME → Certificates & secrets → trash each row."
     warn "  (script doesn't auto-delete in case something else still depends on them)"
   fi
+
+  # Ensure the running user is an owner of the publisher app. Apps without
+  # owners are orphans — only Global Admins can manage them, which is
+  # poor governance and makes day-2 changes (rotating federated creds,
+  # adding ADO connections) harder than necessary.
+  CURRENT_USER_OID=$(az ad signed-in-user show --query id -o tsv --only-show-errors 2>/dev/null || echo "")
+  if [ -n "$CURRENT_USER_OID" ]; then
+    PUBLISHER_OBJ_ID=$(az ad app show --id "$ENTRA_APP_ID" --query id -o tsv --only-show-errors 2>/dev/null || echo "")
+    if [ -n "$PUBLISHER_OBJ_ID" ]; then
+      IS_OWNER=$(az ad app owner list --id "$ENTRA_APP_ID" \
+        --query "[?id=='$CURRENT_USER_OID'].id | [0]" -o tsv --only-show-errors 2>/dev/null || echo "")
+      if [ -z "$IS_OWNER" ] || [ "$IS_OWNER" = "null" ]; then
+        say "adding current user as owner of publisher app (was orphan)…"
+        az ad app owner add --id "$ENTRA_APP_ID" --owner-object-id "$CURRENT_USER_OID" \
+          --only-show-errors >/dev/null 2>&1 \
+          || warn "couldn't add current user as owner of publisher app"
+      fi
+    fi
+  fi
 fi
 
 # Resolve the Graph site-id from the site URL if --sharepoint-site-id
@@ -445,11 +464,24 @@ MSG
     fi
   fi
 
-  # Resolve Microsoft Graph delegated permission IDs dynamically. Avoids
-  # hardcoding GUIDs that could be wrong across cloud environments.
+  # The sign-in app needs delegated scopes on TWO different APIs:
+  #
+  #   - Microsoft Graph (Sites.FullControl.All, User.Read) — used by m365
+  #     spo commands that go through Graph (apppermission, site listing
+  #     via Graph endpoints).
+  #
+  #   - SharePoint Online REST API (AllSites.FullControl) — used by m365
+  #     spo commands that go directly against SharePoint REST endpoints.
+  #     m365 CLI v11+ requires both API surfaces; without the SharePoint
+  #     REST scope, many spo commands return "Access denied" even though
+  #     the user has Global Admin and Graph perms are admin-consented.
+  #
+  # Both API IDs are well-known Microsoft constants.
   if [ "$DRY_RUN" -eq 0 ]; then
-    say "resolving Microsoft Graph delegated permission IDs…"
     GRAPH_SP_ID="00000003-0000-0000-c000-000000000000"
+    SP_REST_SP_ID="00000003-0000-0ff1-ce00-000000000000"  # SharePoint Online API
+
+    say "resolving Graph + SharePoint REST delegated permission IDs…"
     GRAPH_PERMS=$(az ad sp show --id "$GRAPH_SP_ID" \
       --query 'oauth2PermissionScopes' -o json --only-show-errors 2>/dev/null || echo "[]")
     PERM_SITES_FC=$(echo "$GRAPH_PERMS" | jq -r '.[] | select(.value=="Sites.FullControl.All") | .id')
@@ -459,23 +491,62 @@ MSG
     [ -n "$PERM_USER_READ" ] && [ "$PERM_USER_READ" != "null" ] \
       || die "couldn't resolve User.Read permission id from Microsoft Graph SP"
 
-    say "ensuring delegated Graph perms (Sites.FullControl.All, User.Read) on sign-in app…"
+    # SP REST API lookup — `az ad sp show --id <appId>` fails on some
+    # tenants/az versions for this specific SP, so fall back to filter.
+    # SP REST scope is a defense-in-depth bonus (m365 spo commands work
+    # with Graph Sites.FullControl.All alone in most cases), so we skip
+    # silently if we can't resolve it.
+    PERM_ALLSITES_FC=""
+    SP_REST_PERMS=$(az ad sp list --filter "appId eq '$SP_REST_SP_ID'" \
+      --query '[0].oauth2PermissionScopes' -o json --only-show-errors 2>/dev/null || echo "[]")
+    if [ "$SP_REST_PERMS" != "[]" ] && [ "$SP_REST_PERMS" != "null" ]; then
+      PERM_ALLSITES_FC=$(echo "$SP_REST_PERMS" | jq -r '.[] | select(.value=="AllSites.FullControl") | .id' 2>/dev/null || echo "")
+    fi
+
+    say "ensuring delegated Graph perms on sign-in app…"
     az ad app permission add --id "$SIGNIN_APP_ID" \
       --api "$GRAPH_SP_ID" \
       --api-permissions "$PERM_SITES_FC=Scope" "$PERM_USER_READ=Scope" \
       --only-show-errors >/dev/null 2>&1 || true
 
-    say "granting admin consent on sign-in app's permissions…"
+    if [ -n "$PERM_ALLSITES_FC" ] && [ "$PERM_ALLSITES_FC" != "null" ]; then
+      say "ensuring delegated SharePoint REST perms on sign-in app…"
+      az ad app permission add --id "$SIGNIN_APP_ID" \
+        --api "$SP_REST_SP_ID" \
+        --api-permissions "$PERM_ALLSITES_FC=Scope" \
+        --only-show-errors >/dev/null 2>&1 || true
+    else
+      # Not a fatal error — Graph Sites.FullControl.All covers most
+      # m365 spo commands. Surface as info-level only.
+      say "skipping SharePoint REST scope (SP not queryable in this tenant; Graph perms alone are usually sufficient)"
+    fi
+
+    say "granting admin consent on sign-in app's permissions (both APIs)…"
     if ! az ad app permission admin-consent --id "$SIGNIN_APP_ID" \
       --only-show-errors >/dev/null 2>&1; then
       warn "admin-consent failed — your user may lack Application Administrator / Cloud App Administrator role."
       warn "  manual fix: Entra → App registrations → $SIGNIN_APP_DISPLAY_NAME → API permissions → 'Grant admin consent for ...'"
     fi
+
+    # Ensure the running user is an owner (governance — see same logic
+    # on the publisher app above).
+    CURRENT_USER_OID=$(az ad signed-in-user show --query id -o tsv --only-show-errors 2>/dev/null || echo "")
+    if [ -n "$CURRENT_USER_OID" ]; then
+      IS_OWNER=$(az ad app owner list --id "$SIGNIN_APP_ID" \
+        --query "[?id=='$CURRENT_USER_OID'].id | [0]" -o tsv --only-show-errors 2>/dev/null || echo "")
+      if [ -z "$IS_OWNER" ] || [ "$IS_OWNER" = "null" ]; then
+        say "adding current user as owner of sign-in app…"
+        az ad app owner add --id "$SIGNIN_APP_ID" --owner-object-id "$CURRENT_USER_OID" \
+          --only-show-errors >/dev/null 2>&1 \
+          || warn "couldn't add current user as owner of sign-in app"
+      fi
+    fi
+
     # Permission propagation takes a moment.
     sleep 3
-    ok "sign-in app fully configured"
+    ok "sign-in app fully configured (Graph + SP REST scopes, admin-consented, owned)"
   else
-    ok "(dry-run) skipping delegated perms + admin consent"
+    ok "(dry-run) skipping delegated perms + admin consent + owner"
   fi
 
   # ----- configure m365 CLI non-interactively (replaces `m365 setup`) ------

@@ -210,11 +210,18 @@ boundaries:
 | | Created/used as | Permissions | Used by |
 |---|---|---|---|
 | **`it-project-docs-publisher`** | App-only auth target | `Sites.Selected` (Application) — explicit per-site grant | The Azure Pipeline writes docs through it |
-| **`skintyeenation-admin-cli`** | Interactive sign-in app | `Sites.FullControl.All` + `User.Read` (Delegated) | The m365 CLI signs admins in through it (one time during setup, plus any future site-grant maintenance) |
+| **`skintyeenation-admin-cli`** | Interactive sign-in app | `Sites.FullControl.All` + `User.Read` (Delegated, Microsoft Graph) + `AllSites.FullControl` (Delegated, SharePoint REST — best-effort) | The m365 CLI signs admins in through it (one time during setup, plus any future site-grant maintenance) |
 
 They never overlap. The pipeline never uses
 `skintyeenation-admin-cli`; you never use `it-project-docs-publisher`
 interactively.
+
+**Ownership.** Both apps are created with the running user (typically
+`admin@skintyeenation.onmicrosoft.com`) assigned as **owner** so they
+aren't orphaned. Owners can manage the app without needing Global Admin
+on the tenant — important for day-2 changes (rotating federated creds,
+adding ADO connections). To add additional owners later: Entra → App
+registrations → the app → **Owners → + Add owners**.
 
 ### Why no client_secret
 
