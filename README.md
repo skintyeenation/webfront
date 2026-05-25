@@ -167,6 +167,12 @@ how shared mailboxes are created in the M365 admin center and how individual
 (licensed) users are granted access (Full Access / Send As / Send on Behalf),
 with reference screenshots and the current mailbox/member list.
 
+👥 **[Microsoft 365 Groups vs Security Groups →](docs/365/groups.md)** —
+when to use which (the trap: don't pick M365 Group for everything — it drags
+an unused shared mailbox + SharePoint site along). Reference table + concrete
+examples mapped to our actual licensing / Conditional Access / app-role
+structure.
+
 💲 **[Microsoft 365 pricing & tax →](docs/365/pricing.md)** — Business Standard
 (with Teams) per-user cost, why it's 100% tax-deductible under Canadian law, and
 the rule to **unlicense departed/terminated staff immediately**.
@@ -296,6 +302,7 @@ tax-deductible operating expenses under Canadian law.
 - [`docs/wordpress-runbook.md`](docs/wordpress-runbook.md) — run / recover / back up the WordPress site
 - [`docs/365/entra-id.md`](docs/365/entra-id.md) — Entra ID, the admin account, Entra Connect, SSO + device/server access
 - [`docs/365/shared-mailboxes.md`](docs/365/shared-mailboxes.md) — Microsoft 365 shared mailbox setup + adding users
+- [`docs/365/groups.md`](docs/365/groups.md) — Microsoft 365 Groups vs Security Groups (when to use which, with concrete examples mapped to our tenant)
 - [`docs/365/pricing.md`](docs/365/pricing.md) — Microsoft 365 per-user pricing, tax deductibility, offboarding
 - [`docs/365/sharepoint-docs-publish.md`](docs/365/sharepoint-docs-publish.md) — auto-publish `docs/` to SharePoint via GitHub Actions + Microsoft Graph (Entra ID app + `Sites.Selected`), 9-step one-time Azure setup (being migrated to Azure Pipelines — see `devops/migrate-ci-workflows.md`)
 - [`docs/devops/README.md`](docs/devops/README.md) — Azure DevOps overview (primary git host + CI/CD)
