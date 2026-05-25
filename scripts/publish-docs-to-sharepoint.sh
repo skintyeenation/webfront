@@ -189,18 +189,37 @@ render_md_to_html() {
 
 # ----- 3) walk + upload -------------------------------------------------------
 
-echo "▸ walking $DOCS_DIR/ …"
-while IFS= read -r -d '' md; do
-  # md = "docs/research/lookup-endpoints.md"   (relative to repo root)
-  remote_md="$TARGET_PATH/$md"                                # webfront/docs/research/lookup-endpoints.md
+# Files to upload come from two places:
+#  - $DOCS_DIR/**.md (the main docs tree)
+#  - $ROOT_FILES at repo root — README/CHANGELOG/CONTRIBUTING/LICENSE/SECURITY.
+#    These stay at the repo root (where GitHub/ADO display them) but get
+#    mirrored to SharePoint so non-developers can read them too.
+
+ROOT_FILES=(README.md CHANGELOG.md CONTRIBUTING.md LICENSE.md SECURITY.md)
+
+echo "▸ walking $DOCS_DIR/ + repo-root notable files…"
+
+# Build the file list: root files first (only those that exist), then
+# $DOCS_DIR/**.md sorted.
+TMP_FILELIST=$(mktemp)
+trap "rm -f $TMP_FILELIST; rm -rf $RENDER_DIR" EXIT
+for f in "${ROOT_FILES[@]}"; do
+  [ -f "$f" ] && printf '%s\n' "$f" >> "$TMP_FILELIST"
+done
+find "$DOCS_DIR" \
+  -type d \( -name node_modules -o -name dist -o -name .next -o -name out \) -prune -o \
+  -type f -name '*.md' -print | sort >> "$TMP_FILELIST"
+
+while IFS= read -r md; do
+  [ -z "$md" ] && continue
+  # md = "docs/research/lookup-endpoints.md"  or  "README.md"
+  remote_md="$TARGET_PATH/$md"   # webfront/docs/research/lookup-endpoints.md  or  webfront/README.md
   remote_html="${remote_md%.md}.html"
   local_html="$RENDER_DIR/${md%.md}.html"
   render_md_to_html "$md" "$local_html"
   upload_file "$md" "$remote_md" "text/markdown"
   upload_file "$local_html" "$remote_html" "text/html"
-done < <(find "$DOCS_DIR" \
-  -type d \( -name node_modules -o -name dist -o -name .next -o -name out \) -prune -o \
-  -type f -name '*.md' -print0 | sort -z)
+done < "$TMP_FILELIST"
 
 echo ""
 echo "✔ done — rendered $rendered .html · uploaded $uploaded files · failed $failed"
