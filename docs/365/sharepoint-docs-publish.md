@@ -98,9 +98,50 @@ On the app's **API permissions** page:
 
 This step grants the app write access to the one SharePoint site you
 created in step 1. It requires a Graph API call you run as a global
-admin.
+admin (or someone with `Sites.FullControl.All` / SharePoint Admin).
 
-**Easiest path** — using PnP PowerShell:
+> 🤖 **Already automated** — the `scripts/setup-sharepoint-pipeline.sh`
+> script does this for you (step 0b inside it) and then continues
+> with the four ADO admin tasks. If you're running the full pipeline
+> setup anyway, skip this section and run the script instead. The
+> steps below are for doing the site-grant **standalone**.
+
+**Easiest path** — bash + `az rest` against Microsoft Graph
+(macOS/Linux/Windows-Git-Bash; no PowerShell needed):
+
+```bash
+# Inputs
+APP_ID="<paste from Entra → it-project-docs-publisher → Overview>"
+SITE_URL="https://skintyeenation.sharepoint.com/sites/it-project-docs"
+
+# 1) Resolve the Graph site-id from the URL
+SP_HOST="${SITE_URL#https://}"; SP_HOST="${SP_HOST%%/*}"
+SP_PATH="/${SITE_URL#https://*/}"
+SITE_ID=$(az rest --method GET \
+  --uri "https://graph.microsoft.com/v1.0/sites/${SP_HOST}:${SP_PATH}" \
+  --query id -o tsv)
+echo "SITE_ID=$SITE_ID"
+
+# 2) Grant write access to the app on this site
+az rest --method POST \
+  --uri "https://graph.microsoft.com/v1.0/sites/${SITE_ID}/permissions" \
+  --headers content-type=application/json \
+  --body "{
+    \"roles\": [\"write\"],
+    \"grantedToIdentities\": [{
+      \"application\": {
+        \"id\": \"$APP_ID\",
+        \"displayName\": \"it-project-docs-publisher\"
+      }
+    }]
+  }"
+```
+
+Successful response is a JSON object with the new permission's id +
+the `roles: ["write"]` you set.
+
+**Alternative** — PnP PowerShell (Windows-first admins, or if Graph
+returns 403 and you'd rather authenticate as the site owner):
 
 ```powershell
 # One-time: install PnP if needed
@@ -117,11 +158,6 @@ Grant-PnPAzureADAppSitePermission `
   -Site "https://skintyeenation.sharepoint.com/sites/it-project-docs" `
   -Permissions Write
 ```
-
-**Alternative** — direct Graph call (if you'd rather not install
-PnP). See <https://learn.microsoft.com/en-us/graph/api/site-post-permissions>
-— `POST /sites/{site-id}/permissions` with body
-`{ "roles": ["write"], "grantedToIdentities": [{ "application": { "id": "<app-id>", "displayName": "it-project-docs-publisher" } }] }`.
 
 ### 6. Get the SharePoint site ID
 
