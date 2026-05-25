@@ -4,8 +4,90 @@ The Nation runs its source control + CI/CD on **Azure DevOps**, with
 Azure as the **primary** Git host and GitHub mirrored as a read-only
 **secondary** for backup and public discoverability.
 
+> **Organization URL:** <https://dev.azure.com/skintyeenation>
+> **Project (most work happens here):** <https://dev.azure.com/skintyeenation/devops>
+
 This section covers the setup once, plus the day-to-day "I need to
 do X" runbooks.
+
+## Where things live in Azure DevOps
+
+The `skintyeenation` org has one project (`devops`) holding everything.
+Within that project, the most-used areas are:
+
+| Area | URL | When to go here |
+|---|---|---|
+| **Overview / Summary** | <https://dev.azure.com/skintyeenation/devops> | Project dashboard — Repo + Pipeline stats, members list |
+| **Repos → Files (`webfront`)** | <https://dev.azure.com/skintyeenation/devops/_git/webfront> | Browse the codebase, view a file, review recent commits |
+| **Repos → Pull requests** | <https://dev.azure.com/skintyeenation/devops/_git/webfront/pullrequests> | Open / review PRs |
+| **Repos → Branches** | <https://dev.azure.com/skintyeenation/devops/_git/webfront/branches> | Manage feature branches, check `master` is up to date |
+| **Pipelines** | <https://dev.azure.com/skintyeenation/devops/_build> | Watch the SharePoint docs publisher (and future pipelines) run |
+| **Pipelines → Library** | <https://dev.azure.com/skintyeenation/devops/_library> | Variable groups (`sharepoint-docs`) + secure files |
+| **Project Settings → Service connections** | <https://dev.azure.com/skintyeenation/devops/_settings/adminservices> | The `sharepoint-docs-sc` federated identity service connection |
+| **Org Settings → Personal Access Tokens** | <https://dev.azure.com/skintyeenation/_usersSettings/tokens> | PAT generation (for SSH key alternatives, scripts) |
+| **Boards** | <https://dev.azure.com/skintyeenation/devops/_boards> | Backlog, sprints, work items (optional — unused so far) |
+
+### Project Overview
+
+The Summary view shows project-wide stats — open PRs, pipeline success
+rate, members. Useful at-a-glance to confirm nothing is broken.
+
+![Azure DevOps project overview](./media/project-overview.png)
+
+### Repos → Files
+
+The webfront repo's file tree. Click any folder to descend, click any
+file to view it (Markdown files render inline). The README renders
+below the file listing on the repo root.
+
+![Azure DevOps repo files view](./media/repos-files.png)
+
+### Pipelines
+
+CI/CD runs. The **publish-docs-to-sharepoint** pipeline triggers
+automatically on every push to `master` touching `docs/**`, the root
+README, or the publisher script — see
+[`../365/sharepoint-docs-publish.md`](../365/sharepoint-docs-publish.md)
+for the auth model and
+[`sharepoint-pipeline-postmortem.md`](./sharepoint-pipeline-postmortem.md)
+for the gory setup history. Click a run to see step-by-step logs.
+
+![Azure DevOps pipelines view](./media/pipelines.png)
+
+## Signing in
+
+Use your `@skintyee.ca` work account. Single sign-on lands you straight
+on the project dashboard if you've already authenticated to anything
+else in the M365 tenant (Outlook, SharePoint, etc.) in the same
+browser session.
+
+If sign-in fails:
+
+- **"Sorry, but we're having trouble signing you in"** with
+  `AADSTS700016` or similar — your account isn't a member of the
+  Azure DevOps organization. Ask the admin to invite you at
+  <https://dev.azure.com/skintyeenation/_settings/users>.
+- **"You don't have permission to access this organization"** — your
+  account exists but isn't a project member. Admin adds you under the
+  `devops` project's **Project Settings → Permissions**.
+
+## SSH access (for `git push` / `git pull`)
+
+For Git operations from the command line you'll need an SSH key
+registered in Azure DevOps (or a Personal Access Token, but SSH is
+nicer). One-time setup:
+
+1. Generate a key (skip if you already have one):
+   ```bash
+   ssh-keygen -t ed25519 -C "firstname.lastname@skintyee.ca"
+   ```
+2. Add the public key to <https://dev.azure.com/skintyeenation/_usersSettings/keys> → **+ New Key**.
+3. Use the SSH remote when cloning:
+   ```bash
+   git clone git@ssh.dev.azure.com:v3/skintyeenation/devops/webfront
+   ```
+
+Detailed walkthrough: [`azure-devops-setup.md § SSH access`](./azure-devops-setup.md).
 
 ## Why Azure DevOps as primary
 
