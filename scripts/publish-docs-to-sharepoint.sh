@@ -32,7 +32,7 @@
 #   SHAREPOINT_SITE_ID         — Graph site-id: `{hostname},{site-guid},{web-guid}`
 #   SHAREPOINT_DRIVE_NAME      — Document library display name (e.g. "Documents")
 #   SHAREPOINT_TARGET_PATH     — (optional) Subfolder inside the drive
-#                                 Default: webfront-docs
+#                                 Default: webfront
 #
 # Usage:
 #   bash scripts/publish-docs-to-sharepoint.sh
@@ -64,7 +64,7 @@ if [ "$DRY_RUN" -eq 0 ]; then
     : "${AZURE_CLIENT_SECRET:?missing AZURE_CLIENT_SECRET (or set GRAPH_TOKEN_PREACQUIRED)}"
   fi
 fi
-TARGET_PATH="${SHAREPOINT_TARGET_PATH:-webfront-docs}"
+TARGET_PATH="${SHAREPOINT_TARGET_PATH:-webfront}"
 
 cd "$(dirname "$0")/.."   # repo root
 DOCS_DIR="${DOCS_DIR:-docs}"
@@ -192,7 +192,7 @@ render_md_to_html() {
 echo "▸ walking $DOCS_DIR/ …"
 while IFS= read -r -d '' md; do
   # md = "docs/research/lookup-endpoints.md"   (relative to repo root)
-  remote_md="$TARGET_PATH/$md"                                # webfront-docs/docs/research/lookup-endpoints.md
+  remote_md="$TARGET_PATH/$md"                                # webfront/docs/research/lookup-endpoints.md
   remote_html="${remote_md%.md}.html"
   local_html="$RENDER_DIR/${md%.md}.html"
   render_md_to_html "$md" "$local_html"

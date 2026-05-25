@@ -24,9 +24,9 @@
 # interactive prompt; pass --yes to skip prompts and use env/defaults.
 #
 #   --sharepoint-site-url URL of the target SharePoint site (e.g.
-#                         https://skintyeenation.sharepoint.com/sites/webfront-docs).
+#                         https://skintyeenation.sharepoint.com/sites/it-project-docs).
 #                         Script resolves the Graph site-id automatically.
-#                         Default: skintyeenation/webfront-docs.
+#                         Default: skintyeenation/it-project-docs.
 #   --sharepoint-site-id  Pre-computed Graph site-id triple
 #                         (`{host},{site-guid},{web-guid}`). Wins over
 #                         --sharepoint-site-url if both given.
@@ -110,7 +110,7 @@ ENTRA_APP_DISPLAY_NAME="${ENTRA_APP_DISPLAY_NAME:-it-project-docs-publisher}"
 ENTRA_APP_ID="${ENTRA_APP_ID:-}"
 TENANT_ID="${TENANT_ID:-}"
 SHAREPOINT_SITE_ID="${SHAREPOINT_SITE_ID:-}"
-SHAREPOINT_SITE_URL="${SHAREPOINT_SITE_URL:-https://skintyeenation.sharepoint.com/sites/webfront-docs}"
+SHAREPOINT_SITE_URL="${SHAREPOINT_SITE_URL:-https://skintyeenation.sharepoint.com/sites/it-project-docs}"
 SHAREPOINT_DRIVE="${SHAREPOINT_DRIVE:-Documents}"
 ORG="${ORG:-skintyeenation}"
 PROJECT="${PROJECT:-devops}"

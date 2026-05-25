@@ -14,8 +14,8 @@ are checked in and need no manual work after the setup below.
 
 For each `.md` in `docs/`:
 
-- `docs/365/entra-id.md`  →  SharePoint `webfront-docs/docs/365/entra-id.md`
-- _plus a pandoc-rendered_  →  SharePoint `webfront-docs/docs/365/entra-id.html`
+- `docs/365/entra-id.md`  →  SharePoint `webfront/docs/365/entra-id.md`
+- _plus a pandoc-rendered_  →  SharePoint `webfront/docs/365/entra-id.html`
 
 Both files keep the repo's directory structure. SharePoint version
 history is enabled by default on Document Libraries, so older versions
@@ -36,11 +36,11 @@ docs:
 
 1. Go to <https://skintyeenation.sharepoint.com/_layouts/15/sharepoint.aspx>
    (or your tenant's SharePoint home).
-2. **Create site** → **Team site** → name it e.g. `webfront-docs`.
+2. **Create site** → **Team site** → name it e.g. `it-project-docs`.
 3. The default `Documents` library is fine; we'll write under a
-   `webfront-docs/docs/` folder inside it.
+   `webfront/docs/` folder inside it.
 
-Note down the **site URL** — e.g. `https://skintyeenation.sharepoint.com/sites/webfront-docs`.
+Note down the **site URL** — e.g. `https://skintyeenation.sharepoint.com/sites/it-project-docs`.
 
 ### 2. Register the Entra ID app
 
@@ -91,7 +91,7 @@ On the app's **API permissions** page:
 > Sites.Selected is the modern "least-privilege" Graph scope —
 > by itself it grants no access. You then explicitly authorize the
 > app for **one specific site**. Even if the client secret leaks, the
-> app can only touch the webfront-docs site, not your tenant's other
+> app can only touch the it-project-docs site, not your tenant's other
 > SharePoint content.
 
 ### 5. Authorize the app on the specific site
@@ -107,14 +107,14 @@ admin.
 Install-Module PnP.PowerShell -Scope CurrentUser
 
 # Sign in as the global admin
-Connect-PnPOnline -Url https://skintyeenation.sharepoint.com/sites/webfront-docs `
+Connect-PnPOnline -Url https://skintyeenation.sharepoint.com/sites/it-project-docs `
                   -Interactive
 
 # Grant the app write access to this site
 Grant-PnPAzureADAppSitePermission `
   -AppId "<application-client-id-from-step-2>" `
   -DisplayName "it-project-docs-publisher" `
-  -Site "https://skintyeenation.sharepoint.com/sites/webfront-docs" `
+  -Site "https://skintyeenation.sharepoint.com/sites/it-project-docs" `
   -Permissions Write
 ```
 
@@ -137,7 +137,7 @@ TOKEN=$(curl -s -X POST \
   -d "grant_type=client_credentials" | jq -r .access_token)
 
 curl -s -H "authorization: Bearer $TOKEN" \
-  "https://graph.microsoft.com/v1.0/sites/skintyeenation.sharepoint.com:/sites/webfront-docs" \
+  "https://graph.microsoft.com/v1.0/sites/skintyeenation.sharepoint.com:/sites/it-project-docs" \
   | jq -r .id
 ```
 
@@ -176,7 +176,7 @@ In the webfront GitHub repo (<https://github.com/skintyeenation/webfront>):
 
 3. (Optional) **Repository variables** → `SHAREPOINT_TARGET_PATH` —
    subfolder inside the drive to write into. Defaults to
-   `webfront-docs` if unset.
+   `webfront` if unset.
 
 ### 9. Run it once manually
 
@@ -190,7 +190,7 @@ From the GitHub Actions tab:
    ✔ done — rendered 139 .html · uploaded 278 files · failed 0
    ```
 
-Verify in SharePoint that `webfront-docs/docs/` is populated with the
+Verify in SharePoint that `webfront/docs/` is populated with the
 mirrored tree.
 
 ## Automatic re-publishing

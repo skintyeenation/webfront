@@ -139,7 +139,7 @@ variables:
   AZURE_CLIENT_ID: $(AZURE_CLIENT_ID)
   SHAREPOINT_SITE_ID: $(SHAREPOINT_SITE_ID)
   SHAREPOINT_DRIVE_NAME: $(SHAREPOINT_DRIVE_NAME)
-  SHAREPOINT_TARGET_PATH: 'webfront-docs'
+  SHAREPOINT_TARGET_PATH: 'webfront'
 
 jobs:
   - job: publish
@@ -220,7 +220,7 @@ Wire the variable group into the pipeline by adding under `variables:`:
 variables:
   - group: sharepoint-docs
   - name: SHAREPOINT_TARGET_PATH
-    value: 'webfront-docs'
+    value: 'webfront'
 ```
 
 (Replace the inline variable block above with this.)

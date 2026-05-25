@@ -41,7 +41,7 @@ pool:
 variables:
   - group: sharepoint-docs
   - name: SHAREPOINT_TARGET_PATH
-    value: 'webfront-docs'
+    value: 'webfront'
 
 jobs:
   - job: publish
