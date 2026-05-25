@@ -189,37 +189,90 @@ render_md_to_html() {
 
 # ----- 3) walk + upload -------------------------------------------------------
 
-# Files to upload come from two places:
-#  - $DOCS_DIR/**.md (the main docs tree)
+# Files to upload come from three places:
+#  - $DOCS_DIR/**.md (the main docs tree, also rendered to .html)
 #  - $ROOT_FILES at repo root — README/CHANGELOG/CONTRIBUTING/LICENSE/SECURITY.
 #    These stay at the repo root (where GitHub/ADO display them) but get
 #    mirrored to SharePoint so non-developers can read them too.
+#  - $DOCS_DIR/** non-markdown ASSETS (images, PDFs, etc.) — referenced
+#    from the markdown files via relative paths. Without these, the
+#    rendered HTML on SharePoint shows broken image tags.
 
 ROOT_FILES=(README.md CHANGELOG.md CONTRIBUTING.md LICENSE.md SECURITY.md)
 
-echo "▸ walking $DOCS_DIR/ + repo-root notable files…"
+# Asset extensions to publish alongside the .md tree. Whitelist (rather
+# than "everything non-.md") because docs/ can contain build tooling
+# (e.g. docs/scripts/*.py, *.mjs, *.sh, package*.json) that we don't
+# want in SharePoint.
+ASSET_EXTS=(png jpg jpeg gif svg webp bmp ico pdf pptx docx xlsx mp4 mov webm mp3)
 
-# Build the file list: root files first (only those that exist), then
-# $DOCS_DIR/**.md sorted.
-TMP_FILELIST=$(mktemp)
-trap "rm -f $TMP_FILELIST; rm -rf $RENDER_DIR" EXIT
+# content_type_for <path> — best-effort MIME type lookup for an asset path
+content_type_for() {
+  case "${1##*.}" in
+    png) echo "image/png" ;;
+    jpg|jpeg) echo "image/jpeg" ;;
+    gif) echo "image/gif" ;;
+    svg) echo "image/svg+xml" ;;
+    webp) echo "image/webp" ;;
+    bmp) echo "image/bmp" ;;
+    ico) echo "image/vnd.microsoft.icon" ;;
+    pdf) echo "application/pdf" ;;
+    pptx) echo "application/vnd.openxmlformats-officedocument.presentationml.presentation" ;;
+    docx) echo "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ;;
+    xlsx) echo "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ;;
+    mp4) echo "video/mp4" ;;
+    mov) echo "video/quicktime" ;;
+    webm) echo "video/webm" ;;
+    mp3) echo "audio/mpeg" ;;
+    *)   echo "application/octet-stream" ;;
+  esac
+}
+
+echo "▸ walking $DOCS_DIR/ + repo-root notable files + assets…"
+
+# Build the file lists separately — markdown gets render-to-html
+# treatment, assets get uploaded as-is with proper content-type.
+TMP_MD_LIST=$(mktemp)
+TMP_ASSET_LIST=$(mktemp)
+trap "rm -f $TMP_MD_LIST $TMP_ASSET_LIST; rm -rf $RENDER_DIR" EXIT
+
+# Markdown: root files first (only those that exist), then docs/**.md
 for f in "${ROOT_FILES[@]}"; do
-  [ -f "$f" ] && printf '%s\n' "$f" >> "$TMP_FILELIST"
+  [ -f "$f" ] && printf '%s\n' "$f" >> "$TMP_MD_LIST"
 done
 find "$DOCS_DIR" \
-  -type d \( -name node_modules -o -name dist -o -name .next -o -name out \) -prune -o \
-  -type f -name '*.md' -print | sort >> "$TMP_FILELIST"
+  -type d \( -name node_modules -o -name dist -o -name .next -o -name out -o -name scripts \) -prune -o \
+  -type f -name '*.md' -print | sort >> "$TMP_MD_LIST"
 
+# Assets: build a find expression matching every $ASSET_EXTS extension
+# (case-insensitive — README.PNG vs README.png both match).
+FIND_EXPR=()
+for ext in "${ASSET_EXTS[@]}"; do
+  [ ${#FIND_EXPR[@]} -gt 0 ] && FIND_EXPR+=(-o)
+  FIND_EXPR+=(-iname "*.${ext}")
+done
+find "$DOCS_DIR" \
+  -type d \( -name node_modules -o -name dist -o -name .next -o -name out -o -name scripts \) -prune -o \
+  -type f \( "${FIND_EXPR[@]}" \) -print | sort >> "$TMP_ASSET_LIST"
+
+# --- Render + upload markdown files (and their .html siblings) -----------
 while IFS= read -r md; do
   [ -z "$md" ] && continue
-  # md = "docs/research/lookup-endpoints.md"  or  "README.md"
-  remote_md="$TARGET_PATH/$md"   # webfront/docs/research/lookup-endpoints.md  or  webfront/README.md
+  remote_md="$TARGET_PATH/$md"
   remote_html="${remote_md%.md}.html"
   local_html="$RENDER_DIR/${md%.md}.html"
   render_md_to_html "$md" "$local_html"
   upload_file "$md" "$remote_md" "text/markdown"
   upload_file "$local_html" "$remote_html" "text/html"
-done < "$TMP_FILELIST"
+done < "$TMP_MD_LIST"
+
+# --- Upload assets as-is, with proper content-type -----------------------
+while IFS= read -r asset; do
+  [ -z "$asset" ] && continue
+  remote_asset="$TARGET_PATH/$asset"
+  ctype=$(content_type_for "$asset")
+  upload_file "$asset" "$remote_asset" "$ctype"
+done < "$TMP_ASSET_LIST"
 
 echo ""
 echo "✔ done — rendered $rendered .html · uploaded $uploaded files · failed $failed"
