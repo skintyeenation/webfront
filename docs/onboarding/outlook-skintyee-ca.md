@@ -68,7 +68,8 @@ prompt is easier to deal with there.
 ### macOS
 
 1. Open **Outlook** (comes with Microsoft 365 — install from
-   <https://office.com>'s "Install Office" button if not present).
+   <https://www.microsoft.com/en-us/microsoft-365/download-office> if
+   not present, see [the install step in the onboarding sequence](./README.md#the-onboarding-sequence)).
 2. **File → Add Account** _or_ on first launch the wizard appears
    automatically.
 3. Enter `firstname.lastname@skintyee.ca` → **Continue**.
@@ -84,7 +85,8 @@ prompt is easier to deal with there.
 ### Windows
 
 1. Open **Outlook** (Start menu → Outlook). Install from
-   <https://office.com> if not present.
+   <https://www.microsoft.com/en-us/microsoft-365/download-office> if
+   not present.
 2. **File → Add Account** _or_ first-launch wizard.
 3. Same steps as macOS above.
 4. **Profile management** — Windows uses Outlook profiles. If you ever

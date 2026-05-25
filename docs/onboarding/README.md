@@ -14,6 +14,7 @@ this section is the **end-user view**.
 | # | Step | What you'll need from the admin | Page |
 |---|---|---|---|
 | 1 | Activate your `@skintyee.ca` Outlook account (sets a new password, registers MFA) | The admin emails you your work username + a **temporary** password that expires on first use — you'll be forced to change it | [outlook-skintyee-ca.md](./outlook-skintyee-ca.md) |
+| 1b | Install the **Microsoft 365 apps** (Outlook, Word, Excel, PowerPoint, Teams, OneNote) on your laptop | Nothing — your `@skintyee.ca` account license unlocks the install | Download from <https://www.microsoft.com/en-us/microsoft-365/download-office> and sign in with your `@skintyee.ca` account. Mac + Windows installer available; one installer covers all the apps. |
 | 2 | Install + sign into 1Password | The admin sends you a 1Password invite email and (separately) a printed/sealed Secret Key envelope or PDF | [1password.md](./1password.md) |
 | 2b | (Optional, if the admin has enabled it) Switch 1Password to "Unlock with SSO" so your Entra ID account unlocks the vault | Admin confirms the org-level Entra ID ↔ 1Password integration is on | [1password.md → Step 6](./1password.md#step-6--connect-1password-to-entra-id-unlock-with-sso) |
 | 3 | (If applicable) Get access to a shared mailbox like `info@`, `chief@`, `admin@` | The admin grants you Full Access + Send-As permission | See [shared mailboxes](../365/shared-mailboxes.md) — once granted, the mailbox appears automatically in Outlook within ~24h |
