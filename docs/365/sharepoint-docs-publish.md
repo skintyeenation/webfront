@@ -48,7 +48,12 @@ In the [Entra ID portal](https://entra.microsoft.com) (signed in as
 the global admin — see [`entra-id.md`](./entra-id.md) for which
 account that is):
 
-1. **Applications** → **App registrations** → **New registration**.
+1. Click **App registrations** in the left sidebar (it sits alongside
+   **Enterprise applications** — two different things; you want the
+   first one). Click **+ New registration** at the top.
+
+   _If "App registrations" isn't directly visible, expand
+   **Identity → Applications** in the sidebar._
 2. Name: `it-project-docs-publisher`.
 3. **Supported account types**: *Accounts in this organizational
    directory only* (single tenant).
