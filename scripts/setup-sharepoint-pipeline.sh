@@ -327,31 +327,38 @@ EOF
     Sites.FullControl.All\` fails with AADSTS65002 even for a Global
     Admin. This is by design and not something the tenant can override.
 
-  Use PnP PowerShell instead — its Entra app IS pre-authorized.
+  Use a tool whose Entra app IS on Microsoft's pre-authorized list.
 
-  ─── On this machine (macOS — recommended) ─────────────────────────
-  brew install --cask powershell    # one-time, ~5 min
+  ─── Option 1: CLI for Microsoft 365 (npm — RECOMMENDED on macOS) ──
+  Uses Node (already installed for this workspace), no PowerShell:
 
-  pwsh -Command "Install-Module PnP.PowerShell -Scope CurrentUser -Force -AllowClobber"
+    npm install -g @pnp/cli-microsoft365
+    m365 login    # browser pops; sign in as the SharePoint site admin
+    m365 spo site apppermission add \\
+      --siteUrl '$SHAREPOINT_SITE_URL' \\
+      --appId '$ENTRA_APP_ID' \\
+      --appDisplayName '$ENTRA_APP_DISPLAY_NAME' \\
+      --permission write
 
-  pwsh -Command "Connect-PnPOnline -Url '$SHAREPOINT_SITE_URL' -Interactive"
-  # ↑ pops a browser — sign in as the admin who owns the SharePoint site
+  Then re-run this script with --skip-site-grant.
 
-  pwsh -Command "Grant-PnPAzureADAppSitePermission -AppId '$ENTRA_APP_ID' -DisplayName '$ENTRA_APP_DISPLAY_NAME' -Site '$SHAREPOINT_SITE_URL' -Permissions Write"
+  ─── Option 2: PnP PowerShell (if you'd rather use pwsh) ───────────
+  Homebrew retired the powershell cask in late 2024, so install via
+  Microsoft's official .pkg:
+
+    PWSH_URL=\$(curl -sL https://api.github.com/repos/PowerShell/PowerShell/releases/latest \\
+      | grep -oE 'https://[^"]*osx-arm64\\.pkg' | head -1)
+    curl -L -o /tmp/pwsh.pkg "\$PWSH_URL"
+    sudo installer -pkg /tmp/pwsh.pkg -target /
+
+    pwsh -Command "Install-Module PnP.PowerShell -Scope CurrentUser -Force -AllowClobber"
+    pwsh -Command "Connect-PnPOnline -Url '$SHAREPOINT_SITE_URL' -Interactive"
+    pwsh -Command "Grant-PnPAzureADAppSitePermission -AppId '$ENTRA_APP_ID' -DisplayName '$ENTRA_APP_DISPLAY_NAME' -Site '$SHAREPOINT_SITE_URL' -Permissions Write"
 
   Then re-run this script with --skip-site-grant.
 
-  ─── Hand-off to an admin who already has pwsh + PnP ───────────────
-  Forward this PowerShell block:
-
-  Connect-PnPOnline -Url '$SHAREPOINT_SITE_URL' -Interactive
-  Grant-PnPAzureADAppSitePermission \`
-    -AppId '$ENTRA_APP_ID' \`
-    -DisplayName '$ENTRA_APP_DISPLAY_NAME' \`
-    -Site '$SHAREPOINT_SITE_URL' \`
-    -Permissions Write
-
-  Then re-run this script with --skip-site-grant.
+  ─── Option 3: Hand-off to an admin with the tooling already set up ─
+  Forward the m365 or pwsh commands from Option 1/2 above.
 
 MSG
         die "site grant failed (403) — see above for the PnP-PowerShell fix"
