@@ -258,114 +258,78 @@ ENTRA_APP_OBJ_ID=$(az ad app show --id "$ENTRA_APP_ID" --query id -o tsv --only-
 
 # ----- 0b) grant the app `Sites.Selected` access on the target site ----------
 #
-# This is the step-5 piece of docs/365/sharepoint-docs-publish.md, automated
-# via Graph instead of PnP PowerShell. Requires the running user to have
-# Sites.FullControl.All or be a SharePoint / Global admin.
+# Uses the CLI for Microsoft 365 (`m365`) — its Entra app IS on Microsoft's
+# pre-authorized list for the required SharePoint Graph scopes. The Azure
+# CLI is NOT (`az rest POST .../sites/{id}/permissions` 403s with
+# AADSTS65002 — Microsoft's hard-coded first-party preauth gate). Don't
+# try az here.
+
+# The legacy PnP M365 CLI Entra app id — preserved by Microsoft as a
+# well-known sign-in app for the m365 CLI ever since the m365 CLI dropped
+# its built-in default in v11+. Setting this via env var means we don't
+# trigger `m365 setup`'s interactive wizard.
+M365_CLI_LEGACY_APP_ID="${M365_CLI_LEGACY_APP_ID:-31359c7f-bd7e-475c-86db-fdb8c937548e}"
 
 if [ "$SKIP_SITE_GRANT" = "1" ]; then
   say "skipping site grant (--skip-site-grant set)"
 else
+  # Auto-install m365 CLI if missing. Uses npm which we expect to be on
+  # PATH given this is a pnpm workspace. Falls back with a clear error if
+  # npm itself is missing.
+  if ! command -v m365 >/dev/null 2>&1; then
+    if ! command -v npm >/dev/null 2>&1; then
+      die "npm not installed — install Node.js first, or run the site grant manually per docs/365/sharepoint-docs-publish.md."
+    fi
+    say "installing CLI for Microsoft 365 (@pnp/cli-microsoft365) globally via npm…"
+    run npm install -g @pnp/cli-microsoft365 >/dev/null 2>&1 \
+      || die "npm install of @pnp/cli-microsoft365 failed — try \`npm install -g @pnp/cli-microsoft365\` directly for the full error."
+  fi
+  ok "m365 CLI ready ($(m365 version 2>/dev/null || echo 'version unknown'))"
+
+  # Bind m365 to the legacy well-known Entra app id so `m365 login` doesn't
+  # fail with `appId is required` (m365 v11+ removed the built-in default).
+  export M365_CLI_AAD_APP_ID="$M365_CLI_LEGACY_APP_ID"
+
+  # Login if not already signed in. `m365 status` exits 1 if not logged in.
+  if ! m365 status >/dev/null 2>&1; then
+    say "logging in to m365 (browser will open; sign in with the SharePoint site admin account)…"
+    if [ "$DRY_RUN" -eq 1 ]; then
+      printf '  (dry-run) m365 login --authType browser\n'
+    else
+      m365 login --authType browser \
+        || die "m365 login didn't complete. Re-run after signing in, or run \`m365 login --authType deviceCode\` if the browser flow won't work."
+    fi
+  fi
+  ok "m365 signed in as $(m365 status --output json 2>/dev/null | jq -r .connectedAs 2>/dev/null || echo 'unknown')"
+
+  # Check existing site grant. m365's apppermission list returns JSON we can
+  # filter with jq for an existing entry referencing our Entra app id.
   say "checking site grant on '$SHAREPOINT_SITE_URL' for app id $ENTRA_APP_ID …"
   EXISTING_GRANT=""
   if [ "$DRY_RUN" -eq 0 ]; then
-    EXISTING_GRANT=$(az rest --method GET \
-      --uri "https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/permissions" \
-      --query "value[?grantedToIdentitiesV2[?application.id=='$ENTRA_APP_ID']].id | [0]" \
-      -o tsv 2>/dev/null || echo "")
+    EXISTING_GRANT=$(m365 spo site apppermission list \
+      --siteUrl "$SHAREPOINT_SITE_URL" --output json 2>/dev/null \
+      | jq -r --arg appid "$ENTRA_APP_ID" \
+          '.[] | select(.grantedToIdentitiesV2[]?.application.id == $appid) | .id' \
+      2>/dev/null | head -1)
   fi
   if [ -n "$EXISTING_GRANT" ] && [ "$EXISTING_GRANT" != "null" ]; then
     ok "site grant already exists (permission id $EXISTING_GRANT)"
   else
     say "granting 'write' on the site to '$ENTRA_APP_DISPLAY_NAME'…"
-    GRANT_BODY=$(cat <<EOF
-{
-  "roles": ["write"],
-  "grantedToIdentities": [
-    {
-      "application": {
-        "id": "$ENTRA_APP_ID",
-        "displayName": "$ENTRA_APP_DISPLAY_NAME"
-      }
-    }
-  ]
-}
-EOF
-)
     if [ "$DRY_RUN" -eq 1 ]; then
-      printf '  (dry-run) POST graph.microsoft.com/v1.0/sites/<id>/permissions with write grant\n'
+      printf '  (dry-run) m365 spo site apppermission add --siteUrl %s --appId %s --appDisplayName %s --permission write\n' \
+        "$SHAREPOINT_SITE_URL" "$ENTRA_APP_ID" "$ENTRA_APP_DISPLAY_NAME"
     else
-      try_grant() {
-        echo "$GRANT_BODY" | az rest --method POST \
-          --uri "https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/permissions" \
-          --headers content-type=application/json \
-          --body @/dev/stdin 2>&1
-      }
-
-      GRANT_OUTPUT=$(try_grant) || true
-
-      # No auto-elevation attempt: `az login --scope
-      # https://graph.microsoft.com/Sites.FullControl.All` ALWAYS fails
-      # with AADSTS65002 — Microsoft has a hard-coded first-party
-      # preauthorization gate between the Azure CLI and Microsoft Graph
-      # that the tenant cannot override. Don't waste a browser detour.
-
-      if echo "$GRANT_OUTPUT" | grep -qiE '"roles":' ; then
-        ok "site grant created"
-      elif echo "$GRANT_OUTPUT" | grep -qi 'AccessDenied\|403\|Forbidden\|Insufficient' ; then
-        # Hand the user a copy-paste fix using PnP PowerShell — its Entra
-        # app IS on Microsoft's pre-authorized list for Sites.FullControl.All,
-        # so it works where `az` can't.
-        cat >&2 <<MSG
-
-  ✗ Site grant via Graph (\`az rest\`) returned 403.
-
-  Why this is unfixable from \`az\`:
-    The Azure CLI is a Microsoft "first-party" app, and Microsoft Graph
-    is another first-party app. Microsoft maintains a hard-coded
-    pre-authorization list between first-party apps; \`az\` is NOT on
-    that list for Sites.FullControl.All. \`az login --scope …
-    Sites.FullControl.All\` fails with AADSTS65002 even for a Global
-    Admin. This is by design and not something the tenant can override.
-
-  Use a tool whose Entra app IS on Microsoft's pre-authorized list.
-
-  ─── Option 1: CLI for Microsoft 365 (npm — RECOMMENDED on macOS) ──
-  Uses Node (already installed for this workspace), no PowerShell:
-
-    npm install -g @pnp/cli-microsoft365
-    m365 login    # browser pops; sign in as the SharePoint site admin
-    m365 spo site apppermission add \\
-      --siteUrl '$SHAREPOINT_SITE_URL' \\
-      --appId '$ENTRA_APP_ID' \\
-      --appDisplayName '$ENTRA_APP_DISPLAY_NAME' \\
-      --permission write
-
-  Then re-run this script with --skip-site-grant.
-
-  ─── Option 2: PnP PowerShell (if you'd rather use pwsh) ───────────
-  Homebrew retired the powershell cask in late 2024, so install via
-  Microsoft's official .pkg:
-
-    PWSH_URL=\$(curl -sL https://api.github.com/repos/PowerShell/PowerShell/releases/latest \\
-      | grep -oE 'https://[^"]*osx-arm64\\.pkg' | head -1)
-    curl -L -o /tmp/pwsh.pkg "\$PWSH_URL"
-    sudo installer -pkg /tmp/pwsh.pkg -target /
-
-    pwsh -Command "Install-Module PnP.PowerShell -Scope CurrentUser -Force -AllowClobber"
-    pwsh -Command "Connect-PnPOnline -Url '$SHAREPOINT_SITE_URL' -Interactive"
-    pwsh -Command "Grant-PnPAzureADAppSitePermission -AppId '$ENTRA_APP_ID' -DisplayName '$ENTRA_APP_DISPLAY_NAME' -Site '$SHAREPOINT_SITE_URL' -Permissions Write"
-
-  Then re-run this script with --skip-site-grant.
-
-  ─── Option 3: Hand-off to an admin with the tooling already set up ─
-  Forward the m365 or pwsh commands from Option 1/2 above.
-
-MSG
-        die "site grant failed (403) — see above for the PnP-PowerShell fix"
-      else
-        die "site grant failed: $GRANT_OUTPUT"
-      fi
+      m365 spo site apppermission add \
+        --siteUrl "$SHAREPOINT_SITE_URL" \
+        --appId "$ENTRA_APP_ID" \
+        --appDisplayName "$ENTRA_APP_DISPLAY_NAME" \
+        --permission write \
+        >/dev/null \
+        || die "m365 spo site apppermission add failed — check that the signed-in m365 user has Sites.FullControl.All / SharePoint Admin / Global Admin."
     fi
+    ok "site grant created via m365"
   fi
 fi
 
