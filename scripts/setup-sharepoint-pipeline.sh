@@ -326,9 +326,13 @@ MSG
   fi
   ok "m365 CLI ready ($M365_VER_OUTPUT)"
 
-  # Bind m365 to the legacy well-known Entra app id so `m365 login` doesn't
-  # fail with `appId is required` (m365 v11+ removed the built-in default).
-  export M365_CLI_AAD_APP_ID="$M365_CLI_LEGACY_APP_ID"
+  # m365 CLI v11+ requires a sign-in app to be configured first via
+  # `m365 setup` (one-time per machine, writes to ~/.config/configstore/
+  # cli-m365-config.json). The exact env-var-name-that-overrides-this
+  # has changed across v11/v12 (AAD→Entra rename), so we don't try to
+  # set it via env — we just detect the "appId is required" error and
+  # instruct the user to run `m365 setup` with the well-known PnP app id.
+  # See docs/365/sharepoint-docs-publish.md § 5b for the full walkthrough.
 
   # `m365 status` always exits 0 (prints "Logged out" when not signed in),
   # so we can't rely on its exit code. Check the JSON `connectedAs` field
@@ -341,13 +345,44 @@ MSG
     [ -n "$who" ] && [ "$who" != "Logged out" ]
   }
 
+  # Detect the "appId is required" state by attempting `m365 status` and
+  # looking at the error. Failing fast here is much better UX than letting
+  # `m365 login` blow up later with the same error.
+  M365_STATUS_OUT=$(m365 status 2>&1 || true)
+  if echo "$M365_STATUS_OUT" | grep -q 'appId is required'; then
+    cat >&2 <<MSG
+
+  ✗ m365 CLI has no sign-in app configured yet (one-time per machine).
+
+  Run this once, then re-run this script:
+
+    m365 setup
+
+  At the prompts:
+    • "Create new or use existing app" → choose **Use an existing**
+    • Client ID                        → paste:
+                                          $M365_CLI_LEGACY_APP_ID
+    • Remaining questions              → press Enter (accept defaults)
+
+  That GUID is the public, multi-tenant App ID of the PnP M365 CLI
+  itself — see docs/365/sharepoint-docs-publish.md § 5b for the trust
+  model and how to verify it.
+
+MSG
+    die "m365 needs \`m365 setup\` (see message above)"
+  fi
+
   if ! m365_signed_in; then
     say "not signed in to m365 — running \`m365 login --authType browser\` (browser will open)…"
     if [ "$DRY_RUN" -eq 1 ]; then
       printf '  (dry-run) m365 login --authType browser\n'
     else
-      m365 login --authType browser \
-        || die "m365 login didn't complete. Try \`m365 login --authType deviceCode\` if the browser flow won't work, then re-run this script."
+      LOGIN_OUT=$(m365 login --authType browser 2>&1) || {
+        if echo "$LOGIN_OUT" | grep -q 'appId is required'; then
+          die "m365 login can't proceed: no sign-in app configured. Run \`m365 setup\` (see docs/365/sharepoint-docs-publish.md § 5b) with app id $M365_CLI_LEGACY_APP_ID, then re-run this script."
+        fi
+        die "m365 login didn't complete: $LOGIN_OUT — try \`m365 login --authType deviceCode\` if the browser flow won't work, then re-run this script."
+      }
       m365_signed_in \
         || die "m365 says it's still not signed in after login. Run \`m365 status --output json\` to diagnose, then re-run this script."
     fi

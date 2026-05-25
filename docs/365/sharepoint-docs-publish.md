@@ -106,42 +106,95 @@ admin (or someone with `Sites.FullControl.All` / SharePoint Admin).
 > setup anyway, skip this section and run the script instead. The
 > steps below are for doing the site-grant **standalone**.
 
-**Easiest path** — bash + `az rest` against Microsoft Graph
-(macOS/Linux/Windows-Git-Bash; no PowerShell needed):
+**Easiest path — CLI for Microsoft 365 (`m365`)** — cross-platform
+(macOS/Linux/Windows), this is what the automation script uses
+internally.
+
+#### a. Install the CLI
 
 ```bash
-# Inputs
-APP_ID="<paste from Entra → it-project-docs-publisher → Overview>"
-SITE_URL="https://skintyeenation.sharepoint.com/sites/it-project-docs"
-
-# 1) Resolve the Graph site-id from the URL
-SP_HOST="${SITE_URL#https://}"; SP_HOST="${SP_HOST%%/*}"
-SP_PATH="/${SITE_URL#https://*/}"
-SITE_ID=$(az rest --method GET \
-  --uri "https://graph.microsoft.com/v1.0/sites/${SP_HOST}:${SP_PATH}" \
-  --query id -o tsv)
-echo "SITE_ID=$SITE_ID"
-
-# 2) Grant write access to the app on this site
-az rest --method POST \
-  --uri "https://graph.microsoft.com/v1.0/sites/${SITE_ID}/permissions" \
-  --headers content-type=application/json \
-  --body "{
-    \"roles\": [\"write\"],
-    \"grantedToIdentities\": [{
-      \"application\": {
-        \"id\": \"$APP_ID\",
-        \"displayName\": \"it-project-docs-publisher\"
-      }
-    }]
-  }"
+# Needs Node 20.12+. If older: `nvm install 22` first.
+npm install -g @pnp/cli-microsoft365
 ```
 
-Successful response is a JSON object with the new permission's id +
-the `roles: ["write"]` you set.
+#### b. Run `m365 setup` once per machine
 
-**Alternative** — PnP PowerShell (Windows-first admins, or if Graph
-returns 403 and you'd rather authenticate as the site owner):
+m365 CLI v11+ (Jan 2025) removed its built-in default Entra app, so
+you have to tell the CLI which app to sign you in as. This is a
+**one-time per-machine** step — once done, the config persists in
+`~/.config/configstore/cli-m365-config.json` (macOS/Linux) /
+`%LOCALAPPDATA%\configstore` (Windows) and applies to every future
+`m365` command on this machine.
+
+```bash
+m365 setup
+```
+
+The wizard asks a few questions. The important ones:
+
+1. **"Do you want to create a new app registration or use an existing
+   one?"** → choose **Use an existing app registration**.
+2. **Client ID prompt** → paste the public PnP CLI well-known app id:
+
+   ```
+   31359c7f-bd7e-475c-86db-fdb8c937548e
+   ```
+
+3. **Tenant ID** → leave blank (defaults to `common` — multi-tenant
+   sign-in, picks your tenant from the user you log in as).
+4. **Other prompts** → press Enter to accept defaults.
+
+> **Where does that GUID come from?** It's the Microsoft-published
+> **App ID of the PnP M365 CLI** itself — the multi-tenant app
+> registration the PnP community group maintains so the CLI can sign
+> users in with delegated permissions. It was hardcoded as the default
+> in m365 CLI versions ≤10; v11 made it explicit. Verify by:
+>
+> - Reading the project's connecting guide:
+>   <https://pnp.github.io/cli-microsoft365/user-guide/connecting-microsoft-365/>
+> - Pre-checking what your tenant will be consenting to by opening
+>   <https://login.microsoftonline.com/skintyeenation.onmicrosoft.com/oauth2/v2.0/authorize?client_id=31359c7f-bd7e-475c-86db-fdb8c937548e&response_type=code&redirect_uri=http%3A%2F%2Flocalhost&scope=openid&prompt=consent> —
+>   the consent screen displays the app's actual published name
+>   ("PnP Microsoft 365 Management Shell") before you grant anything.
+> - After first sign-in, find it under **Entra → Enterprise
+>   applications** in your tenant; review or revoke at any time.
+
+> **Why not use `it-project-docs-publisher`'s app id here?** That app
+> is configured for **app-only** (client_credentials) auth with
+> `Sites.Selected` Application permission. The m365 CLI signs you in
+> as a *user* (delegated auth, browser flow), so it needs an app with
+> **delegated** scopes and a public-client redirect URI. The PnP CLI
+> app has both; `it-project-docs-publisher` has neither. The two apps
+> serve different roles in this setup:
+>
+> - **PnP CLI app** — used **once**, by you the admin, to run the
+>   grant command below as your admin identity.
+> - **`it-project-docs-publisher`** — the **target** of that grant.
+>   The pipeline impersonates this app to write to SharePoint.
+>
+> If your org's policy forbids consenting to third-party multi-tenant
+> apps, register a second Entra app in your tenant called e.g.
+> `skintyeenation-admin-cli` with delegated `AllSites.FullControl`,
+> a `http://localhost` redirect URI, and "Allow public client flows"
+> enabled — then paste *its* client ID at the `m365 setup` prompt.
+
+#### c. Sign in and grant the site permission
+
+```bash
+m365 login --authType browser
+# Browser opens — sign in as the global admin.
+
+m365 spo site apppermission add \
+  --siteUrl https://skintyeenation.sharepoint.com/sites/it-project-docs \
+  --appId <application-client-id-of-it-project-docs-publisher> \
+  --appDisplayName it-project-docs-publisher \
+  --permission write
+```
+
+Successful output prints a permission record with `roles: ["write"]`.
+
+**Alternative — PnP PowerShell** (Windows-first admins, or if the
+m365 CLI install / Node version hassles aren't worth it):
 
 ```powershell
 # One-time: install PnP if needed
@@ -158,6 +211,14 @@ Grant-PnPAzureADAppSitePermission `
   -Site "https://skintyeenation.sharepoint.com/sites/it-project-docs" `
   -Permissions Write
 ```
+
+> **Why not `az rest`?** It would look like the simplest path:
+> `az rest --method POST .../sites/{id}/permissions`. But Microsoft
+> enforces a hard-coded first-party preauthorization gate
+> (`AADSTS65002`) that prevents the Azure CLI's first-party app from
+> requesting `Sites.FullControl.All` on Microsoft Graph — regardless
+> of admin consent. The call 403s with no workaround. Use m365 CLI or
+> PnP PowerShell.
 
 ### 6. Get the SharePoint site ID
 

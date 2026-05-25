@@ -58,6 +58,11 @@ idempotent — safe to re-run.
 What the script does NOT automate (each is one-time per environment):
 
 - **`az login`** — interactive sign-in. Script prompts you.
+- **`m365 setup`** — one-time per machine, configures which Entra app
+  the PnP M365 CLI signs you in as. Script detects when it's missing
+  and points back at
+  [`../365/sharepoint-docs-publish.md § 5b`](../365/sharepoint-docs-publish.md#5-authorize-the-app-on-the-specific-site)
+  with the exact app id to paste.
 - **Entra ID Application Admin role** on the running user (Microsoft
   policy — only this role can add federated credentials).
 - **ADO Project Administrator role** on the `devops` project.
