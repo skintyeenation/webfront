@@ -1,330 +1,247 @@
 # Publishing `docs/` to SharePoint
 
-The webfront repo's `docs/` tree is **auto-published to SharePoint** on
-every push to `master` that touches docs/. Staff get the same content
-the developers see, mirrored 1-to-1, with each markdown file rendered
-to HTML alongside the source.
+The `docs/` tree auto-publishes to SharePoint on every push to `master`
+that touches `docs/`. Each `.md` file goes up alongside a
+pandoc-rendered `.html` sibling, mirroring the repo's directory
+structure.
 
-This doc covers the one-time Azure / SharePoint setup. The pipeline
-itself is `.github/workflows/publish-docs-to-sharepoint.yml` and the
-publisher script is `scripts/publish-docs-to-sharepoint.sh` — those
-are checked in and need no manual work after the setup below.
+- Pipeline: `azure-pipelines/publish-docs-to-sharepoint.yml`
+- Publisher script: `scripts/publish-docs-to-sharepoint.sh`
+- Auth: **no client_secret anywhere** — federated credentials via
+  Azure Pipelines workload identity.
 
-## What gets published
+---
 
-For each `.md` in `docs/`:
+## One-time setup
 
-- `docs/365/entra-id.md`  →  SharePoint `webfront/docs/365/entra-id.md`
-- _plus a pandoc-rendered_  →  SharePoint `webfront/docs/365/entra-id.html`
+≈30 minutes total. Do the steps **in order**. Every command and value
+is copy-paste.
 
-Both files keep the repo's directory structure. SharePoint version
-history is enabled by default on Document Libraries, so older versions
-are recoverable in case of accidents.
+### Step 1 — Create the SharePoint site
 
-**Deletions are not propagated** — if you remove a doc from the repo,
-its SharePoint copy stays. Delete it manually in SharePoint if needed.
+1. Open <https://skintyeenation.sharepoint.com/_layouts/15/sharepoint.aspx>
+2. **+ Create site → Team site**.
+3. Name: `it-project-docs`.
+4. Done.
 
-## One-time setup (≈30 minutes)
+Final URL: `https://skintyeenation.sharepoint.com/sites/it-project-docs`
 
-You'll create an Entra ID app, give it write access to **one specific
-SharePoint site**, then put its credentials in GitHub Actions secrets.
+### Step 2 — Register the Entra app
 
-### 1. Create the SharePoint site + document library
+1. Open <https://entra.microsoft.com>, sign in as global admin.
+2. **App registrations** (left sidebar) → **+ New registration**.
+3. Name: `it-project-docs-publisher`
+4. Supported account types: **Accounts in this organizational directory only**.
+5. Redirect URI: leave blank.
+6. **Register**.
 
-If you don't already have one, create a SharePoint site to hold the
-docs:
-
-1. Go to <https://skintyeenation.sharepoint.com/_layouts/15/sharepoint.aspx>
-   (or your tenant's SharePoint home).
-2. **Create site** → **Team site** → name it e.g. `it-project-docs`.
-3. The default `Documents` library is fine; we'll write under a
-   `webfront/docs/` folder inside it.
-
-Note down the **site URL** — e.g. `https://skintyeenation.sharepoint.com/sites/it-project-docs`.
-
-### 2. Register the Entra ID app
-
-In the [Entra ID portal](https://entra.microsoft.com) (signed in as
-the global admin — see [`entra-id.md`](./entra-id.md) for which
-account that is):
-
-1. Click **App registrations** in the left sidebar (it sits alongside
-   **Enterprise applications** — two different things; you want the
-   first one). Click **+ New registration** at the top.
-
-   _If "App registrations" isn't directly visible, expand
-   **Identity → Applications** in the sidebar._
-2. Name: `it-project-docs-publisher`.
-3. **Supported account types**: *Accounts in this organizational
-   directory only* (single tenant).
-4. **Redirect URI**: leave blank (we use client_credentials, no
-   browser flow).
-5. Click **Register**.
-
-On the app's overview page, note down:
+On the new app's **Overview** page, copy these — you'll need them later:
 
 - **Application (client) ID** — a GUID
 - **Directory (tenant) ID** — a GUID
 
-### 3. Generate a client secret
-
-On the app's **Certificates & secrets** page:
-
-1. **Client secrets** → **New client secret**.
-2. Description: `webfront docs publisher`.
-3. Expires: 24 months (longest allowed). **Set a calendar reminder
-   for rotation 2 months before expiry.**
-4. Click **Add**, then **copy the Value column immediately** — it's
-   only shown once.
-
-### 4. Grant `Sites.Selected` application permission
+### Step 3 — Grant `Sites.Selected` Application permission
 
 On the app's **API permissions** page:
 
-1. **Add a permission** → **Microsoft Graph** → **Application
-   permissions** (NOT delegated).
-2. Search for `Sites.Selected` and add it.
-3. Back on the API permissions page, click **Grant admin consent
-   for {tenant}**. The Sites.Selected row should turn green.
+1. **+ Add a permission → Microsoft Graph → Application permissions** (NOT delegated).
+2. Search `Sites.Selected` → check it → **Add permissions**.
+3. Click **Grant admin consent for Skin Tyee First Nation**.
 
-> **Why `Sites.Selected`** (and not `Sites.ReadWrite.All`)?
-> Sites.Selected is the modern "least-privilege" Graph scope —
-> by itself it grants no access. You then explicitly authorize the
-> app for **one specific site**. Even if the client secret leaks, the
-> app can only touch the it-project-docs site, not your tenant's other
-> SharePoint content.
+The `Sites.Selected` row should now show a green checkmark.
 
-### 5. Authorize the app on the specific site
+### Step 4 — Do NOT create a client secret
 
-This step grants the app write access to the one SharePoint site you
-created in step 1. It requires a Graph API call you run as a global
-admin (or someone with `Sites.FullControl.All` / SharePoint Admin).
+The federated-credential path replaces it. **If a secret already
+exists** on the app (e.g. from prior setup):
 
-> 🤖 **Already automated** — the `scripts/setup-sharepoint-pipeline.sh`
-> script does this for you (step 0b inside it) and then continues
-> with the four ADO admin tasks. If you're running the full pipeline
-> setup anyway, skip this section and run the script instead. The
-> steps below are for doing the site-grant **standalone**.
+1. **Certificates & secrets → Client secrets**.
+2. Click the trash icon next to every row. Confirm.
 
-**Easiest path — CLI for Microsoft 365 (`m365`)** — cross-platform
-(macOS/Linux/Windows), this is what the automation script uses
-internally.
+End state for this app: **0 client secrets, 0 certificates**. The
+federated credential (added by the script in step 7) is the only
+credential it needs.
 
-#### a. Install the CLI
+### Step 5 — Install + configure the m365 CLI on your machine
+
+Run these commands:
 
 ```bash
-# Needs Node 20.12+. If older: `nvm install 22` first.
+nvm install 22
+nvm use 22
 npm install -g @pnp/cli-microsoft365
-```
-
-#### b. Run `m365 setup` once per machine
-
-m365 CLI v11+ (Jan 2025) removed its built-in default Entra app, so
-you have to tell the CLI which app to sign you in as. This is a
-**one-time per-machine** step — once done, the config persists in
-`~/.config/configstore/cli-m365-config.json` (macOS/Linux) /
-`%LOCALAPPDATA%\configstore` (Windows) and applies to every future
-`m365` command on this machine.
-
-```bash
 m365 setup
 ```
 
-The wizard asks a few questions. The important ones:
+`m365 setup` runs an interactive wizard. Answer **exactly** as shown:
 
-1. **"Do you want to create a new app registration or use an existing
-   one?"** → choose **Use an existing app registration**.
-2. **Client ID prompt** → paste the public PnP CLI well-known app id:
+| Prompt | Answer |
+|---|---|
+| Create new or use existing app? | **Use an existing app registration** |
+| Client ID | `31359c7f-bd7e-475c-86db-fdb8c937548e` |
+| Tenant ID | (press Enter — leave blank) |
+| **Client secret** | **(press Enter — LEAVE EMPTY)** |
+| How do you plan to use the CLI? | **Interactively** |
+| PowerShell? | No |
+| Experience | doesn't matter |
 
-   ```
-   31359c7f-bd7e-475c-86db-fdb8c937548e
-   ```
+The summary at the end should show `authType: browser` and **no
+`clientSecret` line**. If it shows `authType: secret`, you picked the
+wrong "How do you plan to use the CLI?" answer — run `m365 cli config
+reset --force` and redo.
 
-3. **Tenant ID** → leave blank (defaults to `common` — multi-tenant
-   sign-in, picks your tenant from the user you log in as).
-4. **Other prompts** → press Enter to accept defaults.
+### Step 6 — Admin-consent the PnP CLI app to your tenant
 
-> **Where does that GUID come from?** It's the Microsoft-published
-> **App ID of the PnP M365 CLI** itself — the multi-tenant app
-> registration the PnP community group maintains so the CLI can sign
-> users in with delegated permissions. It was hardcoded as the default
-> in m365 CLI versions ≤10; v11 made it explicit. Verify by:
->
-> - Reading the project's connecting guide:
->   <https://pnp.github.io/cli-microsoft365/user-guide/connecting-microsoft-365/>
-> - Pre-checking what your tenant will be consenting to by opening
->   <https://login.microsoftonline.com/skintyeenation.onmicrosoft.com/oauth2/v2.0/authorize?client_id=31359c7f-bd7e-475c-86db-fdb8c937548e&response_type=code&redirect_uri=http%3A%2F%2Flocalhost&scope=openid&prompt=consent> —
->   the consent screen displays the app's actual published name
->   ("PnP Microsoft 365 Management Shell") before you grant anything.
-> - After first sign-in, find it under **Entra → Enterprise
->   applications** in your tenant; review or revoke at any time.
+The Skin Tyee tenant has consent restrictions, so the PnP CLI app
+(the one you just configured `m365` to sign you in through) needs to
+be pre-installed by an admin before any user can sign into it.
 
-> **Why not use `it-project-docs-publisher`'s app id here?** That app
-> is configured for **app-only** (client_credentials) auth with
-> `Sites.Selected` Application permission. The m365 CLI signs you in
-> as a *user* (delegated auth, browser flow), so it needs an app with
-> **delegated** scopes and a public-client redirect URI. The PnP CLI
-> app has both; `it-project-docs-publisher` has neither. The two apps
-> serve different roles in this setup:
->
-> - **PnP CLI app** — used **once**, by you the admin, to run the
->   grant command below as your admin identity.
-> - **`it-project-docs-publisher`** — the **target** of that grant.
->   The pipeline impersonates this app to write to SharePoint.
->
-> If your org's policy forbids consenting to third-party multi-tenant
-> apps, register a second Entra app in your tenant called e.g.
-> `skintyeenation-admin-cli` with delegated `AllSites.FullControl`,
-> a `http://localhost` redirect URI, and "Allow public client flows"
-> enabled — then paste *its* client ID at the `m365 setup` prompt.
+Open this URL in a browser, sign in as `admin@skintyeenation.onmicrosoft.com`,
+click **Accept** on the consent screen:
 
-#### c. Sign in and grant the site permission
+<https://login.microsoftonline.com/ee46daed-e89f-4438-b1f7-dc26203a4bec/adminconsent?client_id=31359c7f-bd7e-475c-86db-fdb8c937548e>
+
+After clicking Accept, the browser redirects to `http://localhost/...`
+and shows a "can't reach this page" error. **That's the success
+signal** — the consent was already saved server-side. Close the tab.
+
+Verify: Entra → **Enterprise applications** should now show "CLI for
+Microsoft 365" (or "PnP Microsoft 365 Management Shell") in the list.
+
+### Step 7 — Run the automation script
 
 ```bash
-m365 login --authType browser
-# Browser opens — sign in as the global admin.
-
-m365 spo site apppermission add \
-  --siteUrl https://skintyeenation.sharepoint.com/sites/it-project-docs \
-  --appId <application-client-id-of-it-project-docs-publisher> \
-  --appDisplayName it-project-docs-publisher \
-  --permission write
+bash scripts/setup-sharepoint-pipeline.sh
 ```
 
-Successful output prints a permission record with `roles: ["write"]`.
+A browser opens for `m365 login` — sign in as the global admin and
+return to the terminal. The script then runs end-to-end:
 
-**Alternative — PnP PowerShell** (Windows-first admins, or if the
-m365 CLI install / Node version hassles aren't worth it):
+| | What | Why |
+|---|---|---|
+| 7a | `m365 spo site apppermission add` | Grants `it-project-docs-publisher` write access on the site |
+| 7b | `az ad app federated-credential create` | Trusts the ADO service connection's identity (no secret needed) |
+| 7c | `az devops service-endpoint azurerm create` | Creates the ADO service connection `sharepoint-docs-sc` |
+| 7d | `az pipelines variable-group create` | Creates the variable group `sharepoint-docs` with tenant/client/site IDs |
+| 7e | `az pipelines create` | Registers the `publish-docs-to-sharepoint` pipeline |
 
-```powershell
-# One-time: install PnP if needed
-Install-Module PnP.PowerShell -Scope CurrentUser
+Successful output ends with `✔ done — re-run anytime; idempotent`.
 
-# Sign in as the global admin
-Connect-PnPOnline -Url https://skintyeenation.sharepoint.com/sites/it-project-docs `
-                  -Interactive
-
-# Grant the app write access to this site
-Grant-PnPAzureADAppSitePermission `
-  -AppId "<application-client-id-from-step-2>" `
-  -DisplayName "it-project-docs-publisher" `
-  -Site "https://skintyeenation.sharepoint.com/sites/it-project-docs" `
-  -Permissions Write
-```
-
-> **Why not `az rest`?** It would look like the simplest path:
-> `az rest --method POST .../sites/{id}/permissions`. But Microsoft
-> enforces a hard-coded first-party preauthorization gate
-> (`AADSTS65002`) that prevents the Azure CLI's first-party app from
-> requesting `Sites.FullControl.All` on Microsoft Graph — regardless
-> of admin consent. The call 403s with no workaround. Use m365 CLI or
-> PnP PowerShell.
-
-### 6. Get the SharePoint site ID
-
-The publisher needs the Graph `site-id` (a comma-separated triple,
-not a URL):
+### Step 8 — Verify the pipeline
 
 ```bash
-TOKEN=$(curl -s -X POST \
-  "https://login.microsoftonline.com/<TENANT_ID>/oauth2/v2.0/token" \
-  -d "client_id=<CLIENT_ID>" \
-  -d "client_secret=<CLIENT_SECRET>" \
-  -d "scope=https://graph.microsoft.com/.default" \
-  -d "grant_type=client_credentials" | jq -r .access_token)
-
-curl -s -H "authorization: Bearer $TOKEN" \
-  "https://graph.microsoft.com/v1.0/sites/skintyeenation.sharepoint.com:/sites/it-project-docs" \
-  | jq -r .id
+echo "" >> docs/README.md
+git commit -am "test: trigger sharepoint pipeline"
+git push azure master
 ```
 
-That prints something like
-`skintyeenation.sharepoint.com,11111111-2222-3333-4444-555555555555,66666666-7777-8888-9999-aaaaaaaaaaaa`.
-That's the `SHAREPOINT_SITE_ID`.
+Watch the run at <https://dev.azure.com/skintyeenation/devops/_build>.
+When the run goes green (~2–3 minutes), the `docs/` tree is at:
 
-### 7. Get the drive (document library) name
+<https://skintyeenation.sharepoint.com/sites/it-project-docs/Shared%20Documents/webfront/>
 
-The publisher targets a single document library by display name.
-Usually `Documents` (the default library); confirm:
+with each `.md` next to its rendered `.html`.
 
-```bash
-curl -s -H "authorization: Bearer $TOKEN" \
-  "https://graph.microsoft.com/v1.0/sites/<SITE-ID>/drives" \
-  | jq -r '.value[].name'
-```
-
-Pick the one you want — typically `Documents`. That's the
-`SHAREPOINT_DRIVE_NAME`.
-
-### 8. Add the secrets to GitHub Actions
-
-In the webfront GitHub repo (<https://github.com/skintyeenation/webfront>):
-
-1. **Settings** → **Secrets and variables** → **Actions**.
-2. **Repository secrets** → **New repository secret** — add each:
-
-   | Secret name | Value |
-   |---|---|
-   | `AZURE_TENANT_ID` | Directory (tenant) ID from step 2 |
-   | `AZURE_CLIENT_ID` | Application (client) ID from step 2 |
-   | `AZURE_CLIENT_SECRET` | Secret value from step 3 |
-   | `SHAREPOINT_SITE_ID` | Triple from step 6 |
-   | `SHAREPOINT_DRIVE_NAME` | Library name from step 7 (usually `Documents`) |
-
-3. (Optional) **Repository variables** → `SHAREPOINT_TARGET_PATH` —
-   subfolder inside the drive to write into. Defaults to
-   `webfront` if unset.
-
-### 9. Run it once manually
-
-From the GitHub Actions tab:
-
-1. Pick **Publish docs to SharePoint**.
-2. **Run workflow** → **Run workflow** (master branch).
-3. Should complete in 2-5 minutes and report something like:
-
-   ```
-   ✔ done — rendered 139 .html · uploaded 278 files · failed 0
-   ```
-
-Verify in SharePoint that `webfront/docs/` is populated with the
-mirrored tree.
+---
 
 ## Automatic re-publishing
 
-After step 9 the workflow is live. Any push to `master` that touches:
+After step 8, the pipeline is live. Pushes to `master` that touch any
+of these re-publish:
 
 - `docs/**`
 - `scripts/publish-docs-to-sharepoint.sh`
-- `.github/workflows/publish-docs-to-sharepoint.yml`
+- `azure-pipelines/publish-docs-to-sharepoint.yml`
 
-…triggers a re-publish. Concurrency is keyed to `sharepoint-docs` so
-two pushes in quick succession queue instead of racing.
+Deletions are **not** propagated — removing a doc from the repo
+leaves its SharePoint copy alone. Delete manually in SharePoint if
+needed.
+
+---
 
 ## Troubleshooting
 
-**`HTTP 401`** on token acquisition → check `AZURE_CLIENT_SECRET`
-hasn't expired; check `AZURE_TENANT_ID` + `AZURE_CLIENT_ID` are right.
+**`AADSTS700016: Application '31359c7f-...' was not found in the directory`**
+→ You skipped step 6. Open the admin-consent URL, click Accept, retry.
 
-**`HTTP 403`** on upload → the app doesn't have permission on this
-specific site. Re-run step 5 (PnP `Grant-PnPAzureADAppSitePermission`).
+**`Error: appId: appId is required`** (during `m365 login`)
+→ You skipped step 5 (`m365 setup`), or your m365 config got reset.
+Re-run `m365 setup` per the table in step 5.
 
-**`drive '<name>' not found on site`** → the publisher script prints
-the available drive names. Adjust `SHAREPOINT_DRIVE_NAME` to match.
+**`SyntaxError: ... 'node:util' does not provide an export named 'styleText'`**
+→ Node is older than 20.12. `nvm install 22 && nvm use 22 && npm install -g @pnp/cli-microsoft365`.
 
-**`HTTP 404` on the site lookup** → the path
-`{hostname}:/sites/{name}` is case-sensitive on some tenants. Match
-the URL exactly as it appears in your browser.
+**`HTTP 403` on apppermission add**
+→ The PnP CLI account isn't a SharePoint Admin / global admin. Sign
+in as `admin@skintyeenation.onmicrosoft.com`, not a regular account.
+
+**Federated-credential creation fails with permission error**
+→ Your user lacks the **Application Administrator** (or **Cloud
+Application Administrator**) role on Entra. Have a global admin assign
+it.
+
+**`HTTP 403` during pipeline run (later)**
+→ The site grant from step 7a didn't take. Re-run
+`bash scripts/setup-sharepoint-pipeline.sh` — it's idempotent.
+
+---
 
 ## Removing the integration
 
-If you want to stop publishing:
+To stop publishing:
 
-1. Disable the workflow: GitHub → Actions → **Publish docs to
-   SharePoint** → **Disable workflow**.
-2. Revoke the app's site access: PnP
-   `Revoke-PnPAzureADAppSitePermission -PermissionId <id>`.
-3. Delete the app registration in Entra ID.
+1. ADO → **Pipelines → publish-docs-to-sharepoint → ⋮ → Delete pipeline**.
+2. ADO → **Project Settings → Service connections → sharepoint-docs-sc → Delete**.
+3. Entra → App registrations → `it-project-docs-publisher` →
+   **Certificates & secrets → Federated credentials → Delete**.
+4. Optionally: delete the SharePoint site and the Entra app entirely.
 
-The mirrored docs on SharePoint stay until manually removed (the app's
-secret is gone but the files persist).
+Published docs in SharePoint persist after teardown (intentional — version history kept).
+
+---
+
+## Background (skip unless curious)
+
+### Two Entra apps, two roles
+
+| | Used by | For |
+|---|---|---|
+| **`it-project-docs-publisher`** (created in step 2) | The Azure Pipeline | Writes docs to SharePoint. Has `Sites.Selected` + a federated credential. No secret. |
+| **PnP CLI well-known app `31359c7f-...`** (Microsoft-published) | You, in your terminal | One-time admin sign-in to run the grant + setup commands as an admin user |
+
+The two apps never overlap. The pipeline never uses the PnP CLI app;
+you never use `it-project-docs-publisher` interactively.
+
+### Why no client_secret
+
+The Azure Pipeline mints a Microsoft Graph token at runtime using
+**workload identity federation**: ADO's service-connection identity
+is registered as a trusted issuer on the Entra app (step 7b), so the
+app issues tokens to anything bearing a valid ADO-signed OIDC
+assertion. The Graph API accepts those tokens just like
+client_credentials tokens. No long-lived secret exists anywhere.
+
+This is the modern Microsoft-recommended path. The legacy
+client_credentials flow (`AZURE_CLIENT_SECRET` env var) is also still
+supported by the publisher script for local dev / fallback use — see
+`scripts/publish-docs-to-sharepoint.sh` — but in production, the
+federated path is the only one used.
+
+### Why `Sites.Selected` (and not `Sites.ReadWrite.All`)
+
+`Sites.Selected` is the least-privilege Graph scope: by itself it
+grants no access. You then explicitly authorize the app per-site
+(step 7a). Even a fully-compromised app can only touch
+`it-project-docs` — nothing else on the tenant.
+
+### Why m365 CLI (and not `az` or PnP PowerShell)
+
+- **`az rest POST .../sites/{id}/permissions`** — would be simplest but
+  Microsoft enforces a hard-coded preauthorization gate (AADSTS65002)
+  that prevents Azure CLI from requesting `Sites.FullControl.All` on
+  Graph. Doesn't work, no workaround.
+- **PnP PowerShell `Grant-PnPAzureADAppSitePermission`** — works on
+  Windows; cask retired on macOS late 2024, install from npm or
+  PowerShell Gallery.
+- **m365 CLI `m365 spo site apppermission add`** — works cross-platform.
+  Used here.
