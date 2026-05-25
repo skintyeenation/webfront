@@ -62,9 +62,47 @@ End state for this app: **0 client secrets, 0 certificates**. The
 federated credential (added by the script in step 7) is the only
 credential it needs.
 
-### Step 5 — Install + configure the m365 CLI on your machine
+### Step 5 — Register a sign-in app for the m365 CLI
 
-Run these commands:
+The CLI for Microsoft 365 v11+ has no default Entra app — you have to
+register one in your tenant for the CLI to sign you in through. This
+is a **second** app, separate from `it-project-docs-publisher`; it
+exists only to give the CLI a delegated identity to authenticate
+admin users.
+
+In Entra → **App registrations → + New registration**:
+
+1. Name: `skintyeenation-admin-cli`
+2. Supported account types: **Accounts in this organizational directory only**
+3. Redirect URI: dropdown **Public client/native (mobile & desktop)**, value `http://localhost`
+4. **Register**
+
+Copy the **Application (client) ID** from the Overview page.
+
+On the new app's **API permissions** page:
+
+1. **+ Add a permission → Microsoft Graph → Delegated permissions**
+2. Check:
+   - `Sites.FullControl.All`
+   - `User.Read`
+3. **Add permissions**
+4. **Grant admin consent for Skin Tyee First Nation** — both rows turn green
+
+On the new app's **Authentication** page:
+
+1. Scroll to **Advanced settings → Allow public client flows**
+2. Toggle **Yes**
+3. **Save**
+
+> **Why a second app?** This one is delegated/interactive — the CLI
+> uses it to sign *you* in as an admin user. `it-project-docs-publisher`
+> from step 2 is app-only — the Azure Pipeline uses *it* to write to
+> SharePoint with no user involved. Two apps because they do two
+> different things.
+
+### Step 6 — Install + configure the m365 CLI
+
+Run these commands on your laptop:
 
 ```bash
 nvm install 22
@@ -73,13 +111,14 @@ npm install -g @pnp/cli-microsoft365
 m365 setup
 ```
 
-`m365 setup` runs an interactive wizard. Answer **exactly** as shown:
+`m365 setup` runs an interactive wizard. Answer **exactly** as shown
+(Client ID is the `skintyeenation-admin-cli` app id from step 5):
 
 | Prompt | Answer |
 |---|---|
 | Create new or use existing app? | **Use an existing app registration** |
-| Client ID | `31359c7f-bd7e-475c-86db-fdb8c937548e` |
-| Tenant ID | (press Enter — leave blank) |
+| Client ID | **paste your `skintyeenation-admin-cli` app id from step 5** |
+| Tenant ID | `ee46daed-e89f-4438-b1f7-dc26203a4bec` |
 | **Client secret** | **(press Enter — LEAVE EMPTY)** |
 | How do you plan to use the CLI? | **Interactively** |
 | PowerShell? | No |
@@ -89,24 +128,6 @@ The summary at the end should show `authType: browser` and **no
 `clientSecret` line**. If it shows `authType: secret`, you picked the
 wrong "How do you plan to use the CLI?" answer — run `m365 cli config
 reset --force` and redo.
-
-### Step 6 — Admin-consent the PnP CLI app to your tenant
-
-The Skin Tyee tenant has consent restrictions, so the PnP CLI app
-(the one you just configured `m365` to sign you in through) needs to
-be pre-installed by an admin before any user can sign into it.
-
-Open this URL in a browser, sign in as `admin@skintyeenation.onmicrosoft.com`,
-click **Accept** on the consent screen:
-
-<https://login.microsoftonline.com/ee46daed-e89f-4438-b1f7-dc26203a4bec/adminconsent?client_id=31359c7f-bd7e-475c-86db-fdb8c937548e>
-
-After clicking Accept, the browser redirects to `http://localhost/...`
-and shows a "can't reach this page" error. **That's the success
-signal** — the consent was already saved server-side. Close the tab.
-
-Verify: Entra → **Enterprise applications** should now show "CLI for
-Microsoft 365" (or "PnP Microsoft 365 Management Shell") in the list.
 
 ### Step 7 — Run the automation script
 
@@ -161,19 +182,28 @@ needed.
 
 ## Troubleshooting
 
-**`AADSTS700016: Application '31359c7f-...' was not found in the directory`**
-→ You skipped step 6. Open the admin-consent URL, click Accept, retry.
+**`AADSTS700016: Application '<guid>' was not found in the directory`**
+→ The Client ID you gave `m365 setup` doesn't exist in your tenant.
+Recheck step 5 — make sure you copied the Application (client) ID
+from the `skintyeenation-admin-cli` app's Overview page (not Object ID,
+not Directory ID). Then `m365 cli config reset --force && m365 setup`.
+
+**`AADSTS65001` or `AADSTS90094` "Consent required"** (during `m365 login`)
+→ Step 5's "Grant admin consent for Skin Tyee First Nation" wasn't
+clicked. Go back to the `skintyeenation-admin-cli` app's
+**API permissions** page and click the Grant admin consent button.
 
 **`Error: appId: appId is required`** (during `m365 login`)
-→ You skipped step 5 (`m365 setup`), or your m365 config got reset.
-Re-run `m365 setup` per the table in step 5.
+→ You skipped step 6 (`m365 setup`), or your m365 config got reset.
+Re-run `m365 setup` per the table in step 6.
 
 **`SyntaxError: ... 'node:util' does not provide an export named 'styleText'`**
 → Node is older than 20.12. `nvm install 22 && nvm use 22 && npm install -g @pnp/cli-microsoft365`.
 
 **`HTTP 403` on apppermission add**
-→ The PnP CLI account isn't a SharePoint Admin / global admin. Sign
-in as `admin@skintyeenation.onmicrosoft.com`, not a regular account.
+→ The signed-in m365 account isn't a SharePoint Admin / global admin.
+Sign in as `admin@skintyeenation.onmicrosoft.com`, not a regular
+account.
 
 **Federated-credential creation fails with permission error**
 → Your user lacks the **Application Administrator** (or **Cloud
@@ -206,11 +236,16 @@ Published docs in SharePoint persist after teardown (intentional — version his
 
 | | Used by | For |
 |---|---|---|
-| **`it-project-docs-publisher`** (created in step 2) | The Azure Pipeline | Writes docs to SharePoint. Has `Sites.Selected` + a federated credential. No secret. |
-| **PnP CLI well-known app `31359c7f-...`** (Microsoft-published) | You, in your terminal | One-time admin sign-in to run the grant + setup commands as an admin user |
+| **`it-project-docs-publisher`** (created in step 2) | The Azure Pipeline | Writes docs to SharePoint. Has `Sites.Selected` Application permission + a federated credential. No secret. |
+| **`skintyeenation-admin-cli`** (created in step 5) | You, in your terminal | Admin sign-in to run the grant + setup commands as an admin user. Has `Sites.FullControl.All` Delegated. No secret. |
 
-The two apps never overlap. The pipeline never uses the PnP CLI app;
-you never use `it-project-docs-publisher` interactively.
+The two apps never overlap. The pipeline never uses
+`skintyeenation-admin-cli`; you never use `it-project-docs-publisher`
+interactively.
+
+m365 CLI v11+ has no default sign-in app — every user/tenant must
+register their own. (Earlier versions had a Microsoft-published default
+that was removed in v11.)
 
 ### Why no client_secret
 
