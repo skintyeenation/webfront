@@ -303,62 +303,58 @@ EOF
 
       GRANT_OUTPUT=$(try_grant) || true
 
-      # Auto-elevate on 403: the Azure CLI's default Graph token doesn't
-      # include Sites.FullControl.All (the scope `POST /sites/{id}/permissions`
-      # requires). Even if the signed-in user IS a Global Admin, the
-      # *token* needs the scope. Re-login asking for it, then retry.
-      if echo "$GRANT_OUTPUT" | grep -qi 'AccessDenied\|403\|Forbidden\|Insufficient'; then
-        warn "got 403 — token doesn't have Sites.FullControl.All in scope."
-        warn "trying to re-login with the scope explicitly (browser may open)…"
-        if az login --scope 'https://graph.microsoft.com/Sites.FullControl.All' --only-show-errors >/dev/null 2>&1; then
-          ok "re-login succeeded with Sites.FullControl.All scope"
-          say "retrying site grant…"
-          GRANT_OUTPUT=$(try_grant) || true
-        else
-          warn "re-login with Sites.FullControl.All scope failed (consent required?)"
-        fi
-      fi
+      # No auto-elevation attempt: `az login --scope
+      # https://graph.microsoft.com/Sites.FullControl.All` ALWAYS fails
+      # with AADSTS65002 — Microsoft has a hard-coded first-party
+      # preauthorization gate between the Azure CLI and Microsoft Graph
+      # that the tenant cannot override. Don't waste a browser detour.
 
       if echo "$GRANT_OUTPUT" | grep -qiE '"roles":' ; then
         ok "site grant created"
       elif echo "$GRANT_OUTPUT" | grep -qi 'AccessDenied\|403\|Forbidden\|Insufficient' ; then
-        # Still 403 after the auto-retry. Hand the user a copy-paste fix
-        # they (or a more-privileged admin) can run separately.
+        # Hand the user a copy-paste fix using PnP PowerShell — its Entra
+        # app IS on Microsoft's pre-authorized list for Sites.FullControl.All,
+        # so it works where `az` can't.
         cat >&2 <<MSG
 
-  ✗ Site grant still failing after auto-elevation.
+  ✗ Site grant via Graph (\`az rest\`) returned 403.
 
-  This means the Azure CLI app needs admin consent for
-  Sites.FullControl.All in your tenant, OR you need to use a tool
-  that has it (PnP PowerShell). Three options:
+  Why this is unfixable from \`az\`:
+    The Azure CLI is a Microsoft "first-party" app, and Microsoft Graph
+    is another first-party app. Microsoft maintains a hard-coded
+    pre-authorization list between first-party apps; \`az\` is NOT on
+    that list for Sites.FullControl.All. \`az login --scope …
+    Sites.FullControl.All\` fails with AADSTS65002 even for a Global
+    Admin. This is by design and not something the tenant can override.
 
-  ─── Option 1: Grant admin consent for the Azure CLI app ───────────
-  https://entra.microsoft.com → Enterprise applications → search
-  "Microsoft Azure CLI" (app id 04b07795-8ddb-461a-bbee-02f9e1bf7b46)
-  → Permissions → "Grant admin consent for skintyeenation".
-  Then re-run this script.
+  Use PnP PowerShell instead — its Entra app IS pre-authorized.
 
-  ─── Option 2: Use PnP PowerShell instead ──────────────────────────
-  brew install --cask powershell  # ~5 min, one-time
+  ─── On this machine (macOS — recommended) ─────────────────────────
+  brew install --cask powershell    # one-time, ~5 min
+
   pwsh -Command "Install-Module PnP.PowerShell -Scope CurrentUser -Force -AllowClobber"
+
   pwsh -Command "Connect-PnPOnline -Url '$SHAREPOINT_SITE_URL' -Interactive"
+  # ↑ pops a browser — sign in as the admin who owns the SharePoint site
+
   pwsh -Command "Grant-PnPAzureADAppSitePermission -AppId '$ENTRA_APP_ID' -DisplayName '$ENTRA_APP_DISPLAY_NAME' -Site '$SHAREPOINT_SITE_URL' -Permissions Write"
-  # Then re-run this script with --skip-site-grant
 
-  ─── Option 3: Have an admin run the grant in bash ─────────────────
-  Forward this snippet to someone with Sites.FullControl.All on the
-  tenant (Global Admin / SharePoint Admin); they paste + run it:
+  Then re-run this script with --skip-site-grant.
 
-  az login --scope 'https://graph.microsoft.com/Sites.FullControl.All'
-  az rest --method POST \\
-    --uri 'https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/permissions' \\
-    --headers content-type=application/json \\
-    --body '{"roles":["write"],"grantedToIdentities":[{"application":{"id":"$ENTRA_APP_ID","displayName":"$ENTRA_APP_DISPLAY_NAME"}}]}'
+  ─── Hand-off to an admin who already has pwsh + PnP ───────────────
+  Forward this PowerShell block:
+
+  Connect-PnPOnline -Url '$SHAREPOINT_SITE_URL' -Interactive
+  Grant-PnPAzureADAppSitePermission \`
+    -AppId '$ENTRA_APP_ID' \`
+    -DisplayName '$ENTRA_APP_DISPLAY_NAME' \`
+    -Site '$SHAREPOINT_SITE_URL' \`
+    -Permissions Write
 
   Then re-run this script with --skip-site-grant.
 
 MSG
-        die "site grant failed (403) — see above for fix paths"
+        die "site grant failed (403) — see above for the PnP-PowerShell fix"
       else
         die "site grant failed: $GRANT_OUTPUT"
       fi
