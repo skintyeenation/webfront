@@ -290,28 +290,56 @@ else
   # fail with `appId is required` (m365 v11+ removed the built-in default).
   export M365_CLI_AAD_APP_ID="$M365_CLI_LEGACY_APP_ID"
 
-  # Login if not already signed in. `m365 status` exits 1 if not logged in.
-  if ! m365 status >/dev/null 2>&1; then
-    say "logging in to m365 (browser will open; sign in with the SharePoint site admin account)…"
+  # `m365 status` always exits 0 (prints "Logged out" when not signed in),
+  # so we can't rely on its exit code. Check the JSON `connectedAs` field
+  # explicitly — it's the signed-in account's email when logged in, "Logged
+  # out" / null / absent when not.
+  m365_signed_in() {
+    local who
+    who=$(m365 status --output json 2>/dev/null \
+      | jq -r '.connectedAs // empty' 2>/dev/null || echo "")
+    [ -n "$who" ] && [ "$who" != "Logged out" ]
+  }
+
+  if ! m365_signed_in; then
+    say "not signed in to m365 — running \`m365 login --authType browser\` (browser will open)…"
     if [ "$DRY_RUN" -eq 1 ]; then
       printf '  (dry-run) m365 login --authType browser\n'
     else
       m365 login --authType browser \
-        || die "m365 login didn't complete. Re-run after signing in, or run \`m365 login --authType deviceCode\` if the browser flow won't work."
+        || die "m365 login didn't complete. Try \`m365 login --authType deviceCode\` if the browser flow won't work, then re-run this script."
+      m365_signed_in \
+        || die "m365 says it's still not signed in after login. Run \`m365 status --output json\` to diagnose, then re-run this script."
     fi
   fi
-  ok "m365 signed in as $(m365 status --output json 2>/dev/null | jq -r .connectedAs 2>/dev/null || echo 'unknown')"
+  if [ "$DRY_RUN" -eq 0 ]; then
+    ok "m365 signed in as $(m365 status --output json 2>/dev/null | jq -r '.connectedAs // "unknown"' 2>/dev/null || echo 'unknown')"
+  else
+    ok "(dry-run) skipping m365 sign-in check"
+  fi
 
-  # Check existing site grant. m365's apppermission list returns JSON we can
-  # filter with jq for an existing entry referencing our Entra app id.
+  # Check existing site grant. The apppermission-list call returns either
+  # a JSON array on success OR something else on failure (network / perms);
+  # we use `|| echo "[]"` to keep `set -e` from killing the script silently
+  # if the call errors. If the call returned actual data, jq picks the
+  # matching app's permission id out of it.
   say "checking site grant on '$SHAREPOINT_SITE_URL' for app id $ENTRA_APP_ID …"
   EXISTING_GRANT=""
   if [ "$DRY_RUN" -eq 0 ]; then
-    EXISTING_GRANT=$(m365 spo site apppermission list \
-      --siteUrl "$SHAREPOINT_SITE_URL" --output json 2>/dev/null \
-      | jq -r --arg appid "$ENTRA_APP_ID" \
-          '.[] | select(.grantedToIdentitiesV2[]?.application.id == $appid) | .id' \
-      2>/dev/null | head -1)
+    PERM_LIST_JSON=$(m365 spo site apppermission list \
+      --siteUrl "$SHAREPOINT_SITE_URL" --output json 2>&1 || echo "__ERR__")
+    if [ "$PERM_LIST_JSON" = "__ERR__" ] || [ -z "$PERM_LIST_JSON" ]; then
+      warn "m365 spo site apppermission list returned empty — assuming no existing grant."
+      EXISTING_GRANT=""
+    elif echo "$PERM_LIST_JSON" | jq -e . >/dev/null 2>&1; then
+      EXISTING_GRANT=$(echo "$PERM_LIST_JSON" | jq -r --arg appid "$ENTRA_APP_ID" \
+        '.[] | select(.grantedToIdentitiesV2[]?.application.id == $appid) | .id' \
+        2>/dev/null | head -1)
+    else
+      warn "m365 spo site apppermission list didn't return valid JSON — assuming no existing grant. Output was:"
+      printf '%s\n' "$PERM_LIST_JSON" | head -5 >&2
+      EXISTING_GRANT=""
+    fi
   fi
   if [ -n "$EXISTING_GRANT" ] && [ "$EXISTING_GRANT" != "null" ]; then
     ok "site grant already exists (permission id $EXISTING_GRANT)"
@@ -320,16 +348,19 @@ else
     if [ "$DRY_RUN" -eq 1 ]; then
       printf '  (dry-run) m365 spo site apppermission add --siteUrl %s --appId %s --appDisplayName %s --permission write\n' \
         "$SHAREPOINT_SITE_URL" "$ENTRA_APP_ID" "$ENTRA_APP_DISPLAY_NAME"
+      ok "(dry-run) site grant would be created"
     else
-      m365 spo site apppermission add \
+      GRANT_RESULT=$(m365 spo site apppermission add \
         --siteUrl "$SHAREPOINT_SITE_URL" \
         --appId "$ENTRA_APP_ID" \
         --appDisplayName "$ENTRA_APP_DISPLAY_NAME" \
         --permission write \
-        >/dev/null \
-        || die "m365 spo site apppermission add failed — check that the signed-in m365 user has Sites.FullControl.All / SharePoint Admin / Global Admin."
+        --output json 2>&1) || GRANT_RESULT="__ERR__:$GRANT_RESULT"
+      if [[ "$GRANT_RESULT" == __ERR__:* ]]; then
+        die "m365 spo site apppermission add failed: ${GRANT_RESULT#__ERR__:}"
+      fi
+      ok "site grant created via m365"
     fi
-    ok "site grant created via m365"
   fi
 fi
 
