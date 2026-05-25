@@ -117,6 +117,61 @@ To **send as** the shared address (e.g. "From: info@…"), compose a new
 email and click the **From** field at the top — pick the shared address
 from the dropdown.
 
+#### If the shared mailbox doesn't appear after ~24h — add it manually
+
+Auto-mapping usually works, but if the mailbox hasn't shown up a day
+after the admin granted you access, you can add it explicitly. The
+exact steps depend on which Outlook you're using. (Microsoft's
+canonical version of this is at
+<https://support.microsoft.com/en-us/office/open-and-use-a-shared-mailbox-in-outlook-d94a8e9e-21f1-4240-808b-de9c9c088afd>
+— check there if these get out of date.)
+
+##### Outlook for Mac
+
+1. Open **Outlook** for Mac.
+2. Top menu bar → **File → Open**.
+3. Select **Shared Mailbox**.
+4. Search for or enter the shared mailbox's email address (e.g.
+   `info@skintyee.ca`), select it from the results, click **Add**.
+
+##### New Outlook for Windows (the redesigned 2024+ Outlook)
+
+1. In the navigation pane, select **Mail**.
+2. **Right-click your account name** (the top folder, e.g.
+   `firstname.lastname@skintyee.ca`).
+3. Choose **"Add shared folder or mailbox"**.
+4. Type the shared mailbox's email address, select it, click **Add**.
+
+##### Classic Outlook for Windows
+
+1. **File → Account Settings → Account Settings**.
+2. **Email** tab → select your `@skintyee.ca` account → **Change**.
+3. **More Settings → Advanced → Add**.
+4. Enter the shared mailbox's email address → **OK**.
+5. Restart Outlook.
+
+##### Outlook on the web (<outlook.office.com>)
+
+1. In the left navigation pane, **right-click "Folders"** (or your
+   primary mailbox name at the top of the list).
+2. Choose **"Add shared folder or mailbox"**.
+3. Type the shared mailbox's email address → **Add**.
+
+The mailbox appears in your folder list immediately. If Outlook says
+*"You don't have permission"*, the admin hasn't granted you Full
+Access yet — ping them and link to
+[`docs/365/shared-mailboxes.md`](../365/shared-mailboxes.md).
+
+> Prerequisite: **Full Access** permission on the mailbox, granted by
+> the IT admin in the M365 admin center. **Send As** is separate and
+> typically granted alongside Full Access. See
+> [`docs/365/shared-mailboxes.md § Permission types`](../365/shared-mailboxes.md#permission-types--which-to-use).
+
+To **send as** the shared address from any of the above clients,
+compose a new email, show the **From** field (Options menu →
+**Show From** on Windows; the **From** dropdown is visible by default
+on Mac), then pick the shared address from it.
+
 ---
 
 ## Step 3 — Add to your phone
