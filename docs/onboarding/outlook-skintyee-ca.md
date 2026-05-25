@@ -176,13 +176,39 @@ on Mac), then pick the shared address from it.
 
 ## Step 3 — Add to your phone
 
+### Fastest path: QR-code sign-in from your computer (no typing on the phone)
+
+If you've already got Outlook on the web open on your laptop (Step 2),
+you can sign in the mobile app by scanning a QR code instead of typing
+your email, password, and approving MFA from scratch on the phone:
+
+1. On your computer, open **Outlook on the web** at
+   <https://outlook.office.com>.
+2. Click **Help** in the top menu (or, in some layouts, the **?** icon
+   near your profile picture).
+3. Select **Outlook mobile** (sometimes labelled *"Sign in faster to
+   Outlook on your phone"*). A QR code appears on screen.
+4. On your phone, **install the Microsoft Outlook app** (App Store or
+   Play Store), tap **Add Account**, then pick **Scan QR code**.
+5. Point the phone camera at the QR code on your laptop screen.
+   Outlook signs you in automatically — no typing.
+
+If the **Help → Outlook mobile** option doesn't appear, Microsoft has
+moved it again — use the manual path below (Option A) or check
+Microsoft's current guidance at
+<https://support.microsoft.com/en-us/office/use-the-outlook-mobile-app-on-your-mobile-device-79f12bd4-2c9c-4798-8e02-1fb2a4e4dab8>.
+
+> The QR code only works for the **Microsoft Outlook app**, not Apple
+> Mail or Gmail's Exchange connector. For those, use Option B below.
+
 ### iOS (iPhone / iPad)
 
 **Option A — Microsoft Outlook app (recommended)**
 
 1. Install **Microsoft Outlook** from the App Store.
 2. Open it → **Add Account** → enter `firstname.lastname@skintyee.ca`.
-3. Sign in with your password + approve MFA.
+3. Sign in with your password + approve MFA. (Or — if you saw the QR
+   code section above — skip this and just scan.)
 4. Done. The app handles Outlook calendar + contacts too.
 
 **Option B — Apple Mail**
@@ -198,6 +224,7 @@ on Mac), then pick the shared address from it.
 
 1. Install **Microsoft Outlook** from the Play Store.
 2. Same flow as iOS — Add Account → email → password → approve MFA.
+   (Or scan the QR code from your laptop per the section above.)
 3. The native Gmail app also supports Exchange — use the Outlook app
    if your phone is a work phone; either works on personal phones.
 
