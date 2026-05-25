@@ -19,28 +19,41 @@
 #   scripts/setup-azure-devops.sh        — must have been run first
 #   azure-pipelines/publish-docs-to-sharepoint.yml — the pipeline YAML
 #
-# Required env / flags — these were captured during the ADR-8 setup
-# (`docs/365/sharepoint-docs-publish.md`) and you stored them as GitHub
-# Actions secrets. Pass them here too:
+# Inputs — all have sensible defaults; only the things you'd actually
+# want to customise are listed here. Run without args for a guided
+# interactive prompt; pass --yes to skip prompts and use env/defaults.
 #
-#   --entra-app-id        ID of the `it-project-docs-publisher` Entra app
-#                         (the GUID, not the display name).
-#                         Default: discovered via `az ad app list`
-#                         filtering on display name.
-#   --tenant-id           Entra ID tenant ID.
-#                         Default: discovered via `az account show`.
-#   --sharepoint-site-id  Graph site-id: `{host},{site-guid},{web-guid}`
-#   --sharepoint-drive    Document library display name (e.g. "Documents")
-#   --org                 ADO org name (default: skintyeenation)
-#   --project             ADO project name (default: devops)
-#   --repo                ADO repo name where the YAML lives
-#                         (default: webfront)
+#   --sharepoint-site-url URL of the target SharePoint site (e.g.
+#                         https://skintyeenation.sharepoint.com/sites/webfront-docs).
+#                         Script resolves the Graph site-id automatically.
+#                         Default: skintyeenation/webfront-docs.
+#   --sharepoint-site-id  Pre-computed Graph site-id triple
+#                         (`{host},{site-guid},{web-guid}`). Wins over
+#                         --sharepoint-site-url if both given.
+#   --sharepoint-drive    Document library display name (default: Documents).
+#   --entra-app-name      Display name of the Entra app (default:
+#                         it-project-docs-publisher). Script looks it up
+#                         by display name unless --entra-app-id is also
+#                         passed.
+#   --entra-app-id        Explicit GUID of the Entra app (skips display-
+#                         name lookup).
+#   --tenant-id           Entra tenant ID. Default: from `az account show`.
+#   --org                 ADO org (default: skintyeenation).
+#   --project             ADO project (default: devops).
+#   --repo                ADO repo (default: webfront).
 #   --sc-name             ADO service connection name
-#                         (default: sharepoint-docs-sc)
-#   --vargroup-name       Variable group name (default: sharepoint-docs)
-#   --pipeline-name       Pipeline name (default: publish-docs-to-sharepoint)
-#   --yaml-path           Path to the YAML inside the repo
-#                         (default: azure-pipelines/publish-docs-to-sharepoint.yml)
+#                         (default: sharepoint-docs-sc).
+#   --vargroup-name       Variable group name (default: sharepoint-docs).
+#   --pipeline-name       Pipeline name (default: publish-docs-to-sharepoint).
+#   --yaml-path           YAML path in the repo
+#                         (default: azure-pipelines/publish-docs-to-sharepoint.yml).
+#   --skip-site-grant     Don't attempt the per-site Sites.Selected
+#                         grant via Graph. Use when your account
+#                         lacks Sites.FullControl.All / SharePoint
+#                         Admin / Global Admin and an admin will do
+#                         the grant separately.
+#   --yes / -y            Skip the interactive Enter-to-accept prompts.
+#   --dry-run             Print every API call without executing.
 #
 # ─── WHAT'S AUTOMATED ─────────────────────────────────────────────────────────
 # 1) Federated credential on the Entra app — `az ad app federated-credential
@@ -93,19 +106,22 @@ set -euo pipefail
 
 # ----- defaults --------------------------------------------------------------
 
-ENTRA_APP_DISPLAY_NAME="it-project-docs-publisher"
-ENTRA_APP_ID=""
-TENANT_ID=""
-SHAREPOINT_SITE_ID=""
-SHAREPOINT_DRIVE="Documents"
-ORG="skintyeenation"
-PROJECT="devops"
-REPO="webfront"
-SC_NAME="sharepoint-docs-sc"
-VARGROUP_NAME="sharepoint-docs"
-PIPELINE_NAME="publish-docs-to-sharepoint"
-YAML_PATH="azure-pipelines/publish-docs-to-sharepoint.yml"
+ENTRA_APP_DISPLAY_NAME="${ENTRA_APP_DISPLAY_NAME:-it-project-docs-publisher}"
+ENTRA_APP_ID="${ENTRA_APP_ID:-}"
+TENANT_ID="${TENANT_ID:-}"
+SHAREPOINT_SITE_ID="${SHAREPOINT_SITE_ID:-}"
+SHAREPOINT_SITE_URL="${SHAREPOINT_SITE_URL:-https://skintyeenation.sharepoint.com/sites/webfront-docs}"
+SHAREPOINT_DRIVE="${SHAREPOINT_DRIVE:-Documents}"
+ORG="${ORG:-skintyeenation}"
+PROJECT="${PROJECT:-devops}"
+REPO="${REPO:-webfront}"
+SC_NAME="${SC_NAME:-sharepoint-docs-sc}"
+VARGROUP_NAME="${VARGROUP_NAME:-sharepoint-docs}"
+PIPELINE_NAME="${PIPELINE_NAME:-publish-docs-to-sharepoint}"
+YAML_PATH="${YAML_PATH:-azure-pipelines/publish-docs-to-sharepoint.yml}"
 DRY_RUN=0
+SKIP_PROMPTS=0
+SKIP_SITE_GRANT=0
 
 # ----- arg parsing -----------------------------------------------------------
 
@@ -115,6 +131,7 @@ while [ $# -gt 0 ]; do
     --entra-app-name)      ENTRA_APP_DISPLAY_NAME="$2"; shift 2 ;;
     --tenant-id)           TENANT_ID="$2"; shift 2 ;;
     --sharepoint-site-id)  SHAREPOINT_SITE_ID="$2"; shift 2 ;;
+    --sharepoint-site-url) SHAREPOINT_SITE_URL="$2"; shift 2 ;;
     --sharepoint-drive)    SHAREPOINT_DRIVE="$2"; shift 2 ;;
     --org)                 ORG="$2"; shift 2 ;;
     --project)             PROJECT="$2"; shift 2 ;;
@@ -123,7 +140,9 @@ while [ $# -gt 0 ]; do
     --vargroup-name)       VARGROUP_NAME="$2"; shift 2 ;;
     --pipeline-name)       PIPELINE_NAME="$2"; shift 2 ;;
     --yaml-path)           YAML_PATH="$2"; shift 2 ;;
+    --skip-site-grant)     SKIP_SITE_GRANT=1; shift ;;
     --dry-run)             DRY_RUN=1; shift ;;
+    -y|--yes|--no-prompt)  SKIP_PROMPTS=1; shift ;;
     -h|--help)
       sed -n '/^# Automate/,/^$/p' "$0" | sed 's/^# \{0,1\}//'
       exit 0 ;;
@@ -133,6 +152,32 @@ while [ $# -gt 0 ]; do
       exit 1 ;;
   esac
 done
+
+# ----- interactive prompts (TTY + not --yes) ---------------------------------
+# Press Enter at each prompt to accept the default in brackets.
+
+if [ "$SKIP_PROMPTS" = "0" ] && [ -t 0 ]; then
+  echo "▸ confirming names (Enter to accept default in brackets):"
+  printf "    SharePoint site URL  [%s]: " "$SHAREPOINT_SITE_URL"
+  read -r ans < /dev/tty
+  SHAREPOINT_SITE_URL="${ans:-$SHAREPOINT_SITE_URL}"
+  printf "    Document library     [%s]: " "$SHAREPOINT_DRIVE"
+  read -r ans < /dev/tty
+  SHAREPOINT_DRIVE="${ans:-$SHAREPOINT_DRIVE}"
+  printf "    Entra app name       [%s]: " "$ENTRA_APP_DISPLAY_NAME"
+  read -r ans < /dev/tty
+  ENTRA_APP_DISPLAY_NAME="${ans:-$ENTRA_APP_DISPLAY_NAME}"
+  printf "    ADO org              [%s]: " "$ORG"
+  read -r ans < /dev/tty
+  ORG="${ans:-$ORG}"
+  printf "    ADO project          [%s]: " "$PROJECT"
+  read -r ans < /dev/tty
+  PROJECT="${ans:-$PROJECT}"
+  printf "    ADO repo             [%s]: " "$REPO"
+  read -r ans < /dev/tty
+  REPO="${ans:-$REPO}"
+  echo
+fi
 
 ORG_URL="https://dev.azure.com/${ORG}"
 SC_SUBJECT="sc://${ORG}/${PROJECT}/${SC_NAME}"
@@ -184,14 +229,87 @@ if [ -z "$ENTRA_APP_ID" ]; then
 fi
 ok "Entra app id: $ENTRA_APP_ID"
 
-# Confirm we have everything else --------------------------------------------
+# Resolve the Graph site-id from the site URL if --sharepoint-site-id
+# wasn't passed explicitly. Cheaper UX — user gives the URL they see in
+# the SharePoint web UI, script discovers the triple.
 
-[ -n "$SHAREPOINT_SITE_ID" ] \
-  || die "missing --sharepoint-site-id (Graph site-id triple). Get it via the curl call in docs/365/sharepoint-docs-publish.md § 6."
+if [ -z "$SHAREPOINT_SITE_ID" ]; then
+  [ -n "$SHAREPOINT_SITE_URL" ] \
+    || die "neither --sharepoint-site-id nor --sharepoint-site-url given"
+  say "resolving Graph site-id from $SHAREPOINT_SITE_URL …"
+  # Parse https://{host}/sites/{name} → graph path skeleton
+  SP_HOST=$(printf '%s' "$SHAREPOINT_SITE_URL" | sed -E 's|^https?://([^/]+).*|\1|')
+  SP_PATH=$(printf '%s' "$SHAREPOINT_SITE_URL" | sed -E 's|^https?://[^/]+||')
+  if [ "$DRY_RUN" -eq 1 ]; then
+    SHAREPOINT_SITE_ID="${SP_HOST},DRY-RUN-SITE-GUID,DRY-RUN-WEB-GUID"
+  else
+    SHAREPOINT_SITE_ID=$(az rest --method GET \
+      --uri "https://graph.microsoft.com/v1.0/sites/${SP_HOST}:${SP_PATH}" \
+      --query id -o tsv 2>/dev/null || echo "")
+    [ -n "$SHAREPOINT_SITE_ID" ] && [ "$SHAREPOINT_SITE_ID" != "null" ] \
+      || die "Graph couldn't resolve site '$SHAREPOINT_SITE_URL' — confirm the URL is correct and you have read permission."
+  fi
+  ok "site-id: $SHAREPOINT_SITE_ID"
+fi
 
 # Resolve the Entra app's object ID (different from appId; needed for some calls).
 ENTRA_APP_OBJ_ID=$(az ad app show --id "$ENTRA_APP_ID" --query id -o tsv --only-show-errors 2>/dev/null || echo "")
 [ -n "$ENTRA_APP_OBJ_ID" ] || die "couldn't resolve object ID for app $ENTRA_APP_ID"
+
+# ----- 0b) grant the app `Sites.Selected` access on the target site ----------
+#
+# This is the step-5 piece of docs/365/sharepoint-docs-publish.md, automated
+# via Graph instead of PnP PowerShell. Requires the running user to have
+# Sites.FullControl.All or be a SharePoint / Global admin.
+
+if [ "$SKIP_SITE_GRANT" = "1" ]; then
+  say "skipping site grant (--skip-site-grant set)"
+else
+  say "checking site grant on '$SHAREPOINT_SITE_URL' for app id $ENTRA_APP_ID …"
+  EXISTING_GRANT=""
+  if [ "$DRY_RUN" -eq 0 ]; then
+    EXISTING_GRANT=$(az rest --method GET \
+      --uri "https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/permissions" \
+      --query "value[?grantedToIdentitiesV2[?application.id=='$ENTRA_APP_ID']].id | [0]" \
+      -o tsv 2>/dev/null || echo "")
+  fi
+  if [ -n "$EXISTING_GRANT" ] && [ "$EXISTING_GRANT" != "null" ]; then
+    ok "site grant already exists (permission id $EXISTING_GRANT)"
+  else
+    say "granting 'write' on the site to '$ENTRA_APP_DISPLAY_NAME'…"
+    GRANT_BODY=$(cat <<EOF
+{
+  "roles": ["write"],
+  "grantedToIdentities": [
+    {
+      "application": {
+        "id": "$ENTRA_APP_ID",
+        "displayName": "$ENTRA_APP_DISPLAY_NAME"
+      }
+    }
+  ]
+}
+EOF
+)
+    if [ "$DRY_RUN" -eq 1 ]; then
+      printf '  (dry-run) POST graph.microsoft.com/v1.0/sites/<id>/permissions with write grant\n'
+    else
+      GRANT_OUTPUT=$(echo "$GRANT_BODY" | az rest --method POST \
+        --uri "https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}/permissions" \
+        --headers content-type=application/json \
+        --body @/dev/stdin 2>&1) || true
+      if echo "$GRANT_OUTPUT" | grep -qiE '"roles":' ; then
+        ok "site grant created"
+      elif echo "$GRANT_OUTPUT" | grep -qi 'AccessDenied\|403\|Forbidden\|Insufficient' ; then
+        warn "got 403 — your account lacks Sites.FullControl.All / SharePoint Admin / Global Admin."
+        warn "ask the tenant admin to grant the site, OR pass --skip-site-grant to bypass and have them do it after."
+        die "site grant failed (403)"
+      else
+        die "site grant failed: $GRANT_OUTPUT"
+      fi
+    fi
+  fi
+fi
 
 # ----- 1) federated credential on the Entra app ------------------------------
 
@@ -329,7 +447,7 @@ PIPELINE_ID=$(az pipelines list \
 if [ -n "$PIPELINE_ID" ] && [ "$PIPELINE_ID" != "null" ]; then
   ok "pipeline '$PIPELINE_NAME' already exists (id $PIPELINE_ID)"
 else
-  say "creating pipeline '$PIPELINE_NAME' pointing at $YAML_PATH…"
+  say "creating pipeline '$PIPELINE_NAME' pointing at ${YAML_PATH}…"
   if [ "$DRY_RUN" -eq 1 ]; then
     printf '  (dry-run) az pipelines create --name %s --repository %s --branch master --yaml-path %s\n' "$PIPELINE_NAME" "$REPO" "$YAML_PATH"
     PIPELINE_ID="DRY-RUN-PIPELINE-ID"
