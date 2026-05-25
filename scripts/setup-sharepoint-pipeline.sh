@@ -354,22 +354,70 @@ MSG
 
   ✗ m365 CLI has no sign-in app configured yet (one-time per machine).
 
-  Run this once, then re-run this script:
+  This is a one-time setup. m365 CLI v11+ has no default Entra app —
+  you have to register one in your tenant first and tell m365 which it
+  is. See docs/365/sharepoint-docs-publish.md § 5 for the 4-click app
+  registration (then § 6 for the m365 setup wizard answers).
 
-    m365 setup
-
-  At the prompts:
-    • "Create new or use existing app" → choose **Use an existing**
-    • Client ID                        → paste:
-                                          $M365_CLI_LEGACY_APP_ID
-    • Remaining questions              → press Enter (accept defaults)
-
-  That GUID is the public, multi-tenant App ID of the PnP M365 CLI
-  itself — see docs/365/sharepoint-docs-publish.md § 5b for the trust
-  model and how to verify it.
+  TL;DR:
+    1. Entra → App registrations → + New registration
+         Name:               skintyeenation-admin-cli
+         Account types:      single tenant
+         Redirect URI:       Public client/native → http://localhost
+       Copy the Application (client) ID.
+    2. API permissions → Microsoft Graph → Delegated:
+         Sites.FullControl.All, User.Read
+       Click "Grant admin consent".
+    3. Authentication → Advanced → Allow public client flows → Yes.
+    4. Run: m365 setup
+       At Client ID prompt, paste the app id from step 1.
+       Leave Client secret EMPTY, choose Interactively.
+    5. Re-run this script.
 
 MSG
     die "m365 needs \`m365 setup\` (see message above)"
+  fi
+
+  # Find the m365-configured sign-in app id. This is the app m365 uses
+  # to sign you in (delegated/browser), distinct from $ENTRA_APP_ID
+  # (which is the publisher / app-only auth target). We need to patch
+  # its redirect URI before `m365 login` can succeed — without one,
+  # Entra fails the browser auth with AADSTS500113. The user might have
+  # registered the app but forgotten the redirect URI; or registered it
+  # with "Web" instead of "Mobile/desktop"; either way, this fixes it
+  # idempotently.
+  #
+  # Config key name has varied across m365 versions (clientId, appId,
+  # entraAppId), so we try each.
+  SIGNIN_APP_ID=""
+  for KEY in clientId entraAppId appId; do
+    VAL=$(m365 cli config get --key "$KEY" 2>/dev/null \
+      | sed 's/^"//; s/"$//' | tr -d '\n' || echo "")
+    if echo "$VAL" | grep -qE '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-'; then
+      SIGNIN_APP_ID="$VAL"
+      break
+    fi
+  done
+
+  if [ -n "$SIGNIN_APP_ID" ]; then
+    say "patching sign-in app $SIGNIN_APP_ID with http://localhost redirect URI + public client flow (idempotent)…"
+    if [ "$DRY_RUN" -eq 1 ]; then
+      printf '  (dry-run) az ad app update --id %s --public-client-redirect-uris http://localhost --is-fallback-public-client true\n' "$SIGNIN_APP_ID"
+      ok "(dry-run) sign-in app patch would be applied"
+    else
+      UPDATE_OUT=$(az ad app update --id "$SIGNIN_APP_ID" \
+        --public-client-redirect-uris http://localhost \
+        --is-fallback-public-client true 2>&1 || echo "__ERR__")
+      if [ "$UPDATE_OUT" = "__ERR__" ] || echo "$UPDATE_OUT" | grep -qiE 'forbidden|insufficient|does not exist|not found|error'; then
+        warn "couldn't patch sign-in app $SIGNIN_APP_ID — proceeding anyway, m365 login may fail with AADSTS500113."
+        warn "  output: $UPDATE_OUT"
+        warn "  manual fix: Entra → App registrations → that app → Authentication → + Add a platform → Mobile and desktop applications → check http://localhost → Configure. Also: Advanced settings → Allow public client flows → Yes → Save."
+      else
+        ok "sign-in app redirect URI + public client flow configured"
+      fi
+    fi
+  else
+    warn "couldn't determine m365 sign-in app id from cli config — if m365 login fails with AADSTS500113, see troubleshooting in docs/365/sharepoint-docs-publish.md."
   fi
 
   if ! m365_signed_in; then
@@ -379,7 +427,13 @@ MSG
     else
       LOGIN_OUT=$(m365 login --authType browser 2>&1) || {
         if echo "$LOGIN_OUT" | grep -q 'appId is required'; then
-          die "m365 login can't proceed: no sign-in app configured. Run \`m365 setup\` (see docs/365/sharepoint-docs-publish.md § 5b) with app id $M365_CLI_LEGACY_APP_ID, then re-run this script."
+          die "m365 login can't proceed: no sign-in app configured. Run \`m365 setup\` (see docs/365/sharepoint-docs-publish.md § 6), then re-run this script."
+        fi
+        if echo "$LOGIN_OUT" | grep -q 'AADSTS500113'; then
+          die "m365 login failed with AADSTS500113 (no redirect URI). The sign-in app $SIGNIN_APP_ID needs http://localhost added under Authentication → Mobile and desktop applications. Script tried to patch it but it didn't take — see warnings above."
+        fi
+        if echo "$LOGIN_OUT" | grep -q 'AADSTS700016'; then
+          die "m365 login failed with AADSTS700016 (app not found in tenant). The app id m365 is configured with ($SIGNIN_APP_ID) doesn't exist in your tenant. Recheck what you pasted at \`m365 setup\` — it must be the Application (client) ID from the Entra app's Overview page, in your tenant."
         fi
         die "m365 login didn't complete: $LOGIN_OUT — try \`m365 login --authType deviceCode\` if the browser flow won't work, then re-run this script."
       }
