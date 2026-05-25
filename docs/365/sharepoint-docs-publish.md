@@ -143,6 +143,31 @@ the script.
 → The site grant didn't take. Re-run the setup script — it's
 idempotent and will re-apply the grant.
 
+**`Error: Access denied` from `m365 spo site apppermission`** (during script)
+→ Either (a) the m365 token is stale (missing scopes added since
+login), or (b) the signed-in user lacks **SharePoint Administrator**
+role at the tenant. The script auto-handles (a) by forcing a fresh
+login and retrying once. For (b), assign the role: Entra → Users →
+`admin@skintyeenation.onmicrosoft.com` → Assigned roles → **+ Add
+assignment → SharePoint Administrator → Apply**. Global Administrator
+includes this implicitly in most tenants, but some require explicit
+assignment.
+
+To check your own role assignments:
+
+```bash
+az rest --method GET \
+  --uri 'https://graph.microsoft.com/v1.0/me/memberOf?$select=displayName' \
+  --query 'value[].displayName' -o tsv
+```
+
+You should see `Global Administrator` or `SharePoint Administrator` (or
+both) in the output.
+
+**`Error: Access denied` persists after role assignment**
+→ Run `m365 logout && m365 login` to mint a fresh token that picks up
+the new role, then re-run the script.
+
 **`Error: appId: appId is required`**
 → Out-of-date or partial m365 config. Run `m365 cli config reset --force`
 and re-run the script.

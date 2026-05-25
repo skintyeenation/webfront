@@ -543,6 +543,23 @@ MSG
     ok "(dry-run) skipping m365 sign-in check"
   fi
 
+  # Helper: when m365 returns Access denied, the cached token doesn't
+  # include scopes that have been granted since last login. Auto-recover
+  # by forcing a fresh login (which mints a new token with the current
+  # scopes) and retry once. This handles the case where permissions
+  # were modified between script runs.
+  m365_relogin_on_access_denied() {
+    local out="$1"
+    if echo "$out" | grep -qi 'Access denied\|unauthorized\|403'; then
+      warn "m365 returned Access denied — token likely missing scopes added since last login. Forcing fresh login…"
+      m365 logout >/dev/null 2>&1 || true
+      m365 login >/dev/null 2>&1 \
+        || die "fresh m365 login failed during access-denied recovery — check sign-in app permissions in Entra and re-run."
+      return 0  # signal: retry
+    fi
+    return 1  # signal: not an access-denied issue
+  }
+
   # Check existing site grant. The apppermission-list call returns either
   # a JSON array on success OR something else on failure (network / perms);
   # we use `|| echo "[]"` to keep `set -e` from killing the script silently
@@ -553,6 +570,11 @@ MSG
   if [ "$DRY_RUN" -eq 0 ]; then
     PERM_LIST_JSON=$(m365 spo site apppermission list \
       --siteUrl "$SHAREPOINT_SITE_URL" --output json 2>&1 || echo "__ERR__")
+    # If the first attempt got Access denied, refresh token and retry.
+    if m365_relogin_on_access_denied "$PERM_LIST_JSON"; then
+      PERM_LIST_JSON=$(m365 spo site apppermission list \
+        --siteUrl "$SHAREPOINT_SITE_URL" --output json 2>&1 || echo "__ERR__")
+    fi
     if [ "$PERM_LIST_JSON" = "__ERR__" ] || [ -z "$PERM_LIST_JSON" ]; then
       warn "m365 spo site apppermission list returned empty — assuming no existing grant."
       EXISTING_GRANT=""
@@ -581,8 +603,27 @@ MSG
         --appDisplayName "$ENTRA_APP_DISPLAY_NAME" \
         --permission write \
         --output json 2>&1) || GRANT_RESULT="__ERR__:$GRANT_RESULT"
+      # Auto-recover from Access denied (stale token missing newly-granted
+      # scopes) by refreshing the login and retrying once.
+      if [[ "$GRANT_RESULT" == __ERR__:* ]] && m365_relogin_on_access_denied "$GRANT_RESULT"; then
+        say "retrying site grant with refreshed m365 token…"
+        GRANT_RESULT=$(m365 spo site apppermission add \
+          --siteUrl "$SHAREPOINT_SITE_URL" \
+          --appId "$ENTRA_APP_ID" \
+          --appDisplayName "$ENTRA_APP_DISPLAY_NAME" \
+          --permission write \
+          --output json 2>&1) || GRANT_RESULT="__ERR__:$GRANT_RESULT"
+      fi
       if [[ "$GRANT_RESULT" == __ERR__:* ]]; then
-        die "m365 spo site apppermission add failed: ${GRANT_RESULT#__ERR__:}"
+        die "m365 spo site apppermission add failed: ${GRANT_RESULT#__ERR__:}
+
+If the error mentions 'Access denied' or 'Unauthorized', the sign-in
+app may be missing the Delegated 'Sites.FullControl.All' scope.
+Check Entra → App registrations → $SIGNIN_APP_DISPLAY_NAME → API
+permissions — there should be a row with type=Delegated for
+Sites.FullControl.All. If it's only type=Application, add the
+Delegated one (different + Add Permission flow), grant admin consent,
+and re-run this script."
       fi
       ok "site grant created via m365"
     fi
