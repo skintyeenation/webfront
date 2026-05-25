@@ -224,10 +224,66 @@ if [ -z "$ENTRA_APP_ID" ]; then
   ENTRA_APP_ID=$(az ad app list \
     --display-name "$ENTRA_APP_DISPLAY_NAME" \
     --query '[0].appId' -o tsv --only-show-errors 2>/dev/null || echo "")
-  [ -n "$ENTRA_APP_ID" ] && [ "$ENTRA_APP_ID" != "null" ] \
-    || die "Entra app '$ENTRA_APP_DISPLAY_NAME' not found. Create it per docs/365/sharepoint-docs-publish.md, or pass --entra-app-id."
+  [ "$ENTRA_APP_ID" = "null" ] && ENTRA_APP_ID=""
+
+  if [ -z "$ENTRA_APP_ID" ]; then
+    # Auto-create the publisher app. App-only auth (single-tenant, no
+    # redirect URI) with Microsoft Graph Sites.Selected Application
+    # permission. The site-grant step later authorizes it for one
+    # specific site.
+    say "publisher app '$ENTRA_APP_DISPLAY_NAME' doesn't exist — creating…"
+    if [ "$DRY_RUN" -eq 1 ]; then
+      printf '  (dry-run) az ad app create --display-name %s --sign-in-audience AzureADMyOrg\n' "$ENTRA_APP_DISPLAY_NAME"
+      ENTRA_APP_ID="dry-run-publisher-app-id"
+    else
+      ENTRA_APP_ID=$(az ad app create \
+        --display-name "$ENTRA_APP_DISPLAY_NAME" \
+        --sign-in-audience AzureADMyOrg \
+        --query appId -o tsv --only-show-errors 2>&1) \
+        || die "couldn't create publisher app — does your user have Application Administrator role? az output: $ENTRA_APP_ID"
+      ok "created publisher app: $ENTRA_APP_ID"
+      sleep 5
+      az ad sp create --id "$ENTRA_APP_ID" --only-show-errors >/dev/null 2>&1 || true
+
+      # Add Sites.Selected Application permission + grant admin consent.
+      # Look up the permission id from Microsoft Graph SP dynamically.
+      GRAPH_SP_ID="00000003-0000-0000-c000-000000000000"
+      PERM_SITES_SELECTED=$(az ad sp show --id "$GRAPH_SP_ID" \
+        --query 'appRoles[?value==`Sites.Selected`].id | [0]' \
+        -o tsv --only-show-errors 2>/dev/null || echo "")
+      [ -n "$PERM_SITES_SELECTED" ] && [ "$PERM_SITES_SELECTED" != "null" ] \
+        || die "couldn't resolve Sites.Selected app role id from Microsoft Graph"
+
+      say "adding Sites.Selected Application permission to publisher app…"
+      az ad app permission add --id "$ENTRA_APP_ID" \
+        --api "$GRAPH_SP_ID" \
+        --api-permissions "${PERM_SITES_SELECTED}=Role" \
+        --only-show-errors >/dev/null 2>&1 || true
+
+      say "granting admin consent on publisher app's Sites.Selected…"
+      if ! az ad app permission admin-consent --id "$ENTRA_APP_ID" \
+        --only-show-errors >/dev/null 2>&1; then
+        warn "admin-consent failed — your user may lack Application Administrator role."
+        warn "  manual fix: Entra → App registrations → $ENTRA_APP_DISPLAY_NAME → API permissions → 'Grant admin consent'"
+      fi
+      sleep 3
+    fi
+  fi
 fi
-ok "Entra app id: $ENTRA_APP_ID"
+ok "publisher app id: $ENTRA_APP_ID"
+
+# Defensive cleanup: ensure the publisher app has no client secrets.
+# We use federated credentials exclusively; any stray secret is either
+# leftover from earlier setup (and may be leaked) or a security risk.
+if [ "$DRY_RUN" -eq 0 ]; then
+  EXISTING_SECRETS=$(az ad app credential list --id "$ENTRA_APP_ID" \
+    --query "length([])" -o tsv --only-show-errors 2>/dev/null || echo "0")
+  if [ "${EXISTING_SECRETS:-0}" -gt 0 ] 2>/dev/null; then
+    warn "publisher app has $EXISTING_SECRETS client secret(s) — federated path doesn't need them."
+    warn "  delete manually in Entra → App registrations → $ENTRA_APP_DISPLAY_NAME → Certificates & secrets → trash each row."
+    warn "  (script doesn't auto-delete in case something else still depends on them)"
+  fi
+fi
 
 # Resolve the Graph site-id from the site URL if --sharepoint-site-id
 # wasn't passed explicitly. Cheaper UX — user gives the URL they see in
@@ -264,11 +320,11 @@ ENTRA_APP_OBJ_ID=$(az ad app show --id "$ENTRA_APP_ID" --query id -o tsv --only-
 # AADSTS65002 — Microsoft's hard-coded first-party preauth gate). Don't
 # try az here.
 
-# The legacy PnP M365 CLI Entra app id — preserved by Microsoft as a
-# well-known sign-in app for the m365 CLI ever since the m365 CLI dropped
-# its built-in default in v11+. Setting this via env var means we don't
-# trigger `m365 setup`'s interactive wizard.
-M365_CLI_LEGACY_APP_ID="${M365_CLI_LEGACY_APP_ID:-31359c7f-bd7e-475c-86db-fdb8c937548e}"
+# The display name of the Entra app m365 CLI signs you in through.
+# Distinct from $ENTRA_APP_DISPLAY_NAME (the publisher app the pipeline
+# uses). The script creates this app from scratch if missing — no
+# manual portal-clicking required.
+SIGNIN_APP_DISPLAY_NAME="${SIGNIN_APP_DISPLAY_NAME:-skintyeenation-admin-cli}"
 
 if [ "$SKIP_SITE_GRANT" = "1" ]; then
   say "skipping site grant (--skip-site-grant set)"
@@ -326,14 +382,6 @@ MSG
   fi
   ok "m365 CLI ready ($M365_VER_OUTPUT)"
 
-  # m365 CLI v11+ requires a sign-in app to be configured first via
-  # `m365 setup` (one-time per machine, writes to ~/.config/configstore/
-  # cli-m365-config.json). The exact env-var-name-that-overrides-this
-  # has changed across v11/v12 (AAD→Entra rename), so we don't try to
-  # set it via env — we just detect the "appId is required" error and
-  # instruct the user to run `m365 setup` with the well-known PnP app id.
-  # See docs/365/sharepoint-docs-publish.md § 5b for the full walkthrough.
-
   # `m365 status` always exits 0 (prints "Logged out" when not signed in),
   # so we can't rely on its exit code. Check the JSON `connectedAs` field
   # explicitly — it's the signed-in account's email when logged in, "Logged
@@ -345,95 +393,143 @@ MSG
     [ -n "$who" ] && [ "$who" != "Logged out" ]
   }
 
-  # Detect the "appId is required" state by attempting `m365 status` and
-  # looking at the error. Failing fast here is much better UX than letting
-  # `m365 login` blow up later with the same error.
-  M365_STATUS_OUT=$(m365 status 2>&1 || true)
-  if echo "$M365_STATUS_OUT" | grep -q 'appId is required'; then
-    cat >&2 <<MSG
+  # ----- ensure m365 sign-in app exists, configured, granted ---------------
+  #
+  # The sign-in app is what m365 CLI uses to authenticate YOU (the human
+  # admin) interactively. Distinct from $ENTRA_APP_ID (the publisher,
+  # app-only auth, app-only Sites.Selected). m365 CLI v11+ has no default
+  # — every tenant has to register its own. We create + configure
+  # everything from scratch so the user has zero portal-clicking to do.
+  #
+  # Requires the running user to have Application Administrator (or
+  # Cloud Application Administrator / Global Administrator) role to
+  # create the app and grant admin consent. Without it, the relevant
+  # az calls fail with a clear error.
 
-  ✗ m365 CLI has no sign-in app configured yet (one-time per machine).
-
-  This is a one-time setup. m365 CLI v11+ has no default Entra app —
-  you have to register one in your tenant first and tell m365 which it
-  is. See docs/365/sharepoint-docs-publish.md § 5 for the 4-click app
-  registration (then § 6 for the m365 setup wizard answers).
-
-  TL;DR:
-    1. Entra → App registrations → + New registration
-         Name:               skintyeenation-admin-cli
-         Account types:      single tenant
-         Redirect URI:       Public client/native → http://localhost
-       Copy the Application (client) ID.
-    2. API permissions → Microsoft Graph → Delegated:
-         Sites.FullControl.All, User.Read
-       Click "Grant admin consent".
-    3. Authentication → Advanced → Allow public client flows → Yes.
-    4. Run: m365 setup
-       At Client ID prompt, paste the app id from step 1.
-       Leave Client secret EMPTY, choose Interactively.
-    5. Re-run this script.
-
-MSG
-    die "m365 needs \`m365 setup\` (see message above)"
+  say "ensuring m365 sign-in app '$SIGNIN_APP_DISPLAY_NAME' exists in tenant…"
+  SIGNIN_APP_ID=""
+  if [ "$DRY_RUN" -eq 0 ]; then
+    SIGNIN_APP_ID=$(az ad app list --display-name "$SIGNIN_APP_DISPLAY_NAME" \
+      --query '[0].appId' -o tsv --only-show-errors 2>/dev/null || echo "")
+    [ "$SIGNIN_APP_ID" = "null" ] && SIGNIN_APP_ID=""
   fi
 
-  # Find the m365-configured sign-in app id. This is the app m365 uses
-  # to sign you in (delegated/browser), distinct from $ENTRA_APP_ID
-  # (which is the publisher / app-only auth target). We need to patch
-  # its redirect URI before `m365 login` can succeed — without one,
-  # Entra fails the browser auth with AADSTS500113. The user might have
-  # registered the app but forgotten the redirect URI; or registered it
-  # with "Web" instead of "Mobile/desktop"; either way, this fixes it
-  # idempotently.
-  #
-  # Config key name has varied across m365 versions (clientId, appId,
-  # entraAppId), so we try each.
-  SIGNIN_APP_ID=""
-  for KEY in clientId entraAppId appId; do
-    VAL=$(m365 cli config get --key "$KEY" 2>/dev/null \
-      | sed 's/^"//; s/"$//' | tr -d '\n' || echo "")
-    if echo "$VAL" | grep -qE '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-'; then
-      SIGNIN_APP_ID="$VAL"
-      break
-    fi
-  done
-
-  if [ -n "$SIGNIN_APP_ID" ]; then
-    say "patching sign-in app $SIGNIN_APP_ID with http://localhost redirect URI + public client flow (idempotent)…"
+  if [ -z "$SIGNIN_APP_ID" ]; then
     if [ "$DRY_RUN" -eq 1 ]; then
-      printf '  (dry-run) az ad app update --id %s --public-client-redirect-uris http://localhost --is-fallback-public-client true\n' "$SIGNIN_APP_ID"
-      ok "(dry-run) sign-in app patch would be applied"
+      printf '  (dry-run) az ad app create --display-name %s --sign-in-audience AzureADMyOrg --public-client-redirect-uris http://localhost --is-fallback-public-client true\n' "$SIGNIN_APP_DISPLAY_NAME"
+      SIGNIN_APP_ID="dry-run-app-id"
+      ok "(dry-run) sign-in app would be created"
     else
-      UPDATE_OUT=$(az ad app update --id "$SIGNIN_APP_ID" \
+      say "creating sign-in app '$SIGNIN_APP_DISPLAY_NAME' (single-tenant, public client)…"
+      SIGNIN_APP_ID=$(az ad app create \
+        --display-name "$SIGNIN_APP_DISPLAY_NAME" \
+        --sign-in-audience AzureADMyOrg \
         --public-client-redirect-uris http://localhost \
-        --is-fallback-public-client true 2>&1 || echo "__ERR__")
-      if [ "$UPDATE_OUT" = "__ERR__" ] || echo "$UPDATE_OUT" | grep -qiE 'forbidden|insufficient|does not exist|not found|error'; then
-        warn "couldn't patch sign-in app $SIGNIN_APP_ID — proceeding anyway, m365 login may fail with AADSTS500113."
-        warn "  output: $UPDATE_OUT"
-        warn "  manual fix: Entra → App registrations → that app → Authentication → + Add a platform → Mobile and desktop applications → check http://localhost → Configure. Also: Advanced settings → Allow public client flows → Yes → Save."
-      else
-        ok "sign-in app redirect URI + public client flow configured"
-      fi
+        --is-fallback-public-client true \
+        --query appId -o tsv --only-show-errors 2>&1) \
+        || die "couldn't create sign-in app — does your user have Application Administrator role on Entra? az output: $SIGNIN_APP_ID"
+      ok "created sign-in app: $SIGNIN_APP_ID"
+      # Service principal can lag a few seconds behind app creation.
+      sleep 5
+      # az auto-creates the SP for new apps in most cases, but make sure:
+      az ad sp create --id "$SIGNIN_APP_ID" --only-show-errors >/dev/null 2>&1 || true
     fi
   else
-    warn "couldn't determine m365 sign-in app id from cli config — if m365 login fails with AADSTS500113, see troubleshooting in docs/365/sharepoint-docs-publish.md."
+    ok "sign-in app exists: $SIGNIN_APP_ID"
+    # Idempotent patch — fix redirect URI / public client flag if missing
+    if [ "$DRY_RUN" -eq 0 ]; then
+      az ad app update --id "$SIGNIN_APP_ID" \
+        --public-client-redirect-uris http://localhost \
+        --is-fallback-public-client true --only-show-errors >/dev/null 2>&1 \
+        || warn "couldn't update sign-in app redirect URI — may already be set correctly"
+    fi
   fi
 
+  # Resolve Microsoft Graph delegated permission IDs dynamically. Avoids
+  # hardcoding GUIDs that could be wrong across cloud environments.
+  if [ "$DRY_RUN" -eq 0 ]; then
+    say "resolving Microsoft Graph delegated permission IDs…"
+    GRAPH_SP_ID="00000003-0000-0000-c000-000000000000"
+    GRAPH_PERMS=$(az ad sp show --id "$GRAPH_SP_ID" \
+      --query 'oauth2PermissionScopes' -o json --only-show-errors 2>/dev/null || echo "[]")
+    PERM_SITES_FC=$(echo "$GRAPH_PERMS" | jq -r '.[] | select(.value=="Sites.FullControl.All") | .id')
+    PERM_USER_READ=$(echo "$GRAPH_PERMS" | jq -r '.[] | select(.value=="User.Read") | .id')
+    [ -n "$PERM_SITES_FC" ] && [ "$PERM_SITES_FC" != "null" ] \
+      || die "couldn't resolve Sites.FullControl.All permission id from Microsoft Graph SP"
+    [ -n "$PERM_USER_READ" ] && [ "$PERM_USER_READ" != "null" ] \
+      || die "couldn't resolve User.Read permission id from Microsoft Graph SP"
+
+    say "ensuring delegated Graph perms (Sites.FullControl.All, User.Read) on sign-in app…"
+    az ad app permission add --id "$SIGNIN_APP_ID" \
+      --api "$GRAPH_SP_ID" \
+      --api-permissions "$PERM_SITES_FC=Scope" "$PERM_USER_READ=Scope" \
+      --only-show-errors >/dev/null 2>&1 || true
+
+    say "granting admin consent on sign-in app's permissions…"
+    if ! az ad app permission admin-consent --id "$SIGNIN_APP_ID" \
+      --only-show-errors >/dev/null 2>&1; then
+      warn "admin-consent failed — your user may lack Application Administrator / Cloud App Administrator role."
+      warn "  manual fix: Entra → App registrations → $SIGNIN_APP_DISPLAY_NAME → API permissions → 'Grant admin consent for ...'"
+    fi
+    # Permission propagation takes a moment.
+    sleep 3
+    ok "sign-in app fully configured"
+  else
+    ok "(dry-run) skipping delegated perms + admin consent"
+  fi
+
+  # ----- configure m365 CLI non-interactively (replaces `m365 setup`) ------
+  #
+  # Wipe any prior config (might point at the wrong app, or contain a
+  # leaked client_secret from a botched earlier setup), then write the
+  # right keys directly. m365 status will report "Logged out" after this
+  # but won't fail with `appId is required`.
+
+  say "configuring m365 CLI non-interactively (clientId, tenantId, authType=browser)…"
+  if [ "$DRY_RUN" -eq 1 ]; then
+    printf '  (dry-run) m365 logout\n'
+    printf '  (dry-run) m365 cli config reset --force\n'
+    printf '  (dry-run) m365 cli config set --key clientId --value %s\n' "$SIGNIN_APP_ID"
+    printf '  (dry-run) m365 cli config set --key tenantId --value %s\n' "$TENANT_ID"
+    printf '  (dry-run) m365 cli config set --key authType --value browser\n'
+    ok "(dry-run) m365 config would be set"
+  else
+    # Capture the current client id before reset — if it differs from the
+    # one we're about to set, we need to logout (session may be tied to
+    # the old app context, causing later Graph calls to 403 Access denied
+    # even though `m365 status` says we're signed in).
+    PREV_CLIENT_ID=$(m365 cli config get --key clientId 2>/dev/null \
+      | sed 's/^"//; s/"$//' | tr -d '\n' || echo "")
+    if [ "$PREV_CLIENT_ID" != "$SIGNIN_APP_ID" ]; then
+      say "m365 was configured for a different app ($PREV_CLIENT_ID) — forcing logout to reset session…"
+      m365 logout >/dev/null 2>&1 || true
+    fi
+    m365 cli config reset --force >/dev/null 2>&1 || true
+    m365 cli config set --key clientId --value "$SIGNIN_APP_ID" >/dev/null 2>&1 \
+      || die "couldn't set m365 cli config clientId"
+    m365 cli config set --key tenantId --value "$TENANT_ID" >/dev/null 2>&1 \
+      || die "couldn't set m365 cli config tenantId"
+    m365 cli config set --key authType --value browser >/dev/null 2>&1 \
+      || die "couldn't set m365 cli config authType"
+    ok "m365 CLI configured"
+  fi
+
+  # ----- m365 login (browser popup — only remaining manual step) -----------
+
   if ! m365_signed_in; then
-    say "not signed in to m365 — running \`m365 login --authType browser\` (browser will open)…"
+    say "signing in to m365 (browser will open — log in as your tenant admin)…"
     if [ "$DRY_RUN" -eq 1 ]; then
-      printf '  (dry-run) m365 login --authType browser\n'
+      printf '  (dry-run) m365 login\n'
     else
-      LOGIN_OUT=$(m365 login --authType browser 2>&1) || {
-        if echo "$LOGIN_OUT" | grep -q 'appId is required'; then
-          die "m365 login can't proceed: no sign-in app configured. Run \`m365 setup\` (see docs/365/sharepoint-docs-publish.md § 6), then re-run this script."
-        fi
+      LOGIN_OUT=$(m365 login 2>&1) || {
         if echo "$LOGIN_OUT" | grep -q 'AADSTS500113'; then
-          die "m365 login failed with AADSTS500113 (no redirect URI). The sign-in app $SIGNIN_APP_ID needs http://localhost added under Authentication → Mobile and desktop applications. Script tried to patch it but it didn't take — see warnings above."
+          die "m365 login got AADSTS500113 (no redirect URI). The sign-in app patch above didn't take — check Entra → App registrations → $SIGNIN_APP_DISPLAY_NAME → Authentication has http://localhost under Mobile and desktop applications."
         fi
         if echo "$LOGIN_OUT" | grep -q 'AADSTS700016'; then
-          die "m365 login failed with AADSTS700016 (app not found in tenant). The app id m365 is configured with ($SIGNIN_APP_ID) doesn't exist in your tenant. Recheck what you pasted at \`m365 setup\` — it must be the Application (client) ID from the Entra app's Overview page, in your tenant."
+          die "m365 login got AADSTS700016 (app not found in tenant). The just-created sign-in app $SIGNIN_APP_ID isn't visible yet (replication lag) — wait 30 seconds and re-run."
+        fi
+        if echo "$LOGIN_OUT" | grep -q 'AADSTS50194\|AADSTS50020'; then
+          die "m365 login got tenant-mismatch error. m365 config tenantId=$TENANT_ID but you signed in with an account from a different tenant. Sign in as admin@skintyeenation.onmicrosoft.com, then re-run."
         fi
         die "m365 login didn't complete: $LOGIN_OUT — try \`m365 login --authType deviceCode\` if the browser flow won't work, then re-run this script."
       }
