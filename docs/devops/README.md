@@ -122,6 +122,7 @@ the canonical source of truth is Azure.
 | [azure-primary-github-mirror.md](./azure-primary-github-mirror.md) | **One-time** — wire the Azure → GitHub mirror push so every Azure-side merge appears on GitHub within minutes. |
 | [migrate-ci-workflows.md](./migrate-ci-workflows.md) | **One-time per workflow** — port the SharePoint docs publisher (and any future GitHub Actions) into an Azure Pipeline. |
 | [agents.md](./agents.md) | When ADO Pipelines minutes get expensive or you need a runner with access to the band's internal network. |
+| [deployment-plan.md](./deployment-plan.md) | The plan to deploy `api/` and `lookup/api/` to Azure Container Apps — compute options (with AWS equivalents), cost projection, Phase-1 stand-up steps, naming conventions. **ADR-10**. |
 
 ## Architectural records
 

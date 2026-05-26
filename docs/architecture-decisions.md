@@ -212,13 +212,55 @@ Decision record for the Skin Tyee app (`@skintyee/app`, in `app/`). Lives in the
     stays in-tree until the Azure Pipeline is verified, then gets
     deleted.
 
+### ADR-10 — runtime compute: Azure Container Apps (Consumption) for `api/` + `lookup/api/`
+
+- **Decision:** host the NestJS `api/` and the Node `lookup/api/`
+  backends on **Azure Container Apps** (Consumption plan) in the
+  `canadacentral` region. `api/` autoscales 0→3 (scale-to-zero
+  idle); `lookup/api/` runs always-on with `min-replicas=1`.
+  Container images live in a shared **Azure Container Registry**
+  (Basic). The `api/`'s state-of-record DB is **Azure Database for
+  PostgreSQL Flexible Server** (B1ms, PostGIS) per ADR-7.
+- **Custom domains:** `api.skintyee.ca` and `lookup.skintyee.ca`,
+  both via the existing Azure DNS zone, with Container-Apps-managed
+  free TLS.
+- **Why Container Apps and not the alternatives:**
+  - **Scale-to-zero (vs App Service):** at POC traffic levels the
+    `api/` workload pays $0 most of the day; App Service's cheapest
+    container-capable SKU (P1V3, ~$73/mo) is fixed monthly.
+  - **Simplicity (vs AKS):** AKS gets ~$73/mo just for the control
+    plane + nodes, plus YAML overhead. Worth it at 3–4+ services
+    with complex dependency graphs; we have two services and no
+    graph.
+  - **Right paradigm (vs Functions):** NestJS has many endpoints +
+    DI + middleware — fighting Functions' execution model is more
+    work than running the container.
+  - **Right paradigm (vs VM):** IaaS overhead (patching, monitoring,
+    log shipping, OS upgrades, manual rolling deploys). We already
+    have one VM (WordPress) and don't want a second one without
+    cause.
+- **Auth + secrets pattern matches the SharePoint publisher:** the
+  ADO service connection that deploys uses workload identity
+  federation (no client_secret). The Container App pulls images from
+  ACR via a federated managed identity (no admin user, no PAT). The
+  API verifies inbound user tokens against the Entra tenant's JWKS.
+- **AWS equivalent:** ECS Fargate (scale-to-zero) / App Runner.
+- **Cost (POC):** ~$40–50 CAD/mo for both services + DB + ACR + DNS
+  + Blob storage. Annual ~$500–600 CAD, ~1/3 of the M365 license
+  bill. 100% deductible (same s.9 / s.18(1)(a) framing as the M365
+  expense — see [`365/pricing.md § Canadian tax treatment`](./365/pricing.md#canadian-tax-treatment--100-deductible)).
+- **Status:** **planned; not yet deployed.**
+  - Full operational plan + alternatives table + setup-script
+    automation surface in
+    [`devops/deployment-plan.md`](./devops/deployment-plan.md).
+
 ## Summary: ppt → Skin Tyee service swaps
 
 | Concern | ppt (AWS) | Skin Tyee (Azure) | Status |
 |---|---|---|---|
 | Identity | AWS Cognito / Amplify | **Microsoft Entra ID** | stubbed (role switcher) |
 | Object storage | AWS S3 | **Azure Blob Storage** | not implemented |
-| Database / API | Mongo + Nest microservices | **Azure PostgreSQL Flexible Server (PostGIS)** + **NestJS** API (`api.skintyee.ca`) | NestJS impl (in-memory) against `api/openapi.yaml`; Prisma/Postgres next; app still on mock |
+| Database / API | Mongo + Nest microservices | **Azure PostgreSQL Flexible Server (PostGIS)** + **NestJS** API on **Azure Container Apps** (`api.skintyee.ca`) | NestJS impl (in-memory) against `api/openapi.yaml`; Prisma/Postgres next; Container Apps deploy planned (ADR-10); app still on mock |
 | Financial / program data | — | **Ferrus ASAP Suite + Adagio / Sage 300** | mocked (transparency + financials) |
 | Notifications taxonomy | — | **skintyee.ca WordPress categories** | modelled; push + feed stubbed |
 | App packaging | source lib + app-shell submodules | **single self-contained app** | done |
