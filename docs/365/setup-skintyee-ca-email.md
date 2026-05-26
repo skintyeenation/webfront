@@ -74,15 +74,28 @@ Once on the DKIM page:
 2. **Create DKIM keys** (button at the top). Microsoft generates two
    1024-bit RSA keys. The "Enable" toggle stays OFF for now — we'll
    flip it once the CNAMEs are in DNS.
-3. Note the two CNAME values shown — they look like:
+3. Note the two CNAME values shown. They'll be in **one of two formats**
+   depending on when your tenant was set up:
+
+   **New format (post-2023 tenants, uses Microsoft's own `.microsoft`
+   gTLD):**
+
+   ```
+   selector1._domainkey.skintyee.ca  →  selector1-skintyee-ca._domainkey.skintyeenation.e-v1.dkim.mail.microsoft
+   selector2._domainkey.skintyee.ca  →  selector2-skintyee-ca._domainkey.skintyeenation.e-v1.dkim.mail.microsoft
+   ```
+
+   **Legacy format:**
 
    ```
    selector1._domainkey.skintyee.ca  →  selector1-skintyee-ca._domainkey.skintyeenation.onmicrosoft.com
    selector2._domainkey.skintyee.ca  →  selector2-skintyee-ca._domainkey.skintyeenation.onmicrosoft.com
    ```
 
-   The hostnames may differ slightly — **the values M365 shows are
-   the authoritative ones**. Screenshot them.
+   **Whatever M365 shows you is what to use** — copy verbatim. The
+   `.microsoft` ending is a real TLD that Microsoft owns; don't
+   append `.com` or anything else to it. Screenshot the values for
+   your records.
 
 > **If `skintyee.ca` doesn't appear in the DKIM list:** the domain
 > isn't fully verified in M365 yet. Open <https://admin.microsoft.com>
