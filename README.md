@@ -140,15 +140,38 @@ ERP / band-delegation pieces. Full detail in
 ```
 .                      # webfront repo root + pnpm workspace
 ├── app/               # @skintyee/app — Skin Tyee community app (React Native + Expo)
-├── api/               # @skintyee/api — API contract (OpenAPI) + stub server
-├── website/           # WordPress site + migration tooling (git subtree)
-├── docs/              # project + app docs, architecture decisions, proposal deck
+├── api/               # @skintyee/api — NestJS API + OpenAPI contract → api.skintyee.ca
+│                        Container Apps deploy (ADR-10) — Dockerfile + pipeline included
+├── lookup/            # @skintyee/lookup — Canadian business / Nations lookup tool (web-only)
+│   ├── api/           #   @skintyee/lookup-api  — Node + Anthropic scrapers → lookup.skintyee.ca
+│   └── app/           #   @skintyee/lookup-app  — Expo web target → lookup-app.skintyee.ca
+├── website/           # WordPress site + migration tooling → skintyee.ca (git subtree)
+├── docs/              # project + app docs, architecture decisions (12 ADRs), proposal deck
+│                        auto-published to SharePoint on every push touching docs/
+├── azure-pipelines/   # ADO pipeline YAMLs (publish-docs, deploy-api, deploy-lookup,
+│   ├── Builds/        #   build-app, deploy-app-web, deploy-lookup-app-web)
+│   └── Deployments/   #   See docs/devops/deploy-architecture.md for the map.
+├── azure-agents/      # Self-hosted ADO build agent (Docker Compose) — skip MS hosted-queue
+├── scripts/           # One-time setup automation (setup-api-azure.sh, setup-eas-app.sh, …)
 ├── package.json       # pnpm workspace root
 └── pnpm-workspace.yaml
 ```
 
-`website/` is vendored as a **git subtree** (not an npm package). Pull/push it
-with `git subtree pull|push --prefix=website <remote> <branch>`.
+Notes on what is and isn't a workspace member:
+
+- **pnpm workspace members** (per [`pnpm-workspace.yaml`](pnpm-workspace.yaml)):
+  `app/`, `api/`, `lookup/api/`, `lookup/app/`, and anything matching
+  `packages/*`. `lookup/` itself is just a directory grouping its two
+  sub-packages — it's not a workspace member.
+- **Not pnpm members** (different toolchains; managed independently):
+  `website/` (WordPress + Docker Compose, git subtree), `azure-agents/`
+  (Docker Compose for ADO agents), `azure-pipelines/` (YAML — config,
+  not code), `scripts/` (bash, called by humans + pipelines).
+- **`website/`** is vendored as a **git subtree**. Pull/push it with
+  `git subtree pull|push --prefix=website <remote> <branch>`.
+
+Bird's-eye view of every deploy target + the pipeline / setup script
+that owns it: [`docs/devops/deploy-architecture.md`](docs/devops/deploy-architecture.md).
 
 ## Microsoft 365 integration
 
