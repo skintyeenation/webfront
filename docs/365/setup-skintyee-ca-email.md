@@ -53,14 +53,28 @@ DKIM CNAME records need the **tenant** to have DKIM keys provisioned
 before the CNAMEs can resolve to anything meaningful. Generate them
 **before** adding the CNAMEs in GoDaddy.
 
-1. M365 admin center → **Security** (Defender) →
-   <https://security.microsoft.com> → **Policies & rules → Threat
-   policies → DKIM**.
-2. Click `skintyee.ca` in the list.
-3. **Create DKIM keys** (button at the top). Microsoft generates two
+Microsoft reorganizes the Defender portal navigation often. Three
+ways to reach the DKIM page, in order of stability:
+
+- **Direct URL (most reliable):** <https://security.microsoft.com/dkimv2>
+- **Exchange Admin Center (most stable navigation):**
+  <https://admin.exchange.microsoft.com> → **Mail flow → DKIM**
+- **Defender portal navigation (current as of 2026):**
+  <https://security.microsoft.com> → **Email & collaboration →
+  Policies & rules → Threat policies → Email authentication settings
+  → DKIM**
+
+> The DKIM management UI is **included free with Business Standard**
+> (it's part of Exchange Online's bundled features, not a paid
+> Defender SKU). No additional license needed.
+
+Once on the DKIM page:
+
+1. Click `skintyee.ca` in the list.
+2. **Create DKIM keys** (button at the top). Microsoft generates two
    1024-bit RSA keys. The "Enable" toggle stays OFF for now — we'll
    flip it once the CNAMEs are in DNS.
-4. Note the two CNAME values shown — they look like:
+3. Note the two CNAME values shown — they look like:
 
    ```
    selector1._domainkey.skintyee.ca  →  selector1-skintyee-ca._domainkey.skintyeenation.onmicrosoft.com
@@ -69,6 +83,14 @@ before the CNAMEs can resolve to anything meaningful. Generate them
 
    The hostnames may differ slightly — **the values M365 shows are
    the authoritative ones**. Screenshot them.
+
+> **If `skintyee.ca` doesn't appear in the DKIM list:** the domain
+> isn't fully verified in M365 yet. Open <https://admin.microsoft.com>
+> → **Settings → Domains** and confirm `skintyee.ca` shows as
+> **Verified** (not "Pending" or "Setup incomplete"). If it's
+> verified but still missing from DKIM, wait ~10 minutes —
+> there's sometimes a propagation delay between adding a domain in
+> M365 and its appearance on the DKIM page.
 
 ---
 
@@ -180,10 +202,12 @@ If a record is missing after 15 minutes, recheck GoDaddy's DNS panel
 
 Once the DKIM CNAMEs resolve correctly:
 
-1. Security center → **DKIM** → `skintyee.ca`.
-2. Toggle **Sign messages for this domain with DKIM signatures**
+1. Open the DKIM page again (same three paths as Step 1; direct URL
+   <https://security.microsoft.com/dkimv2> is simplest).
+2. Click `skintyee.ca`.
+3. Toggle **Sign messages for this domain with DKIM signatures**
    to **ON**.
-3. M365 starts attaching DKIM signatures to outbound mail
+4. M365 starts attaching DKIM signatures to outbound mail
    immediately. Inbound mail is unaffected by this toggle (DKIM
    verification on received mail is always on).
 
