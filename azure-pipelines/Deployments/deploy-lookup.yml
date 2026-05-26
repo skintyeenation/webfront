@@ -1,0 +1,103 @@
+name: deploy-lookup
+
+# Build + push the lookup/api Docker image to ACR, then update the
+# Container App revision. Same pattern as deploy-api.yml — see that
+# file's header for the auth model.
+#
+# This pipeline targets the SAME service connection / RG / ACR as
+# deploy-api (shared infra per docs/devops/deployment-plan.md) —
+# only the Container App name + the image name differ.
+
+trigger:
+  branches:
+    include: [master]
+  paths:
+    include:
+      - lookup/api/**
+      - azure-pipelines/Deployments/deploy-lookup.yml
+pr: none
+
+pool:
+  vmImage: ubuntu-latest
+  # Once the self-hosted agent is up (../../azure-agents/), switch to:
+  #   name: skintyee-pool
+
+variables:
+  - group: skintyee-prod-azure
+    # Provides:
+    #   AZURE_RG, AZURE_ACR_NAME, AZURE_REGION
+    #   LOOKUP_CONTAINERAPP  — added by scripts/setup-lookup-azure.sh
+  - name: IMAGE_NAME
+    value: 'lookup'
+  - name: IMAGE_TAG
+    value: '$(Build.SourceVersion)'
+
+jobs:
+  - job: build_and_deploy
+    displayName: Build → push to ACR → update lookup Container App
+    steps:
+      - checkout: self
+        fetchDepth: 1
+
+      - task: AzureCLI@2
+        displayName: az acr build (lookup-api image)
+        inputs:
+          azureSubscription: skintyee-prod-azure
+          scriptType: bash
+          scriptLocation: inlineScript
+          inlineScript: |
+            set -euo pipefail
+            az acr build \
+              --registry "$AZURE_ACR_NAME" \
+              --image "${IMAGE_NAME}:${IMAGE_TAG}" \
+              --image "${IMAGE_NAME}:latest" \
+              --file lookup/api/Dockerfile \
+              lookup/api
+
+      - task: AzureCLI@2
+        displayName: Update Container App revision
+        inputs:
+          azureSubscription: skintyee-prod-azure
+          scriptType: bash
+          scriptLocation: inlineScript
+          inlineScript: |
+            set -euo pipefail
+            FULL_IMAGE="${AZURE_ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG}"
+            echo "▸ updating ${LOOKUP_CONTAINERAPP} to ${FULL_IMAGE}…"
+
+            az containerapp update \
+              --name "$LOOKUP_CONTAINERAPP" \
+              --resource-group "$AZURE_RG" \
+              --image "$FULL_IMAGE" \
+              --revision-suffix "sha-$(echo $IMAGE_TAG | cut -c1-7)" \
+              --output none
+
+            az containerapp revision list \
+              --name "$LOOKUP_CONTAINERAPP" --resource-group "$AZURE_RG" \
+              --query 'sort_by([], &createdTime)[-1].{name:name,active:properties.active,trafficWeight:properties.trafficWeight,createdAt:createdTime}' \
+              -o table
+
+      - task: AzureCLI@2
+        displayName: Smoke test /health
+        inputs:
+          azureSubscription: skintyee-prod-azure
+          scriptType: bash
+          scriptLocation: inlineScript
+          inlineScript: |
+            set -euo pipefail
+            FQDN=$(az containerapp show \
+              --name "$LOOKUP_CONTAINERAPP" \
+              --resource-group "$AZURE_RG" \
+              --query properties.configuration.ingress.fqdn -o tsv)
+
+            echo "▸ smoke testing https://${FQDN}/health …"
+            for i in $(seq 1 12); do
+              if curl -fsS --max-time 5 "https://${FQDN}/health" >/dev/null 2>&1; then
+                echo "  ✓ health check passed on attempt $i"
+                exit 0
+              fi
+              echo "  (attempt $i — not ready yet)"
+              sleep 5
+            done
+            echo "✗ /health never returned 200 — rollback may be needed"
+            exit 1
