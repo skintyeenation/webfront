@@ -112,6 +112,17 @@ elif [ "$YES" -ne 1 ]; then
   [ "$ans" = "y" ] || [ "$ans" = "Y" ] || die "aborted."
 fi
 
+# ----- 0) resource provider pre-flight ---------------------------------------
+# Static Web Apps lives under Microsoft.Web. Register if needed.
+if [ "$DRY_RUN" -eq 0 ]; then
+  state=$(az provider show --namespace Microsoft.Web --query registrationState -o tsv 2>/dev/null || echo "Unknown")
+  if [ "$state" != "Registered" ]; then
+    say "registering resource provider Microsoft.Web (current state: $state)…"
+    az provider register --namespace Microsoft.Web --wait --only-show-errors >/dev/null \
+      || warn "couldn't register Microsoft.Web — staticwebapp create may fail."
+  fi
+fi
+
 # ----- 1) create Static Web App ---------------------------------------------
 say "ensuring Static Web App '$SWA_NAME'…"
 SWA_EXISTS=$(az staticwebapp show --resource-group "$RG" --name "$SWA_NAME" \

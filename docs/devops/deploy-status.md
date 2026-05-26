@@ -48,41 +48,20 @@ script gets executed.
 | 6 | `setup-lookup-app-web-azure.sh` | ❌ Not run | No `skintyee-prod-lookup-app` Static Web App |
 | 7 | `setup-eas-app.sh` | ❌ Not run | No `EXPO_TOKEN` in any variable group; `app/` has no EAS project ID in `app.config.js` |
 
-## Pre-flight blocker for Step 3
-
-Running `az containerapp list` returned:
-
-```
-Subscription 8d847916-… is not registered for the Microsoft.App
-resource provider. Please run "az provider register -n
-Microsoft.App --wait" to register your subscription.
-```
-
-This is a one-time-per-subscription registration Azure makes you
-do before any Container Apps work. The setup script doesn't do it
-yet (TODO: fold into setup-api-azure.sh's pre-flight).
-
-Run before Step 3:
-
-```bash
-az provider register -n Microsoft.App --wait
-az provider register -n Microsoft.OperationalInsights --wait
-az provider register -n Microsoft.DBforPostgreSQL --wait
-az provider register -n Microsoft.ContainerRegistry --wait
-az provider register -n Microsoft.Web --wait
-```
-
-Each takes 30–60 seconds. Idempotent — re-running is a no-op.
-Total: ~3 minutes.
-
 ## Exact next command
 
 ```bash
-# 0. Pre-flight (above) — register the 5 providers
-# Then:
 bash scripts/setup-api-azure.sh --dry-run    # preview, no changes
 bash scripts/setup-api-azure.sh              # for real
 ```
+
+> Resource-provider registration (`Microsoft.App`,
+> `Microsoft.OperationalInsights`, `Microsoft.DBforPostgreSQL`,
+> `Microsoft.ContainerRegistry`) is now handled by the script
+> itself as Step 0. On a fresh subscription it adds ~3 min to the
+> first run; subsequent runs are a no-op (each provider's state
+> is checked first, registered only if needed). The SWA scripts
+> (Steps 5 + 6) self-register `Microsoft.Web` the same way.
 
 What it provisions (~10 min, Postgres is the slow part):
 

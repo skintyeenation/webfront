@@ -146,6 +146,43 @@ elif [ "$YES" -ne 1 ]; then
   [ "$ans" = "y" ] || [ "$ans" = "Y" ] || die "aborted by user."
 fi
 
+# ----- 0) resource provider pre-flight ---------------------------------------
+#
+# Azure subscriptions don't auto-register resource providers; the first time
+# you create a Container App / Postgres / ACR / etc. on a fresh subscription,
+# the call fails with "Subscription is not registered for the Microsoft.X
+# resource provider." Register them upfront so the rest of the script can
+# proceed without the user needing to know this is a Thing.
+#
+# Each `az provider register --wait` blocks until the provider is in the
+# "Registered" state. On a fresh subscription each takes ~30-60 sec; on
+# subsequent runs it's a no-op (returns in a second).
+
+REQUIRED_PROVIDERS=(
+  Microsoft.App                  # Container Apps
+  Microsoft.OperationalInsights  # Log Analytics (used by Container Apps env)
+  Microsoft.DBforPostgreSQL      # Postgres Flexible Server
+  Microsoft.ContainerRegistry    # ACR
+)
+
+if [ "$DRY_RUN" -eq 0 ]; then
+  for provider in "${REQUIRED_PROVIDERS[@]}"; do
+    state=$(az provider show --namespace "$provider" --query registrationState -o tsv 2>/dev/null || echo "Unknown")
+    if [ "$state" = "Registered" ]; then
+      ok "resource provider $provider: already registered"
+    else
+      say "registering resource provider $provider (current state: $state)…"
+      az provider register --namespace "$provider" --wait --only-show-errors >/dev/null \
+        || warn "couldn't register $provider — subsequent steps may fail. Try \`az provider register -n $provider --wait\` manually."
+      ok "resource provider $provider: registered"
+    fi
+  done
+else
+  for provider in "${REQUIRED_PROVIDERS[@]}"; do
+    printf '  (dry-run) az provider register --namespace %s --wait\n' "$provider"
+  done
+fi
+
 # ----- 1) resource group -----------------------------------------------------
 say "ensuring resource group '$RG' in $LOCATION…"
 run az group create --name "$RG" --location "$LOCATION" --only-show-errors >/dev/null
