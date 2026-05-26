@@ -1,0 +1,25 @@
+# Build context for the api Dockerfile.
+# Keep this tight — anything that ends up here gets sent to the Docker
+# daemon (or to ACR via `az acr build`) regardless of whether the
+# Dockerfile uses it.
+
+node_modules
+dist
+.git
+.gitignore
+.env
+.env.*
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+.idea
+.vscode
+*.md
+!README.md
+test
+coverage
+.nyc_output
+Dockerfile
+.dockerignore

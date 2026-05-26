@@ -1,0 +1,121 @@
+name: deploy-api
+
+# Build + push the api/ Docker image to ACR, then update the
+# Container App revision in canadacentral. Triggers on any push to
+# master that touches the api source, the Dockerfile, or this pipeline.
+#
+# Auth: workload identity federation via the `skintyee-prod-azure`
+# service connection — NO long-lived client_secret anywhere. The SC's
+# federated identity has been granted:
+#   - AcrPush on the ACR (so `az acr build` can push)
+#   - Contributor on the Container App (so the revision update works)
+#
+# See docs/devops/deployment-plan.md § Phase 1 for the resource set
+# this targets, and § Pipeline + automation pattern for the auth model.
+
+trigger:
+  branches:
+    include: [master]
+  paths:
+    include:
+      - api/**
+      - azure-pipelines/Deployments/deploy-api.yml
+pr: none   # don't deploy from PRs — only the merged result
+
+pool:
+  vmImage: ubuntu-latest
+  # Once the self-hosted agent is up (see ../../azure-agents/), switch to:
+  #   name: skintyee-pool
+
+variables:
+  - group: skintyee-prod-azure
+    # Variable group provides (non-secret) names of resources:
+    #   AZURE_RG           — skintyee-prod-rg
+    #   AZURE_ACR_NAME     — skintyeeprodacr
+    #   AZURE_CONTAINERAPP — api-prod
+    #   AZURE_REGION       — canadacentral
+  - name: IMAGE_NAME
+    value: 'api'
+  - name: IMAGE_TAG
+    value: '$(Build.SourceVersion)'   # commit SHA — immutable, traceable
+
+jobs:
+  - job: build_and_deploy
+    displayName: Build → push to ACR → update Container App
+    steps:
+      - checkout: self
+        fetchDepth: 1
+
+      - task: AzureCLI@2
+        displayName: az acr build (build + push api image, multi-arch)
+        inputs:
+          azureSubscription: skintyee-prod-azure
+          scriptType: bash
+          scriptLocation: inlineScript
+          inlineScript: |
+            set -euo pipefail
+
+            # Build inside ACR (no local docker daemon needed). Tags both
+            # the commit SHA (immutable) and :latest (for humans inspecting
+            # the registry UI).
+            az acr build \
+              --registry "$AZURE_ACR_NAME" \
+              --image "${IMAGE_NAME}:${IMAGE_TAG}" \
+              --image "${IMAGE_NAME}:latest" \
+              --file api/Dockerfile \
+              api
+
+      - task: AzureCLI@2
+        displayName: Update Container App revision
+        inputs:
+          azureSubscription: skintyee-prod-azure
+          scriptType: bash
+          scriptLocation: inlineScript
+          inlineScript: |
+            set -euo pipefail
+
+            FULL_IMAGE="${AZURE_ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG}"
+            echo "▸ updating ${AZURE_CONTAINERAPP} to ${FULL_IMAGE}…"
+
+            az containerapp update \
+              --name "$AZURE_CONTAINERAPP" \
+              --resource-group "$AZURE_RG" \
+              --image "$FULL_IMAGE" \
+              --revision-suffix "sha-$(echo $IMAGE_TAG | cut -c1-7)" \
+              --output none
+
+            # Print the latest revision's ingress URL so the pipeline log
+            # shows where the new code is live.
+            echo "▸ latest revision:"
+            az containerapp revision list \
+              --name "$AZURE_CONTAINERAPP" \
+              --resource-group "$AZURE_RG" \
+              --query 'sort_by([], &createdTime)[-1].{name:name,active:properties.active,trafficWeight:properties.trafficWeight,createdAt:createdTime}' \
+              -o table
+
+      - task: AzureCLI@2
+        displayName: Smoke test the new revision
+        inputs:
+          azureSubscription: skintyee-prod-azure
+          scriptType: bash
+          scriptLocation: inlineScript
+          inlineScript: |
+            set -euo pipefail
+
+            FQDN=$(az containerapp show \
+              --name "$AZURE_CONTAINERAPP" \
+              --resource-group "$AZURE_RG" \
+              --query properties.configuration.ingress.fqdn -o tsv)
+
+            echo "▸ smoke testing https://${FQDN}/v1/health …"
+            # Give the new revision ~30 seconds to become ready.
+            for i in $(seq 1 12); do
+              if curl -fsS --max-time 5 "https://${FQDN}/v1/health" >/dev/null 2>&1; then
+                echo "  ✓ health check passed on attempt $i"
+                exit 0
+              fi
+              echo "  (attempt $i — not ready yet)"
+              sleep 5
+            done
+            echo "✗ /v1/health never returned 200 — rollback may be needed"
+            exit 1

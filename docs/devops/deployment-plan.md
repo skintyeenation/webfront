@@ -183,7 +183,7 @@ What gets built first, in order:
 2. **Container Registry.** `az acr create --sku Basic --name skintyeeprodacr -g skintyee-prod-rg`.
 3. **Postgres Flexible Server.** `az postgres flexible-server create` with B1ms, PostGIS extension allow-listed, public access OFF, firewall set to allow Azure services.
 4. **Container Apps environment.** `az containerapp env create -n skintyee-prod-env -g skintyee-prod-rg -l canadacentral`. (Shared by both api and lookup containers — they get free in-environment networking + share the same Log Analytics workspace.)
-5. **Dockerfile for `api/`.** Multi-stage `node:20-alpine`, runs as non-root `node` user, `node dist/main.js`. Build context: the `api/` package only.
+5. **Dockerfile for `api/`.** Multi-stage `node:22-alpine` (matching the repo's [`.nvmrc`](../../.nvmrc)), runs as non-root `node` user, `node dist/main.js`. Build context: the `api/` package only.
 6. **Container App for `api/`.** `az containerapp create` with `--image skintyeeprodacr.azurecr.io/api:latest`, `--ingress external`, autoscale 0→3 on HTTP requests. Federated managed identity for ACR pull (no admin user, no PAT).
 7. **DNS + TLS.** Add `api.skintyee.ca` CNAME to the existing Azure DNS zone pointing at the Container App's FQDN; `az containerapp hostname add` + `bind` to register the custom domain; let the platform mint the TLS cert.
 8. **Pipeline.** `azure-pipelines/Deployments/deploy-api.yml` — on push to master touching `api/**`, builds the Docker image → pushes to ACR → updates Container App revision. Uses federated identity (no secrets). Mirrors the SharePoint publisher's auth pattern.
