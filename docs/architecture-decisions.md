@@ -312,6 +312,43 @@ Decision record for the Skin Tyee app (`@skintyee/app`, in `app/`). Lives in the
   - Full operational plan:
     [`devops/app-deploy-eas.md`](./devops/app-deploy-eas.md).
 
+### ADR-12 — app web target: Azure Static Web Apps (Free tier)
+
+- **Decision:** ship the Expo web build (`expo export --platform web`)
+  to **Azure Static Web Apps** (Free SKU) at `app.skintyee.ca`. ADO
+  pipeline [`Deployments/deploy-app-web.yml`](../azure-pipelines/Deployments/deploy-app-web.yml)
+  builds + deploys; same source tree (`app/`) as the native build.
+- **Why SWA Free over the alternatives:**
+  - **vs Azure Storage static website:** SWA bundles TLS + global CDN
+    + PR-preview URLs into the free tier; Storage doesn't (you'd
+    front it with Azure Front Door, $20+/mo).
+  - **vs Azure App Service (Static):** App Service's cheapest tier is
+    $13/mo; massive overspec for serving compiled JS + HTML.
+  - **vs Vercel / Netlify:** functionally equivalent, but we already
+    have an Azure tenant — keeping the SPA under the same billing /
+    identity / DNS surface simplifies ops.
+  - **vs Container Apps with nginx:** another $5+/mo for what amounts
+    to static-file CDN.
+- **What we get for free:**
+  - 100 GB bandwidth/mo (≈ 50,000 sessions/mo at 2 MB page weight)
+  - 0.5 GB storage (the built app is ~5–10 MB compressed)
+  - 2 custom domains + free auto-renewing TLS
+  - Global CDN distribution
+  - **PR-preview URLs** — every PR touching `app/**` gets its own
+    staging URL, posted automatically as a PR comment. Up to 10
+    concurrent previews on Free tier.
+- **What it doesn't include and why we don't care:**
+  - SWA's bundled "API" (Azure Functions backend) — we have our own
+    NestJS API on Container Apps already (per ADR-10), so we use
+    SWA in static-only mode (`api_location: ''`).
+- **Status:** **planned; not yet wired up.**
+  - Setup script: [`scripts/setup-app-web-azure.sh`](../scripts/setup-app-web-azure.sh)
+    (creates the SWA resource, retrieves the deployment token, stores
+    it in the variable group, registers the pipeline).
+  - Operational doc: [`devops/app-deploy-web.md`](./devops/app-deploy-web.md).
+- **Cost:** $0/mo at POC scale. Upgrade to Standard ($9/mo) only when
+  bandwidth or storage exceed Free-tier limits.
+
 ## Summary: ppt → Skin Tyee service swaps
 
 | Concern | ppt (AWS) | Skin Tyee (Azure) | Status |

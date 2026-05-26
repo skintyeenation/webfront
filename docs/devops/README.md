@@ -123,7 +123,8 @@ the canonical source of truth is Azure.
 | [migrate-ci-workflows.md](./migrate-ci-workflows.md) | **One-time per workflow** — port the SharePoint docs publisher (and any future GitHub Actions) into an Azure Pipeline. |
 | [agents.md](./agents.md) | When ADO Pipelines minutes get expensive or you need a runner with access to the band's internal network. |
 | [deployment-plan.md](./deployment-plan.md) | The plan to deploy `api/` and `lookup/api/` to Azure Container Apps — compute options (with AWS equivalents), cost projection, Phase-1 stand-up steps, naming conventions. **ADR-10**. |
-| [app-deploy-eas.md](./app-deploy-eas.md) | How the `app/` (and later `lookup/app/`) gets built + distributed — EAS Build (Expo hosted) orchestrated by Azure Pipelines. Build profiles, costs, signing model, ADO + EAS hybrid rationale vs full fastlane. **ADR-11**. |
+| [app-deploy-eas.md](./app-deploy-eas.md) | How the `app/` (and later `lookup/app/`) gets built + distributed for **native** (iOS / Android) — EAS Build (Expo hosted) orchestrated by Azure Pipelines. Build profiles, costs, signing model, ADO + EAS hybrid rationale vs full fastlane. **ADR-11**. |
+| [app-deploy-web.md](./app-deploy-web.md) | How the `app/` gets built + deployed to **web** at `app.skintyee.ca` — `expo export --platform web` → Azure Static Web Apps (Free tier). PR-preview URLs, custom domain + TLS, env vars baked at build time. **ADR-12**. |
 
 ## Architectural records
 

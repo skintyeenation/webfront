@@ -1,0 +1,94 @@
+name: deploy-app-web
+
+# Build the Skin Tyee app (Expo) for web and deploy to Azure Static
+# Web Apps at app.skintyee.ca. Companion to build-app.yml (which
+# handles native iOS/Android via EAS Build); this pipeline handles
+# the SAME source tree (app/) for the web target.
+#
+# Auth:
+#   - SWA_DEPLOYMENT_TOKEN — secret in the skintyee-prod-azure variable
+#     group, generated when the Static Web App resource was created
+#     by scripts/setup-app-web-azure.sh.
+#
+# See docs/devops/app-deploy-web.md for the full operational walkthrough.
+
+trigger:
+  branches:
+    include: [master]
+  paths:
+    include:
+      - app/**
+      - azure-pipelines/Deployments/deploy-app-web.yml
+
+pr:
+  branches:
+    include: [master]
+  paths:
+    include:
+      - app/**
+      - azure-pipelines/Deployments/deploy-app-web.yml
+  # SWA's PR-preview feature creates a unique staging URL per PR.
+  # Useful for design review without affecting prod. Free tier.
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  - group: skintyee-prod-azure
+    # Provides SWA_DEPLOYMENT_TOKEN (secret) + API endpoints
+
+jobs:
+  - job: build_and_deploy
+    displayName: 'Expo web → Azure Static Web Apps'
+    steps:
+      - checkout: self
+        fetchDepth: 1
+        submodules: false
+
+      - task: NodeTool@0
+        inputs:
+          versionSpec: '22.x'
+        displayName: 'Use Node 22 (matches .nvmrc)'
+
+      - script: |
+          npm install -g pnpm@9
+          pnpm --version
+        displayName: 'Install pnpm'
+
+      - script: pnpm install --frozen-lockfile
+        displayName: 'pnpm install (workspace)'
+
+      - script: |
+          set -euo pipefail
+          cd app
+
+          # Expo's web export bundles the JS + emits an index.html. Output
+          # lands in dist/ (Expo SDK 49+ default; earlier SDKs use web-build/).
+          npx expo export --platform web --output-dir dist
+
+          echo "▸ dist contents:"
+          ls -lah dist | head -20
+        displayName: 'expo export --platform web'
+        env:
+          # Production web build points at the prod API. Mirrors the
+          # 'preview' EAS profile's env.
+          EXPO_PUBLIC_API_SERVER: 'https://api.skintyee.ca'
+          # Google Maps key — must be public-restricted by referrer in
+          # the Cloud Console so the embed only works from
+          # app.skintyee.ca (not pasted anywhere malicious).
+          EXPO_PUBLIC_GOOGLE_MAPS_API_KEY: $(GOOGLE_MAPS_API_KEY)
+
+      - task: AzureStaticWebApp@0
+        displayName: 'Deploy dist/ to Azure Static Web Apps'
+        inputs:
+          azure_static_web_apps_api_token: $(SWA_DEPLOYMENT_TOKEN)
+          # Skip the SWA task's own build step — Expo already produced the
+          # static bundle in app/dist.
+          skip_app_build: true
+          app_location: 'app/dist'
+          # SWA splits "app" (frontend) and "api" (Azure Functions backend).
+          # We're not using SWA's bundled Functions — our API is in
+          # Container Apps (api.skintyee.ca). So api_location empty.
+          api_location: ''
+          output_location: ''
+          # PR builds create their own staging URL automatically.
