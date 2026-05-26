@@ -184,7 +184,7 @@ else
 fi
 
 # ----- 1) resource group -----------------------------------------------------
-say "ensuring resource group '$RG' in $LOCATION…"
+say "ensuring resource group '$RG' in ${LOCATION}…"
 run az group create --name "$RG" --location "$LOCATION" --only-show-errors >/dev/null
 ok "resource group ready"
 
@@ -205,21 +205,28 @@ ok "ACR ready ($ACR_LOGIN_SERVER)"
 
 # ----- 3) Postgres Flexible Server + PostGIS + db ----------------------------
 
-PG_PASSWORD=""
 if [ "$DRY_RUN" -eq 0 ]; then
   PG_EXISTS=$(az postgres flexible-server show --resource-group "$RG" --name "$PG_NAME" \
     --query name -o tsv 2>/dev/null || echo "")
   if [ -z "$PG_EXISTS" ]; then
     say "Postgres server '$PG_NAME' doesn't exist — provisioning (this takes ~5–8 min)…"
-    # Prompt for admin password (silently). Generate one if blank.
-    printf '  Postgres admin password (leave blank to auto-generate strong one): '
-    read -rs PG_PASSWORD; echo
-    if [ -z "$PG_PASSWORD" ]; then
+    # Postgres admin password: prefer env var (non-interactive runs), then
+    # interactive prompt, then auto-generate. Either way: print the value so
+    # the operator can save it to 1Password.
+    if [ -z "${PG_PASSWORD:-}" ]; then
+      printf '  Postgres admin password (leave blank to auto-generate strong one): '
+      if read -rs PG_PASSWORD 2>/dev/null; then echo; fi
+    fi
+    if [ -z "${PG_PASSWORD:-}" ]; then
       PG_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=' | head -c 22)
-      warn "auto-generated. Save it NOW (script will NOT print again unless re-prompted):"
+      warn "auto-generated Postgres admin password. SAVE IT NOW (printed only once):"
       printf '\n    %s\n\n' "$PG_PASSWORD"
-      printf '  Press Enter once saved to 1Password (IT/Admin vault)… '
-      read -r _
+      if [ -t 0 ]; then
+        printf '  Press Enter once saved to 1Password (IT/Admin vault)… '
+        read -r _
+      else
+        warn "running non-interactively — capture the password above from this log."
+      fi
     fi
     az postgres flexible-server create \
       --resource-group "$RG" \
