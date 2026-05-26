@@ -1,0 +1,71 @@
+name: deploy-lookup-app-web
+
+# Web build + deploy for lookup/app/ → Azure Static Web Apps at
+# lookup-app.skintyee.ca. Twin of deploy-app-web.yml — same shape,
+# different source dir + SWA resource + deployment token.
+#
+# See docs/devops/app-deploy-web.md for the shared rationale.
+
+trigger:
+  branches:
+    include: [master]
+  paths:
+    include:
+      - lookup/app/**
+      - azure-pipelines/Deployments/deploy-lookup-app-web.yml
+
+pr:
+  branches:
+    include: [master]
+  paths:
+    include:
+      - lookup/app/**
+      - azure-pipelines/Deployments/deploy-lookup-app-web.yml
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  - group: skintyee-prod-azure
+    # Provides LOOKUP_APP_SWA_DEPLOYMENT_TOKEN (secret) — distinct from
+    # the community app's SWA_DEPLOYMENT_TOKEN (different SWA resource).
+
+jobs:
+  - job: build_and_deploy_lookup_web
+    displayName: 'Expo web (lookup-app) → Azure Static Web Apps'
+    steps:
+      - checkout: self
+        fetchDepth: 1
+        submodules: false
+
+      - task: NodeTool@0
+        inputs:
+          versionSpec: '22.x'
+        displayName: 'Use Node 22 (matches .nvmrc)'
+
+      - script: |
+          npm install -g pnpm@9
+          pnpm --version
+        displayName: 'Install pnpm'
+
+      - script: pnpm install --frozen-lockfile
+        displayName: 'pnpm install (workspace)'
+
+      - script: |
+          set -euo pipefail
+          cd lookup/app
+          npx expo export --platform web --output-dir dist
+          echo "▸ dist contents:"
+          ls -lah dist | head -20
+        displayName: 'expo export --platform web'
+        env:
+          EXPO_PUBLIC_LOOKUP_API: 'https://lookup.skintyee.ca'
+
+      - task: AzureStaticWebApp@0
+        displayName: 'Deploy dist/ to Azure Static Web Apps'
+        inputs:
+          azure_static_web_apps_api_token: $(LOOKUP_APP_SWA_DEPLOYMENT_TOKEN)
+          skip_app_build: true
+          app_location: 'lookup/app/dist'
+          api_location: ''
+          output_location: ''

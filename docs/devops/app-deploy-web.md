@@ -1,16 +1,22 @@
-# Deploying the Skin Tyee app to web
+# Deploying the Expo apps to web
 
-The community app (`app/`) is **React Native + Expo**, which means a
-single source tree compiles to three targets:
+The monorepo has **two** Expo apps with different deploy needs:
 
-| Target | Compiled via | Distributed via | Pipeline | Pricing |
-|---|---|---|---|---|
-| **iOS / Android** | EAS Build | TestFlight + Play Store | [`Builds/build-app.yml`](../../azure-pipelines/Builds/build-app.yml) | Free 30 builds/mo |
-| **Web** (`app.skintyee.ca`) | `expo export --platform web` | **Azure Static Web Apps** | [`Deployments/deploy-app-web.yml`](../../azure-pipelines/Deployments/deploy-app-web.yml) | Free 100 GB bandwidth/mo |
+| App | Source dir | Target(s) | Native (App / Play Store)? | Web URL | Web pipeline |
+|---|---|---|---|---|---|
+| **Community app** | [`app/`](../../app/) | iOS + Android **and** web | Yes — TestFlight + Play | `app.skintyee.ca` | [`deploy-app-web.yml`](../../azure-pipelines/Deployments/deploy-app-web.yml) |
+| **Lookup app** | [`lookup/app/`](../../lookup/app/) | **Web only** | No (lookup tool runs in browser, no store distribution) | `lookup-app.skintyee.ca` | [`deploy-lookup-app-web.yml`](../../azure-pipelines/Deployments/deploy-lookup-app-web.yml) |
 
-This doc covers the **web** target. Native is covered by
-[`app-deploy-eas.md`](./app-deploy-eas.md). Both pipelines watch the
-same `app/**` source tree; pushes trigger whichever applies.
+This doc covers the **web target for both apps**. The native side
+(community-app only) is covered by [`app-deploy-eas.md`](./app-deploy-eas.md).
+
+Both web pipelines watch their respective source tree (`app/**` →
+`deploy-app-web`; `lookup/app/**` → `deploy-lookup-app-web`); pushes
+trigger whichever applies. PR previews work for both.
+
+Output of `expo export --platform web` is the same shape for either
+app — a self-contained static bundle in `dist/` that Azure Static
+Web Apps serves verbatim.
 
 ## Why Azure Static Web Apps
 
@@ -33,8 +39,15 @@ caches globally, and TLS for custom domains is free + auto-renewed.
 
 | File | Purpose |
 |---|---|
-| [`azure-pipelines/Deployments/deploy-app-web.yml`](../../azure-pipelines/Deployments/deploy-app-web.yml) | Builds `app/` for web → deploys to SWA |
-| [`scripts/setup-app-web-azure.sh`](../../scripts/setup-app-web-azure.sh) | One-time setup — creates the SWA resource, custom domain, deployment-token secret, pipeline registration |
+| [`azure-pipelines/Deployments/deploy-app-web.yml`](../../azure-pipelines/Deployments/deploy-app-web.yml) | Builds `app/` for web → deploys to SWA at `app.skintyee.ca` |
+| [`azure-pipelines/Deployments/deploy-lookup-app-web.yml`](../../azure-pipelines/Deployments/deploy-lookup-app-web.yml) | Builds `lookup/app/` for web → deploys to SWA at `lookup-app.skintyee.ca` |
+| [`scripts/setup-app-web-azure.sh`](../../scripts/setup-app-web-azure.sh) | One-time setup for the community-app SWA (`skintyee-prod-app`) |
+| [`scripts/setup-lookup-app-web-azure.sh`](../../scripts/setup-lookup-app-web-azure.sh) | One-time setup for the lookup-app SWA (`skintyee-prod-lookup-app`) |
+
+Both setup scripts share the same shape — different SWA resource
+name, different custom domain, different secret name in the
+variable group (`SWA_DEPLOYMENT_TOKEN` for community app,
+`LOOKUP_APP_SWA_DEPLOYMENT_TOKEN` for lookup).
 
 ## One-time setup
 

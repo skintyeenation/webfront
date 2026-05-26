@@ -312,12 +312,19 @@ Decision record for the Skin Tyee app (`@skintyee/app`, in `app/`). Lives in the
   - Full operational plan:
     [`devops/app-deploy-eas.md`](./devops/app-deploy-eas.md).
 
-### ADR-12 — app web target: Azure Static Web Apps (Free tier)
+### ADR-12 — app web targets: Azure Static Web Apps (Free tier)
 
-- **Decision:** ship the Expo web build (`expo export --platform web`)
-  to **Azure Static Web Apps** (Free SKU) at `app.skintyee.ca`. ADO
-  pipeline [`Deployments/deploy-app-web.yml`](../azure-pipelines/Deployments/deploy-app-web.yml)
-  builds + deploys; same source tree (`app/`) as the native build.
+- **Decision:** ship Expo web builds (`expo export --platform web`)
+  to **Azure Static Web Apps** (Free SKU) for both apps in the
+  monorepo:
+  - **Community app** (`app/`) → `app.skintyee.ca` —
+    [`Deployments/deploy-app-web.yml`](../azure-pipelines/Deployments/deploy-app-web.yml).
+    Same source tree as the native build (ADR-11); web is one of
+    three targets.
+  - **Lookup tool app** (`lookup/app/`) → `lookup-app.skintyee.ca` —
+    [`Deployments/deploy-lookup-app-web.yml`](../azure-pipelines/Deployments/deploy-lookup-app-web.yml).
+    **Web-only** — the lookup app is a browser tool for staff / the
+    public, no need to publish to App Store or Play Store.
 - **Why SWA Free over the alternatives:**
   - **vs Azure Storage static website:** SWA bundles TLS + global CDN
     + PR-preview URLs into the free tier; Storage doesn't (you'd
@@ -342,12 +349,19 @@ Decision record for the Skin Tyee app (`@skintyee/app`, in `app/`). Lives in the
     NestJS API on Container Apps already (per ADR-10), so we use
     SWA in static-only mode (`api_location: ''`).
 - **Status:** **planned; not yet wired up.**
-  - Setup script: [`scripts/setup-app-web-azure.sh`](../scripts/setup-app-web-azure.sh)
-    (creates the SWA resource, retrieves the deployment token, stores
-    it in the variable group, registers the pipeline).
+  - Setup scripts: [`scripts/setup-app-web-azure.sh`](../scripts/setup-app-web-azure.sh)
+    (community app) and
+    [`scripts/setup-lookup-app-web-azure.sh`](../scripts/setup-lookup-app-web-azure.sh)
+    (lookup app). Each creates its own SWA resource, retrieves the
+    deployment token, stores it in the shared variable group under a
+    distinct secret name (`SWA_DEPLOYMENT_TOKEN` vs
+    `LOOKUP_APP_SWA_DEPLOYMENT_TOKEN`), and registers its pipeline.
   - Operational doc: [`devops/app-deploy-web.md`](./devops/app-deploy-web.md).
-- **Cost:** $0/mo at POC scale. Upgrade to Standard ($9/mo) only when
-  bandwidth or storage exceed Free-tier limits.
+- **Cost:** $0/mo at POC scale across both apps. Each SWA resource
+  has its own 100 GB/mo bandwidth + 0.5 GB storage quota; combined
+  they sit comfortably under the per-subscription Free-tier limit
+  (10 SWAs free per subscription). Upgrade individual SWAs to
+  Standard ($9/mo each) only when their own usage exceeds limits.
 
 ## Summary: ppt → Skin Tyee service swaps
 
