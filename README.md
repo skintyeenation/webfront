@@ -25,7 +25,6 @@ proof-of-concept built for the proposal.
 | &nbsp;&nbsp;&nbsp;&nbsp;[Developer tools](#developer-tools) | IntelliJ Ultimate + Claude Max |
 | **Reference** | |
 | &nbsp;&nbsp;&nbsp;&nbsp;[Pricing & costs](#pricing--costs) | Pricing for all software / services — recurring + one-time (M365, 1Password, GoDaddy, Azure, app stores, dev tools), each with tax-deductibility |
-| &nbsp;&nbsp;&nbsp;&nbsp;[Documentation](#documentation) | Index of every doc in this repo |
 | &nbsp;&nbsp;&nbsp;&nbsp;[Conventions](#conventions) | Git workflow + branch rules |
 | **Packages** | |
 | &nbsp;&nbsp;&nbsp;&nbsp;[app/](#app--skin-tyee-community-app) | `@skintyee/app` — Skin Tyee community app (React Native + Expo) |
@@ -34,6 +33,7 @@ proof-of-concept built for the proposal.
 | **Run & deploy** | |
 | &nbsp;&nbsp;&nbsp;&nbsp;[Getting started](#getting-started) | `pnpm install` + first-run commands |
 | &nbsp;&nbsp;&nbsp;&nbsp;[Deployment](#deployment) | WordPress site via Azure DevOps; app via EAS Build |
+| &nbsp;&nbsp;&nbsp;&nbsp;[Documentation](#documentation) | Index of every doc in this repo |
 
 ## Purpose
 
@@ -316,58 +316,6 @@ Azure, the **Apple/Google app-store** accounts, and developer tools) — each
 linking to its detailed cost record, with a worked example. All are 100%
 tax-deductible operating expenses under Canadian law.
 
-## Documentation
-
-- [`CLAUDE.md`](CLAUDE.md) — workspace overview, conventions, and decisions
-- [`docs/app-plan.md`](docs/app-plan.md) — app build plan
-- [`docs/architecture-decisions.md`](docs/architecture-decisions.md) — service ADRs (Entra ID, Azure Blob, Ferrus/Adagio, WordPress categories, SharePoint docs publishing)
-- [`docs/roadmap.md`](docs/roadmap.md) — 3-month engagement timeline
-- [`docs/pricing-overview.md`](docs/pricing-overview.md) — software/service costs summary, recurring + one-time (M365, 1Password, GoDaddy, Azure, app stores, dev tools) + tax
-- [`docs/app-distribution-costs.md`](docs/app-distribution-costs.md) — Apple Developer + Google Play costs, tax deductibility
-- [`docs/developer-tools.md`](docs/developer-tools.md) — developer tooling (IntelliJ IDEA Ultimate, Claude Max) + tax
-- [`docs/testing-strategy.md`](docs/testing-strategy.md) — testing + TestFlight/Google Play
-- [`api/openapi.yaml`](api/openapi.yaml) — proposed API contract · [`api/README.md`](api/README.md) — API stack recommendation
-- [`docs/walkthrough.md`](docs/walkthrough.md) — app visual screen-by-screen walkthrough
-- [`docs/website-walkthrough.md`](docs/website-walkthrough.md) — website (skintyee.ca) page-by-page screenshots
-- [`docs/wordpress-runbook.md`](docs/wordpress-runbook.md) — run / recover / back up the WordPress site
-- [`docs/365/entra-id.md`](docs/365/entra-id.md) — Entra ID, the admin account, Entra Connect, SSO + device/server access
-- [`docs/365/entra-usage.md`](docs/365/entra-usage.md) — what we actually use Entra for: services today, apps in Phase 2, the two app registrations + their permissions, what's deliberately not on Entra
-- [`docs/365/shared-mailboxes.md`](docs/365/shared-mailboxes.md) — Microsoft 365 shared mailbox setup + adding users
-- [`docs/365/groups.md`](docs/365/groups.md) — Microsoft 365 Groups vs Security Groups (when to use which, with concrete examples mapped to our tenant)
-- [`docs/365/pricing.md`](docs/365/pricing.md) — Microsoft 365 per-user pricing, tax deductibility, offboarding
-- [`docs/365/sharepoint-docs-publish.md`](docs/365/sharepoint-docs-publish.md) — auto-publish `docs/` to SharePoint via GitHub Actions + Microsoft Graph (Entra ID app + `Sites.Selected`), 9-step one-time Azure setup (being migrated to Azure Pipelines — see `devops/migrate-ci-workflows.md`)
-- [`docs/devops/README.md`](docs/devops/README.md) — Azure DevOps overview (primary git host + CI/CD)
-- [`docs/devops/azure-devops-setup.md`](docs/devops/azure-devops-setup.md) — create the `skintyeenation` org + `webfront` project + repo; ships `scripts/setup-azure-devops.sh` + `.ps1`
-- [`docs/devops/azure-primary-github-mirror.md`](docs/devops/azure-primary-github-mirror.md) — wire the Azure-to-GitHub read-only mirror push
-- [`docs/devops/migrate-ci-workflows.md`](docs/devops/migrate-ci-workflows.md) — port the SharePoint publisher from GitHub Actions to Azure Pipelines with federated credentials
-- [`docs/devops/agents.md`](docs/devops/agents.md) — self-hosted ADO agent guidance
-- [`azure-pipelines/README.md`](azure-pipelines/README.md) — Azure Pipelines YAML pipeline definitions (CI/CD on the `skintyeenation`/`devops` ADO project)
-- [`azure-pipelines/publish-docs-to-sharepoint.yml`](azure-pipelines/publish-docs-to-sharepoint.yml) — Azure Pipeline that publishes `docs/` to SharePoint via workload identity federation (replaces the legacy GitHub Actions workflow once verified)
-- [`scripts/setup-sharepoint-pipeline.sh`](scripts/setup-sharepoint-pipeline.sh) — idempotent setup script that wires the federated credential + ADO service connection + variable group + pipeline registration so the YAML above can actually run (automates four of the five admin steps; see `--help` for what stays manual)
-- [`docs/onboarding/README.md`](docs/onboarding/README.md) — new-staff onboarding sequence (M365 + 1Password)
-- [`docs/onboarding/outlook-skintyee-ca.md`](docs/onboarding/outlook-skintyee-ca.md) — activate `firstname.lastname@skintyee.ca`, register MFA, add to Outlook on macOS / Windows / iOS / Android / web, shared-mailbox auto-mapping
-- [`docs/onboarding/1password.md`](docs/onboarding/1password.md) — accept invite, set Master Password + save Emergency Kit, install desktop + browser-extension + mobile apps, migrate browser passwords, join shared vaults
-- [`scripts/publish-docs-to-sharepoint.sh`](scripts/publish-docs-to-sharepoint.sh) — the SharePoint publisher script (bash + curl + pandoc + jq)
-- [`.github/workflows/publish-docs-to-sharepoint.yml`](.github/workflows/publish-docs-to-sharepoint.yml) — push-to-master trigger + manual `workflow_dispatch`
-- [`docs/improvmx/README.md`](docs/improvmx/README.md) — ImprovMX email forwarding + pricing
-- [`docs/mailgun/README.md`](docs/mailgun/README.md) — Mailgun transactional email + pricing
-- [`docs/1password/setup.md`](docs/1password/setup.md) — 1Password vaults, groups, user management
-- [`docs/1password/pricing.md`](docs/1password/pricing.md) — 1Password per-user pricing, tax deductibility, offboarding
-- [`docs/godaddy/domains.md`](docs/godaddy/domains.md) — GoDaddy domains + Azure DNS records
-- [`docs/godaddy/pricing.md`](docs/godaddy/pricing.md) — domain pricing, tax deductibility
-- [`docs/research/canadian-business-lookups.md`](docs/research/canadian-business-lookups.md) — Canadian/BC business, First Nations & government contract lookup resources
-- [`docs/research/lookup-endpoints.md`](docs/research/lookup-endpoints.md) — verified search endpoints + params for business / money lookups (Indigenous filter)
-- [`docs/research/lookup-funding-architecture.md`](docs/research/lookup-funding-architecture.md) — Funding tab sub-tabs + multi-mode sources + `available-grants` aggregator
-- [`docs/research/indigenous-funding-landscape.md`](docs/research/indigenous-funding-landscape.md) — full Canadian Indigenous funding ecosystem (federal departments, NACCA + AFIs, BC provincial, philanthropic, IBAs) with which sources are searchable in the app
-- [`docs/research/lookup-tool-plan.md`](docs/research/lookup-tool-plan.md) — proposed `@skintyee/lookup` CLI + web tool plan
-- [`docs/research/nations-tab-plan.md`](docs/research/nations-tab-plan.md) — Nations tab plan + per-source scraping notes
-- [`docs/research/bc-spatial-datasets.md`](docs/research/bc-spatial-datasets.md) — SLRP, Publicly Available LUP, Recreation Sites, Mineral Deposit Profiles — download + schemas
-- [`lookup/`](lookup) — Skin Tyee Lookup tool: [`@skintyee/lookup-api`](lookup/api) (CLI + HTTP/SSE) + [`@skintyee/lookup-app`](lookup/app) (RN + Expo)
-- [`docs/Skintyee-App-Proposal.pptx`](docs/Skintyee-App-Proposal.pptx) — proposal deck
-- [`app/STUBS.md`](app/STUBS.md) — catalogue of POC stubs
-- [`docs/hosting-costs.md`](docs/hosting-costs.md) — hosting cost basis + rationale
-- [`website/README.md`](website/README.md) — WordPress migration tooling
-
 ## Conventions
 
 Default branch is `master`. Work on `feature/*` branches and merge with
@@ -530,3 +478,55 @@ Database for MySQL – Flexible Server** in production
 
 The app distributes via **EAS Build** to **TestFlight** (iOS) and **Google Play**
 (Android) — see [`docs/testing-strategy.md`](docs/testing-strategy.md).
+
+## Documentation
+
+- [`CLAUDE.md`](CLAUDE.md) — workspace overview, conventions, and decisions
+- [`docs/app-plan.md`](docs/app-plan.md) — app build plan
+- [`docs/architecture-decisions.md`](docs/architecture-decisions.md) — service ADRs (Entra ID, Azure Blob, Ferrus/Adagio, WordPress categories, SharePoint docs publishing)
+- [`docs/roadmap.md`](docs/roadmap.md) — 3-month engagement timeline
+- [`docs/pricing-overview.md`](docs/pricing-overview.md) — software/service costs summary, recurring + one-time (M365, 1Password, GoDaddy, Azure, app stores, dev tools) + tax
+- [`docs/app-distribution-costs.md`](docs/app-distribution-costs.md) — Apple Developer + Google Play costs, tax deductibility
+- [`docs/developer-tools.md`](docs/developer-tools.md) — developer tooling (IntelliJ IDEA Ultimate, Claude Max) + tax
+- [`docs/testing-strategy.md`](docs/testing-strategy.md) — testing + TestFlight/Google Play
+- [`api/openapi.yaml`](api/openapi.yaml) — proposed API contract · [`api/README.md`](api/README.md) — API stack recommendation
+- [`docs/walkthrough.md`](docs/walkthrough.md) — app visual screen-by-screen walkthrough
+- [`docs/website-walkthrough.md`](docs/website-walkthrough.md) — website (skintyee.ca) page-by-page screenshots
+- [`docs/wordpress-runbook.md`](docs/wordpress-runbook.md) — run / recover / back up the WordPress site
+- [`docs/365/entra-id.md`](docs/365/entra-id.md) — Entra ID, the admin account, Entra Connect, SSO + device/server access
+- [`docs/365/entra-usage.md`](docs/365/entra-usage.md) — what we actually use Entra for: services today, apps in Phase 2, the two app registrations + their permissions, what's deliberately not on Entra
+- [`docs/365/shared-mailboxes.md`](docs/365/shared-mailboxes.md) — Microsoft 365 shared mailbox setup + adding users
+- [`docs/365/groups.md`](docs/365/groups.md) — Microsoft 365 Groups vs Security Groups (when to use which, with concrete examples mapped to our tenant)
+- [`docs/365/pricing.md`](docs/365/pricing.md) — Microsoft 365 per-user pricing, tax deductibility, offboarding
+- [`docs/365/sharepoint-docs-publish.md`](docs/365/sharepoint-docs-publish.md) — auto-publish `docs/` to SharePoint via GitHub Actions + Microsoft Graph (Entra ID app + `Sites.Selected`), 9-step one-time Azure setup (being migrated to Azure Pipelines — see `devops/migrate-ci-workflows.md`)
+- [`docs/devops/README.md`](docs/devops/README.md) — Azure DevOps overview (primary git host + CI/CD)
+- [`docs/devops/azure-devops-setup.md`](docs/devops/azure-devops-setup.md) — create the `skintyeenation` org + `webfront` project + repo; ships `scripts/setup-azure-devops.sh` + `.ps1`
+- [`docs/devops/azure-primary-github-mirror.md`](docs/devops/azure-primary-github-mirror.md) — wire the Azure-to-GitHub read-only mirror push
+- [`docs/devops/migrate-ci-workflows.md`](docs/devops/migrate-ci-workflows.md) — port the SharePoint publisher from GitHub Actions to Azure Pipelines with federated credentials
+- [`docs/devops/agents.md`](docs/devops/agents.md) — self-hosted ADO agent guidance
+- [`azure-pipelines/README.md`](azure-pipelines/README.md) — Azure Pipelines YAML pipeline definitions (CI/CD on the `skintyeenation`/`devops` ADO project)
+- [`azure-pipelines/publish-docs-to-sharepoint.yml`](azure-pipelines/publish-docs-to-sharepoint.yml) — Azure Pipeline that publishes `docs/` to SharePoint via workload identity federation (replaces the legacy GitHub Actions workflow once verified)
+- [`scripts/setup-sharepoint-pipeline.sh`](scripts/setup-sharepoint-pipeline.sh) — idempotent setup script that wires the federated credential + ADO service connection + variable group + pipeline registration so the YAML above can actually run (automates four of the five admin steps; see `--help` for what stays manual)
+- [`docs/onboarding/README.md`](docs/onboarding/README.md) — new-staff onboarding sequence (M365 + 1Password)
+- [`docs/onboarding/outlook-skintyee-ca.md`](docs/onboarding/outlook-skintyee-ca.md) — activate `firstname.lastname@skintyee.ca`, register MFA, add to Outlook on macOS / Windows / iOS / Android / web, shared-mailbox auto-mapping
+- [`docs/onboarding/1password.md`](docs/onboarding/1password.md) — accept invite, set Master Password + save Emergency Kit, install desktop + browser-extension + mobile apps, migrate browser passwords, join shared vaults
+- [`scripts/publish-docs-to-sharepoint.sh`](scripts/publish-docs-to-sharepoint.sh) — the SharePoint publisher script (bash + curl + pandoc + jq)
+- [`.github/workflows/publish-docs-to-sharepoint.yml`](.github/workflows/publish-docs-to-sharepoint.yml) — push-to-master trigger + manual `workflow_dispatch`
+- [`docs/improvmx/README.md`](docs/improvmx/README.md) — ImprovMX email forwarding + pricing
+- [`docs/mailgun/README.md`](docs/mailgun/README.md) — Mailgun transactional email + pricing
+- [`docs/1password/setup.md`](docs/1password/setup.md) — 1Password vaults, groups, user management
+- [`docs/1password/pricing.md`](docs/1password/pricing.md) — 1Password per-user pricing, tax deductibility, offboarding
+- [`docs/godaddy/domains.md`](docs/godaddy/domains.md) — GoDaddy domains + Azure DNS records
+- [`docs/godaddy/pricing.md`](docs/godaddy/pricing.md) — domain pricing, tax deductibility
+- [`docs/research/canadian-business-lookups.md`](docs/research/canadian-business-lookups.md) — Canadian/BC business, First Nations & government contract lookup resources
+- [`docs/research/lookup-endpoints.md`](docs/research/lookup-endpoints.md) — verified search endpoints + params for business / money lookups (Indigenous filter)
+- [`docs/research/lookup-funding-architecture.md`](docs/research/lookup-funding-architecture.md) — Funding tab sub-tabs + multi-mode sources + `available-grants` aggregator
+- [`docs/research/indigenous-funding-landscape.md`](docs/research/indigenous-funding-landscape.md) — full Canadian Indigenous funding ecosystem (federal departments, NACCA + AFIs, BC provincial, philanthropic, IBAs) with which sources are searchable in the app
+- [`docs/research/lookup-tool-plan.md`](docs/research/lookup-tool-plan.md) — proposed `@skintyee/lookup` CLI + web tool plan
+- [`docs/research/nations-tab-plan.md`](docs/research/nations-tab-plan.md) — Nations tab plan + per-source scraping notes
+- [`docs/research/bc-spatial-datasets.md`](docs/research/bc-spatial-datasets.md) — SLRP, Publicly Available LUP, Recreation Sites, Mineral Deposit Profiles — download + schemas
+- [`lookup/`](lookup) — Skin Tyee Lookup tool: [`@skintyee/lookup-api`](lookup/api) (CLI + HTTP/SSE) + [`@skintyee/lookup-app`](lookup/app) (RN + Expo)
+- [`docs/Skintyee-App-Proposal.pptx`](docs/Skintyee-App-Proposal.pptx) — proposal deck
+- [`app/STUBS.md`](app/STUBS.md) — catalogue of POC stubs
+- [`docs/hosting-costs.md`](docs/hosting-costs.md) — hosting cost basis + rationale
+- [`website/README.md`](website/README.md) — WordPress migration tooling
