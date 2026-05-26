@@ -84,6 +84,83 @@ is terminated, do this same day:**
 > to a new hire. Keeping the licence count tight to **current, active staff** is
 > also what keeps the expense (below) clean and defensible.
 
+## Entra ID — what's included, what costs extra
+
+Microsoft Entra ID is the **identity layer** that signs everyone in and
+gates access to apps. It's licensed separately from Microsoft 365
+Business Standard, though every M365 subscription includes the free
+tier. Worth knowing what's free and what would cost extra if the
+Nation's needs ever grow.
+
+### What's already free (included with Business Standard)
+
+- **Entra ID Free tier** — basic single sign-on, MFA, security defaults,
+  B2B guest invites (up to 50,000 monthly active guests), self-service
+  password reset for cloud users, ~500K directory objects.
+- **App registrations** — unlimited, free. The two apps we created for
+  the SharePoint publisher (`it-project-docs-publisher`,
+  `skintyeenation-admin-cli`) cost $0 to register or hold.
+- **Federated credentials / workload identity federation** — free.
+  That's how the Azure Pipeline mints Graph tokens without a stored
+  client_secret.
+- **Multi-tenant app registrations** — free. We use *single-tenant*
+  apps but flipping that flag costs nothing if needed.
+
+### Paid tiers (USD reference — confirm CAD before relying on it)
+
+| Tier | Approx. USD / user / mo | What it adds beyond Free |
+|---|--:|---|
+| **Entra ID P1** | ~$6 | Conditional Access, **group-based licensing**, dynamic groups, password write-back, SSPR for hybrid users, Cloud App Discovery |
+| **Entra ID P2** | ~$9 | Everything in P1 + Identity Protection (risk-based Conditional Access), Privileged Identity Management (just-in-time admin elevation), Access Reviews |
+| **Entra ID Governance** (add-on) | ~$7 | Entitlement management, lifecycle workflows, separation of duties |
+
+> Most small organizations on Business Standard never need P1/P2.
+> The point at which it becomes worth considering:
+>
+> - **P1** — when manually assigning M365 licenses per-user becomes
+>   tedious (group-based licensing pays for itself once you have
+>   ~10-15 staff and frequent turnover), or you want Conditional
+>   Access to require MFA only from outside the band office IP.
+> - **P2** — only if you have privileged admin accounts you want to
+>   manage with just-in-time elevation, or external regulators
+>   require access reviews. Almost never relevant for a band-sized
+>   tenant.
+
+### Multi-tenant scenarios (if you ever need them)
+
+| Scenario | Cost |
+|---|---|
+| Inviting external collaborators as **B2B guests** | Free up to 50,000 monthly active guests; premium features on guests count against your P1/P2 license pool at 1:5 (one license covers up to 5 premium guests) |
+| **Cross-tenant sync** (auto-provision users between two tenants you own) | Requires P1 in both tenants; no per-sync fee on top |
+| **Entra External ID** (public sign-up — band members or general public sign in to the band app without being staff) | First 50,000 MAU free; then ~$0.00325/MAU for premium features |
+| Operating **multiple tenants** | Free to create; each tenant has its own license bill (licenses don't cross tenants) |
+
+> Skin Tyee currently uses **one tenant, Entra ID Free**. The community
+> app accesses Entra via the band staff's existing M365 licenses (one
+> login per staff member). If the app ever needs band members
+> themselves to sign in (without being licensed staff), that's
+> **Entra External ID** territory and would still be free up to 50K
+> monthly actives.
+
+### Why we use Entra ID and not a separate identity provider
+
+- **One Microsoft account** — staff sign in once with
+  `firstname.lastname@skintyee.ca` and that account works for Outlook,
+  Teams, SharePoint, Azure portal, Azure DevOps, the Skin Tyee app,
+  1Password (via SSO), and any future internal app. Adding a new
+  user → one form in M365 admin center. Removing → one toggle in
+  Entra (and every system loses access immediately).
+- **No standalone IdP fees** — Auth0, Okta, etc. would charge per-user
+  on top of M365. Entra is included.
+- **Conditional Access is on the table** — if/when the Nation needs
+  MFA-only-from-outside-band-office, that's a P1 upgrade away (≈$54/mo
+  for the current ~9 users). Cheaper than buying it from a separate
+  vendor.
+
+See [`groups.md`](groups.md) for the M365 Groups vs Security Groups
+breakdown — that's where group-based licensing (a P1 feature) becomes
+relevant if/when we adopt P1.
+
 ## Canadian tax treatment — 100% deductible
 
 Under Canadian income-tax law, Microsoft 365 is an **ordinary operating expense
