@@ -19,7 +19,7 @@ All registered at **GoDaddy** under the "Skin Tyee First Nation" account:
 | `skintyee.org` | Defensive registration → redirect to `skintyee.ca` | **ON** | May 2027 |
 | `skintyee.net` | Defensive registration → redirect to `skintyee.ca` | **ON** | May 2027 |
 
-<img src="media/domains-dashboard.png" width="640">
+![](media/thumbs/domains-dashboard.png)
 
 > `.ca` is the primary public domain; `.com`/`.org`/`.net` are held defensively
 > and forwarded to it. (The old Site123 site `skintyeefirstnation.org` is the

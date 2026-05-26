@@ -29,12 +29,12 @@ In **Users → Active users** you can see the split: real staff have a license
 (Band Manager, Chief, Council, Finance, …) are **Unlicensed** — those are the
 shared mailboxes.
 
-<img src="media/active-users.png" width="640">
+![](media/thumbs/active-users.png)
 
 A licensed user's account (license, roles, etc.) is managed from their flyout in
 Active users:
 
-<img src="media/user-account-flyout.png" width="640">
+![](media/thumbs/user-account-flyout.png)
 
 ## 1. Create a shared mailbox (M365 admin center)
 
@@ -50,7 +50,7 @@ Active users:
 
 The **Teams & groups → Shared mailboxes** list is where all of ours live:
 
-<img src="media/shared-mailboxes-list.png" width="640">
+![](media/thumbs/shared-mailboxes-list.png)
 
 ## 2. Add individual users to the shared mailbox
 
@@ -63,7 +63,7 @@ Only **licensed users** can be added. After creating the mailbox:
 3. For send rights, scroll to the mailbox's permissions and set **Send as** and/or
    **Send on behalf** for the same users.
 
-<img src="media/shared-mailbox-members.png" width="640">
+![](media/thumbs/shared-mailbox-members.png)
 
 *Above: the members panel for a shared mailbox — "+ Add members" and the current
 members who can work that inbox.*
