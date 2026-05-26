@@ -14,6 +14,44 @@ are still missing.
 
 ---
 
+## TL;DR — the 6 records to add in GoDaddy
+
+The full step-by-step is below, but if you already know the
+context, these are the records (assuming our tenant
+`skintyeenation`). **Generate DKIM keys in M365 first** (step 1
+below) — the exact DKIM values come from there.
+
+| # | Type | Name (GoDaddy "Host" field) | Value (GoDaddy "Points to" field) | Priority |
+|---|---|---|---|---|
+| 1 | MX | `@` | `skintyee-ca.mail.protection.outlook.com` | `0` |
+| 2 | TXT | `@` | `v=spf1 include:spf.protection.outlook.com -all` | — |
+| 3 | CNAME | `autodiscover` | `autodiscover.outlook.com` | — |
+| 4 | CNAME | `selector1._domainkey` | `selector1-skintyee-ca._domainkey.skintyeenation.e-v1.dkim.mail.microsoft` | — |
+| 5 | CNAME | `selector2._domainkey` | `selector2-skintyee-ca._domainkey.skintyeenation.e-v1.dkim.mail.microsoft` | — |
+| 6 | TXT | `_dmarc` | `v=DMARC1; p=none; rua=mailto:info@skintyee.ca; ruf=mailto:info@skintyee.ca; fo=1` | — |
+
+TTL on all: **1 Hour** (3600 s).
+
+GoDaddy field gotchas:
+
+- **Name field is RELATIVE.** Type `selector1._domainkey`, not
+  `selector1._domainkey.skintyee.ca`. GoDaddy appends the zone
+  automatically. Use `@` for the apex (rows 1 + 2 + 6 — `_dmarc`
+  is its own subdomain).
+- **Value field: paste verbatim.** Don't add or remove trailing
+  dots; GoDaddy adds them. Don't append `.com` to the DKIM
+  values — `.microsoft` is a real Microsoft-owned TLD.
+- **DMARC `_dmarc` TXT** — record at `_dmarc.skintyee.ca`. Some
+  GoDaddy UI versions accept `_dmarc` as the name; others want
+  you to use the "DMARC" record-type shortcut. Either works.
+- **Existing `MS=8336219` TXT at `@`** — leave it alone. That's
+  M365's domain-verification token.
+
+Then verify with `dig` (see step 4), toggle DKIM signing ON in
+M365 (step 6), and test with mail-tester.com (step 7).
+
+---
+
 ## Current state (verified 2026-05-26)
 
 ```text
