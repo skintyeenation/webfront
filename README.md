@@ -162,6 +162,13 @@ with their own logins.
 Connect (hybrid identity), and how Entra ID drives SSO and workstation/server
 access.
 
+📋 **[What we actually use Entra for →](docs/365/entra-usage.md)** —
+operational inventory: every service authenticating against Entra today
+(M365, Azure DevOps, SharePoint publisher pipeline, m365 CLI tooling),
+every app stubbed-today / Entra-Phase-2 (the community app + API), the
+two app registrations and what each one does, and the things deliberately
+NOT on Entra (WordPress, public sign-up).
+
 📬 **[Shared mailbox setup & adding users →](docs/365/shared-mailboxes.md)** —
 how shared mailboxes are created in the M365 admin center and how individual
 (licensed) users are granted access (Full Access / Send As / Send on Behalf),
@@ -301,6 +308,7 @@ tax-deductible operating expenses under Canadian law.
 - [`docs/website-walkthrough.md`](docs/website-walkthrough.md) — website (skintyee.ca) page-by-page screenshots
 - [`docs/wordpress-runbook.md`](docs/wordpress-runbook.md) — run / recover / back up the WordPress site
 - [`docs/365/entra-id.md`](docs/365/entra-id.md) — Entra ID, the admin account, Entra Connect, SSO + device/server access
+- [`docs/365/entra-usage.md`](docs/365/entra-usage.md) — what we actually use Entra for: services today, apps in Phase 2, the two app registrations + their permissions, what's deliberately not on Entra
 - [`docs/365/shared-mailboxes.md`](docs/365/shared-mailboxes.md) — Microsoft 365 shared mailbox setup + adding users
 - [`docs/365/groups.md`](docs/365/groups.md) — Microsoft 365 Groups vs Security Groups (when to use which, with concrete examples mapped to our tenant)
 - [`docs/365/pricing.md`](docs/365/pricing.md) — Microsoft 365 per-user pricing, tax deductibility, offboarding
