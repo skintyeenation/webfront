@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  azure-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ado-agent
+    restart: unless-stopped
+
+    # Mount Docker socket from host (recommended approach)
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+    # Required environment variables
+    environment:
+      - AZP_URL=${AZP_URL}                    # https://dev.azure.com/yourorg
+      - AZP_TOKEN=${AZP_TOKEN}                # Personal Access Token
+      - AZP_POOL=${AZP_POOL:-Default}         # Agent pool name
+      - AZP_AGENT_NAME=${AZP_AGENT_NAME:-docker-agent-$(hostname)}
+
+    # Optional: Use host network if you need to access host services
+    # network_mode: host
+
+    # Optional: Add labels for management
+    labels:
+      - "com.azure.devops.agent=true"
+      - "com.azure.devops.pool=${AZP_POOL:-Default}"

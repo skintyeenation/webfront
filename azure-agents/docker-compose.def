@@ -1,0 +1,30 @@
+services:
+  azp-agent-1:
+    image: azp-agent
+    container_name: azp-agent-1
+    mem_limit: 4g  # or higher
+    restart: always
+    env_file:
+      - .env.dotproperties
+    environment:
+      - AZP_AGENT_NAME=agent-1
+      - DOCKER_HOST=tcp://host.docker.internal:2375
+    volumes:
+      - azp-agent-1-data:/azp
+
+  azp-agent-2:
+    image: azp-agent
+    container_name: azp-agent-2
+    mem_limit: 4g  # or higher
+    restart: always
+    env_file:
+      - .env.chanzwade
+    environment:
+      - AZP_AGENT_NAME=agent-2
+      - DOCKER_HOST=tcp://host.docker.internal:2375
+    volumes:
+      - azp-agent-2-data:/azp
+
+volumes:
+  azp-agent-1-data:
+  azp-agent-2-data:

@@ -1,0 +1,21 @@
+services:
+  azp-agent-skintyeenation:
+    build: .
+    image: skintyee-azp-agent
+    container_name: azp-agent-skintyeenation
+    mem_limit: 4g
+    restart: always
+    env_file:
+      - .env.skintyeenation
+    environment:
+      - AZP_AGENT_NAME=skintyee-agent-1
+      # macOS-specific — exposes the host Docker daemon to the container
+      # via socat (see mac-setup.sh). On Linux, replace with:
+      #   - DOCKER_HOST=unix:///var/run/docker.sock
+      # and add a volume binding /var/run/docker.sock instead.
+      - DOCKER_HOST=tcp://host.docker.internal:2375
+    volumes:
+      - azp-agent-skintyeenation-data:/azp
+
+volumes:
+  azp-agent-skintyeenation-data:

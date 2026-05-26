@@ -1,0 +1,191 @@
+# DeployBuildAgent.yml
+# Deploys a DigitalOcean droplet configured as an Azure DevOps build agent with Docker support
+name: BuildAgent-${{ parameters.agentName }}-$(Build.BuildId)
+
+trigger: none
+pr: none
+
+parameters:
+- name: agentName
+  displayName: 'Build Agent Name'
+  type: string
+  default: 'azpagent-1'
+
+- name: agentPoolName
+  displayName: 'Azure DevOps Agent Pool'
+  type: string
+  default: 'devOps-pool'
+
+- name: skipDropletCreation
+  displayName: 'Skip Droplet Creation (if already exists)'
+  type: boolean
+  default: false
+
+- name: reinstallDocker
+  displayName: 'Reinstall Docker'
+  type: boolean
+  default: false
+
+- name: reinstallAzureCLI
+  displayName: 'Reinstall Azure CLI'
+  type: boolean
+  default: false
+
+- name: reinstallAgent
+  displayName: 'Reinstall ADO Agent'
+  type: boolean
+  default: false
+
+variables:
+- group: digitalocean-config
+- name: AGENT_NAME
+  value: ${{ parameters.agentName }}
+- name: AGENT_POOL_NAME
+  value: ${{ parameters.agentPoolName }}
+- name: ADO_ORG_URL
+  value: 'https://dev.azure.com/dotproperties'
+# Note: DO_PAT_TOKEN should be stored in digitalocean-config variable group
+
+pool:
+  name: 'devOps-pool'
+
+resources:
+  repositories:
+    - repository: Pipelines
+      type: git
+      name: Dot Properties/Pipelines
+
+stages:
+- stage: GatherPipelineTools
+  displayName: Gather Pipeline Scripts and Tools
+  jobs:
+    - job: gather_scripts
+      displayName: 'Gather Scripts'
+      steps:
+        - checkout: Pipelines
+          clean: true
+          fetchDepth: 1
+          fetchTags: false
+
+        - script: |
+            echo "Listing contents of Pipelines repo:"
+            ls -alh $(Build.SourcesDirectory)/tools || echo "No tools directory"
+            ls -alh $(Build.SourcesDirectory)/Deployments/scripts || echo "No scripts directory"
+          displayName: 'Debug: List Pipelines Repo Contents'
+
+        - script: |
+            mkdir -p $(Build.ArtifactStagingDirectory)/pipeline-tools
+
+            # Copy doctl from tools directory
+            if [ -f "$(Build.SourcesDirectory)/tools/doctl" ]; then
+              cp $(Build.SourcesDirectory)/tools/doctl $(Build.ArtifactStagingDirectory)/pipeline-tools/
+              chmod +x $(Build.ArtifactStagingDirectory)/pipeline-tools/doctl
+              echo "✅ Copied doctl"
+            else
+              echo "❌ doctl not found"
+              exit 1
+            fi
+
+            # Copy any deployment scripts (optional)
+            if [ -d "$(Build.SourcesDirectory)/Deployments/scripts" ]; then
+              cp -r $(Build.SourcesDirectory)/Deployments/scripts/* $(Build.ArtifactStagingDirectory)/pipeline-tools/ 2>/dev/null || true
+              echo "✅ Copied deployment scripts"
+            fi
+
+            echo ""
+            echo "Pipeline tools collected:"
+            ls -alh $(Build.ArtifactStagingDirectory)/pipeline-tools/
+          displayName: 'Gather Tools from Pipelines Repo'
+
+        - task: PublishPipelineArtifact@1
+          displayName: 'Publish Combined Tools'
+          inputs:
+            targetPath: '$(Build.ArtifactStagingDirectory)/pipeline-tools'
+            artifact: 'pipeline-tools'
+            publishLocation: 'pipeline'
+
+- stage: CreateDroplet
+  displayName: 'Create DigitalOcean Droplet'
+  dependsOn: GatherPipelineTools
+  condition: and(succeeded(), eq(${{ parameters.skipDropletCreation }}, false))
+  jobs:
+    - job: create_droplet
+      displayName: 'Create Droplet'
+      steps:
+        - checkout: none
+
+        - task: DownloadPipelineArtifact@2
+          displayName: 'Download Pipeline Tools'
+          inputs:
+            artifact: 'pipeline-tools'
+            path: '$(Pipeline.Workspace)/tools'
+
+        - script: |
+            chmod +x $(Pipeline.Workspace)/tools/doctl
+            DOCTL_BIN="$(Pipeline.Workspace)/tools/doctl"
+
+            echo "Authenticating with DigitalOcean..."
+            $DOCTL_BIN auth init --access-token "$(DO_API_TOKEN)"
+
+            DROPLET_NAME="$(AGENT_NAME)"
+
+            echo "Checking if droplet already exists..."
+            EXISTING_DROPLET=$($DOCTL_BIN compute droplet list --format Name,ID,PublicIPv4 --no-header | grep "^$DROPLET_NAME ")
+
+            if [ -n "$EXISTING_DROPLET" ]; then
+              echo "Droplet '$DROPLET_NAME' already exists:"
+              echo "$EXISTING_DROPLET"
+
+              PUBLIC_IP=$(echo "$EXISTING_DROPLET" | awk '{print $3}')
+              echo "Using existing IP: $PUBLIC_IP"
+            else
+              echo "Creating new droplet: $DROPLET_NAME"
+              echo "Region: $(DO_REGION)"
+              echo "Image: $(DO_IMAGE)"
+              echo "Size: $(DO_SIZE)"
+
+              DROPLET_JSON=$($DOCTL_BIN compute droplet create "$DROPLET_NAME" \
+                --region "$(DO_REGION)" \
+                --image "$(DO_IMAGE)" \
+                --size "$(DO_SIZE)" \
+                --ssh-keys "$(DO_SSH_KEY_ID)" \
+                --wait \
+                --output json)
+
+              echo "Droplet created successfully!"
+              echo "$DROPLET_JSON" | jq '.'
+
+              PUBLIC_IP=$(echo "$DROPLET_JSON" | jq -r '.[0].networks.v4[] | select(.type=="public") | .ip_address')
+              echo "Public IP: $PUBLIC_IP"
+            fi
+
+            if [ -z "$PUBLIC_IP" ]; then
+              echo "ERROR: Failed to retrieve public IP"
+              exit 1
+            fi
+
+            echo "##vso[task.setvariable variable=AGENT_PUBLIC_IP;isOutput=true]$PUBLIC_IP"
+            echo "Droplet IP has been set: $PUBLIC_IP"
+          name: CreateDropletStep
+          displayName: 'Create Droplet via doctl'
+
+- stage: DeployBuildAgent
+  displayName: 'Deploy Build Agent'
+  dependsOn:
+    - GatherPipelineTools
+    - CreateDroplet
+  condition: |
+    and(
+      succeeded('GatherPipelineTools'),
+      in(dependencies.CreateDroplet.result, 'Succeeded', 'Skipped')
+    )
+  jobs:
+  - template: templates/deploy-build-agent.yml
+    parameters:
+      agentName: ${{ parameters.agentName }}
+      agentPoolName: ${{ parameters.agentPoolName }}
+      adoOrgUrl: $(ADO_ORG_URL)
+      reinstallDocker: ${{ parameters.reinstallDocker }}
+      reinstallAzureCLI: ${{ parameters.reinstallAzureCLI }}
+      reinstallAgent: ${{ parameters.reinstallAgent }}
+      skipDropletCreation: ${{ parameters.skipDropletCreation }}

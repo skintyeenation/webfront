@@ -1,0 +1,18 @@
+# Real env file with the PAT — never commit
+.env.skintyeenation
+.env.local
+.env.*.local
+
+# Agent runtime artefacts (if anyone runs the agent outside Docker)
+.agent
+_diag/
+_work/
+_layout/
+externals/
+run.sh
+config.sh
+.env
+
+# IDE
+.idea/
+.vscode/

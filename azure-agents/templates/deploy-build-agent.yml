@@ -1,0 +1,334 @@
+# deploy-build-agent.yml
+# Template for deploying build agent to DigitalOcean droplet
+parameters:
+- name: agentName
+  type: string
+- name: agentPoolName
+  type: string
+- name: adoOrgUrl
+  type: string
+- name: reinstallDocker
+  type: boolean
+  default: false
+- name: reinstallAzureCLI
+  type: boolean
+  default: false
+- name: reinstallAgent
+  type: boolean
+  default: false
+- name: skipDropletCreation
+  type: boolean
+  default: false
+
+jobs:
+- job: deploy_build_agent
+  displayName: 'Deploy Build Agent to Droplet'
+  steps:
+    - checkout: none
+
+    - task: DownloadPipelineArtifact@2
+      displayName: 'Download Pipeline Tools'
+      inputs:
+        artifact: 'pipeline-tools'
+        path: '$(Pipeline.Workspace)/tools'
+
+    - task: InstallSSHKey@0
+      displayName: 'Install SSH Key'
+      inputs:
+        knownHostsEntry: 'azpagent-1'
+        sshKeySecureFile: 'do_id_rsa'
+
+    - script: |
+        chmod +x $(Pipeline.Workspace)/tools/doctl
+        DOCTL_BIN="$(Pipeline.Workspace)/tools/doctl"
+        echo "Authenticating with DigitalOcean..."
+        $DOCTL_BIN auth init --access-token "$(DO_API_TOKEN)"
+        DROPLET_NAME="${{ parameters.agentName }}"
+        echo "Retrieving droplet IP address..."
+        if [ "${{ parameters.skipDropletCreation }}" = "True" ]; then
+          PUBLIC_IP="$(CreateDropletStep.AGENT_PUBLIC_IP)"
+          echo "Using IP from previous stage: $PUBLIC_IP"
+        fi
+        if [ -z "$PUBLIC_IP" ]; then
+          DROPLET_INFO=$($DOCTL_BIN compute droplet list --format Name,PublicIPv4 --no-header | grep "^$DROPLET_NAME ")
+          if [ -z "$DROPLET_INFO" ]; then
+            echo "ERROR: Droplet '$DROPLET_NAME' not found!"
+            exit 1
+          fi
+          PUBLIC_IP=$(echo "$DROPLET_INFO" | awk '{print $2}')
+        fi
+        if [ -z "$PUBLIC_IP" ]; then
+          echo "ERROR: Failed to retrieve public IP for droplet '$DROPLET_NAME'"
+          exit 1
+        fi
+        echo "Droplet IP: $PUBLIC_IP"
+        echo "##vso[task.setvariable variable=AGENT_PUBLIC_IP]$PUBLIC_IP"
+        ssh-keyscan -H $PUBLIC_IP >> ~/.ssh/known_hosts 2>/dev/null || true
+      displayName: 'Get Droplet IP Address'
+
+    - script: |
+        PUBLIC_IP="$(AGENT_PUBLIC_IP)"
+        AGENT_NAME="${{ parameters.agentName }}"
+        echo "Waiting for SSH to be available on $PUBLIC_IP..."
+        for i in {1..30}; do
+          if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 root@$PUBLIC_IP "echo 'SSH connection successful'" 2>/dev/null; then
+            echo "SSH is ready!"
+            break
+          fi
+          echo "Attempt $i/30 - Waiting for SSH..."
+          sleep 10
+        done
+        echo "Testing SSH connection..."
+        ssh -o StrictHostKeyChecking=no root@$PUBLIC_IP "hostname && uptime"
+      displayName: 'Wait for SSH Availability'
+
+    - script: |
+        PUBLIC_IP="$(AGENT_PUBLIC_IP)"
+        REINSTALL="${{ parameters.reinstallDocker }}"
+        echo "Installing Docker on droplet..."
+        ssh -o StrictHostKeyChecking=no root@$PUBLIC_IP bash <<'EOF'
+        set -e
+        if [ "$REINSTALL" = "True" ]; then
+          echo "Reinstalling Docker..."
+          apt-get remove -y docker docker-engine docker.io containerd runc 2>/dev/null || true
+        fi
+        if ! command -v docker &> /dev/null || [ "$REINSTALL" = "True" ]; then
+          echo "Installing Docker..."
+          apt-get update
+          curl -fsSL https://get.docker.com | sh
+          usermod -aG docker root
+          systemctl enable docker
+          systemctl start docker
+          echo "Docker installation complete!"
+        else
+          echo "Docker already installed"
+        fi
+        docker --version
+        docker ps
+        echo "Docker is ready!"
+        EOF
+        echo "Docker installation completed successfully"
+      displayName: 'Install Docker'
+      env:
+        REINSTALL: ${{ parameters.reinstallDocker }}
+
+    - script: |
+        PUBLIC_IP="$(AGENT_PUBLIC_IP)"
+        REINSTALL="${{ parameters.reinstallAzureCLI }}"
+        echo "Installing Azure CLI on droplet..."
+        ssh -o StrictHostKeyChecking=no root@$PUBLIC_IP bash <<'EOF'
+        set -e
+        if [ "$REINSTALL" = "True" ]; then
+          echo "Reinstalling Azure CLI..."
+          apt-get remove -y azure-cli 2>/dev/null || true
+        fi
+        if ! command -v az &> /dev/null || [ "$REINSTALL" = "True" ]; then
+          echo "Installing Azure CLI..."
+          apt-get update
+          apt-get install -y ca-certificates curl apt-transport-https lsb-release gnupg
+          mkdir -p /etc/apt/keyrings
+          curl -sLS https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | tee /etc/apt/keyrings/microsoft.gpg > /dev/null
+          chmod go+r /etc/apt/keyrings/microsoft.gpg
+          AZ_DIST=$(lsb_release -cs)
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/azure-cli/ $AZ_DIST main" | tee /etc/apt/sources.list.d/azure-cli.list
+          apt-get update
+          apt-get install -y azure-cli
+          echo "Azure CLI installation complete!"
+        else
+          echo "Azure CLI already installed"
+        fi
+        az --version
+        echo "Azure CLI is ready!"
+        EOF
+        echo "Azure CLI installation completed successfully"
+      displayName: 'Install Azure CLI'
+      env:
+        REINSTALL: ${{ parameters.reinstallAzureCLI }}
+
+    - script: |
+        PUBLIC_IP="$(AGENT_PUBLIC_IP)"
+        AGENT_NAME="${{ parameters.agentName }}"
+        AGENT_POOL="${{ parameters.agentPoolName }}"
+        ADO_URL="${{ parameters.adoOrgUrl }}"
+        ADO_TOKEN="$(DO_PAT_TOKEN)"
+        REINSTALL="${{ parameters.reinstallAgent }}"
+        if [ -z "$ADO_TOKEN" ]; then
+          echo "ERROR: DO_PAT_TOKEN variable is not set!"
+          echo "Please add ADO PAT token to digitalocean-config variable group as DO_PAT_TOKEN"
+          exit 1
+        fi
+        echo "Installing Azure DevOps Agent on droplet..."
+        echo "Agent Name: $AGENT_NAME"
+        echo "Agent Pool: $AGENT_POOL"
+        echo "ADO URL: $ADO_URL"
+
+        # Create start.sh and systemd service on droplet
+        ssh -o StrictHostKeyChecking=no root@$PUBLIC_IP bash <<'EOF'
+          set -e
+          AGENT_NAME="$1"
+          AGENT_POOL="$2"
+          ADO_URL="$3"
+          ADO_TOKEN="$4"
+          REINSTALL="$5"
+          if [ "$REINSTALL" = "True" ]; then
+            echo "Stopping and removing existing agent service..."
+            systemctl stop azp-agent 2>/dev/null || true
+            systemctl disable azp-agent 2>/dev/null || true
+            rm -rf /opt/azagent/*
+          fi
+          mkdir -p /opt/azagent
+          cd /opt/azagent
+          cat > start.sh <<"STARTSCRIPT"
+          #!/bin/bash
+          set -e
+          AGENT_ALLOW_RUNASROOT="true"
+          export AGENT_ALLOW_RUNASROOT
+          if [ -z "$AZP_URL" ]; then
+            AZP_URL="https://dev.azure.com/dotproperties"
+            export AZP_URL
+          fi
+          if [ -z "$AZP_TOKEN" ]; then
+            echo "AZP_TOKEN is not set"
+            exit 1
+          fi
+          if [ -z "$AZP_POOL" ]; then
+            AZP_POOL="devOps-pool"
+            export AZP_POOL
+          fi
+          if [ -z "$AZP_AGENT_NAME" ]; then
+            AZP_AGENT_NAME=$(hostname)
+            export AZP_AGENT_NAME
+          fi
+          echo "Checking for existing agent configuration..."
+          if [ -f .agent ]; then
+            echo "Agent is already configured. Skipping configuration..."
+          else
+            echo "Downloading Azure Pipelines agent..."
+            curl -LsS https://download.agent.dev.azure.com/agent/4.261.0/vsts-agent-linux-x64-4.261.0.tar.gz | tar -xz
+            echo "Configuring agent..."
+            ./config.sh --unattended \
+              --url "$AZP_URL" \
+              --auth pat \
+              --token "$AZP_TOKEN" \
+              --pool "$AZP_POOL" \
+              --agent "$AZP_AGENT_NAME" \
+              --replace
+          fi
+          echo "Starting agent..."
+          ./run.sh
+          STARTSCRIPT
+          chmod +x start.sh
+          cat > /etc/systemd/system/azp-agent.service <<SERVICEEOF
+          [Unit]
+          Description=Azure Pipelines Agent
+          After=network.target docker.service
+          [Service]
+          Type=simple
+          User=root
+          WorkingDirectory=/opt/azagent
+          Environment="AGENT_ALLOW_RUNASROOT=true"
+          Environment="AZP_URL=$ADO_URL"
+          Environment="AZP_TOKEN=$ADO_TOKEN"
+          Environment="AZP_POOL=$AGENT_POOL"
+          Environment="AZP_AGENT_NAME=$AGENT_NAME"
+          ExecStart=/bin/bash /opt/azagent/start.sh
+          Restart=always
+          RestartSec=10
+          StandardOutput=journal
+          StandardError=journal
+          [Install]
+          WantedBy=multi-user.target
+          SERVICEEOF
+          systemctl daemon-reload
+          systemctl enable azp-agent
+          systemctl start azp-agent
+          echo "Waiting for agent to start..."
+          sleep 5
+          systemctl status azp-agent --no-pager || true
+          echo "Azure DevOps Agent installation complete!"
+          echo "Service: azp-agent"
+          echo "View logs with: journalctl -u azp-agent -f"
+        EOF "$AGENT_NAME" "$AGENT_POOL" "$ADO_URL" "$ADO_TOKEN" "$REINSTALL"
+        echo "Azure DevOps Agent installation completed successfully"
+      displayName: 'Install Azure DevOps Agent'
+      env:
+        REINSTALL: ${{ parameters.reinstallAgent }}
+
+    - script: |
+        PUBLIC_IP="$(AGENT_PUBLIC_IP)"
+        AGENT_NAME="${{ parameters.agentName }}"
+        echo "Verifying deployment on $PUBLIC_IP..."
+        ssh -o StrictHostKeyChecking=no root@$PUBLIC_IP bash <<'EOF'
+        echo "====================================="
+        echo "Deployment Verification"
+        echo "====================================="
+        echo ""
+        echo "1. System Information:"
+        echo "   Hostname: $(hostname)"
+        echo "   OS: $(lsb_release -d | cut -f2)"
+        echo "   Kernel: $(uname -r)"
+        echo ""
+        echo "2. Docker:"
+        if command -v docker &> /dev/null; then
+          echo "   Docker installed"
+          echo "   Version: $(docker --version)"
+          echo "   Status: $(systemctl is-active docker)"
+          echo "   Containers: $(docker ps -q | wc -l) running"
+        else
+          echo "   Docker not found"
+        fi
+        echo ""
+        echo "3. Azure CLI:"
+        if command -v az &> /dev/null; then
+          echo "   Azure CLI installed"
+          az version --output json 2>/dev/null | grep -oP '"azure-cli": "\K[^"]*' | head -1 | xargs -I {} echo "   Version: {}"
+        else
+          echo "   Azure CLI not found"
+        fi
+        echo ""
+        echo "4. Azure DevOps Agent:"
+        if [ -d "/opt/azagent" ]; then
+          echo "   Agent directory exists"
+          if systemctl is-active --quiet azp-agent 2>/dev/null; then
+            echo "   Service: azp-agent"
+            echo "   Status: Running"
+          elif systemctl list-units --type=service --all | grep -q azp-agent; then
+            echo "   Service: azp-agent"
+            echo "   Status: Not running"
+          else
+            echo "   Service: azp-agent not found"
+          fi
+        else
+          echo "   Agent not installed"
+        fi
+        echo ""
+        echo "5. Disk Usage:"
+        df -h / | tail -1 | awk '{print "   Root: " $3 " used / " $2 " total (" $5 " used)"}'
+        echo ""
+        echo "6. Memory:"
+        free -h | grep Mem | awk '{print "   Total: " $2 "  Used: " $3 "  Free: " $4}'
+        echo ""
+        echo "====================================="
+        echo "Deployment verification complete!"
+        echo "====================================="
+        EOF
+        echo ""
+        echo "=========================================="
+        echo "Build Agent Deployment Summary"
+        echo "=========================================="
+        echo "Agent Name: $AGENT_NAME"
+        echo "Public IP: $PUBLIC_IP"
+        echo "Pool: ${{ parameters.agentPoolName }}"
+        echo "Organization: ${{ parameters.adoOrgUrl }}"
+        echo ""
+        echo "Next Steps:"
+        echo "1. Verify agent appears in Azure DevOps Agent Pool"
+        echo "2. Check agent is online and ready to accept jobs"
+        echo "3. Run a test pipeline to verify Docker builds work"
+        echo ""
+        echo "Useful Commands:"
+        echo "  SSH: ssh root@$PUBLIC_IP"
+        echo "  Agent logs: ssh root@$PUBLIC_IP 'journalctl -u azp-agent -f'"
+        echo "  Docker test: ssh root@$PUBLIC_IP 'docker run hello-world'"
+        echo "=========================================="
+      displayName: 'Verify Deployment'
