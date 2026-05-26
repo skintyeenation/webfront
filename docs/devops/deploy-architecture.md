@@ -209,6 +209,7 @@ identity from ADO at the time of this writing.
 
 ## See also (the underlying detail docs)
 
+- [`deploy-status.md`](./deploy-status.md) — **point-in-time** view of which setup scripts have run + what's blocked + the exact next command. Updated each time a script completes.
 - [`deployment-plan.md`](./deployment-plan.md) — backend services
   (api, lookup-api): compute-options comparison with AWS analogs,
   cost projection, Phase 1 stand-up checklist, naming conventions.
