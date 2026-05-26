@@ -254,6 +254,64 @@ Decision record for the Skin Tyee app (`@skintyee/app`, in `app/`). Lives in the
     automation surface in
     [`devops/deployment-plan.md`](./devops/deployment-plan.md).
 
+### ADR-11 — mobile app builds: EAS Build (Expo's hosted service) over self-hosted fastlane
+
+- **Decision:** build + distribute the Skin Tyee community app
+  (`app/` — React Native + Expo) and the lookup tool app
+  (`lookup/app/` — same stack) via **EAS Build**, Expo's hosted build
+  service. **Azure Pipelines** orchestrates (kicks off the EAS
+  build, optionally submits to TestFlight + Play Internal Testing on
+  completion); the native macOS / Android compilation runs on Expo's
+  hardware.
+- **Pipeline:** [`azure-pipelines/Builds/build-app.yml`](../azure-pipelines/Builds/build-app.yml) —
+  Ubuntu Linux agent, ≈80 lines of YAML, calls `eas build --no-wait`
+  by default (fire-and-forget). Three build profiles in
+  [`app/eas.json`](../app/eas.json): `development` (simulator, no
+  signing), `preview` (internal TestFlight + Play closed track),
+  `production` (App Store + Play Store).
+- **Why EAS Build vs full fastlane (the `props-apps/crashpad-web` pattern):**
+  - **`app/` is Expo, not Capacitor.** Capacitor produces a permanent
+    `ios/App/App.xcodeproj` that fastlane operates on. Expo's
+    `expo prebuild` regenerates the iOS/Android projects on every
+    build — fastlane on Expo means re-prebuild-then-build, fighting
+    the toolchain.
+  - **No macOS agent to maintain.** Microsoft's hosted macOS agents
+    bill at 10× the Linux multiplier; self-hosting a Mac mini costs
+    $600–800 one-time plus ongoing OS / Xcode / Ruby / CocoaPods
+    upkeep. EAS Build is included via free tier (30 builds/mo) which
+    we comfortably fit under at POC scale.
+  - **One config covers iOS + Android.** Fastlane needs a separate
+    Fastfile per platform plus separate Android signing flows.
+  - **Credential management is automated.** `eas credentials` walks
+    you through cert / profile / keystore upload once; EAS stores
+    them encrypted and binds them to builds. No manual
+    match/sigh/cert/sigh dance per release.
+- **Why not pure-EAS (without ADO orchestration):**
+  - We want a single CI surface for the org (per
+    [ADR-9](#adr-9--source-control-azure-devops-as-primary-github-as-mirror)).
+    Hybrid keeps Azure Pipelines as the trigger surface — pushes to
+    `master` flow through the same dashboard as the api / SharePoint
+    deploys — while Expo handles the actual native compile.
+- **Cost:**
+  - **POC (current):** $0/mo — EAS free tier 30 builds/mo, Linux ADO
+    agent free under the 1,800 min/mo private-project quota.
+  - **If volume grows:** Expo Production plan at $19/mo crosses the
+    break-even with the free tier around 20+ builds/mo. Apple
+    Developer Program $99/yr + Play Console $25 one-time are required
+    regardless of build pipeline choice.
+- **What graduates us off this:** sustained build volume above
+  ~150/mo, or a need for build-time control EAS doesn't expose
+  (custom Xcode build phases, weird native modules) — at which point
+  switching to a self-hosted Mac mini + fastlane (matching
+  `props-apps/crashpad-web`) is the migration path. None of those
+  apply at POC scale.
+- **Status:** **planned; not yet wired up.**
+  - Setup script: [`scripts/setup-eas-app.sh`](../scripts/setup-eas-app.sh) —
+    automates eas-cli install + `eas init` + `eas credentials` walkthroughs +
+    EXPO_TOKEN registration in the ADO variable group + pipeline registration.
+  - Full operational plan:
+    [`devops/app-deploy-eas.md`](./devops/app-deploy-eas.md).
+
 ## Summary: ppt → Skin Tyee service swaps
 
 | Concern | ppt (AWS) | Skin Tyee (Azure) | Status |

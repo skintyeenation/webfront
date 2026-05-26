@@ -1,0 +1,146 @@
+name: build-app
+
+# Build the Skin Tyee community app (Expo / React Native) via EAS Build.
+# ADO orchestrates; the actual native compile runs on Expo's hardware
+# (no macOS / Android agent needed locally).
+#
+# See docs/devops/app-deploy-eas.md for:
+#   - When each build profile (development / preview / production) runs
+#   - How EXPO_TOKEN is generated + rotated
+#   - The submit step (TestFlight / Play Internal Testing)
+#
+# Auth:
+#   - EXPO_TOKEN — secret in the skintyee-prod-azure variable group
+#     (Expo Personal Access Token, 1-year lifetime by default, rotate
+#     via expo.dev/accounts/<account>/settings/access-tokens)
+
+parameters:
+  - name: buildProfile
+    displayName: 'EAS build profile'
+    type: string
+    default: 'preview'
+    values:
+      - development   # internal dev client
+      - preview       # internal testers, points at api.skintyee.ca
+      - production    # store-ready
+  - name: platform
+    displayName: 'Platform(s)'
+    type: string
+    default: 'all'
+    values:
+      - all
+      - ios
+      - android
+  - name: submitToStores
+    displayName: 'Submit production build to TestFlight + Play after build?'
+    type: boolean
+    default: false
+  - name: waitForCompletion
+    displayName: 'Wait for the EAS build to finish before pipeline exits?'
+    type: boolean
+    default: false   # default: fire-and-forget; check progress at expo.dev
+
+trigger:
+  branches:
+    include: [master]
+  paths:
+    include:
+      - app/**
+      - azure-pipelines/Builds/build-app.yml
+
+pr: none
+
+pool:
+  vmImage: ubuntu-latest
+  # Linux is fine — EAS does the actual macOS/Android compile remotely.
+  # No need for the expensive macOS hosted agent (10× minute multiplier).
+
+variables:
+  - group: skintyee-prod-azure
+    # Provides EXPO_TOKEN (secret)
+
+jobs:
+  - job: eas_build
+    displayName: 'EAS Build — ${{ parameters.buildProfile }} / ${{ parameters.platform }}'
+    timeoutInMinutes: 60   # EAS builds can run up to ~45 min on a busy queue
+    steps:
+      - checkout: self
+        fetchDepth: 1
+
+      - task: NodeTool@0
+        inputs:
+          versionSpec: '22.x'
+        displayName: 'Use Node 22 (matches .nvmrc)'
+
+      - script: |
+          npm install -g pnpm@9
+          pnpm --version
+        displayName: 'Install pnpm'
+
+      - script: |
+          # pnpm workspace install — restores app/'s deps too.
+          pnpm install --frozen-lockfile
+        displayName: 'pnpm install (workspace)'
+
+      - script: |
+          npm install -g eas-cli
+          eas --version
+        displayName: 'Install eas-cli'
+
+      - script: |
+          set -euo pipefail
+          # EAS reads EXPO_TOKEN from env — no `eas login` needed in CI.
+
+          cd app
+
+          # Show which Expo project we're targeting (from app.config.js +
+          # eas.json's extra.eas.projectId once `eas init` has run).
+          echo "▸ project info:"
+          eas project:info --non-interactive || echo "(eas init may not have run yet — see docs/devops/app-deploy-eas.md)"
+
+          # Kick off the build. --no-wait returns once it's queued on EAS,
+          # unless the caller asked us to wait for completion.
+          WAIT_FLAG=""
+          if [ "${{ parameters.waitForCompletion }}" != "True" ]; then
+            WAIT_FLAG="--no-wait"
+          fi
+
+          echo "▸ eas build --platform ${{ parameters.platform }} --profile ${{ parameters.buildProfile }} $WAIT_FLAG"
+          eas build \
+            --platform "${{ parameters.platform }}" \
+            --profile "${{ parameters.buildProfile }}" \
+            --non-interactive \
+            $WAIT_FLAG
+
+          echo
+          echo "▸ recent builds:"
+          eas build:list --limit 5 --non-interactive --json \
+            | jq '.[] | {id, status, platform, profile: .buildProfile, distribution, updatedAt}'
+
+          echo
+          echo "▸ track progress at https://expo.dev/accounts/<your-account>/projects/skintyee-app/builds"
+        displayName: 'eas build'
+        env:
+          EXPO_TOKEN: $(EXPO_TOKEN)
+          # EAS reads .env automatically if present — but app/.env contains
+          # the GOOGLE_MAPS_API_KEY which we want INJECTED via env, not
+          # checked in. The variable group can hold GOOGLE_MAPS_API_KEY
+          # too if you want it baked into prod builds:
+          # EXPO_PUBLIC_GOOGLE_MAPS_API_KEY: $(GOOGLE_MAPS_API_KEY)
+
+      # Optional: submit the production build to TestFlight + Play Internal
+      # Testing. Only runs when buildProfile=production AND submitToStores=true.
+      - ${{ if and(eq(parameters.buildProfile, 'production'), eq(parameters.submitToStores, true)) }}:
+        - script: |
+            set -euo pipefail
+            cd app
+            # `eas submit` picks up the most recent finished build for the
+            # platform automatically when --latest is set.
+            eas submit \
+              --platform "${{ parameters.platform }}" \
+              --profile production \
+              --latest \
+              --non-interactive
+          displayName: 'eas submit (TestFlight + Play Internal Testing)'
+          env:
+            EXPO_TOKEN: $(EXPO_TOKEN)
