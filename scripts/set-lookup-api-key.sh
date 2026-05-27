@@ -70,7 +70,7 @@ if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
 fi
 
 # ----- set the secret + bind the env var ------------------------------------
-say "setting Container App secret '$SECRET_NAME' on $CA_LOOKUP_NAME…"
+say "setting Container App secret '$SECRET_NAME' on ${CA_LOOKUP_NAME}…"
 if [ "$DRY_RUN" -eq 1 ]; then
   printf '  (dry-run) az containerapp secret set --resource-group %s --name %s --secrets %s=<value>\n' "$RG" "$CA_LOOKUP_NAME" "$SECRET_NAME"
 else
@@ -82,7 +82,7 @@ else
   ok "secret '$SECRET_NAME' stored on Container App (encrypted at rest)"
 fi
 
-say "binding env var '$ENV_VAR_NAME' to the secret on $CA_LOOKUP_NAME…"
+say "binding env var '$ENV_VAR_NAME' to the secret on ${CA_LOOKUP_NAME}…"
 if [ "$DRY_RUN" -eq 1 ]; then
   printf '  (dry-run) az containerapp update --resource-group %s --name %s --set-env-vars %s=secretref:%s\n' "$RG" "$CA_LOOKUP_NAME" "$ENV_VAR_NAME" "$SECRET_NAME"
 else

@@ -229,7 +229,7 @@ fi
 
 # ----- 4) Contributor for the deploy SP on this Container App ----------------
 CA_RESOURCE_ID=$(az containerapp show --resource-group "$RG" --name "$CA_LOOKUP_NAME" --query id -o tsv 2>/dev/null)
-say "granting deploy SP Contributor on $CA_LOOKUP_NAME…"
+say "granting deploy SP Contributor on ${CA_LOOKUP_NAME}…"
 run az role assignment create \
   --assignee-object-id "$PUB_SP_ID" \
   --assignee-principal-type ServicePrincipal \
