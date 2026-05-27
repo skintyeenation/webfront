@@ -62,13 +62,22 @@ jobs:
           set -euo pipefail
           cd app
 
-          # Expo's web export bundles the JS + emits an index.html. Output
-          # lands in dist/ (Expo SDK 49+ default; earlier SDKs use web-build/).
-          npx expo export --platform web --output-dir dist
+          # Expo's web export bundles the JS + emits an index.html.
+          #
+          # SDK choice — `expo export:web` (webpack) vs `expo export --platform web` (Metro):
+          #   • SDK 48: defaults to webpack; @expo/webpack-config is in devDeps;
+          #     `expo export --platform web` needs an explicit `web.bundler: 'metro'`
+          #     opt-in or it errors out ("Platform 'web' is not configured to use
+          #     the Metro bundler").
+          #   • SDK 50+: Metro is the default and `export:web` is removed.
+          # We're on SDK 48 — use the webpack command. Output lands in web-build/.
+          # When the app upgrades to SDK 50+, switch this line to:
+          #   npx expo export --platform web --output-dir dist
+          npx expo export:web
 
-          echo "▸ dist contents:"
-          ls -lah dist | head -20
-        displayName: 'expo export --platform web'
+          echo "▸ web-build contents:"
+          ls -lah web-build | head -20
+        displayName: 'expo export:web (webpack)'
         env:
           # Production web build points at the prod API. Mirrors the
           # 'preview' EAS profile's env.
@@ -79,13 +88,14 @@ jobs:
           EXPO_PUBLIC_GOOGLE_MAPS_API_KEY: $(GOOGLE_MAPS_API_KEY)
 
       - task: AzureStaticWebApp@0
-        displayName: 'Deploy dist/ to Azure Static Web Apps'
+        displayName: 'Deploy web-build/ to Azure Static Web Apps'
         inputs:
           azure_static_web_apps_api_token: $(SWA_DEPLOYMENT_TOKEN)
           # Skip the SWA task's own build step — Expo already produced the
-          # static bundle in app/dist.
+          # static bundle in app/web-build (SDK 48 webpack output dir).
+          # When the app upgrades to SDK 50+, switch app_location to 'app/dist'.
           skip_app_build: true
-          app_location: 'app/dist'
+          app_location: 'app/web-build'
           # SWA splits "app" (frontend) and "api" (Azure Functions backend).
           # We're not using SWA's bundled Functions — our API is in
           # Container Apps (api.skintyee.ca). So api_location empty.
