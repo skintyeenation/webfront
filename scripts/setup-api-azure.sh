@@ -243,17 +243,54 @@ if [ "$DRY_RUN" -eq 0 ]; then
       --only-show-errors >/dev/null \
       || die "Postgres provisioning failed."
 
-    # Allow Container Apps in the same VNet to reach the server.
-    # For simplicity at POC scale we use public-access with Azure-services
-    # allowed. Phase 2 would put both behind a VNet.
-    say "  (POC) enabling 'Allow public access from any Azure service'…"
-    az postgres flexible-server update \
-      --resource-group "$RG" \
-      --name "$PG_NAME" \
-      --public-access 0.0.0.0 \
-      --only-show-errors >/dev/null
   else
     ok "Postgres server '$PG_NAME' already exists"
+  fi
+
+  # Allow Container Apps in the same Azure region to reach the server.
+  # For simplicity at POC scale we use public access with the "all Azure
+  # services" firewall pseudo-rule (start=end=0.0.0.0). Phase 2 would
+  # put Postgres + Container Apps behind a VNet with private endpoint.
+  #
+  # Azure CLI 2.86+ changed the API:
+  #   - --public-access takes Enabled/Disabled (not IP addresses)
+  #   - firewall-rule create is the new way to scope IPs
+  CURRENT_ACCESS=$(az postgres flexible-server show \
+    --resource-group "$RG" --name "$PG_NAME" \
+    --query 'network.publicNetworkAccess' -o tsv 2>/dev/null || echo "")
+  if [ "$CURRENT_ACCESS" != "Enabled" ]; then
+    say "enabling public network access on $PG_NAME (POC; will restrict via firewall rule below)…"
+    az postgres flexible-server update \
+      --resource-group "$RG" --name "$PG_NAME" \
+      --public-access Enabled \
+      --only-show-errors >/dev/null \
+      || warn "couldn't toggle public network access — try \`az postgres flexible-server update --public-access Enabled\` manually."
+  fi
+
+  # Add the "allow access from Azure services" firewall pseudo-rule
+  # (start=end=0.0.0.0 has special meaning to Azure Postgres).
+  # az 2.86+ uses --server-name + --name; older versions used --name +
+  # --rule-name. Try the new syntax first.
+  EXISTING_FW=$(az postgres flexible-server firewall-rule list \
+    --resource-group "$RG" --name "$PG_NAME" \
+    --query "[?name=='AllowAzureServices'].name | [0]" -o tsv 2>/dev/null || echo "")
+  if [ -z "$EXISTING_FW" ] || [ "$EXISTING_FW" = "null" ]; then
+    say "adding 'AllowAzureServices' firewall rule (0.0.0.0–0.0.0.0)…"
+    if ! az postgres flexible-server firewall-rule create \
+      --resource-group "$RG" --server-name "$PG_NAME" \
+      --name AllowAzureServices \
+      --start-ip-address 0.0.0.0 --end-ip-address 0.0.0.0 \
+      --only-show-errors >/dev/null 2>&1; then
+      # Fallback for older az versions
+      az postgres flexible-server firewall-rule create \
+        --resource-group "$RG" --name "$PG_NAME" \
+        --rule-name AllowAzureServices \
+        --start-ip-address 0.0.0.0 --end-ip-address 0.0.0.0 \
+        --only-show-errors >/dev/null 2>&1 \
+        || warn "couldn't add firewall rule — Container Apps won't reach Postgres until this is set manually."
+    fi
+  else
+    ok "firewall rule 'AllowAzureServices' already present"
   fi
 
   # Allowlist the PostGIS extension at the server level.
