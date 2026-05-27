@@ -1,6 +1,6 @@
 # Deploy status — where we are now
 
-**📅 Last updated: 2026-05-26**
+**📅 Last updated: 2026-05-26 (Step 3 complete)**
 
 Point-in-time view of which deploy setup scripts have run + what's
 blocked on what + the exact command to advance one step. Paired
@@ -24,13 +24,11 @@ script gets executed.
 ```
 [ 1. setup-azure-devops.sh ]            ✅ DONE
 [ 2. setup-sharepoint-pipeline.sh ]     ✅ DONE
-[ 3. setup-api-azure.sh ]               ⏸  YOU ARE HERE
-                                            ↳ blocked on a 30-sec
-                                              resource-provider
-                                              pre-flight (see below)
-[ 4. setup-lookup-azure.sh ]            ⬜ pending (depends on #3)
-[ 5. setup-app-web-azure.sh ]           ⬜ pending (depends on #3)
-[ 6. setup-lookup-app-web-azure.sh ]    ⬜ pending (depends on #3)
+[ 3. setup-api-azure.sh ]               ✅ DONE (2026-05-26)
+[ 4. setup-lookup-azure.sh ]            ⏸  YOU ARE HERE
+                                            (Step 3 unlocked this)
+[ 5. setup-app-web-azure.sh ]           ⬜ pending (unblocked by #3)
+[ 6. setup-lookup-app-web-azure.sh ]    ⬜ pending (unblocked by #3)
 [ 7. setup-eas-app.sh ]                 ⬜ pending (also needs Apple
                                               Developer + Play
                                               Console accounts)
@@ -42,8 +40,8 @@ script gets executed.
 |---|---|---|---|
 | 1 | `setup-azure-devops.sh` | ✅ Done | `az devops project list --org https://dev.azure.com/skintyeenation` shows `devops`; `az repos show ... --repository webfront` returns the repo |
 | 2 | `setup-sharepoint-pipeline.sh` | ✅ Done | `publish-docs-to-sharepoint` pipeline registered + green runs; SC `sharepoint-docs-sc`; variable group `sharepoint-docs`; Entra apps `it-project-docs-publisher` (`0d6f0c13-…`) + `skintyeenation-admin-cli` (`cc85d6bc-…`) |
-| 3 | `setup-api-azure.sh` | ❌ Not run | No `skintyee-prod-rg` in `az group list`; no ACR `skintyeeprodacr`; no Postgres `skintyee-prod-pg`; no Container Apps env; no `skintyee-prod-deploy` Entra app; no `skintyee-prod-azure` SC |
-| 4 | `setup-lookup-azure.sh` | ❌ Not run | No `lookup-prod` Container App |
+| 3 | `setup-api-azure.sh` | ✅ Done (2026-05-26) | All 11 artifacts verified: RG `skintyee-prod-rg` ✓ · ACR `skintyeeprodacr.azurecr.io` ✓ · Postgres `skintyee-prod-pg` (B1ms + PostGIS + `api` DB + AllowAzureServices firewall) ✓ · Container Apps env `skintyee-prod-env` ✓ · Container App `api-prod` at `api-prod.mangoglacier-ce3e1265.canadacentral.azurecontainerapps.io` (scale 0→3) ✓ · Entra app `skintyee-prod-deploy` (`cb91f9d8-…`) with AcrPush + Contributor roles ✓ · ADO SC `skintyee-prod-azure` ✓ · ADO variable group `skintyee-prod-azure` (id 2) ✓ · Pipeline `deploy-api` (id 2) registered ✓ |
+| 4 | `setup-lookup-azure.sh` | ❌ Not run — **next step** | No `lookup-prod` Container App |
 | 5 | `setup-app-web-azure.sh` | ❌ Not run | No `skintyee-prod-app` Static Web App |
 | 6 | `setup-lookup-app-web-azure.sh` | ❌ Not run | No `skintyee-prod-lookup-app` Static Web App |
 | 7 | `setup-eas-app.sh` | ❌ Not run | No `EXPO_TOKEN` in any variable group; `app/` has no EAS project ID in `app.config.js` |
@@ -51,17 +49,40 @@ script gets executed.
 ## Exact next command
 
 ```bash
-bash scripts/setup-api-azure.sh --dry-run    # preview, no changes
-bash scripts/setup-api-azure.sh              # for real
+bash scripts/setup-lookup-azure.sh --dry-run     # preview
+bash scripts/setup-lookup-azure.sh               # for real
 ```
 
-> Resource-provider registration (`Microsoft.App`,
-> `Microsoft.OperationalInsights`, `Microsoft.DBforPostgreSQL`,
-> `Microsoft.ContainerRegistry`) is now handled by the script
-> itself as Step 0. On a fresh subscription it adds ~3 min to the
-> first run; subsequent runs are a no-op (each provider's state
-> is checked first, registered only if needed). The SWA scripts
-> (Steps 5 + 6) self-register `Microsoft.Web` the same way.
+Step 4 provisions `lookup-prod` Container App on top of the
+shared infra from Step 3. Requires you to paste the
+`ANTHROPIC_API_KEY` mid-flow (or set it via the
+`ANTHROPIC_API_KEY` env var to skip the prompt). The key lives in
+1Password → IT/Admin vault.
+
+After Step 4: Steps 5 + 6 can run in parallel (both create Static
+Web Apps); Step 7 (EAS native build) is gated on Apple Developer +
+Play Console account enrollment.
+
+## Pending follow-ups from Step 3 (not blocking Step 4)
+
+These are the items the script's final summary flagged. Do them
+before / alongside / after the remaining setup scripts — they're
+all small.
+
+1. **Save Postgres password to 1Password** (IT/Admin vault) +
+   add as `PG_PASSWORD` secret to the variable group:
+   ```bash
+   az pipelines variable-group variable create \
+     --org https://dev.azure.com/skintyeenation --project devops \
+     --group-id 2 \
+     --name PG_PASSWORD --secret true --value '<paste>'
+   ```
+2. **Wire the custom domain `api.skintyee.ca`** per
+   [`../godaddy/subdomains-for-azure-services.md` § api.skintyee.ca](../godaddy/subdomains-for-azure-services.md#apiskintyeeca--backend-container-apps).
+   Container App FQDN to CNAME to: `api-prod.mangoglacier-ce3e1265.canadacentral.azurecontainerapps.io`.
+3. **First deploy of `api/`**: push any change touching `api/**`
+   to master → `deploy-api` pipeline auto-runs. Or trigger
+   manually at <https://dev.azure.com/skintyeenation/devops/_build?definitionId=2>.
 
 What it provisions (~10 min, Postgres is the slow part):
 
