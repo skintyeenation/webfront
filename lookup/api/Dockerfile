@@ -33,24 +33,38 @@ RUN apk add --no-cache \
 # Tell puppeteer-core where Chromium lives (and don't try to download
 # its own copy — puppeteer-core never does, but this is defence in
 # depth in case a transitive dep flips to plain puppeteer).
+#
+# Note: NODE_ENV=production is intentionally NOT set yet. lookup-api runs
+# TypeScript source via `tsx` at runtime, and `tsx` is a devDependency.
+# If NODE_ENV=production is in scope during `npm install`, dev deps get
+# skipped → `sh: tsx: not found` at startup. The runtime ENV block (with
+# NODE_ENV=production etc.) is set AFTER the install completes.
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser \
-    NODE_ENV=production \
-    PORT=5050 \
-    HOST=0.0.0.0 \
-    NPM_CONFIG_UPDATE_NOTIFIER=false
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
 WORKDIR /app
 
 # Manifests first → better layer cache when source changes but deps don't.
+# Belt-and-suspenders: --include=dev / --prod=false force devDependencies
+# to install even if NODE_ENV happens to be set in the build environment.
+# (The build context is lookup/api/ — the pnpm-lock.yaml lives at the
+# workspace root, so the fallthrough `npm install` branch is what actually
+# runs in practice.)
 COPY package.json package-lock.json* pnpm-lock.yaml* ./
 RUN if [ -f pnpm-lock.yaml ]; then \
       corepack enable pnpm && pnpm install --frozen-lockfile --prod=false; \
     elif [ -f package-lock.json ]; then \
-      npm ci; \
+      npm ci --include=dev; \
     else \
-      npm install; \
+      npm install --include=dev; \
     fi
+
+# Now safe to set NODE_ENV=production (the install has already pulled in
+# everything tsx + transitive deps need at runtime).
+ENV NODE_ENV=production \
+    PORT=5050 \
+    HOST=0.0.0.0 \
+    NPM_CONFIG_UPDATE_NOTIFIER=false
 
 # Source + the typescript config (tsx reads tsconfig for path aliases etc.)
 COPY tsconfig.json ./

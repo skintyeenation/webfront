@@ -72,9 +72,14 @@ jobs:
               --revision-suffix "sha-$(echo $IMAGE_TAG | cut -c1-7)" \
               --output none
 
+            # NOTE: revision objects nest most fields under .properties —
+            # sort key must be `&properties.createdTime`, NOT `&createdTime`
+            # (the latter yields null on every element and JMESPath's sort_by
+            # rejects null sort keys with a confusing error). Same fix as in
+            # deploy-api.yml.
             az containerapp revision list \
               --name "$LOOKUP_CONTAINERAPP" --resource-group "$AZURE_RG" \
-              --query 'sort_by([], &createdTime)[-1].{name:name,active:properties.active,trafficWeight:properties.trafficWeight,createdAt:createdTime}' \
+              --query 'sort_by([], &properties.createdTime)[-1].{name:name,active:properties.active,trafficWeight:properties.trafficWeight,createdAt:properties.createdTime}' \
               -o table
 
       - task: AzureCLI@2
