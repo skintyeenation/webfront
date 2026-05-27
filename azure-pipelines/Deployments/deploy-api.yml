@@ -86,11 +86,15 @@ jobs:
 
             # Print the latest revision's ingress URL so the pipeline log
             # shows where the new code is live.
+            # NOTE: revision objects nest most fields under .properties —
+            # sort key must be `&properties.createdTime`, NOT `&createdTime`
+            # (the latter yields null on every element and JMESPath's sort_by
+            # rejects null sort keys with a confusing error).
             echo "▸ latest revision:"
             az containerapp revision list \
               --name "$AZURE_CONTAINERAPP" \
               --resource-group "$AZURE_RG" \
-              --query 'sort_by([], &createdTime)[-1].{name:name,active:properties.active,trafficWeight:properties.trafficWeight,createdAt:createdTime}' \
+              --query 'sort_by([], &properties.createdTime)[-1].{name:name,active:properties.active,trafficWeight:properties.trafficWeight,createdAt:properties.createdTime}' \
               -o table
 
       - task: AzureCLI@2

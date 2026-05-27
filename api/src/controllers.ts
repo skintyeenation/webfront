@@ -2,6 +2,20 @@ import { Body, Controller, Delete, Get, HttpCode, NotFoundException, Param, Post
 import { DataService } from './data.service';
 import { Roles, callerRole } from './roles';
 
+// ---- Health ---------------------------------------------------------------
+// Public liveness endpoint hit by:
+//   - the Container App's HEALTHCHECK directive in api/Dockerfile
+//   - the deploy-api pipeline's smoke test (post-revision-swap)
+// Kept deliberately bare: no DB call, no business logic — anything that
+// could fail independently of "the process is up" makes a bad liveness probe.
+// Returns 200 + a tiny JSON body. Mounted at /v1/health (globalPrefix is 'v1').
+@Controller('health')
+export class HealthController {
+  @Get() check() {
+    return { status: 'ok', uptime: process.uptime() };
+  }
+}
+
 // ---- Auth -----------------------------------------------------------------
 @Controller('auth')
 export class AuthController {
@@ -131,6 +145,7 @@ function remove(coll: any[], id: string) {
 }
 
 export const CONTROLLERS = [
+  HealthController,
   AuthController,
   DirectoryController,
   EventsController,

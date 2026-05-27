@@ -382,13 +382,22 @@ PUB_SP_ID=$(az ad sp list --filter "appId eq '$PUB_APP_ID'" --query '[0].id' -o 
 ok "deploy app: $PUB_APP_ID  (sp $PUB_SP_ID)"
 
 # Grant the deploy SP the roles it needs for the pipeline:
-#   - AcrPush on the ACR (so `az acr build` can push)
+#   - Contributor on the ACR. `az acr build` uses ACR Tasks under the hood,
+#     which needs MULTIPLE ARM actions:
+#       /registries/read                       — resolve registry by name
+#       /registries/listBuildSourceUploadUrl   — upload build context
+#       /registries/scheduleRun                — kick off the remote build
+#       /registries/runs/read                  — stream logs back
+#     AcrPush alone covers only data-plane /pull/read + /push/write — none
+#     of the management actions above. Rather than stack Reader + a custom
+#     role, Contributor on just the ACR (NOT the whole RG) is the documented
+#     minimum scope for ACR Tasks usage. Blast radius is the one registry.
 #   - Contributor on the Container App (so `az containerapp update` can update)
-say "granting deploy SP roles (AcrPush on ACR, Contributor on Container App)…"
+say "granting deploy SP roles (Contributor on ACR, Contributor on Container App)…"
 run az role assignment create \
   --assignee-object-id "$PUB_SP_ID" \
   --assignee-principal-type ServicePrincipal \
-  --role AcrPush \
+  --role Contributor \
   --scope "$ACR_ID" \
   --only-show-errors >/dev/null 2>&1 || true
 

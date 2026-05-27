@@ -74,9 +74,9 @@ unblocks the corresponding first-deploy pipeline run.
 |---|---|
 | Add `ANTHROPIC_API_KEY` to `lookup-prod` (deferred at Step 4) | `ANTHROPIC_API_KEY='sk-...' bash scripts/set-lookup-api-key.sh` |
 | Replace `GOOGLE_MAPS_API_KEY` placeholder (added by Step 5) | `az pipelines variable-group variable update --org https://dev.azure.com/skintyeenation --project devops --group-id 2 --name GOOGLE_MAPS_API_KEY --secret true --value '<paste from 1Password>'` |
-| Wire `api.skintyee.ca` custom domain | [`../godaddy/subdomains-for-azure-services.md` § api.skintyee.ca](../godaddy/subdomains-for-azure-services.md#apiskintyeeca--backend-container-apps); Container App FQDN: `api-prod.mangoglacier-ce3e1265.canadacentral.azurecontainerapps.io` |
+| Wire `api.skintyee.ca` custom domain | ✅ Done (2026-05-26) — TXT `asuid.api` + CNAME `api → api-prod.mangoglacier-…` in GoDaddy; bound to Container App `api-prod` with managed TLS cert (`mc-skintyee-prod--api-skintyee-ca-2049`, DigiCert-rooted, auto-renew). `https://api.skintyee.ca` serves 504 until first `deploy-api` pipeline replaces the placeholder image. |
 | Wire `lookup.skintyee.ca` custom domain | Same doc; FQDN: `lookup-prod.mangoglacier-ce3e1265.canadacentral.azurecontainerapps.io` |
-| Wire `app.skintyee.ca` custom domain | [`../godaddy/subdomains-for-azure-services.md` § app.skintyee.ca](../godaddy/subdomains-for-azure-services.md#appskintyeeca--community-app-web-static-web-apps); SWA default hostname: `jolly-field-07345350f.7.azurestaticapps.net` |
+| Wire `app.skintyee.ca` custom domain | ✅ Done (2026-05-26) — CNAME `app → jolly-field-07345350f.7.azurestaticapps.net` in GoDaddy; SWA hostname state `Ready` (~4 min validation); managed TLS cert issued (DigiCert-rooted, auto-renew); `https://app.skintyee.ca` serves HTTP/2 200 (SWA default page until first `deploy-app-web` run). |
 | Wire `lookup-app.skintyee.ca` custom domain | Same doc; SWA default hostname: `nice-cliff-08511a80f.7.azurestaticapps.net` |
 | Save Postgres password to 1Password (IT/Admin vault) | Out of band — script already wrote it to the ADO variable group as `PG_PASSWORD` (secret); 1Password is the durable backup copy |
 | First deploy of `api/` | Push touching `api/**` → `deploy-api` runs · or <https://dev.azure.com/skintyeenation/devops/_build?definitionId=2> |
