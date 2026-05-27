@@ -135,12 +135,36 @@ elif [ "$YES" -ne 1 ]; then
   [ "$ans" = "y" ] || [ "$ans" = "Y" ] || die "aborted by user."
 fi
 
-# ----- 1) ANTHROPIC_API_KEY (prompt) -----------------------------------------
-ANTHROPIC_API_KEY=""
+# ----- 1) ANTHROPIC_API_KEY (env, prompt, or skip) ---------------------------
+#
+# Three paths for providing the Anthropic key:
+#   a) Set ANTHROPIC_API_KEY in env before running the script (non-interactive)
+#   b) Paste it at the interactive prompt below
+#   c) Leave it empty — the Container App is created without the secret. Safe
+#      to do now because the placeholder image (mcr.microsoft.com/k8se/quickstart)
+#      doesn't need the key. The real lookup-api image only needs it once the
+#      deploy-lookup pipeline pushes our actual code. Add the key later via:
+#
+#        az containerapp secret set \
+#          --resource-group <rg> --name <ca> \
+#          --secrets anthropic-api-key='<your-key>'
+#        az containerapp update \
+#          --resource-group <rg> --name <ca> \
+#          --set-env-vars ANTHROPIC_API_KEY=secretref:anthropic-api-key
+#
+# The script's final summary prints those commands with the resource
+# names filled in.
+
 if [ "$DRY_RUN" -eq 0 ]; then
-  printf '  Anthropic API key (will be stored as a Container App secret): '
-  read -rs ANTHROPIC_API_KEY; echo
-  [ -n "$ANTHROPIC_API_KEY" ] || warn "  no key provided — Container App will fail at runtime until you add it."
+  if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+    printf '  Anthropic API key (Enter to skip — add later via `az containerapp secret set`): '
+    if read -rs ANTHROPIC_API_KEY 2>/dev/null; then echo; fi
+  fi
+  if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+    warn "no key provided — Container App will be created without the ANTHROPIC_API_KEY secret."
+    warn "  Safe to defer: the placeholder image doesn't use the key."
+    warn "  The final summary below prints the exact \`az\` command to add it later."
+  fi
 fi
 
 # ----- 2) Create lookup Container App ----------------------------------------
@@ -278,9 +302,16 @@ What's left (one-time manual):
          --environment $CAE_NAME \\
          --validation-method CNAME
 
-  2. ${CYAN}Save the Anthropic API key to 1Password${RST} (IT/Admin vault) if you
-     haven't already. The Container App stores it as an internal
-     secret but 1Password is your audit trail.
+  2. ${CYAN}Anthropic API key${RST} — save to 1Password (IT/Admin vault).
+     If you provided one at the prompt above, it's already on the
+     Container App as a secret. If you skipped, set it later with:
+
+       bash scripts/set-lookup-api-key.sh
+
+     (Helper script that prompts for the key, writes it to the
+     Container App as the 'anthropic-api-key' secret, and binds the
+     ANTHROPIC_API_KEY env var via secretref. Idempotent — re-run
+     to rotate.)
 
   3. ${CYAN}First deploy${RST}:
 
