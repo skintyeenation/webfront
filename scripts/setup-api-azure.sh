@@ -498,21 +498,84 @@ say "ensuring ADO variable group '$ADO_VG_NAME'…"
 VG_ID=$(az pipelines variable-group list --org "$ADO_ORG_URL" --project "$ADO_PROJECT" \
   --query "[?name=='$ADO_VG_NAME'].id | [0]" -o tsv 2>/dev/null || echo "")
 if [ -z "$VG_ID" ] || [ "$VG_ID" = "null" ]; then
+  PG_HOST_VALUE="${PG_NAME}.postgres.database.azure.com"
   run az pipelines variable-group create \
     --org "$ADO_ORG_URL" --project "$ADO_PROJECT" \
     --name "$ADO_VG_NAME" \
-    --description "Azure resource names for the deploy-api pipeline (no secrets — federated identity)" \
+    --description "Pipeline + runtime config for the api deploy. PG_PASSWORD is the only secret; everything else is non-sensitive resource names + connection bits." \
     --authorize true \
     --variables \
       "AZURE_RG=$RG" \
       "AZURE_ACR_NAME=$ACR" \
       "AZURE_CONTAINERAPP=$CA_API_NAME" \
       "AZURE_REGION=$LOCATION" \
+      "AZURE_TENANT_ID=$TENANT_ID" \
+      "AZURE_SUBSCRIPTION_ID=$SUB_ID" \
+      "PG_HOST=$PG_HOST_VALUE" \
+      "PG_PORT=5432" \
+      "PG_USER=$PG_ADMIN_USER" \
+      "PG_DATABASE=$PG_DB_API" \
+      "PG_SSL_MODE=require" \
     --query id -o tsv --only-show-errors >/dev/null
   VG_ID=$(az pipelines variable-group list --org "$ADO_ORG_URL" --project "$ADO_PROJECT" \
     --query "[?name=='$ADO_VG_NAME'].id | [0]" -o tsv)
 fi
+
+# Backfill any missing non-secret variables on existing groups (idempotent).
+# Lets re-runs pick up new variables we've added since the group was created.
+if [ "$DRY_RUN" -eq 0 ] && [ -n "$VG_ID" ]; then
+  declare -a VG_VARS=(
+    "AZURE_RG=$RG"
+    "AZURE_ACR_NAME=$ACR"
+    "AZURE_CONTAINERAPP=$CA_API_NAME"
+    "AZURE_REGION=$LOCATION"
+    "AZURE_TENANT_ID=$TENANT_ID"
+    "AZURE_SUBSCRIPTION_ID=$SUB_ID"
+    "PG_HOST=${PG_NAME}.postgres.database.azure.com"
+    "PG_PORT=5432"
+    "PG_USER=$PG_ADMIN_USER"
+    "PG_DATABASE=$PG_DB_API"
+    "PG_SSL_MODE=require"
+  )
+  for kv in "${VG_VARS[@]}"; do
+    name="${kv%%=*}"
+    value="${kv#*=}"
+    existing=$(az pipelines variable-group variable list \
+      --org "$ADO_ORG_URL" --project "$ADO_PROJECT" --group-id "$VG_ID" \
+      --query "${name}.value" -o tsv 2>/dev/null || echo "")
+    if [ -z "$existing" ]; then
+      az pipelines variable-group variable create \
+        --org "$ADO_ORG_URL" --project "$ADO_PROJECT" --group-id "$VG_ID" \
+        --name "$name" --value "$value" --only-show-errors >/dev/null 2>&1 || true
+    fi
+  done
+fi
 ok "variable group ready (id $VG_ID)"
+
+# Add PG_PASSWORD as a secret variable in the group. The script knows
+# the password (either generated above, or passed via env), so it should
+# write it here — saves the operator a manual step the post-summary
+# previously printed as a TODO.
+if [ "$DRY_RUN" -eq 0 ] && [ -n "$VG_ID" ] && [ -n "${PG_PASSWORD:-}" ]; then
+  EXISTS_PG=$(az pipelines variable-group variable list \
+    --org "$ADO_ORG_URL" --project "$ADO_PROJECT" --group-id "$VG_ID" \
+    --query 'PG_PASSWORD.value' -o tsv 2>/dev/null || echo "")
+  if [ -z "$EXISTS_PG" ]; then
+    say "adding PG_PASSWORD secret to '$ADO_VG_NAME'…"
+    az pipelines variable-group variable create \
+      --org "$ADO_ORG_URL" --project "$ADO_PROJECT" --group-id "$VG_ID" \
+      --name PG_PASSWORD --secret true --value "$PG_PASSWORD" \
+      --only-show-errors >/dev/null \
+      || warn "couldn't add PG_PASSWORD secret to the variable group — add manually."
+    ok "PG_PASSWORD stored as secret in variable group"
+  else
+    # Update in place — the password may have rotated since the last run
+    az pipelines variable-group variable update \
+      --org "$ADO_ORG_URL" --project "$ADO_PROJECT" --group-id "$VG_ID" \
+      --name PG_PASSWORD --secret true --value "$PG_PASSWORD" \
+      --only-show-errors >/dev/null 2>&1 || true
+  fi
+fi
 
 # Authorize VG for all pipelines too.
 if [ "$DRY_RUN" -eq 0 ] && [ -n "$VG_ID" ]; then
@@ -565,15 +628,11 @@ What's left (one-time manual):
          --environment $CAE_NAME \\
          --validation-method CNAME
 
-  2. ${CYAN}Save Postgres password to 1Password${RST} (IT/Admin vault), and add
-     a 'PG_PASSWORD' secret variable to the '$ADO_VG_NAME' variable group:
-
-       az pipelines variable-group variable create \\
-         --org $ADO_ORG_URL --project $ADO_PROJECT \\
-         --group-id $VG_ID \\
-         --name PG_PASSWORD \\
-         --secret true \\
-         --value '<paste>'
+  2. ${CYAN}Save Postgres password to 1Password${RST} (IT/Admin vault)
+     so there's a recovery copy. The script has already written it
+     as the PG_PASSWORD secret in the '$ADO_VG_NAME' variable group,
+     so the pipeline can use it, but 1Password is your durable
+     out-of-band copy.
 
   3. ${CYAN}First deploy${RST}:
 
