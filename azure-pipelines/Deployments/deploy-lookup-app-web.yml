@@ -54,18 +54,22 @@ jobs:
       - script: |
           set -euo pipefail
           cd lookup/app
-          npx expo export --platform web --output-dir dist
-          echo "▸ dist contents:"
-          ls -lah dist | head -20
-        displayName: 'expo export --platform web'
+          # SDK 48 uses webpack for web (see deploy-app-web.yml for the full
+          # rationale); the `expo export --platform web` Metro command would
+          # error out with "Platform 'web' is not configured to use Metro".
+          # Output lands in web-build/.
+          npx expo export:web
+          echo "▸ web-build contents:"
+          ls -lah web-build | head -20
+        displayName: 'expo export:web (webpack)'
         env:
           EXPO_PUBLIC_LOOKUP_API: 'https://lookup-api.skintyee.ca'
 
       - task: AzureStaticWebApp@0
-        displayName: 'Deploy dist/ to Azure Static Web Apps'
+        displayName: 'Deploy web-build/ to Azure Static Web Apps'
         inputs:
           azure_static_web_apps_api_token: $(LOOKUP_APP_SWA_DEPLOYMENT_TOKEN)
           skip_app_build: true
-          app_location: 'lookup/app/dist'
+          app_location: 'lookup/app/web-build'
           api_location: ''
           output_location: ''

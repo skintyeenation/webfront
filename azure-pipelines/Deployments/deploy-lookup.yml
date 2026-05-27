@@ -78,7 +78,7 @@ jobs:
               -o table
 
       - task: AzureCLI@2
-        displayName: Smoke test /health
+        displayName: Smoke test /api/health
         inputs:
           azureSubscription: skintyee-prod-azure
           scriptType: bash
@@ -90,14 +90,17 @@ jobs:
               --resource-group "$AZURE_RG" \
               --query properties.configuration.ingress.fqdn -o tsv)
 
-            echo "▸ smoke testing https://${FQDN}/health …"
+            # lookup-api uses /api/* as its route prefix (see lookup/api/src/serve.ts);
+            # the health endpoint is /api/health, NOT /health. (Differs from the
+            # NestJS api/ service, which uses globalPrefix 'v1' and exposes /v1/health.)
+            echo "▸ smoke testing https://${FQDN}/api/health …"
             for i in $(seq 1 12); do
-              if curl -fsS --max-time 5 "https://${FQDN}/health" >/dev/null 2>&1; then
+              if curl -fsS --max-time 5 "https://${FQDN}/api/health" >/dev/null 2>&1; then
                 echo "  ✓ health check passed on attempt $i"
                 exit 0
               fi
               echo "  (attempt $i — not ready yet)"
               sleep 5
             done
-            echo "✗ /health never returned 200 — rollback may be needed"
+            echo "✗ /api/health never returned 200 — rollback may be needed"
             exit 1

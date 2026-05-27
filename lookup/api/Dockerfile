@@ -66,8 +66,9 @@ USER node
 EXPOSE 5050
 
 # Container Apps treats this as the readiness signal. lookup-api's
-# serve.ts exposes /health (200 on success — see src/serve.ts ~line 119).
+# serve.ts uses /api/* as its route prefix; health is at /api/health
+# (see src/serve.ts line 118: `if (req.method === 'GET' && path === '/api/health')`).
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD wget -qO- "http://127.0.0.1:${PORT}/health" >/dev/null 2>&1 || exit 1
+  CMD wget -qO- "http://127.0.0.1:${PORT}/api/health" >/dev/null 2>&1 || exit 1
 
 CMD ["npm", "run", "serve"]
