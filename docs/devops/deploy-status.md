@@ -1,6 +1,6 @@
 # Deploy status — where we are now
 
-**📅 Last updated: 2026-05-26 (Steps 3 + 4 complete)**
+**📅 Last updated: 2026-05-26 (Steps 3, 4, 5, 6 complete — 6 of 7 setup scripts done)**
 
 Point-in-time view of which deploy setup scripts have run + what's
 blocked on what + the exact command to advance one step. Paired
@@ -26,11 +26,12 @@ script gets executed.
 [ 2. setup-sharepoint-pipeline.sh ]     ✅ DONE
 [ 3. setup-api-azure.sh ]               ✅ DONE (2026-05-26)
 [ 4. setup-lookup-azure.sh ]            ✅ DONE (2026-05-26)
-[ 5. setup-app-web-azure.sh ]           ⏸  YOU ARE HERE
-[ 6. setup-lookup-app-web-azure.sh ]    ⬜ pending (parallel with #5)
-[ 7. setup-eas-app.sh ]                 ⬜ pending (also needs Apple
-                                              Developer + Play
-                                              Console accounts)
+[ 5. setup-app-web-azure.sh ]           ✅ DONE (2026-05-26)
+[ 6. setup-lookup-app-web-azure.sh ]    ✅ DONE (2026-05-26)
+[ 7. setup-eas-app.sh ]                 ⏸  YOU ARE HERE
+                                            (needs Apple Developer +
+                                            Play Console accounts
+                                            first — see prereqs)
 ```
 
 ### Detail per step
@@ -41,30 +42,30 @@ script gets executed.
 | 2 | `setup-sharepoint-pipeline.sh` | ✅ Done | `publish-docs-to-sharepoint` pipeline registered + green runs; SC `sharepoint-docs-sc`; variable group `sharepoint-docs`; Entra apps `it-project-docs-publisher` (`0d6f0c13-…`) + `skintyeenation-admin-cli` (`cc85d6bc-…`) |
 | 3 | `setup-api-azure.sh` | ✅ Done (2026-05-26) | All 11 artifacts verified: RG `skintyee-prod-rg` ✓ · ACR `skintyeeprodacr.azurecr.io` ✓ · Postgres `skintyee-prod-pg` (B1ms + PostGIS + `api` DB + AllowAzureServices firewall) ✓ · Container Apps env `skintyee-prod-env` ✓ · Container App `api-prod` at `api-prod.mangoglacier-ce3e1265.canadacentral.azurecontainerapps.io` (scale 0→3) ✓ · Entra app `skintyee-prod-deploy` (`cb91f9d8-…`) with AcrPush + Contributor roles ✓ · ADO SC `skintyee-prod-azure` ✓ · ADO variable group `skintyee-prod-azure` (id 2) ✓ · Pipeline `deploy-api` (id 2) registered ✓ |
 | 4 | `setup-lookup-azure.sh` | ✅ Done (2026-05-26) | Container App `lookup-prod` (min 1, max 3) at `lookup-prod.mangoglacier-ce3e1265.canadacentral.azurecontainerapps.io` · AcrPull granted to lookup MI · deploy SP has Contributor on lookup-prod · `LOOKUP_CONTAINERAPP=lookup-prod` added to the shared variable group · Pipeline `deploy-lookup` (id 3) registered · **ANTHROPIC_API_KEY skipped** at setup; add anytime via `bash scripts/set-lookup-api-key.sh` |
-| 5 | `setup-app-web-azure.sh` | ❌ Not run — **next step** | No `skintyee-prod-app` Static Web App |
-| 6 | `setup-lookup-app-web-azure.sh` | ❌ Not run | No `skintyee-prod-lookup-app` Static Web App |
-| 7 | `setup-eas-app.sh` | ❌ Not run | No `EXPO_TOKEN` in any variable group; `app/` has no EAS project ID in `app.config.js` |
+| 5 | `setup-app-web-azure.sh` | ✅ Done (2026-05-26) | Static Web App `skintyee-prod-app` (Free) at `jolly-field-07345350f.7.azurestaticapps.net` · `SWA_DEPLOYMENT_TOKEN` (secret) + `GOOGLE_MAPS_API_KEY` placeholder added to the variable group · Pipeline `deploy-app-web` (id 4) registered. ⚠ Replace the `GOOGLE_MAPS_API_KEY` placeholder before the first build — see follow-ups below. |
+| 6 | `setup-lookup-app-web-azure.sh` | ✅ Done (2026-05-26) | Static Web App `skintyee-prod-lookup-app` (Free) at `nice-cliff-08511a80f.7.azurestaticapps.net` · `LOOKUP_APP_SWA_DEPLOYMENT_TOKEN` (secret) added to the variable group · Pipeline `deploy-lookup-app-web` (id 5) registered. |
+| 7 | `setup-eas-app.sh` | ❌ Not run — **next step** | No `EXPO_TOKEN` in any variable group; `app/` has no EAS project ID in `app.config.js`. Requires Apple Developer Program + Play Console enrollment first. |
 
 ## Exact next command
 
 ```bash
-bash scripts/setup-app-web-azure.sh --dry-run     # preview
-bash scripts/setup-app-web-azure.sh               # for real
-
-# Then (independent — can run in parallel from another terminal):
-bash scripts/setup-lookup-app-web-azure.sh
+bash scripts/setup-eas-app.sh
 ```
 
-Steps 5 + 6 each create a Static Web App + push a deployment token
-to the variable group + register the corresponding pipeline. Each
-takes ~3 min. They're independent of each other so order doesn't
-matter; can run in parallel.
+Step 7 is interactive — opens a browser to sign into Expo, walks
+through `eas init` + `eas credentials` for iOS + Android. Apple
+Developer Program ($99 USD/yr) + Play Console account ($25 USD
+one-time) must be enrolled and have app records created (bundle
+ID `ca.skintyee.app`) before this can complete the credentials
+step.
 
-Step 7 (EAS native build) is gated on Apple Developer + Play
-Console account enrollment ($99/yr Apple + $25 one-time Play),
-so do it last.
+If those aren't ready yet, this step can be deferred indefinitely
+— the web pipeline (`deploy-app-web`) handles the app's web
+target, so the native build pipeline is only blocking iOS / Android
+distribution to TestFlight + Play Store. Nothing breaks if Step 7
+sits at ⏸ for weeks.
 
-## Pending follow-ups from Steps 3 + 4 (not blocking Step 5)
+## Pending follow-ups from Steps 3–6 (not blocking Step 7)
 
 Small tasks accumulated; do them whenever convenient. Each
 unblocks the corresponding first-deploy pipeline run.
@@ -72,11 +73,16 @@ unblocks the corresponding first-deploy pipeline run.
 | Task | One-liner |
 |---|---|
 | Add `ANTHROPIC_API_KEY` to `lookup-prod` (deferred at Step 4) | `ANTHROPIC_API_KEY='sk-...' bash scripts/set-lookup-api-key.sh` |
-| Wire `api.skintyee.ca` custom domain | See [`../godaddy/subdomains-for-azure-services.md` § api.skintyee.ca](../godaddy/subdomains-for-azure-services.md#apiskintyeeca--backend-container-apps); Container App FQDN to CNAME to: `api-prod.mangoglacier-ce3e1265.canadacentral.azurecontainerapps.io` |
-| Wire `lookup.skintyee.ca` custom domain | Same doc, `lookup-prod` FQDN: `lookup-prod.mangoglacier-ce3e1265.canadacentral.azurecontainerapps.io` |
+| Replace `GOOGLE_MAPS_API_KEY` placeholder (added by Step 5) | `az pipelines variable-group variable update --org https://dev.azure.com/skintyeenation --project devops --group-id 2 --name GOOGLE_MAPS_API_KEY --secret true --value '<paste from 1Password>'` |
+| Wire `api.skintyee.ca` custom domain | [`../godaddy/subdomains-for-azure-services.md` § api.skintyee.ca](../godaddy/subdomains-for-azure-services.md#apiskintyeeca--backend-container-apps); Container App FQDN: `api-prod.mangoglacier-ce3e1265.canadacentral.azurecontainerapps.io` |
+| Wire `lookup.skintyee.ca` custom domain | Same doc; FQDN: `lookup-prod.mangoglacier-ce3e1265.canadacentral.azurecontainerapps.io` |
+| Wire `app.skintyee.ca` custom domain | [`../godaddy/subdomains-for-azure-services.md` § app.skintyee.ca](../godaddy/subdomains-for-azure-services.md#appskintyeeca--community-app-web-static-web-apps); SWA default hostname: `jolly-field-07345350f.7.azurestaticapps.net` |
+| Wire `lookup-app.skintyee.ca` custom domain | Same doc; SWA default hostname: `nice-cliff-08511a80f.7.azurestaticapps.net` |
 | Save Postgres password to 1Password (IT/Admin vault) | Out of band — script already wrote it to the ADO variable group as `PG_PASSWORD` (secret); 1Password is the durable backup copy |
-| First deploy of `api/` | Push any change touching `api/**` → `deploy-api` auto-runs · or <https://dev.azure.com/skintyeenation/devops/_build?definitionId=2> |
-| First deploy of `lookup/api/` | Push any change touching `lookup/api/**` → `deploy-lookup` auto-runs · or <https://dev.azure.com/skintyeenation/devops/_build?definitionId=3> |
+| First deploy of `api/` | Push touching `api/**` → `deploy-api` runs · or <https://dev.azure.com/skintyeenation/devops/_build?definitionId=2> |
+| First deploy of `lookup/api/` | Push touching `lookup/api/**` → `deploy-lookup` runs · or <https://dev.azure.com/skintyeenation/devops/_build?definitionId=3> |
+| First deploy of `app/` web | Push touching `app/**` → `deploy-app-web` runs · or <https://dev.azure.com/skintyeenation/devops/_build?definitionId=4> |
+| First deploy of `lookup/app/` web | Push touching `lookup/app/**` → `deploy-lookup-app-web` runs · or <https://dev.azure.com/skintyeenation/devops/_build?definitionId=5> |
 
 What it provisions (~10 min, Postgres is the slow part):
 
