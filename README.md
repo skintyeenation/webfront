@@ -471,13 +471,58 @@ export migration workflow.
 
 ## Deployment
 
-`website/azure-pipelines.yml` deploys the WordPress stack via Azure DevOps over
-SSH (`develop` → staging, `master` → production), using a **managed Azure
+### Live URLs (production)
+
+| URL | Backing | Status | Last deploy |
+|---|---|---|---|
+| <https://api.skintyee.ca> | Azure Container App `api-prod` (NestJS in Docker, `canadacentral`) | ✅ Live | `deploy-api` run #44 (2026-05-26, image `api:eccfd9b`, 125s) |
+| &nbsp;&nbsp;&nbsp;&nbsp;`/v1/health` | liveness probe | HTTP 200 | — |
+| &nbsp;&nbsp;&nbsp;&nbsp;`/v1/directory` `/v1/events` `/v1/meetings` … | OpenAPI'd endpoints (in-memory data) | HTTP 200 | — |
+| &nbsp;&nbsp;&nbsp;&nbsp;`/` | Swagger UI | HTML 200 | — |
+| &nbsp;&nbsp;&nbsp;&nbsp;`/openapi.json` | OpenAPI 3.0 spec | JSON 200 | — |
+| <https://app.skintyee.ca> | Azure Static Web App `skintyee-prod-app` (Expo web bundle, Free tier) | ✅ Live | `deploy-app-web` run #47 (2026-05-26, commit `192352c`, 32s) |
+| `https://skintyee.ca` | WordPress on Docker over SSH (managed Azure MySQL Flexible Server) | ⬜ Pending — see below | `website/azure-pipelines.yml` |
+| `https://lookup.skintyee.ca` | Azure Container App `lookup-prod` | ⬜ Pending (Container App + custom domain not yet wired) | `deploy-lookup` |
+| `https://lookup-app.skintyee.ca` | Azure Static Web App `skintyee-prod-lookup-app` | ⬜ Pending (custom domain not yet wired) | `deploy-lookup-app-web` |
+
+Each Container App uses an **Azure-managed TLS cert** (DigiCert-rooted,
+auto-renewing every 6 months); each Static Web App uses **SWA's free managed
+TLS** (also DigiCert-rooted, auto-renewing). DNS is at GoDaddy — see
+[`docs/godaddy/subdomains-for-azure-services.md`](docs/godaddy/subdomains-for-azure-services.md).
+
+### Pipelines
+
+5 pipelines on the `skintyeenation/devops` ADO project, all using **workload
+identity federation** (no long-lived client secrets anywhere):
+
+| Pipeline | YAML | Triggers on | What it does |
+|---|---|---|---|
+| `deploy-api` | [`azure-pipelines/Deployments/deploy-api.yml`](azure-pipelines/Deployments/deploy-api.yml) | push to `master` touching `api/**` | `az acr build` → push to `skintyeeprodacr` → `az containerapp update` → smoke test `/v1/health` |
+| `deploy-app-web` | [`azure-pipelines/Deployments/deploy-app-web.yml`](azure-pipelines/Deployments/deploy-app-web.yml) | push to `master` touching `app/**` (+ PRs to `master` for staging-URL previews) | pnpm install → `expo export:web` → upload to Static Web App |
+| `deploy-lookup` | [`azure-pipelines/Deployments/deploy-lookup.yml`](azure-pipelines/Deployments/deploy-lookup.yml) | push to `master` touching `lookup/api/**` | same shape as `deploy-api`, targets `lookup-prod` Container App |
+| `deploy-lookup-app-web` | [`azure-pipelines/Deployments/deploy-lookup-app-web.yml`](azure-pipelines/Deployments/deploy-lookup-app-web.yml) | push to `master` touching `lookup/app/**` | same shape as `deploy-app-web`, targets the lookup SWA |
+| `publish-docs-to-sharepoint` | [`azure-pipelines/publish-docs-to-sharepoint.yml`](azure-pipelines/publish-docs-to-sharepoint.yml) | push to `master` touching `docs/**` | mirrors `docs/` to SharePoint via Microsoft Graph |
+
+`website/azure-pipelines.yml` deploys the WordPress stack over SSH
+(`develop` → staging, `master` → production), using a **managed Azure
 Database for MySQL – Flexible Server** in production
 ([`website/docker-compose.prod.yml`](website/docker-compose.prod.yml)).
 
-The app distributes via **EAS Build** to **TestFlight** (iOS) and **Google Play**
-(Android) — see [`docs/testing-strategy.md`](docs/testing-strategy.md).
+The app's **native** iOS / Android distribution goes via **EAS Build** to
+**TestFlight** + **Google Play** (separate from the web SWA pipeline above) — see
+[`docs/testing-strategy.md`](docs/testing-strategy.md) and
+[`docs/devops/app-deploy-eas.md`](docs/devops/app-deploy-eas.md).
+
+### Status & architecture maps
+
+- [`docs/devops/deploy-status.md`](docs/devops/deploy-status.md) — what's
+  deployed *right now* (point-in-time, updated each step)
+- [`docs/devops/deploy-architecture.md`](docs/devops/deploy-architecture.md) —
+  bird's-eye map of every deploy target (steady state, doesn't change)
+- [`docs/devops/deployment-plan.md`](docs/devops/deployment-plan.md) —
+  ADR-10 + Container Apps deploy plan for `api/` + `lookup/api/`
+- [`docs/devops/app-deploy-web.md`](docs/devops/app-deploy-web.md) —
+  ADR-12 + Static Web Apps plan for both apps' web targets
 
 ## Documentation
 
