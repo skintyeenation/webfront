@@ -5,7 +5,7 @@ The monorepo has **two** Expo apps with different deploy needs:
 | App | Source dir | Target(s) | Native (App / Play Store)? | Web URL | Web pipeline |
 |---|---|---|---|---|---|
 | **Community app** | [`app/`](../../app/) | iOS + Android **and** web | Yes — TestFlight + Play | `app.skintyee.ca` | [`deploy-app-web.yml`](../../azure-pipelines/Deployments/deploy-app-web.yml) |
-| **Lookup app** | [`lookup/app/`](../../lookup/app/) | **Web only** | No (lookup tool runs in browser, no store distribution) | `lookup-app.skintyee.ca` | [`deploy-lookup-app-web.yml`](../../azure-pipelines/Deployments/deploy-lookup-app-web.yml) |
+| **Lookup app** | [`lookup/app/`](../../lookup/app/) | **Web only** | No (lookup tool runs in browser, no store distribution) | `lookup.skintyee.ca` | [`deploy-lookup-app-web.yml`](../../azure-pipelines/Deployments/deploy-lookup-app-web.yml) |
 
 This doc covers the **web target for both apps**. The native side
 (community-app only) is covered by [`app-deploy-eas.md`](./app-deploy-eas.md).
@@ -40,7 +40,7 @@ caches globally, and TLS for custom domains is free + auto-renewed.
 | File | Purpose |
 |---|---|
 | [`azure-pipelines/Deployments/deploy-app-web.yml`](../../azure-pipelines/Deployments/deploy-app-web.yml) | Builds `app/` for web → deploys to SWA at `app.skintyee.ca` |
-| [`azure-pipelines/Deployments/deploy-lookup-app-web.yml`](../../azure-pipelines/Deployments/deploy-lookup-app-web.yml) | Builds `lookup/app/` for web → deploys to SWA at `lookup-app.skintyee.ca` |
+| [`azure-pipelines/Deployments/deploy-lookup-app-web.yml`](../../azure-pipelines/Deployments/deploy-lookup-app-web.yml) | Builds `lookup/app/` for web → deploys to SWA at `lookup.skintyee.ca` |
 | [`scripts/setup-app-web-azure.sh`](../../scripts/setup-app-web-azure.sh) | One-time setup for the community-app SWA (`skintyee-prod-app`) |
 | [`scripts/setup-lookup-app-web-azure.sh`](../../scripts/setup-lookup-app-web-azure.sh) | One-time setup for the lookup-app SWA (`skintyee-prod-lookup-app`) |
 

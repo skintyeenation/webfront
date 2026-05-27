@@ -1,7 +1,7 @@
 # Subdomains for Azure-hosted services (in GoDaddy DNS)
 
-How `app.skintyee.ca`, `lookup.skintyee.ca`, `api.skintyee.ca`, and
-`lookup-app.skintyee.ca` get wired up. Same DNS-at-GoDaddy decision
+How `app.skintyee.ca`, `lookup-api.skintyee.ca`, `api.skintyee.ca`, and
+`lookup.skintyee.ca` get wired up. Same DNS-at-GoDaddy decision
 as the email setup ([`dns-hosting-tradeoff.md`](./dns-hosting-tradeoff.md))
 — every record below gets added in GoDaddy's DNS panel.
 
@@ -40,9 +40,9 @@ LetsEncrypt cron to maintain.
 | Subdomain | Target Azure resource | Service type | Pipeline |
 |---|---|---|---|
 | `app.skintyee.ca` | `skintyee-prod-app` Static Web App | Web (community app's Expo web build) | [`deploy-app-web.yml`](../../azure-pipelines/Deployments/deploy-app-web.yml) |
-| `lookup-app.skintyee.ca` | `skintyee-prod-lookup-app` Static Web App | Web (lookup tool's Expo web build) | [`deploy-lookup-app-web.yml`](../../azure-pipelines/Deployments/deploy-lookup-app-web.yml) |
+| `lookup.skintyee.ca` | `skintyee-prod-lookup-app` Static Web App | Web (lookup tool's Expo web build) | [`deploy-lookup-app-web.yml`](../../azure-pipelines/Deployments/deploy-lookup-app-web.yml) |
 | `api.skintyee.ca` | `api-prod` Container App | Backend (NestJS) | [`deploy-api.yml`](../../azure-pipelines/Deployments/deploy-api.yml) |
-| `lookup.skintyee.ca` | `lookup-prod` Container App | Backend (Node + Anthropic) | [`deploy-lookup.yml`](../../azure-pipelines/Deployments/deploy-lookup.yml) |
+| `lookup-api.skintyee.ca` | `lookup-prod` Container App | Backend (Node + Anthropic) | [`deploy-lookup.yml`](../../azure-pipelines/Deployments/deploy-lookup.yml) |
 
 Once these are wired up, the WordPress site stays on `skintyee.ca`
 apex (currently AWS A records — to be replaced with the WP prod IP
@@ -130,7 +130,7 @@ community app over HTTPS.
 
 ---
 
-## `lookup-app.skintyee.ca` — lookup tool web (Static Web Apps)
+## `lookup.skintyee.ca` — lookup tool web (Static Web Apps)
 
 Identical shape to `app.skintyee.ca`, just substitute names:
 
@@ -141,7 +141,7 @@ RG=skintyee-prod-rg
 az staticwebapp hostname set \
   --resource-group "$RG" \
   --name "$SWA_NAME" \
-  --hostname lookup-app.skintyee.ca \
+  --hostname lookup.skintyee.ca \
   --validation-method 'cname-delegation'
 ```
 
@@ -216,7 +216,7 @@ On success, `https://api.skintyee.ca` is live.
 
 ---
 
-## `lookup.skintyee.ca` — backend (Container Apps)
+## `lookup-api.skintyee.ca` — backend (Container Apps)
 
 Same shape as `api.skintyee.ca`:
 
@@ -227,7 +227,7 @@ RG=skintyee-prod-rg
 az containerapp hostname add \
   --resource-group "$RG" \
   --name "$CONTAINER_APP" \
-  --hostname lookup.skintyee.ca
+  --hostname lookup-api.skintyee.ca
 ```
 
 GoDaddy records:
@@ -243,7 +243,7 @@ Then bind:
 az containerapp hostname bind \
   --resource-group "$RG" \
   --name "$CONTAINER_APP" \
-  --hostname lookup.skintyee.ca \
+  --hostname lookup-api.skintyee.ca \
   --environment skintyee-prod-env \
   --validation-method CNAME
 ```
@@ -276,15 +276,15 @@ After each subdomain is wired up:
 ```bash
 # DNS resolves
 dig +short CNAME app.skintyee.ca
-dig +short CNAME lookup-app.skintyee.ca
-dig +short CNAME api.skintyee.ca
 dig +short CNAME lookup.skintyee.ca
+dig +short CNAME api.skintyee.ca
+dig +short CNAME lookup-api.skintyee.ca
 
 # Sites respond over HTTPS
 curl -sI https://app.skintyee.ca | head -2
-curl -sI https://lookup-app.skintyee.ca | head -2
+curl -sI https://lookup.skintyee.ca | head -2
 curl -sI https://api.skintyee.ca/v1/health | head -2
-curl -sI https://lookup.skintyee.ca/health | head -2
+curl -sI https://lookup-api.skintyee.ca/health | head -2
 
 # Cert validity (renew automatically every ~60 days; confirm chain)
 echo | openssl s_client -connect app.skintyee.ca:443 -servername app.skintyee.ca 2>/dev/null \

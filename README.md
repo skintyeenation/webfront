@@ -143,8 +143,8 @@ ERP / band-delegation pieces. Full detail in
 ├── api/               # @skintyee/api — NestJS API + OpenAPI contract → api.skintyee.ca
 │                        Container Apps deploy (ADR-10) — Dockerfile + pipeline included
 ├── lookup/            # @skintyee/lookup — Canadian business / Nations lookup tool (web-only)
-│   ├── api/           #   @skintyee/lookup-api  — Node + Anthropic scrapers → lookup.skintyee.ca
-│   └── app/           #   @skintyee/lookup-app  — Expo web target → lookup-app.skintyee.ca
+│   ├── api/           #   @skintyee/lookup-api  — Node + Anthropic scrapers → lookup-api.skintyee.ca
+│   └── app/           #   @skintyee/lookup-app  — Expo web target → lookup.skintyee.ca
 ├── website/           # WordPress site + migration tooling → skintyee.ca (git subtree)
 ├── docs/              # project + app docs, architecture decisions (12 ADRs), proposal deck
 │                        auto-published to SharePoint on every push touching docs/
@@ -482,8 +482,8 @@ export migration workflow.
 | &nbsp;&nbsp;&nbsp;&nbsp;`/openapi.json` | OpenAPI 3.0 spec | JSON 200 | — |
 | <https://app.skintyee.ca> | Azure Static Web App `skintyee-prod-app` (Expo web bundle, Free tier) | ✅ Live | `deploy-app-web` run #47 (2026-05-26, commit `192352c`, 32s) |
 | `https://skintyee.ca` | WordPress on Docker over SSH (managed Azure MySQL Flexible Server) | ⬜ Pending — see below | `website/azure-pipelines.yml` |
-| `https://lookup.skintyee.ca` | Azure Container App `lookup-prod` | ⬜ Pending (Container App + custom domain not yet wired) | `deploy-lookup` |
-| `https://lookup-app.skintyee.ca` | Azure Static Web App `skintyee-prod-lookup-app` | ⬜ Pending (custom domain not yet wired) | `deploy-lookup-app-web` |
+| <https://lookup-api.skintyee.ca> | Azure Container App `lookup-prod` (Node + Anthropic, `canadacentral`) | ✅ Custom domain live (cert `mc-skintyee-prod--lookup-api-skint-7909`); ⬜ pending first `deploy-lookup` run (placeholder image, also needs `ANTHROPIC_API_KEY` set via `bash scripts/set-lookup-api-key.sh`) | — |
+| <https://lookup.skintyee.ca> | Azure Static Web App `skintyee-prod-lookup-app` (Free tier) | ✅ Custom domain live (cert valid → Nov 2026); ⬜ pending first `deploy-lookup-app-web` run (SWA default page) | — |
 
 Each Container App uses an **Azure-managed TLS cert** (DigiCert-rooted,
 auto-renewing every 6 months); each Static Web App uses **SWA's free managed

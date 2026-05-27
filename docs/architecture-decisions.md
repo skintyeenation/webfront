@@ -221,7 +221,7 @@ Decision record for the Skin Tyee app (`@skintyee/app`, in `app/`). Lives in the
   Container images live in a shared **Azure Container Registry**
   (Basic). The `api/`'s state-of-record DB is **Azure Database for
   PostgreSQL Flexible Server** (B1ms, PostGIS) per ADR-7.
-- **Custom domains:** `api.skintyee.ca` and `lookup.skintyee.ca`,
+- **Custom domains:** `api.skintyee.ca` and `lookup-api.skintyee.ca`,
   both via the existing Azure DNS zone, with Container-Apps-managed
   free TLS.
 - **Why Container Apps and not the alternatives:**
@@ -321,7 +321,7 @@ Decision record for the Skin Tyee app (`@skintyee/app`, in `app/`). Lives in the
     [`Deployments/deploy-app-web.yml`](../azure-pipelines/Deployments/deploy-app-web.yml).
     Same source tree as the native build (ADR-11); web is one of
     three targets.
-  - **Lookup tool app** (`lookup/app/`) → `lookup-app.skintyee.ca` —
+  - **Lookup tool app** (`lookup/app/`) → `lookup.skintyee.ca` —
     [`Deployments/deploy-lookup-app-web.yml`](../azure-pipelines/Deployments/deploy-lookup-app-web.yml).
     **Web-only** — the lookup app is a browser tool for staff / the
     public, no need to publish to App Store or Play Store.

@@ -13,9 +13,9 @@ for that target.
 | Source | Native (iOS/Android) | Web | Backend / API | Static / Content |
 |---|---|---|---|---|
 | **`app/`** (community app) | ✅ `app.skintyee.ca` via TestFlight + Play — [EAS](./app-deploy-eas.md) | ✅ `app.skintyee.ca` (web) — [SWA](./app-deploy-web.md) | n/a | n/a |
-| **`lookup/app/`** (lookup tool app) | ❌ (web-only — browser tool, no store distribution) | ✅ `lookup-app.skintyee.ca` — [SWA](./app-deploy-web.md) | n/a | n/a |
+| **`lookup/app/`** (lookup tool app) | ❌ (web-only — browser tool, no store distribution) | ✅ `lookup.skintyee.ca` — [SWA](./app-deploy-web.md) | n/a | n/a |
 | **`api/`** (NestJS, community-app backend) | n/a | n/a | ✅ `api.skintyee.ca` — [Container Apps](./deployment-plan.md) | n/a |
-| **`lookup/api/`** (Node + Anthropic) | n/a | n/a | ✅ `lookup.skintyee.ca` (always-on, min 1 replica) — [Container Apps](./deployment-plan.md) | n/a |
+| **`lookup/api/`** (Node + Anthropic) | n/a | n/a | ✅ `lookup-api.skintyee.ca` (always-on, min 1 replica) — [Container Apps](./deployment-plan.md) | n/a |
 | **`docs/`** + root README | n/a | n/a | n/a | ✅ Auto-published to SharePoint — [walkthrough](../365/sharepoint-docs-publish.md) |
 | **`website/`** (WordPress) | n/a | n/a | n/a | ✅ `skintyee.ca` on existing VM via SSH — [pipeline](../../website/azure-pipelines.yml) |
 

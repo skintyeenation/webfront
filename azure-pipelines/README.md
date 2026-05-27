@@ -20,9 +20,9 @@ azure-pipelines/
 │   └── build-app.yml                        ← native iOS/Android via EAS Build
 └── Deployments/                             ← things that ship to a hosted env
     ├── deploy-api.yml                       ← api/ NestJS → api.skintyee.ca
-    ├── deploy-lookup.yml                    ← lookup/api/ → lookup.skintyee.ca
+    ├── deploy-lookup.yml                    ← lookup/api/ → lookup-api.skintyee.ca
     ├── deploy-app-web.yml                   ← app/ web → app.skintyee.ca
-    └── deploy-lookup-app-web.yml            ← lookup/app/ web → lookup-app.skintyee.ca
+    └── deploy-lookup-app-web.yml            ← lookup/app/ web → lookup.skintyee.ca
 ```
 
 `Builds/` vs `Deployments/` is a soft convention: builds *produce*
@@ -45,7 +45,7 @@ split). Won't break anything to move it; not worth the path churn.
 | [`Deployments/deploy-api.yml`](./Deployments/deploy-api.yml) | Build api/ Docker → ACR → update `api-prod` Container App revision + smoke-test `/v1/health` | push to `master` touching `api/**` | Federated SC `skintyee-prod-azure` |
 | [`Deployments/deploy-lookup.yml`](./Deployments/deploy-lookup.yml) | Same shape as deploy-api but for `lookup/api/` → `lookup-prod` Container App (min-replicas=1, always-on) | push to `master` touching `lookup/api/**` | Federated SC `skintyee-prod-azure` |
 | [`Deployments/deploy-app-web.yml`](./Deployments/deploy-app-web.yml) | `expo export --platform web` on `app/` → Azure Static Web Apps at `app.skintyee.ca` | push to `master` + **PRs** touching `app/**` (PR previews enabled) | `SWA_DEPLOYMENT_TOKEN` |
-| [`Deployments/deploy-lookup-app-web.yml`](./Deployments/deploy-lookup-app-web.yml) | Same shape as deploy-app-web but for `lookup/app/` → `lookup-app.skintyee.ca` | push to `master` + PRs touching `lookup/app/**` | `LOOKUP_APP_SWA_DEPLOYMENT_TOKEN` |
+| [`Deployments/deploy-lookup-app-web.yml`](./Deployments/deploy-lookup-app-web.yml) | Same shape as deploy-app-web but for `lookup/app/` → `lookup.skintyee.ca` | push to `master` + PRs touching `lookup/app/**` | `LOOKUP_APP_SWA_DEPLOYMENT_TOKEN` |
 
 The existing WordPress site pipeline lives outside this directory at
 [`../website/azure-pipelines.yml`](../website/azure-pipelines.yml) —

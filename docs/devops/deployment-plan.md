@@ -105,7 +105,7 @@ The headline pick — used by both `api/` and `lookup/api/`.
 
 - **Hosting:** Azure Container Apps (Consumption, **always-on** with
   `min-replicas=1`).
-- **Custom domain:** `lookup.skintyee.ca` (subdomain TBD — could also
+- **Custom domain:** `lookup-api.skintyee.ca` (subdomain TBD — could also
   be `lookup-api.skintyee.ca` or path-routed under
   `api.skintyee.ca/lookup/*`; flat-subdomain reads cleanest).
 - **Storage:** Azure Blob Storage for the cached lookup data (`data/`,
@@ -170,7 +170,7 @@ Standardize from day 1 so resources are scannable:
 | DB inside Postgres | `<service>` | `api`, `lookup` |
 | Blob Storage | `skintyee<env><purpose>` | `skintyeeprodassets` |
 | Application Insights | `skintyee-<env>-ai` | `skintyee-prod-ai` |
-| Custom domain | `<service>.skintyee.ca` | `api.skintyee.ca`, `lookup.skintyee.ca` |
+| Custom domain | `<service>.skintyee.ca` | `api.skintyee.ca`, `lookup-api.skintyee.ca` |
 | Service connection (ADO) | `skintyee-<env>-azure` | `skintyee-prod-azure` |
 
 All in **`canadacentral`**.
@@ -289,7 +289,7 @@ What stays manual:
   same time during the proposal demo.
 - Decide whether `lookup/api/` needs a database (currently file-backed
   via `data/` + `out/` directories).
-- Pick the lookup subdomain shape: `lookup.skintyee.ca` (separate
+- Pick the lookup subdomain shape: `lookup-api.skintyee.ca` (separate
   service) vs `api.skintyee.ca/lookup/*` (path-routed under the main
   API). Subdomain is simpler operationally but doubles the TLS-cert
   setup work.

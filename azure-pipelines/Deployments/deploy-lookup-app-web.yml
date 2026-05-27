@@ -1,7 +1,7 @@
 name: deploy-lookup-app-web
 
 # Web build + deploy for lookup/app/ → Azure Static Web Apps at
-# lookup-app.skintyee.ca. Twin of deploy-app-web.yml — same shape,
+# lookup.skintyee.ca. Twin of deploy-app-web.yml — same shape,
 # different source dir + SWA resource + deployment token.
 #
 # See docs/devops/app-deploy-web.md for the shared rationale.
@@ -59,7 +59,7 @@ jobs:
           ls -lah dist | head -20
         displayName: 'expo export --platform web'
         env:
-          EXPO_PUBLIC_LOOKUP_API: 'https://lookup.skintyee.ca'
+          EXPO_PUBLIC_LOOKUP_API: 'https://lookup-api.skintyee.ca'
 
       - task: AzureStaticWebApp@0
         displayName: 'Deploy dist/ to Azure Static Web Apps'
