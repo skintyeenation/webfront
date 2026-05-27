@@ -80,9 +80,9 @@ unblocks the corresponding first-deploy pipeline run.
 | Wire `lookup.skintyee.ca` custom domain | ✅ Done (2026-05-26) — CNAME `lookup → nice-cliff-08511a80f.7.azurestaticapps.net` in GoDaddy (re-pointed from CA to SWA target); SWA `skintyee-prod-lookup-app` hostname `Ready`; managed TLS cert issued (DigiCert-rooted, auto-renew). `https://lookup.skintyee.ca` → HTTP 200 (SWA default until first `deploy-lookup-app-web` run). |
 | Save Postgres password to 1Password (IT/Admin vault) | Out of band — script already wrote it to the ADO variable group as `PG_PASSWORD` (secret); 1Password is the durable backup copy |
 | First deploy of `api/` | ✅ Done (2026-05-26) — `deploy-api` run #44 succeeded on commit `eccfd9b` (125s end-to-end: ACR build + push + revision swap + smoke test). Auto-triggers on push to `api/**`. |
-| First deploy of `lookup/api/` | Push touching `lookup/api/**` → `deploy-lookup` runs · or <https://dev.azure.com/skintyeenation/devops/_build?definitionId=3> |
+| First deploy of `lookup/api/` | ✅ Done (2026-05-26) — `deploy-lookup` run #53 succeeded on commit `56d17b7` (154s end-to-end). `/api/health` → 200. Auto-triggers on push to `lookup/api/**`. |
 | First deploy of `app/` web | ✅ Done (2026-05-26) — `deploy-app-web` run #47 succeeded on commit `192352c` (32s: pnpm + expo export:web + SWA upload). Auto-triggers on push to `app/**`. |
-| First deploy of `lookup/app/` web | Push touching `lookup/app/**` → `deploy-lookup-app-web` runs · or <https://dev.azure.com/skintyeenation/devops/_build?definitionId=5> |
+| First deploy of `lookup/app/` web | ✅ Done (2026-05-26) — `deploy-lookup-app-web` run #52 succeeded on commit `ca37bc6` (~110s: pnpm + expo export:web + SWA upload). `<title>Skin Tyee Lookup</title>` served. Auto-triggers on push to `lookup/app/**`. |
 
 What it provisions (~10 min, Postgres is the slow part):
 

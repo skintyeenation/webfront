@@ -482,8 +482,8 @@ export migration workflow.
 | &nbsp;&nbsp;&nbsp;&nbsp;`/openapi.json` | OpenAPI 3.0 spec | JSON 200 | — |
 | <https://app.skintyee.ca> | Azure Static Web App `skintyee-prod-app` (Expo web bundle, Free tier) | ✅ Live | `deploy-app-web` run #47 (2026-05-26, commit `192352c`, 32s) |
 | `https://skintyee.ca` | WordPress on Docker over SSH (managed Azure MySQL Flexible Server) | ⬜ Pending — see below | `website/azure-pipelines.yml` |
-| <https://lookup-api.skintyee.ca> | Azure Container App `lookup-prod` (Node + Anthropic, `canadacentral`) | ✅ Custom domain live (cert `mc-skintyee-prod--lookup-api-skint-7909`); ⬜ pending first `deploy-lookup` run (placeholder image, also needs `ANTHROPIC_API_KEY` set via `bash scripts/set-lookup-api-key.sh`) | — |
-| <https://lookup.skintyee.ca> | Azure Static Web App `skintyee-prod-lookup-app` (Free tier) | ✅ Custom domain live (cert valid → Nov 2026); ⬜ pending first `deploy-lookup-app-web` run (SWA default page) | — |
+| <https://lookup-api.skintyee.ca> | Azure Container App `lookup-prod` (Node + Anthropic, `canadacentral`) | ✅ Live | `deploy-lookup` run #53 (2026-05-26, image `lookup:56d17b7`, 154s). `/api/health` → 200 `{"ok":true,"port":5050}`. `ANTHROPIC_API_KEY` not yet wired — set via `bash scripts/set-lookup-api-key.sh` when ready (only Anthropic-calling endpoints need it). |
+| <https://lookup.skintyee.ca> | Azure Static Web App `skintyee-prod-lookup-app` (Free tier) | ✅ Live | `deploy-lookup-app-web` run #52 (2026-05-26). `<title>Skin Tyee Lookup</title>`. |
 
 Each Container App uses an **Azure-managed TLS cert** (DigiCert-rooted,
 auto-renewing every 6 months); each Static Web App uses **SWA's free managed
