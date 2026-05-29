@@ -10,6 +10,11 @@ This is the implementation of the two "Automated Backup" arrows shown in
 `Email Relay (Outlook Cloud)` into `Backup Server (Physical, Onsite)`,
 the other into `Email Backup Azure Storage (Cloud)`.
 
+> **To stand up the pipeline**, follow the step-by-step runbook:
+> [`../devops/backup-setup-runbook.md`](../devops/backup-setup-runbook.md).
+> This doc covers the *design* (why this approach, how the pieces fit);
+> the runbook covers the *execution* (every command to type, in order).
+
 > **Decision: build it ourselves.** Not Veeam, not MailStore, not
 > AvePoint. The reasoning + the alternatives we're explicitly NOT
 > choosing are in [§ Alternatives considered](#alternatives-considered)

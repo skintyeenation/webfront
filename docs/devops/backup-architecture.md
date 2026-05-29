@@ -4,6 +4,11 @@ Bird's-eye map of every "what gets backed up where" decision for Skin
 Tyee. Companion to [`./deploy-architecture.md`](./deploy-architecture.md)
 (which maps what gets *deployed*) — this maps what gets *backed up*.
 
+> **To actually stand up the pipeline**, follow
+> [`./backup-setup-runbook.md`](./backup-setup-runbook.md) — 8 phases of
+> "type this, then type that, here's what should print." This doc is
+> the *what*; that doc is the *how*.
+
 ## The architecture in one diagram
 
 ```

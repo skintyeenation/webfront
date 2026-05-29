@@ -615,6 +615,14 @@ SMS + voice + email), **one** Application Insights for heartbeats.
 See [`docs/devops/backup-architecture.md`](docs/devops/backup-architecture.md)
 for the bird's-eye map + the one-storage-account decision rationale.
 
+### To stand it up
+
+Follow the step-by-step:
+**[`docs/devops/backup-setup-runbook.md`](docs/devops/backup-setup-runbook.md)** —
+8 phases, every command to type, expected output snippets, troubleshooting
+table. ~30-45 min of focused time + ~4-12 hr wait for the first full
+backup to walk every existing message.
+
 ## Documentation
 
 - [`CLAUDE.md`](CLAUDE.md) — workspace overview, conventions, and decisions
@@ -635,7 +643,8 @@ for the bird's-eye map + the one-storage-account decision rationale.
 - [`docs/365/groups.md`](docs/365/groups.md) — Microsoft 365 Groups vs Security Groups (when to use which, with concrete examples mapped to our tenant)
 - [`docs/365/pricing.md`](docs/365/pricing.md) — Microsoft 365 per-user pricing, tax deductibility, offboarding
 - [`docs/365/sharepoint-docs-publish.md`](docs/365/sharepoint-docs-publish.md) — auto-publish `docs/` to SharePoint via GitHub Actions + Microsoft Graph (Entra ID app + `Sites.Selected`), 9-step one-time Azure setup (being migrated to Azure Pipelines — see `devops/migrate-ci-workflows.md`)
-- [`docs/devops/backup-architecture.md`](docs/devops/backup-architecture.md) — **bird's-eye map of ALL backup workloads** (M365 mail, M365 SharePoint, Entra ID, Azure resource config) — single storage account `skintyeebackups` with 4 containers, shared monitoring/alerting/credentials. The entry point for any backup-related question.
+- [`docs/devops/backup-architecture.md`](docs/devops/backup-architecture.md) — **bird's-eye map of ALL backup workloads** (M365 mail, M365 SharePoint, Entra ID, Azure resource config, Postgres data) — single storage account `skintyeebackups` with 5 containers, shared monitoring/alerting/credentials. The entry point for any backup-related question.
+- [`docs/devops/backup-setup-runbook.md`](docs/devops/backup-setup-runbook.md) — **step-by-step setup runbook** for actually standing up the backup pipeline. 8 phases (prerequisites → cloud provisioning → save secrets → server install → 1Password CLI signin → first backup → verify monitoring → schedule drills). Concrete commands, expected output, troubleshooting table. ~30-45 min of focused work + ~4-12 hr wait for the first backup. The "how" companion to backup-architecture's "what".
 - [`docs/365/email-backup.md`](docs/365/email-backup.md) — automated M365 email backup (workload 1 of 4) to the onsite Windows Server 2022 + Azure Blob offsite copy; DIY PowerShell + Microsoft Graph (decision rationale, the script, scheduling, multi-channel SMS/voice/email alerting via Azure Monitor Action Groups, restore procedure, what is + isn't in scope — incl. why OneDrive is NOT backed up)
 - [`docs/365/entra-backup.md`](docs/365/entra-backup.md) — planning doc for the **separate** Entra ID backup (workload 3 of 4): users, groups, roles, app registrations, conditional access policies, custom RBAC
 - [`docs/devops/azure-backup.md`](docs/devops/azure-backup.md) — planning doc for the Azure **resource config** backup (workload 4 of 5): ARM/Bicep templates, RBAC, alert rules, Container App config, Postgres server config — config snapshots in version-controlled JSON
