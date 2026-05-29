@@ -71,18 +71,18 @@ Tyee. Companion to [`./deploy-architecture.md`](./deploy-architecture.md)
 | **Secret VALUES** (Postgres password, SP client secrets, SAS tokens, Anthropic API key) | These don't get backed up to the archive at all. They live in 1Password (the durable source of truth) + the ADO variable group + Container App secrets (the operational copies). The config snapshots record that a secret *exists*, not its value. | 1Password vault `IT/Admin` |
 | **The backups themselves** (the contents of `skintyeebackups`) | Backing up the backup creates infinite regress. The durability comes from Azure Blob's 99.999999999% spec + the 90-day immutability policy + the on-prem Server 2022 copy. | Phase 2 consideration: mirror to a *different* cloud (S3 / GCS) for true cross-cloud redundancy |
 
-## Why one storage account, not four
+## Why one storage account, not many
 
-The decision was made 2026-05-27. Four workloads, one bucket
-(`skintyeebackups`), four containers — instead of four separate storage
+The decision was made 2026-05-27. Five workloads, one bucket
+(`skintyeebackups`), five containers — instead of five separate storage
 accounts (`skintyeem365backups`, `skintyeesharepointbackups`,
-`skintyeeentrabackups`, `skintyeeazurebackups`).
+`skintyeeentrabackups`, `skintyeeazurebackups`, `skintyeepostgresbackups`).
 
 Reasoning:
 
-| Concern | One account, four containers | Four separate accounts |
+| Concern | One account, five containers | Five separate accounts |
 |---|---|---|
-| **Immutability policy** | One policy, applies to all four containers automatically | Four separate policies to keep in sync |
+| **Immutability policy** | One policy, applies to all five containers automatically | Five separate policies to keep in sync |
 | **Access credentials** | One write-only SAS per workload (still rotatable independently — SAS scope is per-container) | Four credentials, four rotation calendars |
 | **Monitoring** | One Application Insights, one Action Group, one alerting story | Four sets of monitoring config |
 | **Cost** | Each Azure storage account has a flat-fee baseline (~$0); negligible difference at our scale either way | Same |
@@ -178,10 +178,10 @@ The `_alerting\` and `drill-log.md` files are shared infrastructure.
 
 | Task | Notes |
 |---|---|
-| Write `scripts/setup-backup-cloud.sh` | Provisions `skintyeebackups` storage account + the four containers + immutability policies + a write-only SAS per container + Application Insights `ai-backup` + Action Group `ag-backup-critical` + heartbeat alert rules. Idempotent. **Replaces what was originally scoped as four separate per-workload `setup-*-cloud.sh` scripts** — one script for the whole backup infrastructure, then each per-workload script just registers its Entra app + script. |
+| Write `scripts/setup-backup-cloud.sh` | Provisions `skintyeebackups` storage account + the five containers + immutability policies + a write-only SAS per container + Application Insights `ai-backup` + Action Group `ag-backup-critical` + heartbeat alert rules. Idempotent. **Replaces what was originally scoped as five separate per-workload `setup-*-cloud.sh` scripts** — one script for the whole backup infrastructure, then each per-workload script just registers its Entra app + script. |
 | Write `scripts/setup-backup-server.ps1` | Server 2022 install: PS 7, azcopy, BitLocker on `D:`, service account `svc-backups` (one account for all four pipelines), the `D:\backups\` directory tree, the Task Scheduler entries (one per workload), the heartbeat-log-rotation task. |
 | Write each per-workload script | One bash to create the Entra app + grant scopes + push the .ps1; one .ps1 for the actual backup work. Per [`../365/email-backup.md`](../365/email-backup.md), [`../365/entra-backup.md`](../365/entra-backup.md), [`./azure-backup.md`](./azure-backup.md). |
-| Document recovery runbook | A consolidated `docs/devops/disaster-recovery.md` covering Scenario C (full subscription rebuild) for *all four* workloads — uses snapshots from all four containers as recovery inputs. |
+| Document recovery runbook | A consolidated `docs/devops/disaster-recovery.md` covering Scenario C (full subscription rebuild) for *all five* workloads — uses snapshots from all five containers as recovery inputs. |
 | Wire SharePoint backup planning | `docs/365/sharepoint-backup.md` — needs design pass on storage sizing, dedup strategy, retention (could be the biggest single line item) |
 
 ## See also
