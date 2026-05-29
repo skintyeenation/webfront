@@ -544,6 +544,8 @@ The app's **native** iOS / Android distribution goes via **EAS Build** to
 - [`docs/365/groups.md`](docs/365/groups.md) — Microsoft 365 Groups vs Security Groups (when to use which, with concrete examples mapped to our tenant)
 - [`docs/365/pricing.md`](docs/365/pricing.md) — Microsoft 365 per-user pricing, tax deductibility, offboarding
 - [`docs/365/sharepoint-docs-publish.md`](docs/365/sharepoint-docs-publish.md) — auto-publish `docs/` to SharePoint via GitHub Actions + Microsoft Graph (Entra ID app + `Sites.Selected`), 9-step one-time Azure setup (being migrated to Azure Pipelines — see `devops/migrate-ci-workflows.md`)
+- [`docs/365/email-backup.md`](docs/365/email-backup.md) — automated M365 email backup to the onsite Windows Server 2022 + Azure Blob offsite copy; DIY PowerShell + Microsoft Graph (decision rationale, the script, scheduling, multi-channel SMS/voice/email alerting via Azure Monitor Action Groups, restore procedure, what is + isn't in scope — incl. why OneDrive is NOT backed up)
+- [`docs/365/entra-backup.md`](docs/365/entra-backup.md) — planning doc for the **separate** Entra ID backup (users, groups, roles, app registrations, conditional access policies, custom RBAC) — distinct from the message-data email backup above
 - [`docs/devops/README.md`](docs/devops/README.md) — Azure DevOps overview (primary git host + CI/CD)
 - [`docs/devops/azure-devops-setup.md`](docs/devops/azure-devops-setup.md) — create the `skintyeenation` org + `webfront` project + repo; ships `scripts/setup-azure-devops.sh` + `.ps1`
 - [`docs/devops/azure-primary-github-mirror.md`](docs/devops/azure-primary-github-mirror.md) — wire the Azure-to-GitHub read-only mirror push
