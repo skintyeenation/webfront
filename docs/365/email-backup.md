@@ -172,7 +172,7 @@ Given the above:
                                          ▼
                             ┌───────────────────────────┐
                             │  Azure Blob Storage       │
-                            │  skintyeem365backups      │
+                            │  skintyeebackups      │
                             │  Cool tier + 90-day       │
                             │  immutability policy      │
                             └───────────────────────────┘
@@ -715,7 +715,7 @@ server being stolen.
 ```bash
 # Create the storage account in canadacentral (data residency)
 az storage account create \
-  --name skintyeem365backups \
+  --name skintyeebackups \
   --resource-group skintyee-prod-rg \
   --location canadacentral \
   --sku Standard_LRS \
@@ -724,18 +724,18 @@ az storage account create \
 
 # Container with a 90-day legal-hold immutability policy
 az storage container create \
-  --account-name skintyeem365backups \
-  --name m365-archive
+  --account-name skintyeebackups \
+  --name m365-email-archive
 
 az storage container immutability-policy create \
-  --account-name skintyeem365backups \
-  --container-name m365-archive \
+  --account-name skintyeebackups \
+  --container-name m365-email-archive \
   --period 90
 
 # A write-only SAS token for the on-prem server (rotate every 12 months)
 az storage container generate-sas \
-  --account-name skintyeem365backups \
-  --name m365-archive \
+  --account-name skintyeebackups \
+  --name m365-email-archive \
   --permissions cw \
   --expiry "$(date -u -d '+1 year' '+%Y-%m-%dT%H:%MZ')" \
   --https-only
@@ -748,7 +748,7 @@ Save the SAS token to **1Password → IT/Admin → `m365-backup-blob-sas`**.
 ```powershell
 # C:\Scripts\m365-backup\Sync-ToAzure.ps1
 $sas = op read "op://IT-Admin/m365-backup-blob-sas/value"
-$url = "https://skintyeem365backups.blob.core.windows.net/m365-archive?$sas"
+$url = "https://skintyeebackups.blob.core.windows.net/m365-email-archive?$sas"
 & C:\Tools\azcopy\azcopy.exe sync `
   "D:\M365-Backups" `
   $url `
@@ -855,7 +855,7 @@ Tracked here so they're visible when planning the next IT sprint.
 | Write the full `Get-M365Mail.ps1` script | Skeleton above is functional; production version needs error handling, throttling backoff, calendar + contacts loops, heartbeat — target `scripts/m365-backup/Get-M365Mail.ps1` |
 | Write `Restore-M365Mail.ps1` | Per-message restore helper, used only during recovery (requires the separate time-limited admin grant — keep it OFF the backup server in normal operation) |
 | Create the `skintyee-m365-backup` Entra app | Use the `az ad app create` block from [§ Entra app](#entra-app-skintyee-m365-backup); save credentials to 1Password |
-| Provision the Azure Blob `skintyeem365backups` storage account + container + immutability policy + SAS | See [§ Secondary copy](#secondary-copy--azure-blob) |
+| Provision the Azure Blob `skintyeebackups` storage account + container + immutability policy + SAS | See [§ Secondary copy](#secondary-copy--azure-blob) |
 | Install + configure Veeam-or-DIY on the Server 2022 | DIY chosen — install PS 7 + azcopy, set up BitLocker on D:, create service account, Task Scheduler entries |
 | Initial full backup (first run) | Likely 4-12 hours depending on existing mailbox sizes; run during a weekend |
 | Restore drill SOP into the IT lead's calendar | Monthly recurring; log results to `D:\M365-Backups\drill-log.md` |
