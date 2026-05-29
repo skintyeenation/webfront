@@ -136,10 +136,10 @@ A 2026-05 decision worth its own line:
   - `azure-snapshots` — Azure resource config daily JSON snapshots
     ([`./azure-backup.md`](./azure-backup.md))
 - This means **one immutability policy + one set of credentials + one
-  monitoring story** covers all four backup workloads.
+  monitoring story** covers all five backup workloads.
 
 See [`./backup-architecture.md`](./backup-architecture.md) for the
-bird's-eye map of all four backup workloads + the one-storage-account
+bird's-eye map of all five backup workloads + the one-storage-account
 decision rationale.
 
 ---
@@ -180,6 +180,7 @@ created it.
 | `m365-sharepoint-archive` | Storage container (in `skintyeebackups`) | future `setup-sharepoint-backup-cloud.sh` | TBD. |
 | `entra-snapshots` | Storage container (in `skintyeebackups`) | future `setup-entra-backup-cloud.sh` | See [`../365/entra-backup.md`](../365/entra-backup.md). |
 | `azure-snapshots` | Storage container (in `skintyeebackups`) | future `setup-azure-backup-cloud.sh` | See [`./azure-backup.md`](./azure-backup.md). |
+| `postgres-dumps` | Storage container (in `skintyeebackups`) | future `setup-postgres-backup-cloud.sh` (Phase 2) | See [`./postgres-backup.md`](./postgres-backup.md). |
 | `skintyee-m365-backup` | Entra app | `setup-m365-backup-cloud.sh` | Read-only `Mail.Read`/`Calendars.Read`/`Contacts.Read`/`User.Read.All` |
 | `skintyee-entra-backup` | Entra app | future `setup-entra-backup-cloud.sh` | Read-only Directory.Read.All etc. |
 | `ai-m365-backup` | Application Insights | `setup-m365-backup-cloud.sh` | Heartbeat metric target for the alerting path. |

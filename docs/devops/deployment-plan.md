@@ -199,8 +199,17 @@ shape as `scripts/setup-sharepoint-pipeline.sh`.
 - **App-role integration with Entra ID** — wire the NestJS role
   guards (`@Roles('admin')` etc.) to the app-role claims in user
   tokens (per [ADR-7](../architecture-decisions.md#adr-7--api-nestjs--prisma--azure-mysql-contract-first-openapi)).
-- **Postgres backup verification** — confirm automated backups +
-  do a point-in-time restore drill to a separate server.
+- **Postgres data backup pipeline** — Microsoft's PITR covers a 7-day
+  rolling window automatically; for longer retention (compliance, legal
+  hold, "what did the data look like 3 months ago"), implement the
+  `pg_dump` → encrypted-archive → `skintyeebackups/postgres-dumps`
+  pipeline with GFS rotation (30 daily / 13 weekly / 24 monthly /
+  forever yearly). See [`./postgres-backup.md`](./postgres-backup.md)
+  for the full design.
+- **Postgres restore drill** — quarterly: confirm a `.dump.gpg` from
+  one of the rotation tiers actually restores to a sandbox Postgres
+  with full schema + extensions. Per the
+  [backup-architecture monthly-drill SOP](./backup-architecture.md#cross-workload-concerns-intentionally-shared).
 - **Application Insights dashboards** — pre-canned charts for HTTP
   errors, latency, DB connection-pool, container-restart frequency.
 - **Pre-prod environment** — `skintyee-staging-rg`, same shape, used

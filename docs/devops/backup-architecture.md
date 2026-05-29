@@ -1,4 +1,4 @@
-# Backup architecture — the four workloads + one storage account
+# Backup architecture — the five workloads + one storage account
 
 Bird's-eye map of every "what gets backed up where" decision for Skin
 Tyee. Companion to [`./deploy-architecture.md`](./deploy-architecture.md)
@@ -21,8 +21,10 @@ Tyee. Companion to [`./deploy-architecture.md`](./deploy-architecture.md)
                      ├────────────────────────────────┤    │  │  │
                      │  • All resources in skintyee-  │  ──┼──┼──┼──┐
                      │    prod-rg + RBAC + policies   │    │  │  │  │
-                     └────────────────────────────────┘    │  │  │  │
-                                                           ▼  ▼  ▼  ▼
+                     │  • Postgres `api` DB content   │  ──┼──┼──┼──┼──┐
+                     │    (rows in skintyee-prod-pg)  │    │  │  │  │  │
+                     └────────────────────────────────┘    │  │  │  │  │
+                                                           ▼  ▼  ▼  ▼  ▼
                           ┌──────────────────────────────────────────────┐
                           │  Backup Server (Physical, Onsite — Win 2022) │
                           │  D:\backups\                                 │
@@ -30,6 +32,7 @@ Tyee. Companion to [`./deploy-architecture.md`](./deploy-architecture.md)
                           │    m365-sharepoint\                          │
                           │    entra\                                    │
                           │    azure\                                    │
+                          │    postgres\                                 │
                           └──────────────────────────┬───────────────────┘
                                                      │   azcopy sync nightly,
                                                      │   write-only SAS,
@@ -42,12 +45,13 @@ Tyee. Companion to [`./deploy-architecture.md`](./deploy-architecture.md)
               │  ├── m365-email-archive       ← Exchange Online             │
               │  ├── m365-sharepoint-archive  ← SharePoint document libs    │
               │  ├── entra-snapshots          ← Entra ID daily JSON         │
-              │  └── azure-snapshots          ← Azure ARM/RBAC daily JSON   │
+              │  ├── azure-snapshots          ← Azure ARM/RBAC daily JSON   │
+              │  └── postgres-dumps           ← pg_dump GFS rotation        │
               │                                                             │
               └─────────────────────────────────────────────────────────────┘
 ```
 
-## The four workloads
+## The five workloads
 
 | # | Source | Container in `skintyeebackups` | Doc | Status |
 |---|---|---|---|---|
@@ -55,14 +59,14 @@ Tyee. Companion to [`./deploy-architecture.md`](./deploy-architecture.md)
 | 2 | **Microsoft 365 — SharePoint** (organizational documents) — content data | `m365-sharepoint-archive` | `../365/sharepoint-backup.md` (future) | Planning doc not yet written |
 | 3 | **Entra ID** (users, groups, roles, app registrations, conditional access) — identity + config data | `entra-snapshots` | [`../365/entra-backup.md`](../365/entra-backup.md) | Planning doc complete; scripts not yet built |
 | 4 | **Azure resources** (resource definitions, RBAC, alert rules, monitoring config) — Azure-side config data | `azure-snapshots` | [`./azure-backup.md`](./azure-backup.md) | Planning doc complete; scripts not yet built |
+| 5 | **Postgres database content** (rows in `skintyee-prod-pg`) — content data via Postgres wire protocol | `postgres-dumps` | [`./postgres-backup.md`](./postgres-backup.md) | Planning doc complete (Phase 2 per [`./deployment-plan.md` § Phase 2](./deployment-plan.md#phase-2--production-ready-later-after-poc-validates)); Microsoft's 7-day PITR covers near-term needs |
 
 ## What's NOT in this architecture (and where it lives instead)
 
 | Item | Why it's not here | Where it actually is |
 |---|---|---|
 | **Microsoft 365 OneDrive** (personal user drives) | Policy decision: personal scratch space; org-critical files belong in SharePoint instead | See [`../365/email-backup.md` § Decision: don't back up OneDrive](../365/email-backup.md#decision-dont-back-up-onedrive) |
-| **Microsoft Teams chat history** | Lives in a hidden Exchange folder; addable to the email-backup script later if needed | Phase 2 follow-up in `../365/email-backup.md` |
-| **Postgres database content** (the rows in `skintyee-prod-pg`) | Different problem (content data, not config). Microsoft's built-in Point-In-Time-Restore covers 7 days automatically. Longer retention = separate `pg_dump` pipeline. | Out of scope of this architecture; track in [`./deployment-plan.md`](./deployment-plan.md) Phase 2 |
+| **Microsoft Teams chat history** | Lives in a hidden Exchange folder; addable to the email-backup script later if needed | [`../365/email-backup.md` § Phase 2 considerations](../365/email-backup.md#phase-2-considerations) |
 | **Container image binaries** (the actual Docker layers in `skintyeeprodacr`) | ACR has its own durability + retention. We back up the *metadata* (which tag → which sha at which time) as part of the Azure config snapshot, not the binary data. | n/a |
 | **Secret VALUES** (Postgres password, SP client secrets, SAS tokens, Anthropic API key) | These don't get backed up to the archive at all. They live in 1Password (the durable source of truth) + the ADO variable group + Container App secrets (the operational copies). The config snapshots record that a secret *exists*, not its value. | 1Password vault `IT/Admin` |
 | **The backups themselves** (the contents of `skintyeebackups`) | Backing up the backup creates infinite regress. The durability comes from Azure Blob's 99.999999999% spec + the 90-day immutability policy + the on-prem Server 2022 copy. | Phase 2 consideration: mirror to a *different* cloud (S3 / GCS) for true cross-cloud redundancy |
@@ -99,6 +103,7 @@ Each container is configured the same way at the storage-account level:
 | `m365-sharepoint-archive` (future) | Cool | 90-day legal hold | enabled | 30 days | Create + Write |
 | `entra-snapshots` (future) | Cool | 90-day legal hold | enabled | 30 days | Create + Write |
 | `azure-snapshots` (future) | Cool | 90-day legal hold | enabled | 30 days | Create + Write |
+| `postgres-dumps` (Phase 2) | Cool | 90-day legal hold | enabled | 30 days | Create + Write |
 
 The 90-day legal hold means even a fully-compromised SAS holder cannot
 delete blobs less than 90 days old. The 30-day soft delete is the safety
@@ -113,7 +118,8 @@ restore-from-here scenarios).
 | SharePoint (org docs) | **highly variable** — could be 100 GB → 10 TB. Drives its own design pass. | $2 - $200/month depending on scope |
 | Entra snapshots (JSON, tiny) | <10 GB | <$0.20/month |
 | Azure config snapshots (JSON, tiny) | <10 GB | <$0.20/month |
-| **Total (excl. SharePoint)** | **<200 GB** | **~$3.50/month** |
+| Postgres dumps (GFS rotation; small `api` DB) | <5 GB | <$0.30/month |
+| **Total (excl. SharePoint)** | **<200 GB** | **~$3.80/month** |
 
 SharePoint's variability is why it's a separate planning unit — it could
 be the dominant cost driver and deserves its own analysis before we
@@ -121,7 +127,7 @@ commit storage class + retention.
 
 ## Cross-workload concerns (intentionally shared)
 
-All four backup pipelines share these patterns by design — change once,
+All five backup pipelines share these patterns by design — change once,
 applies to all:
 
 | Pattern | Where defined | Why shared |
@@ -188,6 +194,7 @@ The `_alerting\` and `drill-log.md` files are shared infrastructure.
   one being built first
 - [`../365/entra-backup.md`](../365/entra-backup.md) — workload #3
 - [`./azure-backup.md`](./azure-backup.md) — workload #4
+- [`./postgres-backup.md`](./postgres-backup.md) — workload #5 (Phase 2; Microsoft's 7-day PITR covers the near-term floor)
 - `../365/sharepoint-backup.md` — workload #2 (future)
 - The architecture PDF [`../SkinTyee.drawio.pdf`](../SkinTyee.drawio.pdf)
   — page 2 has the original "Backup Server (Physical, Onsite)" + "Email
