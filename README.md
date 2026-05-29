@@ -173,6 +173,28 @@ Notes on what is and isn't a workspace member:
 Bird's-eye view of every deploy target + the pipeline / setup script
 that owns it: [`docs/devops/deploy-architecture.md`](docs/devops/deploy-architecture.md).
 
+## Where things live
+
+Quick reference for admins. Bookmark these; everything else can be
+re-derived from them.
+
+| Thing | Where |
+|---|---|
+| **Break-glass admin creds** (the `admin@skintyeenation.onmicrosoft.com` account that owns M365 + Azure subscription) | **1Password — IT/Admin vault** (recovery code + MFA backup also there) |
+| **Entra admin center** (users, groups, app registrations, conditional access, role assignments) | <https://entra.microsoft.com> |
+| **Microsoft 365 admin center** (mailboxes, licenses, Teams, SharePoint sites) | <https://admin.microsoft.com> |
+| **Azure portal** (subscription / resource groups / Container Apps / Postgres / Storage / DNS) | <https://portal.azure.com> |
+| **Azure DevOps** (source control + CI/CD) | <https://dev.azure.com/skintyeenation> |
+| **SharePoint admin center** (sites, sharing policies) | <https://skintyeenation-admin.sharepoint.com> |
+| **GoDaddy DNS** (registrar — `skintyee.ca` zone records) | <https://godaddy.com> (login with the registered email; see 1Password) |
+| **1Password Business admin console** | <https://skintyeenation.1password.com> |
+
+For deeper specifics about who can access what:
+
+- [`docs/365/entra-id.md`](docs/365/entra-id.md) — the break-glass account, Entra Connect, SSO
+- [`docs/365/groups.md`](docs/365/groups.md) — Microsoft 365 Groups vs Security Groups
+- [`docs/1password/`](docs/1password/) — 1Password vaults and access patterns
+
 ## Microsoft 365 integration
 
 Email/identity run on **Microsoft 365** (the Outlook Cloud "Email Relay" in the
@@ -191,6 +213,39 @@ operational inventory: every service authenticating against Entra today
 every app stubbed-today / Entra-Phase-2 (the community app + API), the
 two app registrations and what each one does, and the things deliberately
 NOT on Entra (WordPress, public sign-up).
+
+### What we use Entra ID for — quick inventory
+
+The full doc is linked above; this table is the at-a-glance version of
+what's authenticating against Entra **in production today**.
+
+#### Identity / SSO for Microsoft surfaces
+
+| Service | What it's used for | Who signs in |
+|---|---|---|
+| **Microsoft 365** — Outlook, Teams, OneDrive, SharePoint, Office desktop apps | Daily email, files, meetings, collaboration | Every licensed staff member |
+| **Azure DevOps** (`dev.azure.com/skintyeenation`) | Source control + CI/CD | Developers + admins |
+| **Azure Portal** (`portal.azure.com`) | Subscription / DNS / Storage / DB management | Admins |
+| **SharePoint Online** (`skintyeenation.sharepoint.com`) | The auto-published docs site, plus any future team sites | Staff (read-only on docs site by default; explicit grants for editor roles) |
+| **1Password** (optional, opt-in per user) | Unlock the vault with Entra account instead of master password | Any staff who enable "Unlock with SSO" in their 1Password app |
+
+#### App registrations (Entra apps that are NOT users)
+
+| App | What it does | Permissions | Doc |
+|---|---|---|---|
+| `skintyee-prod-deploy` | The ADO service connection's federated identity — pushes images to ACR, updates Container Apps, manages SWAs | Contributor on `skintyeeprodacr` + Container Apps | [setup-api-azure.sh](scripts/setup-api-azure.sh) |
+| `it-project-docs-publisher` | The SharePoint publisher pipeline — pushes `docs/` to the SharePoint library on every `master` push | `Sites.Selected` on the docs SharePoint site | [docs/365/sharepoint-docs-publish.md](docs/365/sharepoint-docs-publish.md) |
+| `skintyeenation-admin-cli` | Helper for `m365 cli` admin tasks (creates/manages SharePoint sites, etc.) | Sites.FullControl.All | [docs/365/sharepoint-docs-publish.md](docs/365/sharepoint-docs-publish.md) |
+| `skintyee-m365-backup` *(to be created when [setup-backup-cloud.sh](scripts/setup-backup-cloud.sh) runs)* | The M365 email backup script — read-only access to every mailbox | Mail.Read + Calendars.Read + Contacts.Read + User.Read.All | [docs/365/email-backup.md](docs/365/email-backup.md) |
+
+What's **NOT** on Entra (deliberate):
+
+- **WordPress sign-in** — separate, lives in `website/` with its own user
+  database (public site has no member-area; admin is the WP super-admin only)
+- **Public sign-up** for app users — not yet built; when it is, will likely
+  use Entra External ID (B2C) as a separate tenant
+- **Backup of the Entra config itself** — that's a separate workload, see
+  the [What's backed up](#whats-backed-up) section below
 
 📬 **[Shared mailbox setup & adding users →](docs/365/shared-mailboxes.md)** —
 how shared mailboxes are created in the M365 admin center and how individual
@@ -523,6 +578,42 @@ The app's **native** iOS / Android distribution goes via **EAS Build** to
   ADR-10 + Container Apps deploy plan for `api/` + `lookup/api/`
 - [`docs/devops/app-deploy-web.md`](docs/devops/app-deploy-web.md) —
   ADR-12 + Static Web Apps plan for both apps' web targets
+
+## What's backed up
+
+Every system that holds Skin Tyee data is covered by automated backup
+to an onsite Windows Server 2022 + a write-only Azure Blob copy in
+`skintyeebackups` (the shared storage account for **all** backup
+workloads). Full design: [`docs/devops/backup-architecture.md`](docs/devops/backup-architecture.md).
+
+### What IS backed up
+
+| Source | Container in `skintyeebackups` | Doc | Status |
+|---|---|---|---|
+| **Microsoft 365 — Exchange Online** (mail + calendar + contacts; every mailbox, including shared) | `m365-email-archive` | [`docs/365/email-backup.md`](docs/365/email-backup.md) | ✅ Doc + scripts ready; pipeline to be stood up |
+| **Microsoft 365 — SharePoint** (organizational documents — every team site + the auto-published `docs/` site + Teams channel files, which live in SharePoint behind the scenes) | `m365-sharepoint-archive` | `docs/365/sharepoint-backup.md` *(planning future)* | ⬜ Planning doc to be written; could be substantial data — own design pass |
+| **Entra ID** — users, groups, roles, app registrations, conditional access policies, custom RBAC, license assignments, B2B guests | `entra-snapshots` | [`docs/365/entra-backup.md`](docs/365/entra-backup.md) | ✅ Planning doc ready; scripts to be written |
+| **Azure resource config** — ARM templates for every resource in `skintyee-prod-rg`, RBAC role assignments, alert rules, Container Apps config, Postgres server config (the SHAPE of the infrastructure, captured as version-controlled JSON) | `azure-snapshots` | [`docs/devops/azure-backup.md`](docs/devops/azure-backup.md) | ✅ Planning doc ready; scripts to be written |
+| **Postgres database content** — the rows in `skintyee-prod-pg`'s `api` database, via `pg_dump` with GFS rotation (30 daily / 13 weekly / 24 monthly / yearly forever) | `postgres-dumps` | [`docs/devops/postgres-backup.md`](docs/devops/postgres-backup.md) | ✅ Planning doc ready; Phase 2 (Microsoft's 7-day PITR covers the near-term floor) |
+
+### What is NOT backed up — and why
+
+| Source | Why not | Where to look if you need it |
+|---|---|---|
+| **OneDrive for Business** (per-user personal cloud drives) | **Policy decision**: OneDrive is personal scratch space. Staff are told in onboarding: "anything organizationally important goes in SharePoint, not OneDrive." SharePoint IS backed up; personal OneDrive is not. | M365's own 30-day soft-delete is the user's recovery path; nothing on our side. See [`docs/365/email-backup.md` § Decision: don't back up OneDrive](docs/365/email-backup.md#decision-dont-back-up-onedrive). |
+| **Microsoft Teams chat history** (1:1 + group chat messages — channel files are SharePoint already, so they're covered) | **Phase 2 — addable** in ~50 more lines of PowerShell to the email-backup script (Teams chat lives in a hidden Exchange folder reachable via Graph). Not built today. | Microsoft Purview eDiscovery has 90-day default retention for compliance |
+| **Secret VALUES** (Postgres password, SP client secrets, SAS tokens, Anthropic API key) | These are NOT files that need backing up — they live in **1Password** (the durable source of truth) + ADO variable group + Container App secrets (the operational copies). The backup snapshots record that a secret *exists*, never the value itself. | 1Password — IT/Admin vault |
+| **MFA secrets** (TOTP keys, FIDO2 attestations) | Cryptographically not extractable from Microsoft's HSM. User recovery is a re-enroll, not a restore. | User's authenticator app + Entra account recovery flow |
+| **Container image binaries** (Docker layers in `skintyeeprodacr`) | ACR has its own durability + retention. We capture the metadata (which tag → which sha at which time) as part of the Azure config snapshot. | The image was built from a known commit — `git checkout <sha>`, rebuild, push |
+| **Live runtime state** (which Container App revision is serving traffic right now, healthy replica counts) | Observable from Application Insights + logs, not config; restoring "state at time T" means restoring config + restarting | Application Insights + Container Apps revision history |
+| **WordPress database + content** | Covered by its **own** pipeline — see [`website/azure-pipelines.yml`](website/azure-pipelines.yml). Different stack (MySQL + WP content), different backup approach. | `website/` and the Azure Database for MySQL automatic backups |
+| **The backups themselves** (contents of `skintyeebackups`) | Backing up the backup creates infinite regress. Azure Blob's durability (eleven 9s) + 90-day immutability policy + the on-prem Server 2022 copy is the redundancy story. | Phase 2 consideration: mirror to a *different* cloud (S3 / GCS) for cross-cloud redundancy |
+
+Architecture: **one** storage account (`skintyeebackups`), **five**
+containers, **one** alerting Action Group (`ag-backup-critical`,
+SMS + voice + email), **one** Application Insights for heartbeats.
+See [`docs/devops/backup-architecture.md`](docs/devops/backup-architecture.md)
+for the bird's-eye map + the one-storage-account decision rationale.
 
 ## Documentation
 
