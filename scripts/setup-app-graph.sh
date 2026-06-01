@@ -45,13 +45,26 @@ ADO_ORG="${ADO_ORG:-https://dev.azure.com/skintyeenation}"
 ADO_PROJECT="${ADO_PROJECT:-devops}"
 ADO_VARGROUP="${ADO_VARGROUP:-skintyee-prod-azure}"
 
-# Microsoft Graph application IDs
-GRAPH_RESOURCE_ID="00000003-0000-0000-c000-000000000046"
+# Microsoft Graph application IDs — the well-known appId is all zeros
+# (NOT ...c000-000000000046 — that's a different/legacy/typo'd ID. Verify
+# always: az ad sp list --filter "appId eq '<GUID>'" --query '[].{displayName:displayName, appRoleCount:length(appRoles)}'
+#  — the real Microsoft Graph SP has 600+ appRoles.)
+GRAPH_RESOURCE_ID="00000003-0000-0000-c000-000000000000"
 
-# Application-permission IDs (NOT delegated)
-# Source: https://learn.microsoft.com/en-us/graph/permissions-reference
+# Application-permission IDs (NOT delegated).
+#
+# Verify each via:
+#   GRAPH_SP=$(az ad sp list --filter "appId eq '${GRAPH_RESOURCE_ID}'" --query '[0].id' -o tsv)
+#   az rest --method GET --uri "https://graph.microsoft.com/v1.0/servicePrincipals/${GRAPH_SP}?\$select=appRoles" \
+#     --query "appRoles[?value=='Tasks.Read.All' && contains(allowedMemberTypes,'Application')].id" -o tsv
+#
+# Common gotcha: the Microsoft docs sometimes show the DELEGATED permission
+# GUID; for an app-only flow you need the APPLICATION permission GUID, which
+# is different. Tasks.Read.All is a known example:
+#   - delegated:    2c6a42ca-0d4d-49ad-bea1-30dc69e9a6ab  ← wrong here
+#   - application:  f10e1f91-74ed-437f-a6fd-d6ae88e26c1f  ← what we want
 PERMS=(
-  "2c6a42ca-0d4d-49ad-bea1-30dc69e9a6ab=Role:Tasks.Read.All"   # Planner tasks across tenant
+  "f10e1f91-74ed-437f-a6fd-d6ae88e26c1f=Role:Tasks.Read.All"   # Planner tasks across tenant
   "5b567255-7703-4780-807c-7be8301ae99b=Role:Group.Read.All"   # Enumerate M365 Groups (plan owners)
   "798ee544-9d2d-430c-a058-570e29e34338=Role:Calendars.Read"   # Calendar events (incl. Teams meetings)
   "df021288-bdef-4463-88db-98f22de89214=Role:User.Read.All"    # Assignee ID → display name lookup
@@ -94,6 +107,49 @@ TENANT_ID=$(az account show --query tenantId -o tsv 2>/dev/null)
 SUB_ID=$(az account show --query id -o tsv 2>/dev/null)
 say "tenant:        $TENANT_ID"
 say "subscription:  $SUB_ID"
+
+# ----- 0) Pre-flight: ensure Microsoft Graph SP exists in this tenant ------
+# In tenants that have never had a service principal for Microsoft Graph
+# provisioned (rare, but happens in new sandbox tenants), the admin
+# consent step at the end will fail with an opaque "application doesn't
+# exist" error. Create it now if missing — needs an EXPLICIT displayName;
+# `az ad sp create --id` with no displayName fails.
+say "ensuring Microsoft Graph SP exists in tenant…"
+GRAPH_SP_ID=$(az ad sp list --filter "appId eq '$GRAPH_RESOURCE_ID'" \
+  --query '[0].id' -o tsv 2>/dev/null || echo "")
+if [ -z "$GRAPH_SP_ID" ] && [ "$DRY_RUN" -eq 0 ]; then
+  warn "Microsoft Graph SP not provisioned — creating it now"
+  CREATED=$(az rest --method POST \
+    --uri "https://graph.microsoft.com/v1.0/servicePrincipals" \
+    --body "{\"appId\":\"$GRAPH_RESOURCE_ID\",\"displayName\":\"Microsoft Graph\"}" 2>&1)
+  if echo "$CREATED" | grep -q '"id"'; then
+    GRAPH_SP_ID=$(echo "$CREATED" | jq -r .id)
+    ok "Microsoft Graph SP provisioned ($GRAPH_SP_ID)"
+    # Wait for the appRoles catalog to sync — admin consent will fail otherwise
+    say "  waiting up to 90s for appRoles catalog to populate…"
+    for i in $(seq 1 18); do
+      ROLE_COUNT=$(az rest --method GET \
+        --uri "https://graph.microsoft.com/v1.0/servicePrincipals/${GRAPH_SP_ID}?\$select=appRoles" \
+        --query 'length(appRoles)' -o tsv 2>/dev/null || echo "0")
+      if [ "$ROLE_COUNT" -gt 100 ]; then
+        ok "  catalog synced ($ROLE_COUNT appRoles)"
+        break
+      fi
+      sleep 5
+    done
+  else
+    warn "couldn't provision Microsoft Graph SP — admin consent will likely fail"
+    warn "  $(echo "$CREATED" | grep -oE '\"message\":[^,]*' | head -1)"
+  fi
+elif [ -n "$GRAPH_SP_ID" ]; then
+  ROLE_COUNT=$(az rest --method GET \
+    --uri "https://graph.microsoft.com/v1.0/servicePrincipals/${GRAPH_SP_ID}?\$select=appRoles" \
+    --query 'length(appRoles)' -o tsv 2>/dev/null || echo "0")
+  ok "Microsoft Graph SP exists ($GRAPH_SP_ID, $ROLE_COUNT appRoles)"
+  if [ "$ROLE_COUNT" -lt 100 ]; then
+    warn "  but only $ROLE_COUNT appRoles — catalog may be partial; consent may fail"
+  fi
+fi
 
 # ----- 1) Create / find the Entra app ---------------------------------------
 say "ensuring Entra app '$APP_DISPLAY' exists…"
@@ -259,6 +315,31 @@ if [ "$DRY_RUN" -eq 0 ]; then
     done
   else
     warn "variable group '$ADO_VARGROUP' not found — skipping"
+  fi
+fi
+
+# ----- 6.5) Verify the grants actually landed against the correct Graph SP -
+# Catches the WRONG-PERMISSION-GUID bug (using a delegated permission ID
+# in an application-permissions add) — that bug is silent at add time and
+# only surfaces as a 403 from Graph at the first real api call.
+if [ "$DRY_RUN" -eq 0 ] && [ -n "${GRAPH_SP_ID:-}" ]; then
+  say "verifying admin-consent grants landed on the correct Graph SP…"
+  APP_SP_ID=$(az ad sp list --filter "appId eq '$APP_ID'" --query '[0].id' -o tsv 2>/dev/null)
+  if [ -n "$APP_SP_ID" ]; then
+    GRANTS=$(az rest --method GET \
+      --uri "https://graph.microsoft.com/v1.0/servicePrincipals/${APP_SP_ID}/appRoleAssignments" \
+      --query 'value[?resourceId==`'"$GRAPH_SP_ID"'`].appRoleId' -o tsv 2>/dev/null)
+    GRANT_COUNT=$(echo "$GRANTS" | grep -c . || echo "0")
+    if [ "$GRANT_COUNT" -eq 4 ]; then
+      ok "all 4 application permissions granted against Microsoft Graph"
+    elif [ "$GRANT_COUNT" -gt 0 ]; then
+      warn "only $GRANT_COUNT of 4 grants are live"
+      warn "  finish via Entra portal: App registrations → $APP_DISPLAY → API permissions → Grant admin consent"
+    else
+      warn "ZERO grants are live — admin consent didn't propagate"
+      warn "  finish via Entra portal: App registrations → $APP_DISPLAY → API permissions → Grant admin consent"
+      warn "  OR manually via Graph API (see docs/devops/app-graph-setup-runbook.md § Troubleshooting)"
+    fi
   fi
 fi
 
