@@ -43,8 +43,9 @@ Notifications data flows into the homescreen for everyday consumption
 | Screen | Audience | Role gate | What it shows | Pulls from |
 |---|---|---|---|---|
 | **Homescreen (NEW)** | Public + Band members + Staff + Admins | `public` ↑ everyone | **Notifications** stream + **calendar OR list view** showing the next N days of Planner due-dates + Teams meetings. The "what's happening this week" view. | Notifications API + Planner (filtered to public-suitable tasks if shown to public/member) + Teams calendar |
-| **Records (admin view)** | Staff + Admins | `staff` / `admin` | Operational management depth: full Planner board rollups across program areas, drill-into-plan, completion %, time keeping rollups, the deeper financial records the public Dashboard summarizes | Same Planner + Teams data, no role filtering |
-| **(Legacy) Dashboard — being deprecated** | Public + Band members | `public` / `member` | Month/year budget transparency, expenditures by program area, public records charts. **The new homescreen will show this content too, or it migrates entirely into Records / Public Records pages.** | Existing `/v1/transparency/*` |
+| **Records (member view)** | Public + Band members + Staff + Admins | `public` ↑ everyone | Budget month/year transparency, expenditures by program area, major projects status, average per member. The financial-transparency content that used to live on the old Dashboard moves here. | Existing `/v1/transparency/*` |
+| **Records (admin view)** | Staff + Admins | `staff` / `admin` | Same tab + route as the member view, just with **additional sections beneath**: full Planner board rollups across program areas, drill-into-plan, completion %, time keeping rollups, full Financial Records. Staff/admin sees member content + admin content stacked. | `/v1/transparency/*` + `/v1/planner/rollup` + `/v1/financials/*` |
+| **(Legacy) Dashboard — being retired** | Public + Band members | `public` / `member` | Month/year budget transparency, expenditures by program area, public records charts. **Content moves into the Records tab (member view); the homescreen slot becomes the new notifications + calendar feed.** | Existing `/v1/transparency/*` (no change to the API) |
 
 ### Homescreen design (notifications + calendar/list)
 
@@ -162,26 +163,67 @@ So the homescreen has tiers:
   Teams meeting calendar
 - An **admin** sees everything
 
-### What stays on the public Dashboard (or migrates)
+### What happens to the OLD Dashboard's financial content
 
-The legacy **Dashboard (charts/budget month/year view)** stays
-functional for now but is **being de-emphasized in favor of the
-new homescreen**. The migration plan:
+The legacy **Dashboard (charts/budget month/year view)** is **being
+retired** — the new homescreen takes its slot as the landing page.
+The financial content does NOT get nested below something else; it
+gets **its own Records tab with two role-based views**:
 
-| Current Dashboard widget | Where it goes |
-|---|---|
-| Month / year budget rollups | Stays accessible via **Public Records → Transparency** drill-down (already linked from the existing menu); the homescreen doesn't replace it, just promotes notifications + calendar to the foreground |
-| Expenditures by program area | Same — lives in Transparency |
-| Any staff-only operational chart currently on the public Dashboard | Move to **Records** (admin view) |
+| Current Dashboard widget | Where it goes | Visibility |
+|---|---|---|
+| Month / year budget rollups (`totalSpent`, `totalAllocated`, `pctOfBudget`) | **Records (member view)** | Public + Member + Staff + Admin |
+| Expenditures by program area pie chart | **Records (member view)** | Public + Member + Staff + Admin |
+| Major projects status (allocated-vs-actual) | **Records (member view)** | Public + Member + Staff + Admin |
+| `avgPerMember` stat | **Records (member view)** | Public + Member + Staff + Admin |
+| Time keeping `pendingApprovals` + `hoursLogged` | **Records (admin view)** | Staff + Admin only |
+| Detailed Financial Records | **Records (admin view)** | Admin only |
+| Planner board rollup (new) | **Records (admin view)** | Staff + Admin only |
+| Cross-Nation tasks by program area | **Records (admin view)** | Staff + Admin only |
 
-So the **new homescreen replaces the *role* of the old Dashboard as the
-landing page**, but the existing transparency content still has a
-home — just one tap deeper, under Public Records.
+**Records is one tab.** Same route, role-gated content. The member
+view IS the transparency story; the admin view IS the operational
+management story. No nesting, no parent-child. A staff/admin user
+opening Records sees the member view's charts at the top **plus** the
+operational sections below; a member opening Records sees only the
+member-view content.
 
-The Records page picks up **operational management depth**: full
-Planner board rollups, drill-into-plan, completion % by program area,
-time keeping summaries, the deeper financials the homescreen + public
-records show in summary form.
+### New homescreen — small link card to Records
+
+Per the chosen design (clean break — no finance on homescreen):
+
+```
+┌────────────────────────────────┐
+│ 🔔 Notifications     (3 new)   │
+├────────────────────────────────┤
+│ 📅 This week  [Cal | List]    │
+│ Mon 10:00 Council mtg (Teams)  │
+│ Mon EOD   Housing review       │
+│ Tue 14:00 Forestry call (Teams)│
+│ Wed       ⚠ OVERDUE: Hall roof│
+├────────────────────────────────┤
+│  📊 Records →                  │
+│     Budget, expenditures,      │
+│     major projects             │
+└────────────────────────────────┘
+```
+
+One small card at the bottom labelled **Records →** linking to the
+Records tab. Users who want the budget detail are 1 tap away. The
+homescreen itself stays focused on its purpose (what's happening now
+— notifications + this-week's calendar + tasks).
+
+### Routes / tab bar (revised)
+
+| Tab | Roles | Renders |
+|---|---|---|
+| 🏠 Home (homescreen) | All | Notifications + Calendar/List of events + the "Records →" link card |
+| 📋 My tasks / Team tasks | Member + Staff + Admin | Planner-driven personal queue (homescreen tab pivot) |
+| 👥 Directory | Member + Staff + Admin | Band Member Directory |
+| 📅 Events | All | Full events tab (same data sources as homescreen's calendar/list, deeper UI) |
+| 🔔 Notifications | All | Full notifications tab (read/unread, filters) |
+| 📊 **Records** | All | **Member view** for public/member; **Admin view (member content + admin additions)** for staff/admin |
+| ⚙ Admin tools | Admin only | Polls/Surveys management, member management, time-keeping approvals, etc. |
 
 The Nation already uses **Microsoft Planner** (bundled with M365
 Business Standard) for that kind of operational task tracking,
@@ -384,14 +426,24 @@ The NestJS api/ surfaces these to the app:
 | `GET /v1/planner/my-tasks` | Tasks assigned to the signed-in user (across all plans) | `member` + `staff` + `admin` | Homescreen — "My tasks" view |
 | `GET /v1/planner/team-tasks` | Tasks in the plans my department owns | `member` + `staff` + `admin` | Homescreen — "Team tasks" view |
 
-### Records-page endpoints (admin/management depth)
+### Records-tab endpoints
+
+The Records tab serves **both** member-view and admin-view content from
+the same route — the front end composes both sections and renders the
+admin section only when the caller's role allows. The backend reuses
+the existing transparency endpoints (no API change there) and ADDs the
+new Planner endpoints for the admin section:
 
 | Endpoint | Returns | Role gate | Used by |
 |---|---|---|---|
-| `GET /v1/planner/rollup` | Cross-Nation aggregated rollup: total tasks by status, top 5 overdue tasks, completion % per program area | `staff` + `admin` | Records page — primary admin widget |
-| `GET /v1/planner/plans` | All plans, with title + group + count | `staff` + `admin` | Records page — plan picker dropdown |
-| `GET /v1/planner/plans/:id/tasks` | All tasks in a plan, with bucket + category labels resolved | `staff` + `admin` | Records page — drill-into-plan view |
-| `POST /v1/planner/refresh` | Force a cache refresh | `admin` | Operational button on Records page |
+| `GET /v1/transparency/expenditures` (existing) | Per-program-area budgets + actuals | `public` ↑ everyone | Records — member section (charts) |
+| `GET /v1/transparency/major-projects` (existing) | Major projects + status | `public` ↑ everyone | Records — member section |
+| `GET /v1/planner/rollup` (new) | Cross-Nation aggregated Planner rollup: total tasks by status, top 5 overdue tasks, completion % per program area | `staff` + `admin` | Records — admin section, primary widget |
+| `GET /v1/planner/plans` (new) | All plans, with title + group + count | `staff` + `admin` | Records — admin section, plan picker dropdown |
+| `GET /v1/planner/plans/:id/tasks` (new) | All tasks in a plan, with bucket + category labels resolved | `staff` + `admin` | Records — admin section, drill-into-plan view |
+| `GET /v1/financials` (existing, role-gated `admin`) | Detailed financial records | `admin` | Records — admin section, financials subsection |
+| `GET /v1/timekeeping/entries` (existing, role-gated `staff`/`admin`) | Time entries pending approval | `staff` + `admin` | Records — admin section, time keeping subsection |
+| `POST /v1/planner/refresh` (new) | Force a Planner cache refresh | `admin` | Operational button on Records — admin section |
 
 ### Cross-cutting
 
@@ -408,7 +460,10 @@ The NestJS api/ surfaces these to the app:
 
 ## Records page widgets (NOT the public Dashboard)
 
-The app's **`RecordsScreen` (admin view)** gets one new widget initially:
+The app's **`RecordsScreen`** gets one new widget initially, shown only
+to staff/admin viewers (the member-view sections render above it
+unconditionally; the admin sections — including this Planner widget —
+only appear for `staff` + `admin`):
 
 ```
 ┌──────────────────────────────────────────┐
