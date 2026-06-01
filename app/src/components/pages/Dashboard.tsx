@@ -137,6 +137,9 @@ function CalendarView({ items }: { items: FeedItem[] }) {
 
 export default function Dashboard({ navigation }: any) {
   const dispatch = useAppDispatch();
+  // Role is consumed only for the server-side filter on the feed thunk —
+  // not for any conditional UI on the homescreen (which by design shows
+  // the same shape to everyone, just with role-tiered ITEMS).
   const role = useAppSelector((s) => s.auth.role) as Role;
   const { items, loading, loaded } = useAppSelector((s) => s.feed);
   const notifications = useAppSelector((s) => s.notifications.entities);
@@ -227,30 +230,6 @@ export default function Dashboard({ navigation }: any) {
         ) : (
           <CalendarView items={visible} />
         )}
-
-        {/* Records → link card at the bottom (clean break from finance on homescreen) */}
-        <TouchableOpacity onPress={() => navigation.navigate('publicRecords')}>
-          <Card
-            style={{
-              backgroundColor: theme.colors.darkDefault,
-              marginTop: 12,
-              borderLeftWidth: 3,
-              borderLeftColor: theme.colors.success,
-            }}
-          >
-            <Card.Content style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <MaterialCommunityIcons name="chart-pie" size={22} color={theme.colors.success} style={{ marginRight: 10 }} />
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: theme.colors.text, fontSize: 16 }}>Records →</Text>
-                <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginTop: 2 }}>
-                  Budget, expenditures, major projects
-                  {role === 'staff' || role === 'admin' ? ' · plus team task rollups + financials' : ''}
-                </Text>
-              </View>
-              <MaterialCommunityIcons name="chevron-right" size={22} color={theme.colors.textDarker} />
-            </Card.Content>
-          </Card>
-        </TouchableOpacity>
       </PageContent>
     </PageContainer>
   );
