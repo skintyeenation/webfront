@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, HttpCode, NotFoundException, Param, Post, Patch, Query, Req } from '@nestjs/common';
 import { DataService } from './data.service';
 import { Roles, callerRole } from './roles';
+import { GraphFeedService, FeedItem, AppRole } from './graph-feed.service';
 
 // ---- Health ---------------------------------------------------------------
 // Public liveness endpoint hit by:
@@ -128,6 +129,92 @@ export class NotificationsController {
   @Delete(':id') @Roles('admin') @HttpCode(204) remove(@Param('id') id: string) { remove(this.data.notifications, id); }
 }
 
+// ---- Planner (Microsoft Graph) --------------------------------------------
+// Per ADR-14 / docs/features/planner-dashboard.md. Backs the homescreen
+// feed + my-tasks/team-tasks views + the Records-page admin rollup.
+// All endpoints are role-gated; data is internal operations info.
+@Controller('planner')
+export class PlannerController {
+  constructor(private graph: GraphFeedService) {}
+
+  // Admin Records-page primary widget — cross-Nation rollup.
+  @Get('rollup') @Roles('staff', 'admin')
+  async rollup() { return this.graph.getRollup(); }
+
+  // Records-page — plan picker dropdown.
+  @Get('plans') @Roles('staff', 'admin')
+  async plans() { return this.graph.getPlans(); }
+
+  // Records-page — drill into a single plan.
+  @Get('plans/:id/tasks') @Roles('staff', 'admin')
+  async tasks(@Param('id') id: string) { return this.graph.getTasksForPlan(id); }
+
+  // Homescreen — "My tasks" view (delegated path is Phase 2; today we
+  // accept the UPN via header for testing). When app-side Entra sign-in
+  // is wired, switch to reading the caller's identity from the JWT.
+  @Get('my-tasks') @Roles('member', 'staff', 'admin')
+  async myTasks(@Req() req: any) {
+    const upn = req.headers['x-upn'];
+    if (!upn) throw new NotFoundException('x-upn header required (will be replaced by JWT identity in Phase 2)');
+    const plans = await this.graph.getPlans();
+    const tasksByPlan = await Promise.all(plans.map((p) => this.graph.getTasksForPlan(p.id)));
+    return tasksByPlan.flat().filter((t) => t.assigneeIds.includes(upn));
+  }
+
+  // Operational refresh — bust the cache.
+  @Post('refresh') @Roles('admin') @HttpCode(204)
+  refresh() { this.graph.refresh(); }
+}
+
+// ---- Unified feed (homescreen) --------------------------------------------
+// One endpoint surfacing the merged app-events + Teams meetings + Planner
+// due-dates + notifications stream. Role-filters server-side based on the
+// caller's x-role.
+@Controller('feed')
+export class FeedController {
+  constructor(private data: DataService, private graph: GraphFeedService) {}
+
+  @Get()
+  async getFeed(
+    @Req() req: any,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ): Promise<FeedItem[]> {
+    const role = callerRole(req) as AppRole;
+    const upn = req.headers['x-upn'];
+
+    // Pull app-events + notifications from in-memory data (matches the
+    // current EventsController + NotificationsController pattern); these
+    // become Postgres reads in Phase 2.
+    const extras: FeedItem[] = [
+      ...this.data.events.map((e: any): FeedItem => ({
+        id: `ae-${e._id}`,
+        source: 'app-event',
+        title: e.title ?? e.name ?? '(event)',
+        startAt: e.startAt ?? e.startsAt ?? e.date,
+        category: e.category,
+        audience: ['public', 'member', 'staff', 'admin'],  // app-events are public by default
+      })),
+      ...this.data.notifications.map((n: any): FeedItem => ({
+        id: `nt-${n._id}`,
+        source: 'notification',
+        title: n.title ?? n.body?.slice(0, 80) ?? '(notification)',
+        startAt: n.publishedAt ?? n.createdAt,
+        category: n.category,
+        audience: n.audience ?? ['public', 'member', 'staff', 'admin'],
+      })),
+    ];
+
+    return this.graph.getFeed({
+      role,
+      from: from ? new Date(from) : undefined,
+      to: to ? new Date(to) : undefined,
+      extras,
+      forUserUpn: upn,
+    });
+  }
+}
+
 // ---- helpers --------------------------------------------------------------
 function found<T>(v: T | undefined): T {
   if (!v) throw new NotFoundException('Not found');
@@ -155,4 +242,6 @@ export const CONTROLLERS = [
   TimeKeepingController,
   PollsController,
   NotificationsController,
+  PlannerController,
+  FeedController,
 ];

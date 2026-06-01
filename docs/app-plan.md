@@ -103,6 +103,18 @@ The look-and-feel and engineering patterns we deliberately keep:
 
 ## 5. Features & menu (from the diagram)
 
+> **Homescreen redesign (2026-06; ADR-14):** the original "Dashboard
+> = charts" feature listed below has evolved. The **new homescreen**
+> is a unified notifications + calendar/list feed combining app
+> events + Microsoft Teams meetings + Microsoft Planner due-dates,
+> with separate **My tasks** and **Team tasks** views. The charts
+> originally on the Dashboard stay accessible via **Public Records →
+> Transparency** for public/member, and the **Records page (admin
+> view)** picks up operational management depth (Planner board
+> rollups, drill-into-plan, etc.). See
+> [`features/planner-dashboard.md`](features/planner-dashboard.md)
+> for the new design + the per-role visibility matrix.
+
 Actors in the diagram: **Public**, **Band Members**, **Band Admins / Staff**.
 
 | Feature | Public | Member | Admin/Staff |

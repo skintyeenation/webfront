@@ -363,6 +363,57 @@ Decision record for the Skin Tyee app (`@skintyee/app`, in `app/`). Lives in the
   (10 SWAs free per subscription). Upgrade individual SWAs to
   Standard ($9/mo each) only when their own usage exceeds limits.
 
+### ADR-14 — Homescreen feed: Microsoft Graph (Planner + Teams meetings) merged with app data, via app-only auth
+
+- **Decision:** the redesigned **homescreen** is a unified feed
+  combining (a) the app's own notifications + events, (b) Microsoft
+  Planner tasks (treated as time-bound items via their due dates), and
+  (c) Microsoft Teams meetings (calendar events with
+  `isOnlineMeeting=true`). The merger happens server-side in the
+  NestJS api/, behind a single `GET /v1/feed` endpoint, with the
+  Graph data fetched via **app-only authentication** through a new
+  Entra app `skintyee-app-graph` (Tasks.Read.All, Group.Read.All,
+  Calendars.Read, User.Read.All). The same data backs additional
+  homescreen views (`/v1/planner/my-tasks`, `/v1/planner/team-tasks`)
+  + the admin-only Records page rollup
+  (`/v1/planner/rollup`).
+- **Why not delegated (per-user) auth:** the homescreen serves
+  unauthenticated public visitors + band members + staff + admins,
+  with role-tiered visibility. Delegated would need every viewer
+  signed into M365 (the app's auth is still stubbed in Phase 1) and
+  would limit each viewer to plans they can see in the Planner UI —
+  wrong for cross-Nation rollups. App-only lets the api/ fetch once
+  per cache cycle + role-filter server-side.
+- **Why not build our own task tracker:** double-entry. Staff already
+  manage tasks in Planner (bundled with M365 Business Standard). The
+  app stays read-only against Planner; staff continue managing where
+  they already do. Single source of truth.
+- **Why not embed the Planner web UI in a WebView:** doesn't give us
+  the cross-source merge (Planner + Teams + app events) into a single
+  feed, doesn't allow per-role filtering, doesn't enable the admin
+  Records rollup view. WebView would just be a smaller Planner.
+- **Caching:** 5-10 min in-memory TTL in the api/'s
+  `GraphFeedService`. Polling beats Graph change-notification webhooks
+  at this stage (webhooks add public-endpoint surface area, require
+  3-day subscription renewals; dashboard freshness of 5-10 min is
+  plenty). Refactorable to webhooks in Phase 2 if real-time task
+  notifications become a feature.
+- **Cost:** **$0/mo**. Planner is bundled with M365 Business Standard;
+  Calendars are part of Exchange (same license); Graph API has no
+  per-call fee at the volumes we'll hit (≤200 calls per 5-10 min cache
+  cycle, well under the 10k-per-10-min throttle).
+- **Plan:** [`docs/features/planner-dashboard.md`](features/planner-dashboard.md) —
+  the full design doc with per-screen widget mockups, the unified
+  `FeedItem` type, the 9 Graph + app data sources merged, and the
+  cross-cutting role-filter strategy. Scaffolded by
+  [`scripts/setup-app-graph.sh`](../scripts/setup-app-graph.sh) (creates
+  the Entra app + the 4 Graph permissions + 24-month client secret).
+- **What it relates to:** ADR-1 (Entra ID for auth — same tenant
+  hosts this new app), ADR-7 (NestJS api/ — this is a new controller
+  + service inside the same app), ADR-10 (Container Apps — the api/'s
+  Graph credentials live in the Container App secret store, same
+  pattern as the Postgres password).
+
 ## Summary: ppt → Skin Tyee service swaps
 
 | Concern | ppt (AWS) | Skin Tyee (Azure) | Status |
@@ -375,3 +426,4 @@ Decision record for the Skin Tyee app (`@skintyee/app`, in `app/`). Lives in the
 | App packaging | source lib + app-shell submodules | **single self-contained app** | done |
 | Docs distribution | — | **SharePoint mirror via GitHub Actions + Graph (Sites.Selected)** | implemented; pending 1× Azure app + Sites.Selected grant (ADR-8) — to be ported to Azure Pipelines per ADR-9 |
 | Source control | _(GitHub-as-primary, implicit)_ | **Azure DevOps primary + GitHub mirror** | documented; pending 1× org + repo creation (ADR-9) |
+| Task management + meetings feed | _(none)_ | **Microsoft Planner + Teams meetings via Graph API, merged with app events into a single homescreen feed** | Planning doc done (ADR-14); `skintyee-app-graph` Entra app + NestJS `GraphFeedService` to be scaffolded |

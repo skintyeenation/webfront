@@ -237,6 +237,7 @@ what's authenticating against Entra **in production today**.
 | `it-project-docs-publisher` | The SharePoint publisher pipeline — pushes `docs/` to the SharePoint library on every `master` push | `Sites.Selected` on the docs SharePoint site | [docs/365/sharepoint-docs-publish.md](docs/365/sharepoint-docs-publish.md) |
 | `skintyeenation-admin-cli` | Helper for `m365 cli` admin tasks (creates/manages SharePoint sites, etc.) | Sites.FullControl.All | [docs/365/sharepoint-docs-publish.md](docs/365/sharepoint-docs-publish.md) |
 | `skintyee-m365-backup` *(to be created when [setup-backup-cloud.sh](scripts/setup-backup-cloud.sh) runs)* | The M365 email backup script — read-only access to every mailbox | Mail.Read + Calendars.Read + Contacts.Read + User.Read.All | [docs/365/email-backup.md](docs/365/email-backup.md) |
+| `skintyee-app-graph` *(to be created when [setup-app-graph.sh](scripts/setup-app-graph.sh) runs)* | The community app's Microsoft Graph reader (ADR-14) — backs the homescreen feed (Planner + Teams meetings + app events + notifications) + the admin Records-page rollup | Tasks.Read.All + Group.Read.All + Calendars.Read + User.Read.All | [docs/features/planner-dashboard.md](docs/features/planner-dashboard.md) |
 
 What's **NOT** on Entra (deliberate):
 
@@ -630,7 +631,9 @@ backup to walk every existing message.
 
 - [`CLAUDE.md`](CLAUDE.md) — workspace overview, conventions, and decisions
 - [`docs/app-plan.md`](docs/app-plan.md) — app build plan
-- [`docs/architecture-decisions.md`](docs/architecture-decisions.md) — service ADRs (Entra ID, Azure Blob, Ferrus/Adagio, WordPress categories, SharePoint docs publishing)
+- [`docs/architecture-decisions.md`](docs/architecture-decisions.md) — service ADRs (Entra ID, Azure Blob, Ferrus/Adagio, WordPress categories, SharePoint docs publishing, Microsoft Graph homescreen feed)
+- [`docs/features/planner-dashboard.md`](docs/features/planner-dashboard.md) — **ADR-14** — Microsoft Planner + Teams meetings + app events + notifications merged into a unified homescreen feed (calendar OR list view); plus My-tasks / Team-tasks views + admin Records-page rollup. Read-only via the `skintyee-app-graph` Entra app + server-side cache + role-tiered visibility filter.
+- [`scripts/setup-app-graph.sh`](scripts/setup-app-graph.sh) — idempotent script that creates the `skintyee-app-graph` Entra app (Tasks.Read.All + Group.Read.All + Calendars.Read + User.Read.All), grants admin consent, mints a 24-month client secret, wires the credentials into the `api-prod` Container App as secrets (`GRAPH_CLIENT_ID`/`GRAPH_CLIENT_SECRET`/`GRAPH_TENANT_ID`), and updates the ADO variable group with non-secret fields. Run once when ready to flip the api/ from in-memory mock to live Graph data. Supports `--dry-run` and `--rotate-secret`.
 - [`docs/roadmap.md`](docs/roadmap.md) — 3-month engagement timeline
 - [`docs/pricing-overview.md`](docs/pricing-overview.md) — software/service costs summary, recurring + one-time (M365, 1Password, GoDaddy, Azure, app stores, dev tools) + tax
 - [`docs/app-distribution-costs.md`](docs/app-distribution-costs.md) — Apple Developer + Google Play costs, tax deductibility
