@@ -19,9 +19,14 @@
 # Idempotent — safe to re-run.
 #
 # Usage:
-#   bash scripts/setup-app-graph.sh                  # interactive
-#   bash scripts/setup-app-graph.sh --dry-run        # preview the az calls
-#   bash scripts/setup-app-graph.sh --rotate-secret  # mint a fresh client secret
+#   bash scripts/setup-app-graph.sh                              # interactive (secret to stdout)
+#   bash scripts/setup-app-graph.sh --dry-run                    # preview the az calls
+#   bash scripts/setup-app-graph.sh --rotate-secret              # mint a fresh client secret
+#   bash scripts/setup-app-graph.sh --rotate-secret \\
+#        --secret-to-file ~/Desktop/app-graph-secret.json        # secret to FILE (mode 600),
+#                                                                # nothing sensitive on stdout —
+#                                                                # use when running in an
+#                                                                # observed terminal / chat session
 
 set -uo pipefail
 
@@ -54,10 +59,12 @@ PERMS=(
 
 DRY_RUN=0
 ROTATE_SECRET=0
+SECRET_TO_FILE=""
 while [ $# -gt 0 ]; do
   case "$1" in
-    --dry-run)        DRY_RUN=1; shift ;;
-    --rotate-secret)  ROTATE_SECRET=1; shift ;;
+    --dry-run)             DRY_RUN=1; shift ;;
+    --rotate-secret)       ROTATE_SECRET=1; shift ;;
+    --secret-to-file)      SECRET_TO_FILE="$2"; shift 2 ;;
     --help|-h)
       sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'
       exit 0
@@ -145,15 +152,21 @@ fi
 if [ "$ROTATE_SECRET" -eq 1 ] || [ "$SECRET_EXISTS" -eq 0 ]; then
   say "creating client secret (24-month expiry)…"
   if [ "$DRY_RUN" -eq 0 ]; then
+    # Reset the credential. `az ad app credential reset` returns the
+    # secret in `password`; the expiry comes back via a separate
+    # `az ad app credential list` call (the reset response doesn't
+    # include endDateTime in current az CLI versions).
     SECRET_JSON=$(az ad app credential reset \
       --id "$APP_ID" \
       --display-name "app-graph-prod" \
       --years 2 \
-      --query '{appId:appId, secret:password, tenantId:tenant, expires:endDateTime}' \
+      --query '{appId:appId, secret:password, tenantId:tenant}' \
       -o json 2>/dev/null)
     if [ -n "$SECRET_JSON" ]; then
       CLIENT_SECRET=$(echo "$SECRET_JSON" | jq -r .secret)
-      EXPIRES=$(echo "$SECRET_JSON" | jq -r .expires)
+      # Fetch endDateTime separately — reset response doesn't include it
+      EXPIRES=$(az ad app credential list --id "$APP_ID" \
+        --query 'sort_by([], &endDateTime)[-1].endDateTime' -o tsv 2>/dev/null)
       ok "client secret created (expires $EXPIRES)"
     else
       die "couldn't create client secret"
@@ -161,6 +174,29 @@ if [ "$ROTATE_SECRET" -eq 1 ] || [ "$SECRET_EXISTS" -eq 0 ]; then
   fi
 else
   ok "client secret already exists (use --rotate-secret to mint a fresh one)"
+fi
+
+# If --secret-to-file was given, write the secret there with mode 600
+# and DON'T print to stdout (avoids leaking via terminal capture / chat
+# transcripts when run by automation or in an observed session).
+if [ -n "$SECRET_TO_FILE" ] && [ -n "${CLIENT_SECRET:-}" ]; then
+  SECRET_FILE_TMP=$(mktemp)
+  chmod 600 "$SECRET_FILE_TMP"
+  cat > "$SECRET_FILE_TMP" <<EOF
+{
+  "tenantId":     "$TENANT_ID",
+  "appId":        "$APP_ID",
+  "appDisplay":   "$APP_DISPLAY",
+  "clientSecret": "$CLIENT_SECRET",
+  "expires":      "${EXPIRES:-unknown}",
+  "issuedAt":     "$(date -u +%FT%TZ)"
+}
+EOF
+  mv "$SECRET_FILE_TMP" "$SECRET_TO_FILE"
+  chmod 600 "$SECRET_TO_FILE"
+  ok "secret written to: $SECRET_TO_FILE (mode 600)"
+  # Blank the variable so the summary at the end skips the stdout reveal
+  CLIENT_SECRET_HIDDEN=1
 fi
 
 # ----- 5) Wire credentials into api-prod Container App ----------------------
@@ -238,11 +274,13 @@ Save to 1Password → IT/Admin → 'skintyee-app-graph':
   appId:        ${APP_ID:-DRY-RUN}
 EOF
 
-if [ -n "${CLIENT_SECRET:-}" ]; then
+if [ -n "${CLIENT_SECRET:-}" ] && [ "${CLIENT_SECRET_HIDDEN:-0}" -eq 0 ]; then
   cat <<EOF
   clientSecret: ${CLIENT_SECRET}
   expires:      ${EXPIRES}
 EOF
+elif [ -n "${CLIENT_SECRET:-}" ]; then
+  printf '  clientSecret: <written to %s>\n  expires:      %s\n' "$SECRET_TO_FILE" "${EXPIRES:-unknown}"
 fi
 
 cat <<EOF
