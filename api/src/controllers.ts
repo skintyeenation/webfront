@@ -183,18 +183,30 @@ export class FeedController {
     const role = callerRole(req) as AppRole;
     const upn = req.headers['x-upn'];
 
-    // Pull app-events + notifications from in-memory data (matches the
-    // current EventsController + NotificationsController pattern); these
-    // become Postgres reads in Phase 2.
+    // Pull app-events + band-meetings + notifications from in-memory
+    // data (matches the existing EventsController / MeetingsController /
+    // NotificationsController pattern); these become Postgres reads in
+    // Phase 2. Each maps to a normalized FeedItem.
     const extras: FeedItem[] = [
+      // App events (community salmon BBQ, powwow, etc.) — public by default
       ...this.data.events.map((e: any): FeedItem => ({
         id: `ae-${e._id}`,
         source: 'app-event',
         title: e.title ?? e.name ?? '(event)',
         startAt: e.startAt ?? e.startsAt ?? e.date,
         category: e.category,
-        audience: ['public', 'member', 'staff', 'admin'],  // app-events are public by default
+        audience: ['public', 'member', 'staff', 'admin'],
       })),
+      // Band meetings (council meetings, membership meetings) — member+
+      ...this.data.meetings.map((m: any): FeedItem => ({
+        id: `bm-${m._id}`,
+        source: 'app-event',
+        title: m.title ?? m.name ?? '(meeting)',
+        startAt: m.startAt ?? m.startsAt ?? m.date,
+        category: 'Council',
+        audience: ['member', 'staff', 'admin'],
+      })),
+      // Notifications (water boil advisory, council announcements, etc.)
       ...this.data.notifications.map((n: any): FeedItem => ({
         id: `nt-${n._id}`,
         source: 'notification',

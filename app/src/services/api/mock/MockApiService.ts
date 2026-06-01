@@ -63,7 +63,7 @@ export const mockApiService: ApiService = {
     // shape locally so the homescreen can render against either.
     get: ({ role, from, to }) => {
       const items: import('skintyee/models').FeedItem[] = [];
-      // App events
+      // App events (created in the app — community salmon BBQ, powwow, etc.)
       for (const e of fixtures.events) {
         items.push({
           id: `ae-${e._id}`,
@@ -72,6 +72,18 @@ export const mockApiService: ApiService = {
           startAt: e.startsAt,
           category: 'Events',
           audience: ['public', 'member', 'staff', 'admin'],
+        });
+      }
+      // Band meetings (created in the app — agendas, schedules, minutes).
+      // Members + admins see these; public doesn't (member-only by default).
+      for (const m of fixtures.meetings) {
+        items.push({
+          id: `bm-${m._id}`,
+          source: 'app-event',
+          title: m.title,
+          startAt: m.startsAt,
+          category: 'Council',
+          audience: ['member', 'staff', 'admin'],
         });
       }
       // Notifications
