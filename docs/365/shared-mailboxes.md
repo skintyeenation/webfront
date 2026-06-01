@@ -139,22 +139,61 @@ name + email aligned with what's configured in the M365 admin center.
 > match reality + alias the standard spelling as a secondary address.
 > If the mailbox is the standard two-L spelling, update the source list.
 
-> **⚠ Verify also — `info@skintyee.ca` and `admin@skintyee.ca`:** these
-> were in an earlier draft of this doc but are NOT in the current
-> 13-mailbox snapshot above. **However**, the DMARC TXT record in
-> GoDaddy (`_dmarc.skintyee.ca`) currently sends aggregate / forensic
-> reports to `info@skintyee.ca` — see
-> [`./setup-skintyee-ca-email.md`](./setup-skintyee-ca-email.md) step 6.
-> If `info@` was decommissioned, those reports are bouncing. Two paths:
->
-> 1. **Keep `info@` as a shared mailbox** (just for DMARC reports —
->    nobody has to actively monitor it; IT can scan it monthly), OR
-> 2. **Update the DMARC record** in GoDaddy to point at a mailbox that
->    DOES exist (recommended: `it@skintyee.ca` — IT handles the
->    DMARC-tuning workflow anyway). Then re-validate per
->    `setup-skintyee-ca-email.md` step 7.
->
-> Pick one + update both this doc + the DMARC TXT to be consistent.
+### Aliases vs. primary addresses
+
+A **shared mailbox** is its own M365 object with its own storage,
+permissions, and licensing rules. The 13 entries in the table above
+are all shared mailboxes.
+
+An **alias** is a secondary email address attached to an existing
+mailbox (shared OR personal). Mail sent to the alias lands in the
+attached mailbox; the receiver sees the mail addressed to the alias
+form in the `To:` header but it's the same inbox. Aliases are free
+(no extra license, no extra storage).
+
+When to use which:
+
+| Need | Use a … |
+|---|---|
+| Multiple staff need to read + send from the same address ("info@", "chief@", "finance@") | **Shared mailbox** — gives proper multi-user access with per-user permissions |
+| You want a "catch-all" or rebranded incoming address that lands in an existing mailbox ("hello@" → goes to `info@`'s mailbox; or `info@` → goes to `it@`'s mailbox) | **Alias** on the existing mailbox |
+| You want a backward-compat address for mail that should still flow somewhere after the canonical address changed (e.g. old `admin@` → `it@`) | **Alias** |
+| Inbound-only address used by automation (DMARC report receiver, GitHub notification address, monitoring alerts) | **Alias** on a mailbox staff actually check |
+
+### Aliases currently set up
+
+(To-do — add the alias when it's wired in M365 admin center:)
+
+| Alias | Lands in | Why |
+|---|---|---|
+| `info@skintyee.ca` | `it@skintyee.ca` | (a) public-facing generic address some external mail still hits, (b) DMARC aggregate / forensic reports (per `_dmarc.skintyee.ca` TXT in GoDaddy) — IT scans these as part of normal alert review |
+
+How to add the alias in M365 admin center:
+
+1. **M365 admin center → Recipients → Mailboxes**
+2. Click the **`it@skintyee.ca`** row → "Manage email address types"
+3. Click **Add email address** → type `info@skintyee.ca` → save
+4. Verify with `Get-Mailbox -Identity it@skintyee.ca | Select-Object EmailAddresses` in Exchange Online PowerShell
+
+Or PowerShell directly:
+
+```powershell
+Set-Mailbox -Identity it@skintyee.ca -EmailAddresses @{Add="info@skintyee.ca"}
+```
+
+Notes:
+
+- **Sending FROM an alias** isn't enabled by default in M365 — staff
+  using the `it@` mailbox can receive at `info@` but can't reply
+  *appearing* to be from `info@` unless an admin enables "Send from
+  email aliases" tenant-wide (M365 admin center → Settings →
+  Org settings → Mail). Decide whether that's wanted before enabling.
+- **DMARC reports**: the `_dmarc.skintyee.ca` TXT record in GoDaddy
+  doesn't need to change — it can keep pointing at `info@skintyee.ca`;
+  the reports will route through the alias to `it@`'s inbox.
+- **`admin@skintyee.ca`** — if this was used historically and might
+  still receive mail, decide whether to add it as another alias on
+  `it@` (or wherever) for the same backward-compat reason.
 
 ### How the addresses map to the display names
 
