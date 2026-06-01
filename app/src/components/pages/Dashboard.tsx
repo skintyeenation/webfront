@@ -1,200 +1,256 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
-import { Button, Card, Chip, ProgressBar, SegmentedButtons, Text } from 'react-native-paper';
+import { Badge, Card, Chip, SegmentedButtons, Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { PageContainer, PageContent, BarChart, PieChart, colorAt } from 'skintyee/components/layout';
+import moment from 'moment';
+import { NoContent, PageContainer, PageContent } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
-import { loadExpenditures, loadMajorProjects } from 'skintyee/store/modules/transparency';
-import { loadEvents } from 'skintyee/store/modules/events';
-import { loadPolls } from 'skintyee/store/modules/polls';
-import { loadDirectory } from 'skintyee/store/modules/directory';
-import { loadTimeEntries } from 'skintyee/store/modules/timekeeping';
+import { loadFeed } from 'skintyee/store/modules/feed';
+import { loadNotifications } from 'skintyee/store/modules/notifications';
+import { FeedItem, Role } from 'skintyee/models';
 import { theme } from 'skintyee/styles';
 
-type Period = 'month' | 'year';
+// ----------------------------------------------------------------------------
+// Homescreen — the redesigned "Home" tab. Per ADR-14 and
+// docs/features/planner-dashboard.md. Three sections:
+//
+//   1. Notifications strip (unread count + the top few items)
+//   2. "This week" feed (calendar OR list toggle) — app events + Teams
+//      meetings + Planner due-dates, role-filtered server-side
+//   3. Records → link card (where budget transparency now lives)
+//
+// The old Dashboard's financial widgets (budget pie, month/year, major
+// projects) moved to Records (member view); operational widgets
+// (timekeeping pending approvals, Planner board rollup, financial
+// records) moved to Records (admin view).
+// ----------------------------------------------------------------------------
 
-const k = (n: number) => `$${(n / 1000).toFixed(0)}k`;
-const full = (n: number) => `$${Math.round(n).toLocaleString('en-CA')}`;
+type FeedView = 'list' | 'calendar';
 
-const statusColor: Record<string, string> = {
-  complete: theme.colors.success,
-  in_progress: theme.colors.primary,
-  planned: theme.colors.textDarker,
+const SOURCE_ICONS: Record<FeedItem['source'], string> = {
+  'app-event':     'calendar-star',
+  'teams-meeting': 'video',
+  'planner-task':  'checkbox-marked-outline',
+  'notification':  'bell-outline',
 };
 
-function Stat({ label, value, color }: { label: string; value: string; color: string }) {
+const SOURCE_COLORS: Record<FeedItem['source'], string> = {
+  'app-event':     theme.colors.accent,
+  'teams-meeting': '#5B5FC7',     // Teams purple
+  'planner-task':  '#0078D4',     // Planner blue
+  'notification':  theme.colors.primary,
+};
+
+function timeOf(item: FeedItem): string | undefined {
+  return item.startAt ?? item.dueAt;
+}
+
+function isOverdue(item: FeedItem): boolean {
+  if (item.source !== 'planner-task' || !item.dueAt) return false;
+  return new Date(item.dueAt).getTime() < Date.now();
+}
+
+function formatRange(items: FeedItem[]): string {
+  if (items.length === 0) return '';
+  const first = timeOf(items[0]);
+  const last = timeOf(items[items.length - 1]);
+  if (!first || !last) return '';
+  return `${moment(first).format('MMM D')} – ${moment(last).format('MMM D')}`;
+}
+
+// ---- Feed item card --------------------------------------------------------
+
+function FeedItemCard({ item, onPress }: { item: FeedItem; onPress?: () => void }) {
+  const t = timeOf(item);
+  const overdue = isOverdue(item);
   return (
-    <Card style={{ backgroundColor: theme.colors.darkDefault, flexGrow: 1, flexBasis: '47%', margin: 4 }}>
-      <Card.Content>
-        <Text style={{ color, fontSize: 22 }}>{value}</Text>
-        <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>{label}</Text>
-      </Card.Content>
-    </Card>
+    <TouchableOpacity onPress={onPress} disabled={!onPress}>
+      <Card
+        style={{
+          marginBottom: 8,
+          backgroundColor: theme.colors.darkDefault,
+          borderLeftWidth: 3,
+          borderLeftColor: overdue ? theme.colors.accent : SOURCE_COLORS[item.source],
+        }}
+      >
+        <Card.Content>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <MaterialCommunityIcons
+              name={overdue ? 'alert' : SOURCE_ICONS[item.source]}
+              size={18}
+              color={overdue ? theme.colors.accent : SOURCE_COLORS[item.source]}
+              style={{ marginRight: 8 }}
+            />
+            <Text style={{ color: theme.colors.text, fontSize: 14, flex: 1 }}>{item.title}</Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+            {item.category ? (
+              <Chip compact style={{ backgroundColor: theme.colors.secondary, marginRight: 6 }} textStyle={{ fontSize: 10 }}>
+                {item.category}
+              </Chip>
+            ) : null}
+            <Text style={{ color: overdue ? theme.colors.accent : theme.colors.textDarker, fontSize: 12 }}>
+              {overdue ? `OVERDUE · ${moment(t).fromNow(true)} late` : t ? moment(t).format('ddd MMM D · h:mm A') : ''}
+            </Text>
+          </View>
+        </Card.Content>
+      </Card>
+    </TouchableOpacity>
   );
 }
 
+// ---- Calendar view (simple per-day grouping) ------------------------------
+
+function CalendarView({ items }: { items: FeedItem[] }) {
+  const byDay = useMemo(() => {
+    const map = new Map<string, FeedItem[]>();
+    for (const it of items) {
+      const t = timeOf(it);
+      if (!t) continue;
+      const key = moment(t).format('YYYY-MM-DD');
+      map.set(key, [...(map.get(key) ?? []), it]);
+    }
+    return map;
+  }, [items]);
+
+  if (byDay.size === 0) {
+    return <NoContent message="Nothing scheduled this week." />;
+  }
+
+  return (
+    <View>
+      {Array.from(byDay.entries()).map(([day, dayItems]) => (
+        <View key={day} style={{ marginBottom: 12 }}>
+          <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginBottom: 6, textTransform: 'uppercase' }}>
+            {moment(day).format('dddd, MMM D')}
+          </Text>
+          {dayItems.map((it) => (
+            <FeedItemCard key={it.id} item={it} />
+          ))}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+// ---- Main screen -----------------------------------------------------------
+
 export default function Dashboard({ navigation }: any) {
   const dispatch = useAppDispatch();
-  const role = useAppSelector((s) => s.auth.role);
-  const isAdmin = role === 'admin';
-  const expenditures = useAppSelector((s) => s.transparency.entities);
-  const majorProjects = useAppSelector((s) => s.transparency.majorProjects);
-  const events = useAppSelector((s) => s.events.entities);
-  const polls = useAppSelector((s) => s.polls.entities);
-  const members = useAppSelector((s) => s.directory.entities);
-  const timeEntries = useAppSelector((s) => s.timekeeping.entities);
+  const role = useAppSelector((s) => s.auth.role) as Role;
+  const { items, loading, loaded } = useAppSelector((s) => s.feed);
+  const notifications = useAppSelector((s) => s.notifications.entities);
 
-  // Reporting period toggle. Annual figures are the source; "month" shows the
-  // monthly run-rate (annual / 12).
-  const [period, setPeriod] = useState<Period>('year');
-  const f = period === 'month' ? 1 / 12 : 1;
-  const periodWord = period === 'month' ? 'this month' : 'this year';
+  const [view, setView] = useState<FeedView>('list');
 
+  // Pull this week's worth of feed + notifications on mount.
   useEffect(() => {
-    dispatch(loadExpenditures());
-    dispatch(loadMajorProjects());
-    dispatch(loadEvents());
-    dispatch(loadPolls());
-    dispatch(loadDirectory());
-    dispatch(loadTimeEntries());
-  }, [dispatch]);
+    const from = moment().startOf('day').toISOString();
+    const to = moment().add(7, 'days').endOf('day').toISOString();
+    dispatch(loadFeed({ role, from, to }));
+    dispatch(loadNotifications());
+  }, [dispatch, role]);
 
-  const pendingApprovals = timeEntries.filter((t) => !t.approved).length;
-  const hoursLogged = timeEntries.reduce((s, t) => s + t.hours, 0);
+  const unreadNotifications = notifications.filter((n) => !n.read).length;
 
-  const totalSpent = expenditures.reduce((s, e) => s + e.spent, 0) * f;
-  const totalAllocated = expenditures.reduce((s, e) => s + e.budget, 0) * f;
-  const pctOfBudget = totalAllocated ? Math.round((totalSpent / totalAllocated) * 100) : 0;
-  const avgPerMember = members.length ? totalSpent / members.length : 0;
-  const openPolls = polls.filter((p) => !p.closed).length;
-  const upcomingEvents = events.filter((e) => new Date(e.startsAt) > new Date()).length;
+  // Only show items in the next 7 days for the homescreen widget.
+  const visible = useMemo(() => {
+    const horizon = Date.now() + 7 * 24 * 60 * 60 * 1000;
+    return items.filter((it) => {
+      const t = timeOf(it);
+      if (!t) return false;
+      // Include OVERDUE Planner tasks even if their due date was earlier
+      if (isOverdue(it)) return true;
+      const ts = new Date(t).getTime();
+      return ts >= Date.now() - 24 * 60 * 60 * 1000 && ts <= horizon;
+    });
+  }, [items]);
 
   return (
     <PageContainer>
       <PageContent>
-        {/* Reporting period toggle */}
-        <SegmentedButtons
-          value={period}
-          onValueChange={(v) => setPeriod(v as Period)}
-          density="small"
-          style={{ marginBottom: 14 }}
-          buttons={[
-            { value: 'month', label: 'Month', icon: 'calendar-month' },
-            { value: 'year', label: 'Year', icon: 'calendar' },
-          ]}
-        />
-
-        {/* Admins get a different home: an admin overview up top. */}
-        {isAdmin ? (
-          <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12, borderLeftWidth: 3, borderLeftColor: theme.colors.accent }}>
-            <Card.Content>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-                <MaterialCommunityIcons name="shield-account" size={20} color={theme.colors.accent} style={{ marginRight: 8 }} />
-                <Text style={{ color: theme.colors.text, fontSize: 16 }}>Admin overview</Text>
-              </View>
-              <View style={{ flexDirection: 'row' }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: pendingApprovals > 0 ? theme.colors.accent : theme.colors.success, fontSize: 24 }}>{pendingApprovals}</Text>
-                  <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Time entries to approve</Text>
+        {/* Notifications strip — top of the homescreen */}
+        <TouchableOpacity onPress={() => navigation.navigate('notifications')}>
+          <Card
+            style={{
+              backgroundColor: theme.colors.darkDefault,
+              marginBottom: 12,
+              borderLeftWidth: 3,
+              borderLeftColor: unreadNotifications > 0 ? theme.colors.primary : theme.colors.secondary,
+            }}
+          >
+            <Card.Content style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <MaterialCommunityIcons name="bell-outline" size={22} color={theme.colors.primary} style={{ marginRight: 10 }} />
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={{ color: theme.colors.text, fontSize: 16 }}>Notifications</Text>
+                  {unreadNotifications > 0 ? (
+                    <Badge style={{ backgroundColor: theme.colors.primary, marginLeft: 8 }}>{unreadNotifications}</Badge>
+                  ) : null}
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: theme.colors.primary, fontSize: 24 }}>{hoursLogged}</Text>
-                  <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Hours logged</Text>
-                </View>
+                <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginTop: 2 }}>
+                  {unreadNotifications > 0
+                    ? `${unreadNotifications} new — tap to read`
+                    : 'No new notifications'}
+                </Text>
               </View>
-              <Button
-                mode="contained"
-                compact
-                icon="shield-account"
-                buttonColor={theme.colors.accent}
-                textColor="#000"
-                style={{ marginTop: 12, alignSelf: 'flex-start' }}
-                onPress={() => navigation.navigate('Admin')}
-              >
-                Open Admin tools
-              </Button>
-            </Card.Content>
-          </Card>
-        ) : null}
-
-        {/* Budget summary pie at the top */}
-        <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
-          <Card.Content>
-            <Text style={{ color: theme.colors.text, fontSize: 16, marginBottom: 12 }}>Budget summary · spending by area ({periodWord})</Text>
-            {expenditures.length > 0 ? (
-              <PieChart
-                data={expenditures.map((e, i) => ({ label: e.area, value: e.spent * f, color: colorAt(i) }))}
-                centerLabel={k(totalSpent)}
-                centerSub={periodWord}
-                formatValue={k}
-              />
-            ) : (
-              <Text style={{ color: theme.colors.textDarker }}>Loading…</Text>
-            )}
-          </Card.Content>
-        </Card>
-
-        <Text style={{ color: theme.colors.text, fontSize: 18, marginBottom: 10 }}>Community at a glance</Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4, marginBottom: 12 }}>
-          <Stat label={`Spent ${periodWord}`} value={k(totalSpent)} color={theme.colors.success} />
-          <Stat label={`Spent vs allocated (${pctOfBudget}%)`} value={`${k(totalSpent)} / ${k(totalAllocated)}`} color={theme.colors.accent} />
-          <Stat label="Band members" value={String(members.length)} color={theme.colors.primary} />
-          <Stat label={`Avg spend / member (${periodWord})`} value={full(avgPerMember)} color={theme.colors.primary} />
-          <Stat label="Upcoming events" value={String(upcomingEvents)} color={theme.colors.accent} />
-          <Stat label="Open polls" value={String(openPolls)} color={theme.colors.primary} />
-        </View>
-
-        {/* Overall budget vs actual */}
-        <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
-          <Card.Content>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-              <Text style={{ color: theme.colors.text }}>Budget vs actual ({periodWord})</Text>
-              <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>{full(totalSpent)} of {full(totalAllocated)}</Text>
-            </View>
-            <ProgressBar progress={totalAllocated ? totalSpent / totalAllocated : 0} color={theme.colors.success} style={{ height: 8, backgroundColor: theme.colors.secondary }} />
-          </Card.Content>
-        </Card>
-
-        <TouchableOpacity onPress={() => navigation.navigate('Records')}>
-          <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
-            <Card.Content>
-              <Text style={{ color: theme.colors.text, marginBottom: 10 }}>Spending by program area (spent vs allocated)</Text>
-              {expenditures.length > 0 ? (
-                <BarChart data={expenditures.map((e) => ({ label: e.area, value: e.spent * f, max: e.budget * f, color: theme.colors.primary }))} formatValue={full} />
-              ) : (
-                <Text style={{ color: theme.colors.textDarker }}>Loading…</Text>
-              )}
-              <Text style={{ color: theme.colors.accent, fontSize: 12, marginTop: 4 }}>Tap to view full transparency report ›</Text>
+              <MaterialCommunityIcons name="chevron-right" size={22} color={theme.colors.textDarker} />
             </Card.Content>
           </Card>
         </TouchableOpacity>
 
-        {/* Major projects: allocated vs spent (project to date — not period-scaled) */}
-        <Card style={{ backgroundColor: theme.colors.darkDefault }}>
-          <Card.Content>
-            <Text style={{ color: theme.colors.text, marginBottom: 10 }}>Major projects · allocated vs spent (project to date)</Text>
-            {majorProjects.length === 0 ? (
-              <Text style={{ color: theme.colors.textDarker }}>Loading…</Text>
-            ) : (
-              majorProjects.map((p) => (
-                <View key={p._id} style={{ marginBottom: 14 }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                    <Text style={{ color: theme.colors.text, fontSize: 13, flex: 1, paddingRight: 8 }}>{p.name}</Text>
-                    <Chip compact style={{ backgroundColor: theme.colors.secondary }} textStyle={{ color: statusColor[p.status], fontSize: 10 }}>
-                      {p.status.replace('_', ' ')}
-                    </Chip>
-                  </View>
-                  <View style={{ height: 10, backgroundColor: theme.colors.secondary, borderRadius: 5, overflow: 'hidden' }}>
-                    <View style={{ height: 10, width: `${Math.min(100, (p.spent / p.allocated) * 100)}%`, backgroundColor: theme.colors.success, borderRadius: 5 }} />
-                  </View>
-                  <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginTop: 3 }}>
-                    {full(p.spent)} spent of {full(p.allocated)} allocated ({Math.round((p.spent / p.allocated) * 100)}%)
-                  </Text>
-                </View>
-              ))
-            )}
-          </Card.Content>
-        </Card>
+        {/* "This week" feed with Calendar | List toggle */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+          <MaterialCommunityIcons name="calendar-blank-outline" size={18} color={theme.colors.text} style={{ marginRight: 6 }} />
+          <Text style={{ color: theme.colors.text, fontSize: 16, flex: 1 }}>
+            This week {formatRange(visible) ? `· ${formatRange(visible)}` : ''}
+          </Text>
+        </View>
+
+        <SegmentedButtons
+          value={view}
+          onValueChange={(v) => setView(v as FeedView)}
+          density="small"
+          style={{ marginBottom: 12 }}
+          buttons={[
+            { value: 'list', label: 'List', icon: 'format-list-bulleted' },
+            { value: 'calendar', label: 'Calendar', icon: 'calendar-month' },
+          ]}
+        />
+
+        {!loaded && loading ? (
+          <NoContent loading message="Loading your week…" />
+        ) : visible.length === 0 ? (
+          <NoContent message="Nothing scheduled in the next 7 days. Check Events, or come back tomorrow." />
+        ) : view === 'list' ? (
+          visible.map((it) => <FeedItemCard key={it.id} item={it} />)
+        ) : (
+          <CalendarView items={visible} />
+        )}
+
+        {/* Records → link card at the bottom (clean break from finance on homescreen) */}
+        <TouchableOpacity onPress={() => navigation.navigate('publicRecords')}>
+          <Card
+            style={{
+              backgroundColor: theme.colors.darkDefault,
+              marginTop: 12,
+              borderLeftWidth: 3,
+              borderLeftColor: theme.colors.success,
+            }}
+          >
+            <Card.Content style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <MaterialCommunityIcons name="chart-pie" size={22} color={theme.colors.success} style={{ marginRight: 10 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: theme.colors.text, fontSize: 16 }}>Records →</Text>
+                <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginTop: 2 }}>
+                  Budget, expenditures, major projects
+                  {role === 'staff' || role === 'admin' ? ' · plus team task rollups + financials' : ''}
+                </Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={22} color={theme.colors.textDarker} />
+            </Card.Content>
+          </Card>
+        </TouchableOpacity>
       </PageContent>
     </PageContainer>
   );

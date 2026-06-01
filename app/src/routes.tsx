@@ -12,7 +12,7 @@ export const routeConfig = {
   directory: { name: 'directory', options: { title: 'Directory', header: header('Band Member Directory') } },
   events: { name: 'events', options: { title: 'Events', header: header('Community Events') } },
   meetings: { name: 'meetings', options: { title: 'Meetings', header: header('Band Meetings') } },
-  publicRecords: { name: 'publicRecords', options: { title: 'Records', header: header('Public Records · Transparency') } },
+  publicRecords: { name: 'publicRecords', options: { title: 'Records', header: header('Records') } },
   expenditureDetail: { name: 'expenditureDetail', options: { title: 'Breakdown', header: header('Expenditure Breakdown') } },
   timekeeping: { name: 'timekeeping', options: { title: 'Time', header: header('Time Keeping') } },
   financials: { name: 'financials', options: { title: 'Finance', header: header('Financial Records') } },

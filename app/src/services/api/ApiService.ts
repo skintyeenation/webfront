@@ -1,4 +1,4 @@
-import { AppNotification, BandMember, BandMeeting, CommunityEvent, Expenditure, FinancialRecord, MajorProject, Poll, PublicRecord, TimeEntry } from 'skintyee/models';
+import { AppNotification, BandMember, BandMeeting, CommunityEvent, Expenditure, FeedItem, FinancialRecord, MajorProject, PlannerPlanSummary, PlannerRollup, PlannerTask, Poll, PublicRecord, Role, TimeEntry } from 'skintyee/models';
 
 /**
  * ApiService is the single seam between the app and its backend.
@@ -46,5 +46,20 @@ export interface ApiService {
     // In-app notifications inbox. STUB: real push delivery (Expo Notifications +
     // backend) is not wired; this just lists stored notifications. See STUBS.md.
     list(): Promise<AppNotification[]>;
+  };
+  // Microsoft Planner — read-only mirror via api/'s GraphFeedService.
+  // Per ADR-14 + docs/features/planner-dashboard.md.
+  planner: {
+    // Admin Records-page rollup: open/completed/overdue totals, byProgramArea,
+    // topOverdue. Role-gated `staff` + `admin` in the api/.
+    rollup(): Promise<PlannerRollup>;
+    plans(): Promise<PlannerPlanSummary[]>;
+    tasks(planId: string): Promise<PlannerTask[]>;
+  };
+  // The unified homescreen feed — app-events + Teams meetings + Planner
+  // due-dates + notifications, sorted by time, role-filtered for the caller.
+  // Same data backs the Events tab.
+  feed: {
+    get(opts: { role: Role; from?: string; to?: string }): Promise<FeedItem[]>;
   };
 }

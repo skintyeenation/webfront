@@ -11,6 +11,8 @@ import financials from 'skintyee/store/modules/financials';
 import polls from 'skintyee/store/modules/polls';
 import notifications from 'skintyee/store/modules/notifications';
 import transparency from 'skintyee/store/modules/transparency';
+import planner from 'skintyee/store/modules/planner';
+import feed from 'skintyee/store/modules/feed';
 
 export const rootReducer = combineReducers({
   app,
@@ -24,4 +26,6 @@ export const rootReducer = combineReducers({
   polls,
   notifications,
   transparency,
+  planner,
+  feed,
 });

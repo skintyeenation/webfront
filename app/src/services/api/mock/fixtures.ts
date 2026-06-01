@@ -224,3 +224,72 @@ export const polls: Poll[] = [
     ],
   },
 ];
+
+// ---- Planner (mock) ------------------------------------------------------
+// Mirrors what the api/'s GraphFeedService would return from real Microsoft
+// Planner data. Per ADR-14.
+
+import { PlannerPlanSummary, PlannerRollup, PlannerTask } from 'skintyee/models';
+
+export const plannerPlans: PlannerPlanSummary[] = [
+  { id: 'pl-housing',  title: 'Housing',        groupId: 'g-mgmt', groupName: 'Skin Tyee Management', taskCount: 18, openCount: 12, completedCount: 6 },
+  { id: 'pl-forestry', title: 'Forestry',       groupId: 'g-mgmt', groupName: 'Skin Tyee Management', taskCount: 10, openCount: 6,  completedCount: 4 },
+  { id: 'pl-health',   title: 'Health',         groupId: 'g-mgmt', groupName: 'Skin Tyee Management', taskCount: 14, openCount: 9,  completedCount: 5 },
+  { id: 'pl-council',  title: 'Council',        groupId: 'g-mgmt', groupName: 'Skin Tyee Management', taskCount: 7,  openCount: 4,  completedCount: 3 },
+  { id: 'pl-it-dev',   title: 'IT Development', groupId: 'g-mgmt', groupName: 'Skin Tyee Management', taskCount: 37, openCount: 24, completedCount: 13 },
+];
+
+const isoIn = (days: number) => new Date(Date.now() + days * 86400000).toISOString();
+
+export const plannerTasksByPlan: Record<string, PlannerTask[]> = {
+  'pl-housing': [
+    { id: 't-h1', planId: 'pl-housing', bucketName: 'In progress', title: 'Re-shingle community hall', status: 'InProgress', priority: 3, dueDateTime: isoIn(-3), assigneeNames: ['Marie J.'], categoryLabels: ['Housing'] },
+    { id: 't-h2', planId: 'pl-housing', bucketName: 'In progress', title: 'Housing applications review', status: 'InProgress', priority: 5, dueDateTime: isoIn(0),  assigneeNames: ['Daniel P.'], categoryLabels: ['Housing'] },
+    { id: 't-h3', planId: 'pl-housing', bucketName: 'Backlog',     title: 'Rental unit inspection — Lot 4', status: 'NotStarted', priority: 5, dueDateTime: isoIn(5), assigneeNames: ['Maintenance crew'], categoryLabels: ['Housing'] },
+  ],
+  'pl-forestry': [
+    { id: 't-f1', planId: 'pl-forestry', bucketName: 'In progress', title: 'Forestry permit renewal', status: 'InProgress', priority: 2, dueDateTime: isoIn(-1), assigneeNames: ['Forestry lead'], categoryLabels: ['Forestry'] },
+    { id: 't-f2', planId: 'pl-forestry', bucketName: 'Backlog',     title: 'Cutblock boundary survey', status: 'NotStarted', priority: 6, dueDateTime: isoIn(12), categoryLabels: ['Forestry'] },
+  ],
+  'pl-health': [
+    { id: 't-hl1', planId: 'pl-health', bucketName: 'In progress', title: 'Water testing — Zone 2', status: 'InProgress', priority: 4, dueDateTime: isoIn(2), assigneeNames: ['Health team'], categoryLabels: ['Health'] },
+    { id: 't-hl2', planId: 'pl-health', bucketName: 'In progress', title: 'Mental wellness program intake', status: 'InProgress', priority: 5, dueDateTime: isoIn(6), categoryLabels: ['Health'] },
+  ],
+  'pl-council': [
+    { id: 't-c1', planId: 'pl-council', bucketName: 'In progress', title: 'June meeting agenda', status: 'InProgress', priority: 5, dueDateTime: isoIn(1), assigneeNames: ['Chief Marie'], categoryLabels: ['Council'] },
+  ],
+  'pl-it-dev': [
+    { id: 't-i1', planId: 'pl-it-dev', bucketName: 'In progress', title: 'Skin Tyee app — homescreen rebuild', status: 'InProgress', priority: 4, dueDateTime: isoIn(7), categoryLabels: ['IT'] },
+  ],
+};
+
+export function plannerRollup(): PlannerRollup {
+  const allTasks = Object.values(plannerTasksByPlan).flat();
+  const now = Date.now();
+  const overdue = allTasks.filter(
+    (t) => t.status !== 'Completed' && t.dueDateTime && new Date(t.dueDateTime).getTime() < now
+  );
+
+  const byArea = new Map<string, { open: number; completed: number }>();
+  for (const t of allTasks) {
+    const area = t.categoryLabels?.[0] ?? 'Unknown';
+    const cur = byArea.get(area) ?? { open: 0, completed: 0 };
+    if (t.status === 'Completed') cur.completed++;
+    else cur.open++;
+    byArea.set(area, cur);
+  }
+
+  return {
+    totalOpen: allTasks.filter((t) => t.status !== 'Completed').length,
+    totalCompleted: allTasks.filter((t) => t.status === 'Completed').length,
+    totalOverdue: overdue.length,
+    byProgramArea: Array.from(byArea.entries())
+      .map(([programArea, counts]) => ({ programArea, ...counts }))
+      .sort((a, b) => b.open - a.open),
+    topOverdue: overdue
+      .sort((a, b) => (a.dueDateTime ?? '').localeCompare(b.dueDateTime ?? ''))
+      .slice(0, 5),
+    generatedAt: new Date().toISOString(),
+    cacheAgeMs: 0,
+  };
+}

@@ -133,3 +133,62 @@ export interface Poll {
   options: PollOption[];
   closed: boolean;
 }
+
+// ---- Planner + unified homescreen feed (ADR-14) --------------------------
+// Read-only mirror of Microsoft Planner data fetched through the api/'s
+// GraphFeedService. Real source is Microsoft Graph; mocked locally for
+// the POC. See docs/features/planner-dashboard.md.
+
+export interface PlannerPlanSummary {
+  id: string;
+  title: string;
+  groupId: string;
+  groupName?: string;
+  taskCount: number;
+  openCount: number;
+  completedCount: number;
+}
+
+export type PlannerStatus = 'NotStarted' | 'InProgress' | 'Completed';
+
+export interface PlannerTask {
+  id: string;
+  planId: string;
+  bucketName?: string;
+  title: string;
+  status: PlannerStatus;
+  priority: number;       // 1=urgent .. 10=low
+  dueDateTime?: string;   // ISO 8601
+  assigneeNames?: string[];
+  categoryLabels?: string[]; // first label is treated as the program area
+}
+
+export interface PlannerRollup {
+  totalOpen: number;
+  totalCompleted: number;
+  totalOverdue: number;
+  byProgramArea: Array<{
+    programArea: string;
+    open: number;
+    completed: number;
+  }>;
+  topOverdue: PlannerTask[]; // top 5 most-overdue
+  generatedAt: string;
+  cacheAgeMs: number;
+}
+
+// The unified feed item type — same shape the api/'s /v1/feed returns.
+// Combines app-events + Teams meetings + Planner tasks + notifications
+// into a single time-sorted stream for the homescreen.
+export type FeedSource = 'app-event' | 'teams-meeting' | 'planner-task' | 'notification';
+
+export interface FeedItem {
+  id: string;
+  source: FeedSource;
+  title: string;
+  startAt?: string;        // ISO — events + meetings have this
+  dueAt?: string;          // ISO — Planner tasks have this
+  detailUrl?: string;      // Teams join URL, Planner web link, etc.
+  category?: string;       // matches WordPress taxonomy or Planner category
+  audience: Role[];        // who's allowed to see this item
+}

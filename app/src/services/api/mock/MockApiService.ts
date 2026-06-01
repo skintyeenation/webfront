@@ -52,4 +52,74 @@ export const mockApiService: ApiService = {
     expenditures: () => delay(fixtures.expenditures),
     majorProjects: () => delay(fixtures.majorProjects),
   },
+  planner: {
+    rollup: () => delay(fixtures.plannerRollup()),
+    plans: () => delay(fixtures.plannerPlans),
+    tasks: (planId) => delay(fixtures.plannerTasksByPlan[planId] ?? []),
+  },
+  feed: {
+    // Merger of app-events + notifications + Planner due-dates, normalized
+    // and role-filtered. Real impl calls /v1/feed; the mock builds the same
+    // shape locally so the homescreen can render against either.
+    get: ({ role, from, to }) => {
+      const items: import('skintyee/models').FeedItem[] = [];
+      // App events
+      for (const e of fixtures.events) {
+        items.push({
+          id: `ae-${e._id}`,
+          source: 'app-event',
+          title: e.title,
+          startAt: e.startsAt,
+          category: 'Events',
+          audience: ['public', 'member', 'staff', 'admin'],
+        });
+      }
+      // Notifications
+      for (const n of fixtures.notifications) {
+        items.push({
+          id: `nt-${n._id}`,
+          source: 'notification',
+          title: n.title,
+          startAt: n.createdAt,
+          category: n.category,
+          audience: ['public', 'member', 'staff', 'admin'],
+        });
+      }
+      // Planner tasks with due dates (treated as time-bound items)
+      for (const t of Object.values(fixtures.plannerTasksByPlan).flat()) {
+        if (!t.dueDateTime || t.status === 'Completed') continue;
+        const audience: import('skintyee/models').Role[] =
+          (t.categoryLabels?.[0]?.toLowerCase() === 'public')
+            ? ['public', 'member', 'staff', 'admin']
+            : ['staff', 'admin'];
+        items.push({
+          id: `pt-${t.id}`,
+          source: 'planner-task',
+          title: t.title,
+          dueAt: t.dueDateTime,
+          category: t.categoryLabels?.[0],
+          audience,
+        });
+      }
+      // (Teams meetings would come from the api/'s Graph integration when
+      // wired live; mock omits them for now.)
+
+      const filtered = items
+        .filter((it) => it.audience.includes(role))
+        .filter((it) => {
+          if (!from && !to) return true;
+          const t = it.startAt ?? it.dueAt;
+          if (!t) return false;
+          if (from && t < from) return false;
+          if (to && t > to) return false;
+          return true;
+        })
+        .sort((a, b) => {
+          const ta = a.startAt ?? a.dueAt ?? '';
+          const tb = b.startAt ?? b.dueAt ?? '';
+          return ta.localeCompare(tb);
+        });
+      return delay(filtered);
+    },
+  },
 };
