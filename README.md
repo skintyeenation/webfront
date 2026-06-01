@@ -250,7 +250,10 @@ What's **NOT** on Entra (deliberate):
 📬 **[Shared mailbox setup & adding users →](docs/365/shared-mailboxes.md)** —
 how shared mailboxes are created in the M365 admin center and how individual
 (licensed) users are granted access (Full Access / Send As / Send on Behalf),
-with reference screenshots and the current mailbox/member list.
+with the full **13-mailbox inventory** (`it`, `bandmanager`, `chief`,
+`councillor1`/`councillor2`, `finance`, `firechief`, `forestry`, `housing`,
+`landresources`, `gis`, `media`, `referrals`) and the PowerShell one-liner
+to audit who has access to what.
 
 👥 **[Microsoft 365 Groups vs Security Groups →](docs/365/groups.md)** —
 when to use which (the trap: don't pick M365 Group for everything — it drags
@@ -311,7 +314,7 @@ sequence below to get set up on every device.
 | 1 | Activate your `@skintyee.ca` Outlook account (set a new password, register MFA) | Your work username + a **temporary** password by email — **expires on first sign-in, you'll be forced to change it** | [outlook-skintyee-ca.md](docs/onboarding/outlook-skintyee-ca.md) |
 | 2 | Install + sign into 1Password | A 1Password invite email + (separately) your Secret Key on paper or sealed PDF | [1password.md](docs/onboarding/1password.md) |
 | 2b | _(optional)_ Switch 1Password to "Unlock with SSO" so your Entra ID account unlocks the vault | Admin confirms org-level Entra ID ↔ 1Password integration is enabled | [1password.md § Step 6](docs/onboarding/1password.md#step-6--connect-1password-to-entra-id-unlock-with-sso) |
-| 3 | _(if applicable)_ Get added to shared mailboxes (`info@`, `chief@`, `admin@`) | Admin grants Full Access + Send-As permission | [365/shared-mailboxes.md](docs/365/shared-mailboxes.md) (auto-maps in Outlook within ~24h — no extra password) |
+| 3 | _(if applicable)_ Get added to shared mailboxes (e.g. `it@`, `chief@`, `finance@`, `housing@` — role-dependent) | Admin grants Full Access + Send-As permission | [365/shared-mailboxes.md](docs/365/shared-mailboxes.md) (auto-maps in Outlook within ~24h — no extra password) |
 | 4 | _(if applicable)_ Get added to band apps (Skin Tyee app, WordPress editor, Azure DevOps, etc.) | Per-app invitation | Per-app — admin points you at the right doc |
 
 **End state** when steps 1-2 are done:
@@ -639,7 +642,7 @@ backup to walk every existing message.
 - [`docs/wordpress-runbook.md`](docs/wordpress-runbook.md) — run / recover / back up the WordPress site
 - [`docs/365/entra-id.md`](docs/365/entra-id.md) — Entra ID, the admin account, Entra Connect, SSO + device/server access
 - [`docs/365/entra-usage.md`](docs/365/entra-usage.md) — what we actually use Entra for: services today, apps in Phase 2, the two app registrations + their permissions, what's deliberately not on Entra
-- [`docs/365/shared-mailboxes.md`](docs/365/shared-mailboxes.md) — Microsoft 365 shared mailbox setup + adding users
+- [`docs/365/shared-mailboxes.md`](docs/365/shared-mailboxes.md) — Microsoft 365 shared mailbox setup + adding users; the full 13-mailbox inventory (`it@`, `bandmanager@`, `chief@`, `councillor1@`/`councillor2@`, `finance@`, `firechief@`, `forestry@`, `housing@`, `landresources@`, `gis@`, `media@`, `referrals@`) + PowerShell audit one-liner for "who has access to what"
 - [`docs/365/groups.md`](docs/365/groups.md) — Microsoft 365 Groups vs Security Groups (when to use which, with concrete examples mapped to our tenant)
 - [`docs/365/pricing.md`](docs/365/pricing.md) — Microsoft 365 per-user pricing, tax deductibility, offboarding
 - [`docs/365/sharepoint-docs-publish.md`](docs/365/sharepoint-docs-publish.md) — auto-publish `docs/` to SharePoint via GitHub Actions + Microsoft Graph (Entra ID app + `Sites.Selected`), 9-step one-time Azure setup (being migrated to Azure Pipelines — see `devops/migrate-ci-workflows.md`)

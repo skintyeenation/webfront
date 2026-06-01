@@ -98,7 +98,7 @@ prompt is easier to deal with there.
 ### Shared mailboxes appear automatically
 
 If the admin has granted you Full Access to a shared mailbox (e.g.
-`info@skintyee.ca`), it **shows up under your folder list within
+`chief@skintyee.ca`), it **shows up under your folder list within
 ~24 hours** of the grant — no extra password, no extra account. You'll
 see something like:
 
@@ -108,12 +108,12 @@ Folders
 │   ├── Inbox
 │   ├── Sent
 │   └── …
-└── info@skintyee.ca     ← shared mailbox, auto-mapped
+└── chief@skintyee.ca     ← shared mailbox, auto-mapped
     ├── Inbox
     └── …
 ```
 
-To **send as** the shared address (e.g. "From: info@…"), compose a new
+To **send as** the shared address (e.g. "From: chief@…"), compose a new
 email and click the **From** field at the top — pick the shared address
 from the dropdown.
 
@@ -132,7 +132,7 @@ canonical version of this is at
 2. Top menu bar → **File → Open**.
 3. Select **Shared Mailbox**.
 4. Search for or enter the shared mailbox's email address (e.g.
-   `info@skintyee.ca`), select it from the results, click **Add**.
+   `chief@skintyee.ca`), select it from the results, click **Add**.
 
 ##### New Outlook for Windows (the redesigned 2024+ Outlook)
 

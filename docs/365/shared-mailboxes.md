@@ -109,14 +109,116 @@ Add-MailboxPermission -Identity info@skintyee.ca -User jane@skintyee.ca -AccessR
 
 ## Our shared mailboxes (keep this current)
 
-Record each shared mailbox, its purpose, and the licensed users who have access.
+Current inventory of every `@skintyee.ca` shared mailbox in the tenant.
+The display name is what users see in Outlook (in the "From" dropdown
+when sending-as, in the global address list, etc.) — keep the display
+name + email aligned with what's configured in the M365 admin center.
 
-| Shared mailbox | Purpose | Members (licensed users) | Permissions |
-|---|---|---|---|
-| `info@skintyee.ca` | General enquiries | _e.g. Sandra Williams, …_ | Full Access + Send As |
-| `admin@skintyee.ca` | Band administration | _…_ | Full Access + Send As |
-| `chief@skintyee.ca` | Chief & Council | _…_ | Full Access + Send As |
-| _…_ | _…_ | _…_ | _…_ |
+> **Updated:** 2026-06-01
+
+| Shared mailbox | Display name | Purpose | Members (licensed users) | Permissions |
+|---|---|---|---|---|
+| `it@skintyee.ca` | IT Admin | IT administration, ticket triage, vendor correspondence | _TBD_ | Full Access + Send As |
+| `bandmanager@skintyee.ca` | Skin Tyee Band Manager | Band Manager office | _TBD_ | Full Access + Send As |
+| `chief@skintyee.ca` | Skin Tyee Chief | Chief's office | _TBD_ | Full Access + Send As |
+| `councillor1@skintyee.ca` | Skin Tyee Councillor 1 | Councillor (seat 1) | _TBD_ | Full Access + Send As |
+| `councillor2@skintyee.ca` ⚠ | Skin Tyee Councillor 2 | Councillor (seat 2) | _TBD_ | Full Access + Send As |
+| `finance@skintyee.ca` | Skin Tyee Finance | Finance department (AP/AR, budgets, audit correspondence) | _TBD_ | Full Access + Send As |
+| `firechief@skintyee.ca` | Skin Tyee Fire Chief | Fire Chief's office (emergency services) | _TBD_ | Full Access + Send As |
+| `forestry@skintyee.ca` | Skin Tyee Forestry | Forestry department | _TBD_ | Full Access + Send As |
+| `housing@skintyee.ca` | Skin Tyee Housing | Housing department (applications, maintenance requests) | _TBD_ | Full Access + Send As |
+| `landresources@skintyee.ca` | Skin Tyee Land Resources | Land Resources / lands management | _TBD_ | Full Access + Send As |
+| `gis@skintyee.ca` | Skin Tyee Mapping | GIS / mapping requests (address: `gis@` per the standard prefix, display name reflects the friendlier term "Mapping") | _TBD_ | Full Access + Send As |
+| `media@skintyee.ca` | Skin Tyee Media | Media enquiries, press correspondence, public communications | _TBD_ | Full Access + Send As |
+| `referrals@skintyee.ca` | Skin Tyee Referrals | Referrals (government / industry consultation responses, archaeological / land-use referrals) | _TBD_ | Full Access + Send As |
+
+> **⚠ Verify in M365 admin center — `councillor2@skintyee.ca`:** the
+> source list provided to IT had this as `councilllor2@` (three L's).
+> Confirm the actual mailbox name in the M365 admin center — if the
+> mailbox is genuinely `councilllor2@` (three L's), update this row to
+> match reality + alias the standard spelling as a secondary address.
+> If the mailbox is the standard two-L spelling, update the source list.
+
+> **⚠ Verify also — `info@skintyee.ca` and `admin@skintyee.ca`:** these
+> were in an earlier draft of this doc but are NOT in the current
+> 13-mailbox snapshot above. **However**, the DMARC TXT record in
+> GoDaddy (`_dmarc.skintyee.ca`) currently sends aggregate / forensic
+> reports to `info@skintyee.ca` — see
+> [`./setup-skintyee-ca-email.md`](./setup-skintyee-ca-email.md) step 6.
+> If `info@` was decommissioned, those reports are bouncing. Two paths:
+>
+> 1. **Keep `info@` as a shared mailbox** (just for DMARC reports —
+>    nobody has to actively monitor it; IT can scan it monthly), OR
+> 2. **Update the DMARC record** in GoDaddy to point at a mailbox that
+>    DOES exist (recommended: `it@skintyee.ca` — IT handles the
+>    DMARC-tuning workflow anyway). Then re-validate per
+>    `setup-skintyee-ca-email.md` step 7.
+>
+> Pick one + update both this doc + the DMARC TXT to be consistent.
+
+### How the addresses map to the display names
+
+Two patterns are in play, intentionally:
+
+- **Role / department label** (`finance`, `housing`, `firechief`, `forestry`,
+  `landresources`, `media`, `referrals`) — addresses match the operational
+  label, display name carries the "Skin Tyee" brand prefix.
+- **Numbered seat** (`councillor1`, `councillor2`) — for roles where there
+  are multiple seats; the seat identity stays with the seat, not the
+  person occupying it (when councillors change, only the *member list*
+  on the mailbox changes; the mailbox + history stays intact).
+
+Two friendly-name nuances worth knowing about:
+
+- `gis@skintyee.ca` (technical prefix) → display name "Skin Tyee Mapping"
+  (the term staff and the public actually use).
+- `it@skintyee.ca` (no "Skin Tyee" in the display name, just "IT Admin")
+  — historically the IT-handling addresses across the org world don't
+  usually carry the org name as a display name.
+
+### Roles vs. people
+
+Each shared mailbox represents a **role**, not a person. When
+councillors / chief / fire chief / etc. change:
+
+1. **Remove the departing person's access** from the shared mailbox
+   ("Mailbox permissions" + "Send As") — see § 2 above
+2. **Add the incoming person's access** the same way
+3. The **mailbox address + display name + history stays put** — that's
+   the point of using shared mailboxes vs. personal mailboxes for these
+   roles
+
+This means mail continuity survives turnover automatically. Don't try
+to "transfer" a personal mailbox into a shared role — set up the
+shared mailbox once, then membership cycles.
+
+### Filling in the Members column
+
+When you grant a user access to a shared mailbox (M365 admin center →
+that mailbox → Mailbox permissions), update the Members column above
+in the same change so the table reflects reality. The table is the
+source of truth for "who has access to what" without having to go
+through every mailbox in the admin center.
+
+To audit-list everyone currently with access (PowerShell, run as a
+tenant admin in Exchange Online PowerShell):
+
+```powershell
+$mailboxes = @(
+  'it', 'bandmanager', 'chief', 'councillor1', 'councillor2',
+  'finance', 'firechief', 'forestry', 'housing', 'landresources',
+  'gis', 'media', 'referrals'
+) | ForEach-Object { "$_@skintyee.ca" }
+
+foreach ($mb in $mailboxes) {
+  Write-Host "`n=== $mb ===" -ForegroundColor Cyan
+  Get-MailboxPermission -Identity $mb |
+    Where-Object { $_.User -notlike "NT AUTHORITY\*" -and $_.IsInherited -eq $false } |
+    Select-Object User, AccessRights
+}
+```
+
+Paste the output back into the Members column to keep the table fresh.
 
 ## Notes
 

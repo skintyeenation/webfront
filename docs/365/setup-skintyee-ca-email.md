@@ -288,10 +288,12 @@ Now that mail flows, complete the M365 setup for actual use:
 1. **Create the first staff user** in M365 admin center → Users →
    Active users → Add a user → `firstname.lastname@skintyee.ca`.
 2. **Set up shared mailboxes** per
-   [`shared-mailboxes.md`](./shared-mailboxes.md):
-   - `info@skintyee.ca`
+   [`shared-mailboxes.md`](./shared-mailboxes.md) — the full inventory
+   is in that doc; the high-priority ones for first launch are:
+   - `it@skintyee.ca`
    - `chief@skintyee.ca`
-   - `admin@skintyee.ca`
+   - `bandmanager@skintyee.ca`
+   - `finance@skintyee.ca`
 3. **Walk through user-side activation** per
    [`../onboarding/outlook-skintyee-ca.md`](../onboarding/outlook-skintyee-ca.md)
    for the new user (sets password, registers MFA, adds to Outlook).
