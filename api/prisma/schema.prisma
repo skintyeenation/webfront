@@ -53,6 +53,19 @@ model BandMember {
   //      Online's Get-MailboxPermission and aren't exposed in Graph v1.0.
   //      Admins set these via POST /v1/admin/users/{id}/mailbox-memberships.
   mailboxMemberships String @default("")
+
+  // Manager (the user's manager in the org chart). Pulled from
+  // /users/{id}/manager. Nullable — not everyone has a manager set.
+  managerId    String?
+  managerName  String?
+  managerUpn   String?
+
+  // Photo metadata. The actual binary is fetched on demand from
+  // /users/{id}/photo/$value via the api/'s /v1/directory/:id/photo
+  // proxy endpoint, which streams from Graph + sets cache headers.
+  // hasPhoto is checked during seed; if true the UI can render
+  // <Avatar.Image source={…/photo}/> instead of the letter fallback.
+  hasPhoto     Boolean  @default(false)
   enabled       Boolean  @default(true)
   syncedAt      DateTime @default(now())   // last time seeded from Entra
   createdAt     DateTime @default(now())

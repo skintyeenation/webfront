@@ -1,11 +1,21 @@
 import React, { useEffect, useMemo } from 'react';
-import { View } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
 import { Avatar, Button, Card, Chip, Divider, Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { PageContainer, PageContent, NoContent, useConfirm } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { loadDirectory, loadMember, removeMember } from 'skintyee/store/modules/directory';
+import Config from 'skintyee/config';
 import { theme } from 'skintyee/styles';
+
+// Build the proxied-photo URL — points at the api/'s
+// GET /v1/directory/:id/photo endpoint which streams from Graph.
+function photoUrl(memberId: string): string | undefined {
+  if (!Config.apiServer || Config.apiServer === 'mock' || !/^https?:\/\//.test(Config.apiServer)) {
+    return undefined;
+  }
+  return `${Config.apiServer.replace(/\/+$/, '')}/v1/directory/${memberId}/photo`;
+}
 
 type MembershipRel = 'owner' | 'member' | 'manual';
 interface ParsedMembership { mail: string; rel: MembershipRel; }
@@ -85,13 +95,20 @@ export default function MemberDetail({ route, navigation }: any) {
   return (
     <PageContainer>
       <PageContent>
-        {/* Header — avatar + name + role + account-type badge */}
+        {/* Header — avatar (photo if available, letter fallback) + name + role + account-type badge */}
         <View style={{ alignItems: 'center', marginBottom: 16 }}>
-          <Avatar.Text
-            size={72}
-            label={m.avatarLetter ?? m.name[0]}
-            style={{ backgroundColor: isShared ? theme.colors.accent : theme.colors.primary }}
-          />
+          {m.hasPhoto && photoUrl(m._id) ? (
+            <Avatar.Image
+              size={72}
+              source={{ uri: photoUrl(m._id) }}
+            />
+          ) : (
+            <Avatar.Text
+              size={72}
+              label={m.avatarLetter ?? m.name[0]}
+              style={{ backgroundColor: isShared ? theme.colors.accent : theme.colors.primary }}
+            />
+          )}
           <Text style={{ color: theme.colors.text, fontSize: 22, marginTop: 12 }}>{m.name}</Text>
           <View style={{ flexDirection: 'row', marginTop: 8 }}>
             {m.title || m.role ? (
@@ -135,6 +152,27 @@ export default function MemberDetail({ route, navigation }: any) {
             )}
           </Card.Content>
         </Card>
+
+        {/* Manager (if set in Entra) — clickable, navigates to that user's page */}
+        {m.managerId && m.managerName ? (
+          <TouchableOpacity
+            onPress={() => navigation.push('memberDetail', { id: m.managerId })}
+          >
+            <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
+              <Card.Content style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <MaterialCommunityIcons name="account-supervisor-outline" size={20} color={theme.colors.textDarker} style={{ marginRight: 10 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: theme.colors.textDarker, fontSize: 11, textTransform: 'uppercase' }}>Manager</Text>
+                  <Text style={{ color: theme.colors.text, fontSize: 14, marginTop: 2 }}>{m.managerName}</Text>
+                  {m.managerUpn ? (
+                    <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginTop: 1 }}>{m.managerUpn}</Text>
+                  ) : null}
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={22} color={theme.colors.textDarker} />
+              </Card.Content>
+            </Card>
+          </TouchableOpacity>
+        ) : null}
 
         {/* For licensed users: their group memberships + shared mailboxes */}
         {!isShared && memberships.length > 0 ? (

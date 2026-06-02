@@ -480,13 +480,55 @@ export class GraphFeedService {
     id: string; upn: string; email?: string; name: string; role: string;
     title?: string; department?: string; phone?: string; avatarLetter?: string;
     appRole: string; accountType: 'licensed-user' | 'shared-inbox';
-    mailboxMemberships: string[]; enabled: boolean;
+    mailboxMemberships: string[];
+    managerId?: string; managerName?: string; managerUpn?: string;
+    hasPhoto: boolean;
+    enabled: boolean;
   }>> {
     // assignedLicenses is what distinguishes a "real" licensed user (gets
     // a Business Standard SKU assigned) from a shared mailbox (no license).
     // We $select it to avoid pulling everything.
     const users = await this.graphPaged<any>(
       '/users?$select=id,userPrincipalName,displayName,givenName,surname,mail,jobTitle,businessPhones,mobilePhone,department,accountEnabled,assignedLicenses&$filter=accountEnabled eq true&$top=999'
+    );
+
+    // ---- Per-user enrichment: manager + photo flag --------------------
+    // For each licensed user (skip shared inboxes — they don't have managers
+    // or photos), fetch:
+    //   /users/{id}/manager      → {id, displayName, userPrincipalName} or 404
+    //   /users/{id}/photo        → photo metadata (200 = has photo, 404 = none)
+    // Both in parallel per user; failures are non-fatal.
+    const managerByUser = new Map<string, { id: string; name: string; upn: string }>();
+    const hasPhotoByUser = new Map<string, boolean>();
+    await Promise.all(
+      users
+        .filter((u) => Array.isArray(u.assignedLicenses) && u.assignedLicenses.length > 0)
+        .map(async (u) => {
+          await Promise.all([
+            (async () => {
+              try {
+                const mgr: any = await this.graph(`/users/${u.id}/manager?$select=id,displayName,userPrincipalName`);
+                if (mgr?.id) {
+                  managerByUser.set(u.id, {
+                    id: mgr.id,
+                    name: mgr.displayName ?? mgr.userPrincipalName,
+                    upn: (mgr.userPrincipalName ?? '').toLowerCase(),
+                  });
+                }
+              } catch (_e) {
+                // 404 = no manager set; common. Don't log every miss.
+              }
+            })(),
+            (async () => {
+              try {
+                await this.graph(`/users/${u.id}/photo`);
+                hasPhotoByUser.set(u.id, true);
+              } catch (_e) {
+                hasPhotoByUser.set(u.id, false);
+              }
+            })(),
+          ]);
+        })
     );
 
     // Build per-user M365 Group relationships (NOT shared mailboxes —
@@ -585,6 +627,8 @@ export class GraphFeedService {
           ...members.map((m) => `${m}|member`),
         ];
 
+        const mgr = managerByUser.get(u.id);
+
         return {
           id: u.id,
           upn,
@@ -598,8 +642,28 @@ export class GraphFeedService {
           appRole,
           accountType,
           mailboxMemberships,
+          managerId:   mgr?.id,
+          managerName: mgr?.name,
+          managerUpn:  mgr?.upn,
+          hasPhoto:    hasPhotoByUser.get(u.id) ?? false,
           enabled: !!u.accountEnabled,
         };
       });
+  }
+
+  // Stream a user's profile photo binary from Graph. Used by the api/'s
+  // /v1/directory/:id/photo proxy endpoint. Returns a Node Readable stream
+  // OR throws if the user has no photo (404).
+  async fetchPhoto(userId: string): Promise<{ buffer: Buffer; contentType: string }> {
+    const tok = await this.getToken();
+    const res = await fetch(`https://graph.microsoft.com/v1.0/users/${userId}/photo/$value`, {
+      headers: { Authorization: `Bearer ${tok}` },
+    });
+    if (!res.ok) {
+      throw new Error(`Graph photo ${res.status}: ${await res.text()}`);
+    }
+    const buffer = Buffer.from(await res.arrayBuffer());
+    const contentType = res.headers.get('content-type') ?? 'image/jpeg';
+    return { buffer, contentType };
   }
 }

@@ -65,6 +65,8 @@ export class DirectoryController {
               avatarLetter: u.avatarLetter, appRole: u.appRole,
               accountType: u.accountType,
               mailboxMemberships: u.mailboxMemberships.join(','),
+              managerId: u.managerId, managerName: u.managerName, managerUpn: u.managerUpn,
+              hasPhoto: u.hasPhoto,
               enabled: u.enabled,
             },
             update: {
@@ -73,6 +75,8 @@ export class DirectoryController {
               avatarLetter: u.avatarLetter, appRole: u.appRole,
               accountType: u.accountType,
               mailboxMemberships: u.mailboxMemberships.join(','),
+              managerId: u.managerId, managerName: u.managerName, managerUpn: u.managerUpn,
+              hasPhoto: u.hasPhoto,
               enabled: u.enabled, syncedAt: new Date(),
             },
           });
@@ -98,9 +102,7 @@ export class DirectoryController {
       if (rows.length === 0 && process.env.GRAPH_CLIENT_ID) {
         setImmediate(() => this.backgroundSeed());
       }
-      // Map Prisma fields → the BandMember shape the app expects, including
-      // the accountType (toggle filter) + mailboxMemberships (badges on
-      // licensed-user cards showing which mail-enabled groups they're in).
+      // Map Prisma fields → the BandMember shape the app expects.
       return rows.map((r) => ({
         _id: r.id,
         name: r.name,
@@ -114,6 +116,10 @@ export class DirectoryController {
         appRole: r.appRole,
         accountType: r.accountType,
         mailboxMemberships: r.mailboxMemberships ? r.mailboxMemberships.split(',').filter(Boolean) : [],
+        managerId:   r.managerId   ?? undefined,
+        managerName: r.managerName ?? undefined,
+        managerUpn:  r.managerUpn  ?? undefined,
+        hasPhoto:    r.hasPhoto,
       }));
     }
     return this.data.directory;
@@ -123,8 +129,6 @@ export class DirectoryController {
     if (this.prisma.isAvailable) {
       const r = await this.prisma.bandMember.findUnique({ where: { id } });
       if (!r) throw new NotFoundException('Not found');
-      // Map Prisma `id` → legacy `_id` like list() does, so MemberDetail's
-      // `selected._id !== id` check passes.
       return {
         _id: r.id,
         name: r.name,
@@ -140,9 +144,34 @@ export class DirectoryController {
         mailboxMemberships: r.mailboxMemberships
           ? r.mailboxMemberships.split(',').filter(Boolean)
           : [],
+        managerId:   r.managerId   ?? undefined,
+        managerName: r.managerName ?? undefined,
+        managerUpn:  r.managerUpn  ?? undefined,
+        hasPhoto:    r.hasPhoto,
       };
     }
     return found(this.data.directory.find((m) => m._id === id));
+  }
+
+  // GET /v1/directory/:id/photo — proxy the user's Entra profile photo
+  // binary from Microsoft Graph. The api/ has the app-only credential;
+  // the app/ just hits this URL as <Avatar.Image source={…} />.
+  //
+  // Returns 404 if hasPhoto is false (avoid a Graph call we know will
+  // fail). Sets a 1-hour Cache-Control so subsequent requests skip the
+  // Graph round-trip entirely.
+  @Get(':id/photo')
+  async photo(@Param('id') id: string, @Req() req: any) {
+    if (this.prisma.isAvailable) {
+      const r = await this.prisma.bandMember.findUnique({ where: { id }, select: { hasPhoto: true } });
+      if (!r?.hasPhoto) throw new NotFoundException('No photo');
+    }
+    const { buffer, contentType } = await this.graph.fetchPhoto(id);
+    const res = req.res;
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.setHeader('Content-Length', buffer.byteLength.toString());
+    res.end(buffer);
   }
 
   @Post() @Roles('admin') create(@Body() b: any) { const m = { _id: this.data.id('m'), ...b }; this.data.directory.unshift(m); return m; }
@@ -237,34 +266,24 @@ export class AdminController implements OnApplicationBootstrap {
       await this.prisma.bandMember.upsert({
         where: { id: u.id },
         create: {
-          id: u.id,
-          upn: u.upn,
-          email: u.email,
-          name: u.name,
-          role: u.role,
-          title: u.title,
-          department: u.department,
-          phone: u.phone,
-          avatarLetter: u.avatarLetter,
-          appRole: u.appRole,
+          id: u.id, upn: u.upn, email: u.email, name: u.name, role: u.role,
+          title: u.title, department: u.department, phone: u.phone,
+          avatarLetter: u.avatarLetter, appRole: u.appRole,
           accountType: u.accountType,
           mailboxMemberships: merged.join(','),
+          managerId: u.managerId, managerName: u.managerName, managerUpn: u.managerUpn,
+          hasPhoto: u.hasPhoto,
           enabled: u.enabled,
         },
         update: {
-          upn: u.upn,
-          email: u.email,
-          name: u.name,
-          role: u.role,
-          title: u.title,
-          department: u.department,
-          phone: u.phone,
-          avatarLetter: u.avatarLetter,
-          appRole: u.appRole,
+          upn: u.upn, email: u.email, name: u.name, role: u.role,
+          title: u.title, department: u.department, phone: u.phone,
+          avatarLetter: u.avatarLetter, appRole: u.appRole,
           accountType: u.accountType,
           mailboxMemberships: merged.join(','),
-          enabled: u.enabled,
-          syncedAt: new Date(),
+          managerId: u.managerId, managerName: u.managerName, managerUpn: u.managerUpn,
+          hasPhoto: u.hasPhoto,
+          enabled: u.enabled, syncedAt: new Date(),
         },
       });
         if (existing) updated++; else inserted++;

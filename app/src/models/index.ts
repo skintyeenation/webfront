@@ -24,6 +24,16 @@ export interface BandMember {
   // admins fill the rest manually for classic shared mailboxes that aren't
   // groups (e.g. chief@). Rendered as chips on the directory card.
   mailboxMemberships?: string[];
+  // Manager — the user's manager from Entra's /users/{id}/manager.
+  // Nullable: not everyone has a manager set.
+  managerId?: string;
+  managerName?: string;
+  managerUpn?: string;
+  // True if the user has an Entra profile photo. When true, the UI can
+  // render Avatar.Image source pointed at /v1/directory/:id/photo
+  // (the api/'s proxy that streams from Graph). When false, fall back to
+  // the avatarLetter rendering.
+  hasPhoto?: boolean;
 }
 
 export interface CommunityEvent {
