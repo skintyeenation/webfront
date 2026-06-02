@@ -13,9 +13,9 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
-    "db:backup:prod": "az postgres flexible-server backup create --resource-group skintyee-prod-rg --name skintyee-prod-pg --backup-name \"manual-$(date -u +%Y%m%dT%H%M%SZ)\"",
     "db:backup:prod:list": "az postgres flexible-server backup list --resource-group skintyee-prod-rg --name skintyee-prod-pg --query \"reverse(sort_by([], &completedTime))[].{name:name, type:backupType, completedTime:completedTime}\" -o table",
-    "db:backup:prod:tagged": "test -n \"$TAG\" || (echo 'set TAG, e.g. TAG=pre-bandgroups pnpm db:backup:prod:tagged' && exit 1); az postgres flexible-server backup create --resource-group skintyee-prod-rg --name skintyee-prod-pg --backup-name \"$TAG-$(date -u +%Y%m%dT%H%M%SZ)\""
+    "_comment:db:dump:prod": "pg_dump-based snapshot. On-demand server-side backups need a non-Burstable SKU; pg_dump works regardless. Requires psql client + an active firewall rule for your IP (see scripts/grant-pg-firewall.sh).",
+    "db:dump:prod": "mkdir -p backups && PGSSLMODE=require pg_dump --no-owner --no-acl --format=custom \"$(az containerapp show --name api-prod --resource-group skintyee-prod-rg --query 'properties.template.containers[0].env[?name==`DATABASE_URL`].value' -o tsv 2>/dev/null || echo)\" -f \"backups/skintyee-$(date -u +%Y%m%dT%H%M%SZ).dump\" && ls -lh backups/skintyee-*.dump | tail -1"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.10",
