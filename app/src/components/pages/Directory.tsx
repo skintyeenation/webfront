@@ -175,16 +175,18 @@ export default function Directory({ navigation }: any) {
   return (
     <PageContainer>
       <PageContent>
-        {/* Add member + Sync side-by-side on a single row (admin only). */}
+        {/* Add member on the left, Sync floated right. flex-wrap so the
+            Sync button drops below on very narrow viewports rather than
+            squashing the labels. */}
         {isAdmin ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap' }}>
             <Button
               mode="contained"
               icon="plus"
               onPress={() => navigation.navigate('memberCreate')}
               buttonColor={theme.colors.accent}
               textColor="#000"
-              style={{ marginRight: 8, marginBottom: 4 }}
+              style={{ marginBottom: 4 }}
             >
               Add member
             </Button>
