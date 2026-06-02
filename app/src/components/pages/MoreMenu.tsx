@@ -21,15 +21,15 @@ const ACCOUNT_ITEMS: MoreItem[] = [
 ];
 
 // Admin-only tools — grouped under the Admin tab for admins.
-//   - "Financial Records" now opens the existing Records screen (bylaws,
-//     notices, reports, forms). The screen used to be its own bottom tab;
-//     after we promoted Meetings to the tab, Records lives here.
-//   - "Budgets & Statements" preserves access to the Financials screen,
-//     which used to share the Financial Records label.
+//   - "Public Records" opens the bylaws/notices/reports/forms screen
+//     that used to be its own bottom tab (promoted Meetings → tab,
+//     PublicRecords landed here).
+//   - "Financial Records" opens the Financials screen — budgets,
+//     statements, program spend.
 const ADMIN_ITEMS: MoreItem[] = [
-  { route: 'timekeeping',   label: 'Time Keeping',         description: 'Worker hours & approvals',           icon: 'clock-outline', roles: ['admin'] },
-  { route: 'publicRecords', label: 'Financial Records',    description: 'Bylaws, notices, reports & forms',   icon: 'file-document-outline', roles: ['admin'] },
-  { route: 'financials',    label: 'Budgets & Statements', description: 'Financial records & program spend',  icon: 'cash-multiple', roles: ['admin'] },
+  { route: 'timekeeping',   label: 'Time Keeping',      description: 'Worker hours & approvals',          icon: 'clock-outline',          roles: ['admin'] },
+  { route: 'publicRecords', label: 'Public Records',    description: 'Bylaws, notices, reports & forms', icon: 'file-document-outline',  roles: ['admin'] },
+  { route: 'financials',    label: 'Financial Records', description: 'Budgets, statements & program spend', icon: 'cash-multiple',      roles: ['admin'] },
 ];
 
 // General community items.
