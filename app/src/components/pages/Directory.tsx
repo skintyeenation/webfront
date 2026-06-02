@@ -166,7 +166,7 @@ export default function Directory({ navigation }: any) {
                           style={{ alignSelf: 'center', marginRight: 8, backgroundColor: theme.colors.secondary }}
                           textStyle={{ fontSize: 10 }}
                         >
-                          shared
+                          Shared
                         </Chip>
                       ) : null
                     }
