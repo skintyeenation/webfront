@@ -196,6 +196,24 @@ export class GraphFeedService {
     return out;
   }
 
+  // Delegated variant: same paging behavior but uses the caller's Bearer
+  // token rather than our app-only token. Required for M365 group
+  // calendar reads where Exchange enforces user-scoped access checks.
+  private async graphPagedDelegated<T>(path: string, accessToken: string): Promise<T[]> {
+    const out: T[] = [];
+    let next: string | undefined = path.startsWith('http') ? path : `https://graph.microsoft.com/v1.0${path}`;
+    while (next) {
+      const res = await fetch(next, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+      if (!res.ok) {
+        throw new Error(`Graph (delegated) ${next} → ${res.status}: ${await res.text()}`);
+      }
+      const page: any = await res.json();
+      out.push(...(page.value ?? []));
+      next = page['@odata.nextLink'];
+    }
+    return out;
+  }
+
   private fresh<T>(entry: CacheEntry<T> | undefined): T | null {
     if (!entry) return null;
     if (Date.now() - entry.fetchedAt > this.ttlMs) return null;
@@ -763,6 +781,9 @@ export class GraphFeedService {
     typeSlug?: string;    // filter to a single type
     from?: Date;          // ISO-8601 window start (default: now)
     to?: Date;            // window end (default: now + 90d)
+    accessToken?: string; // signed-in user's Bearer — if present, reads
+                          // run delegated so they can see M365 group
+                          // calendars (app-only can't read those).
   }): Promise<BandMeetingFromGraph[]> {
     const from = (opts?.from ?? new Date()).toISOString();
     const to   = (opts?.to   ?? new Date(Date.now() + 90 * 86400_000)).toISOString();
@@ -780,8 +801,20 @@ export class GraphFeedService {
     // Skip the 'me' source — it's a write-time-only routing target
     // (the signed-in user's personal calendar) that wouldn't be a
     // useful place to fan out reads from on the app-only path.
+    //
+    // For M365 group calendars (council@, management@, band@) app-only
+    // reads return 403 (Exchange's group calendar enforcement requires
+    // delegated even though Graph docs say Group.ReadWrite.All covers
+    // it). When `accessToken` is provided we run the read delegated so
+    // group calendars surface; otherwise we skip group sources to avoid
+    // logging 403 noise on every poll.
+    const useDelegated = !!opts?.accessToken;
     const results: BandMeetingFromGraph[] = [];
-    await Promise.all(MEETING_SOURCE_CALENDARS.filter((s) => s.kind !== 'me').map(async (source) => {
+    const sources = MEETING_SOURCE_CALENDARS
+      .filter((s) => s.kind !== 'me')
+      .filter((s) => useDelegated || s.kind === 'user'); // skip groups when app-only
+
+    await Promise.all(sources.map(async (source) => {
       // For user calendars use /users/{upn}/calendarView (which honors a
       // start/end window and expands recurring events). For groups, the
       // equivalent is /groups/{id}/calendarView.
@@ -792,7 +825,9 @@ export class GraphFeedService {
                   `&$select=id,subject,bodyPreview,location,start,end,isCancelled,categories,organizer,onlineMeeting,webLink,isOnlineMeeting`;
 
       try {
-        const events = await this.graphPaged<any>(url);
+        const events = useDelegated
+          ? await this.graphPagedDelegated<any>(url, opts!.accessToken!)
+          : await this.graphPaged<any>(url);
         for (const e of events) {
           const cats = (e.categories ?? []).map((c: string) => c.toLowerCase());
           // Match the first catalog category we find; events tagged with

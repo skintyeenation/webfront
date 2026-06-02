@@ -59,9 +59,9 @@ export type MeetingSource =
 
 export const MEETING_SOURCE_CALENDARS: MeetingSource[] = [
   { kind: 'me',                                                       name: 'My calendar' },
-  { kind: 'user',  upn: 'bandmanager@skintyee.ca',                    name: 'Band Manager' },
-  { kind: 'group', groupId: '67abaaf6-d7ba-4007-837d-4174822dbf3d',    name: 'Skin Tyee Council (M365)' },
-  { kind: 'group', groupId: 'dc776d31-3549-4c39-9781-34c1cad28c99',    name: 'Skin Tyee Management (M365)' },
+  { kind: 'group', groupId: 'dabd4a8a-84a5-44bf-981d-d502862bf701',   name: 'Skin Tyee Band Members (M365)' },
+  { kind: 'group', groupId: '67abaaf6-d7ba-4007-837d-4174822dbf3d',   name: 'Skin Tyee Council (M365)' },
+  { kind: 'group', groupId: 'dc776d31-3549-4c39-9781-34c1cad28c99',   name: 'Skin Tyee Management (M365)' },
 ];
 
 export const meetingTypeBySlug     = new Map(SKINTYEE_MEETING_TYPES.map((t) => [t.slug, t]));

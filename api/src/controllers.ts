@@ -539,11 +539,19 @@ export class MeetingsController {
   constructor(private data: DataService, private graph: GraphFeedService) {}
 
   // GET /v1/meetings — list upcoming band-tagged meetings from M365.
-  // Optional ?type=<slug> filters to a single type.
-  @Get() @Roles('member', 'staff', 'admin') async list(@Query('type') type?: string) {
+  // Optional ?type=<slug> filters to a single type. When the caller
+  // sends a Bearer token (signed in), reads go DELEGATED so M365 group
+  // calendars (band@, council@, management@) surface — those return
+  // 403 to our app-only SP. App-only fallback only sees user calendars.
+  @Get() @Roles('member', 'staff', 'admin') async list(@Query('type') type?: string, @Req() req?: any) {
+    const authHeader = req?.headers?.authorization ?? req?.headers?.Authorization;
+    const accessToken = typeof authHeader === 'string' && authHeader.startsWith('Bearer ')
+      ? authHeader.slice(7)
+      : undefined;
+
     if (process.env.GRAPH_CLIENT_ID) {
       try {
-        const items = await this.graph.getBandMeetings({ typeSlug: type });
+        const items = await this.graph.getBandMeetings({ typeSlug: type, accessToken });
         // Map to the BandMeeting shape the app expects, preserving typeSlug.
         return items.map((m) => ({
           _id: m.id,
