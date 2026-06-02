@@ -121,8 +121,26 @@ export class DirectoryController {
 
   @Get(':id') async get(@Param('id') id: string) {
     if (this.prisma.isAvailable) {
-      const row = await this.prisma.bandMember.findUnique({ where: { id } });
-      return found(row);
+      const r = await this.prisma.bandMember.findUnique({ where: { id } });
+      if (!r) throw new NotFoundException('Not found');
+      // Map Prisma `id` → legacy `_id` like list() does, so MemberDetail's
+      // `selected._id !== id` check passes.
+      return {
+        _id: r.id,
+        name: r.name,
+        role: r.role,
+        title: r.title ?? undefined,
+        email: r.email ?? undefined,
+        phone: r.phone ?? undefined,
+        avatarLetter: r.avatarLetter ?? undefined,
+        upn: r.upn,
+        department: r.department ?? undefined,
+        appRole: r.appRole,
+        accountType: r.accountType,
+        mailboxMemberships: r.mailboxMemberships
+          ? r.mailboxMemberships.split(',').filter(Boolean)
+          : [],
+      };
     }
     return found(this.data.directory.find((m) => m._id === id));
   }
