@@ -1,6 +1,8 @@
+import { Platform } from 'react-native';
 import { createAction, createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
+import * as Crypto from 'expo-crypto';
 import { Role } from 'skintyee/models';
 import Config from 'skintyee/config';
 
@@ -26,8 +28,41 @@ import Config from 'skintyee/config';
 //         everyone else → public
 // ----------------------------------------------------------------------------
 
-// Required by expo-auth-session on web — closes the popup after redirect.
-WebBrowser.maybeCompleteAuthSession();
+// On NATIVE this closes the in-app browser after auth redirects back.
+// On WEB we use full-page redirect instead (see signIn below), so this
+// is a no-op there.
+if (Platform.OS !== 'web') {
+  WebBrowser.maybeCompleteAuthSession();
+}
+
+// ----------------------------------------------------------------------------
+// PKCE helpers (web full-page redirect needs to persist the code_verifier
+// across the redirect via sessionStorage; native keeps it in-memory in the
+// AuthRequest object).
+// ----------------------------------------------------------------------------
+
+const PKCE_VERIFIER_KEY = 'skintyee.pkce.codeVerifier';
+const PKCE_STATE_KEY    = 'skintyee.pkce.state';
+
+function randomString(length: number): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+  let out = '';
+  const bytes = new Uint8Array(length);
+  // crypto.getRandomValues is in modern browsers + Hermes/RN-web
+  (globalThis as any).crypto?.getRandomValues?.(bytes);
+  for (let i = 0; i < length; i++) out += chars[bytes[i] % chars.length];
+  return out;
+}
+
+async function sha256base64url(input: string): Promise<string> {
+  const hash = await Crypto.digestStringAsync(
+    Crypto.CryptoDigestAlgorithm.SHA256,
+    input,
+    { encoding: Crypto.CryptoEncoding.BASE64 }
+  );
+  // base64 → base64url
+  return hash.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
 
 // ---- Types ---------------------------------------------------------------
 
@@ -137,11 +172,24 @@ export const signOut = createAction('sign_out');
 // thunk pending forever otherwise).
 export const resetSignInStatus = createAction('reset_sign_in_status');
 
-// signIn — the OAuth flow. Returns the new auth state slice on success.
-// On native + Expo Go this opens a system browser; on web it opens a popup
-// (or full-page redirect, depending on the configured redirectUri).
+// ----------------------------------------------------------------------------
+// signIn — platform-appropriate Microsoft Entra OAuth flow.
+//
+//   • WEB:  full-page redirect (this thunk navigates away; the user is
+//           taken to Microsoft, then redirected back to the app at /?code=…
+//           which is detected at startup by handleAuthCallback).
+//           No popup, no parent/child window dance, no
+//           maybeCompleteAuthSession needed.
+//
+//   • NATIVE: AuthRequest + in-app browser via expo-auth-session
+//           (ASWebAuthenticationSession on iOS, Custom Tabs on Android).
+//           The user stays in the app the whole time — no leaving the app.
+//
+// Both flows use OAuth Authorization Code + PKCE — no client secret.
+// ----------------------------------------------------------------------------
+
 export const signIn = createAsyncThunk<
-  { tokens: { accessToken: string; idToken: string; expiresAt: number }; user: SignedInUser; role: Role },
+  { tokens: { accessToken: string; idToken: string; expiresAt: number }; user: SignedInUser; role: Role } | null,
   void,
   { rejectValue: string }
 >('sign_in', async (_, { rejectWithValue }) => {
@@ -149,25 +197,53 @@ export const signIn = createAsyncThunk<
     return rejectWithValue('Microsoft sign-in is not configured (missing appId or tenantId).');
   }
 
-  const discovery = microsoftDiscovery(Config.signinTenantId);
+  if (Platform.OS === 'web') {
+    // ---- WEB: full-page redirect to Microsoft -----------------------------
+    // 1. Generate PKCE code verifier + challenge + state
+    // 2. Persist verifier + state in sessionStorage (survives the redirect)
+    // 3. Build the authorize URL and navigate the whole window there
+    // The thunk returns null here; the actual fulfillment happens after the
+    // user is redirected back and handleAuthCallback exchanges the code.
+    const codeVerifier  = randomString(64);
+    const codeChallenge = await sha256base64url(codeVerifier);
+    const state         = randomString(16);
 
-  // makeRedirectUri picks the right URI per platform:
-  //   Web build:        the current page URL
-  //   Native (deep link): ca.skintyee.app:// (matches scheme in app.config.js)
-  //   Expo Go:          the expo-proxy URL
+    sessionStorage.setItem(PKCE_VERIFIER_KEY, codeVerifier);
+    sessionStorage.setItem(PKCE_STATE_KEY,    state);
+
+    const redirectUri = window.location.origin + '/';
+    const authUrl = new URL(`https://login.microsoftonline.com/${Config.signinTenantId}/oauth2/v2.0/authorize`);
+    authUrl.searchParams.set('client_id',             Config.signinAppId);
+    authUrl.searchParams.set('response_type',         'code');
+    authUrl.searchParams.set('redirect_uri',          redirectUri);
+    authUrl.searchParams.set('response_mode',         'query');
+    authUrl.searchParams.set('scope',                 'openid profile email User.Read');
+    authUrl.searchParams.set('state',                 state);
+    authUrl.searchParams.set('code_challenge',        codeChallenge);
+    authUrl.searchParams.set('code_challenge_method', 'S256');
+    authUrl.searchParams.set('prompt',                'select_account');
+
+    // Navigate away — user goes to Microsoft.
+    window.location.assign(authUrl.toString());
+
+    // Return null — the post-redirect handler will dispatch a fresh
+    // success state once the user comes back.
+    return null;
+  }
+
+  // ---- NATIVE: in-app browser via AuthRequest ---------------------------
+  const discovery = microsoftDiscovery(Config.signinTenantId);
   const redirectUri = AuthSession.makeRedirectUri({ scheme: 'ca.skintyee.app' });
 
-  // Construct the auth request: PKCE-enabled by default in expo-auth-session.
   const request = new AuthSession.AuthRequest({
     clientId: Config.signinAppId,
     redirectUri,
     scopes: ['openid', 'profile', 'email', 'User.Read'],
     usePKCE: true,
     responseType: AuthSession.ResponseType.Code,
-    prompt: AuthSession.Prompt.SelectAccount,  // forces account picker
+    prompt: AuthSession.Prompt.SelectAccount,
   });
 
-  // Prompt the user — opens the browser.
   const result = await request.promptAsync(discovery);
   if (result.type !== 'success') {
     return rejectWithValue(
@@ -177,8 +253,6 @@ export const signIn = createAsyncThunk<
     );
   }
 
-  // Exchange the auth code for tokens (the code verifier was stored on the
-  // AuthRequest object by promptAsync).
   const tokenResp = await AuthSession.exchangeCodeAsync(
     {
       clientId: Config.signinAppId,
@@ -195,10 +269,86 @@ export const signIn = createAsyncThunk<
     return rejectWithValue('Sign-in succeeded but no ID token was returned.');
   }
   const expiresAt = Date.now() + ((tokenResp.expiresIn ?? 3600) * 1000);
-
   const user = parseIdToken(idToken);
+  const role = (await fetchRoleFromApi(user.upn)) ?? deriveRoleLocally(user);
 
-  // Derive role: try api/, fall back to local rule.
+  return {
+    tokens: { accessToken, idToken, expiresAt },
+    user,
+    role,
+  };
+});
+
+// ----------------------------------------------------------------------------
+// handleAuthCallback (WEB ONLY) — runs at app startup. If the current URL has
+// a `code` query param, exchange it for tokens, then strip the param from the
+// address bar. Called from main.tsx before the store initializes.
+//
+// Returns the same shape as signIn.fulfilled on success, or null if there's
+// nothing to handle (no code in URL).
+// ----------------------------------------------------------------------------
+
+export const handleAuthCallback = createAsyncThunk<
+  { tokens: { accessToken: string; idToken: string; expiresAt: number }; user: SignedInUser; role: Role } | null,
+  void,
+  { rejectValue: string }
+>('handle_auth_callback', async (_, { rejectWithValue }) => {
+  if (Platform.OS !== 'web') return null;
+  const search = new URLSearchParams(window.location.search);
+  const code  = search.get('code');
+  const state = search.get('state');
+  const err   = search.get('error');
+  const errDesc = search.get('error_description');
+
+  if (err) {
+    // Strip the error from the URL so a refresh doesn't repeat it.
+    history.replaceState({}, '', window.location.pathname);
+    return rejectWithValue(`${err}: ${errDesc ?? '(no description)'}`);
+  }
+  if (!code) return null;
+
+  const codeVerifier  = sessionStorage.getItem(PKCE_VERIFIER_KEY);
+  const expectedState = sessionStorage.getItem(PKCE_STATE_KEY);
+  // Clean up storage + URL early so we don't double-redeem.
+  sessionStorage.removeItem(PKCE_VERIFIER_KEY);
+  sessionStorage.removeItem(PKCE_STATE_KEY);
+  history.replaceState({}, '', window.location.pathname);
+
+  if (!codeVerifier) {
+    return rejectWithValue('Missing PKCE code verifier (sign-in may have been started in a different tab).');
+  }
+  if (state && expectedState && state !== expectedState) {
+    return rejectWithValue('State mismatch — possible cross-site request forgery.');
+  }
+
+  const redirectUri = window.location.origin + '/';
+  const body = new URLSearchParams({
+    client_id:     Config.signinAppId,
+    grant_type:    'authorization_code',
+    code,
+    redirect_uri:  redirectUri,
+    code_verifier: codeVerifier,
+    scope:         'openid profile email User.Read',
+  });
+  const tokenRes = await fetch(
+    `https://login.microsoftonline.com/${Config.signinTenantId}/oauth2/v2.0/token`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    }
+  );
+  if (!tokenRes.ok) {
+    return rejectWithValue(`Token exchange failed: ${tokenRes.status} ${await tokenRes.text()}`);
+  }
+  const data = await tokenRes.json();
+  const accessToken: string | undefined = data.access_token;
+  const idToken:     string | undefined = data.id_token;
+  if (!idToken || !accessToken) {
+    return rejectWithValue('Token response missing access_token or id_token.');
+  }
+  const expiresAt = Date.now() + ((data.expires_in ?? 3600) * 1000);
+  const user = parseIdToken(idToken);
   const role = (await fetchRoleFromApi(user.upn)) ?? deriveRoleLocally(user);
 
   return {
@@ -263,6 +413,32 @@ const authSlice = createSlice({
       ...state,
       status: 'error',
       error: action.payload ?? 'Sign-in failed.',
+    }));
+
+    // handleAuthCallback — same shape as signIn outcomes, called at app
+    // boot to complete the WEB redirect flow.
+    builder.addCase(handleAuthCallback.pending, (state) => ({
+      ...state, status: 'signing-in',
+    }));
+    builder.addCase(handleAuthCallback.fulfilled, (state, action) => {
+      if (!action.payload) return state;  // no-op (no code in URL)
+      return {
+        ...state,
+        signedIn: true,
+        user: action.payload.user,
+        role: action.payload.role,
+        name: action.payload.user.name || action.payload.user.upn,
+        accessToken: action.payload.tokens.accessToken,
+        idToken: action.payload.tokens.idToken,
+        expiresAt: action.payload.tokens.expiresAt,
+        status: 'idle',
+        error: null,
+      };
+    });
+    builder.addCase(handleAuthCallback.rejected, (state, action) => ({
+      ...state,
+      status: 'error',
+      error: action.payload ?? 'Sign-in callback failed.',
     }));
   },
 });

@@ -2,7 +2,20 @@ import React from 'react';
 import { Platform } from 'react-native';
 import { Provider } from 'react-redux';
 import { store } from 'skintyee/store';
+import { handleAuthCallback } from 'skintyee/store/modules/auth';
 import App from 'skintyee/Application';
+
+// On web: if the URL has ?code=... (Microsoft redirected back from sign-in),
+// complete the token exchange + populate auth state. This fires once at app
+// boot; the rest of the app renders normally underneath.
+if (
+  Platform.OS === 'web' &&
+  typeof window !== 'undefined' &&
+  typeof window.location?.search === 'string' &&
+  window.location.search.includes('code=')
+) {
+  store.dispatch(handleAuthCallback() as any);
+}
 
 // Web only: hide scrollbars (desktop shows native ones from ScrollView/FlatList
 // overflow) while keeping scroll behaviour. Injected once at startup.
