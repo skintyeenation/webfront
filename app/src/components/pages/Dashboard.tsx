@@ -191,42 +191,13 @@ export default function Dashboard({ navigation }: any) {
   return (
     <PageContainer>
       <PageContent>
-        {/* ── THIS WEEK feed (Calendar | List) ────────────────────────────── */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-          <MaterialCommunityIcons name="calendar-blank-outline" size={18} color={theme.colors.text} style={{ marginRight: 6 }} />
-          <Text style={{ color: theme.colors.text, fontSize: 16, flex: 1 }}>
-            This week {formatRange(visible) ? `· ${formatRange(visible)}` : ''}
-          </Text>
-        </View>
-
-        <SegmentedButtons
-          value={view}
-          onValueChange={(v) => setView(v as FeedView)}
-          density="small"
-          style={{ marginBottom: 12 }}
-          buttons={[
-            { value: 'list', label: 'List', icon: 'format-list-bulleted' },
-            { value: 'calendar', label: 'Calendar', icon: 'calendar-month' },
-          ]}
-        />
-
-        {!loaded && loading ? (
-          <NoContent loading message="Loading your week…" />
-        ) : visible.length === 0 ? (
-          <NoContent message="Nothing scheduled in the next 7 days. Check Events, or come back tomorrow." />
-        ) : view === 'list' ? (
-          visible.map((it) => <FeedItemCard key={it.id} item={it} />)
-        ) : (
-          <CalendarView items={visible} />
-        )}
-
         {/* ── ADMIN TOOLS (staff + admin) ───────────────────────────────────
             Moved here from the Financial Summary screen — Planner board
             rollup + Time keeping summary. Not the right home for budget
             transparency content; it IS the right home for what an admin
             opens the app to see. */}
         {isStaffOrAdmin ? (
-          <View style={{ marginTop: 24 }}>
+          <View >
             {/* Planner rollup card */}
             <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12, borderLeftWidth: 3, borderLeftColor: theme.colors.accent }}>
               <Card.Content>
@@ -329,6 +300,35 @@ export default function Dashboard({ navigation }: any) {
             </Card>
           </View>
         ) : null}
+        {/* ── THIS WEEK feed (Calendar | List) ────────────────────────────── */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, marginTop: 24 }}>
+          <MaterialCommunityIcons name="calendar-blank-outline" size={18} color={theme.colors.text} style={{ marginRight: 6 }} />
+          <Text style={{ color: theme.colors.text, fontSize: 16, flex: 1 }}>
+            This week {formatRange(visible) ? `· ${formatRange(visible)}` : ''}
+          </Text>
+        </View>
+
+        <SegmentedButtons
+          value={view}
+          onValueChange={(v) => setView(v as FeedView)}
+          density="small"
+          style={{ marginBottom: 12 }}
+          buttons={[
+            { value: 'list', label: 'List', icon: 'format-list-bulleted' },
+            { value: 'calendar', label: 'Calendar', icon: 'calendar-month' },
+          ]}
+        />
+
+        {!loaded && loading ? (
+          <NoContent loading message="Loading your week…" />
+        ) : visible.length === 0 ? (
+          <NoContent message="Nothing scheduled in the next 7 days. Check Events, or come back tomorrow." />
+        ) : view === 'list' ? (
+          visible.map((it) => <FeedItemCard key={it.id} item={it} />)
+        ) : (
+          <CalendarView items={visible} />
+        )}
+
       </PageContent>
     </PageContainer>
   );
