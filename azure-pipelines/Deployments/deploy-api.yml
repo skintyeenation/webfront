@@ -77,12 +77,46 @@ jobs:
             FULL_IMAGE="${AZURE_ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG}"
             echo "▸ updating ${AZURE_CONTAINERAPP} to ${FULL_IMAGE}…"
 
-            az containerapp update \
-              --name "$AZURE_CONTAINERAPP" \
-              --resource-group "$AZURE_RG" \
-              --image "$FULL_IMAGE" \
-              --revision-suffix "sha-$(echo $IMAGE_TAG | cut -c1-7)" \
-              --output none
+            # If a manual `containerapp update` (env var change, secret
+            # rotation) is mid-flight when we run, Azure returns:
+            #   ContainerAppOperationInProgress — Cannot modify… active
+            #   provisioning operation
+            # Wait for whatever's running to settle, with a bounded retry
+            # so a stuck app doesn't lock the pipeline forever.
+            wait_for_idle() {
+              for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
+                STATE=$(az containerapp show \
+                  --name "$AZURE_CONTAINERAPP" --resource-group "$AZURE_RG" \
+                  --query 'properties.provisioningState' -o tsv 2>/dev/null || echo "Unknown")
+                if [ "$STATE" = "Succeeded" ] || [ "$STATE" = "Failed" ] || [ "$STATE" = "Canceled" ]; then
+                  return 0
+                fi
+                echo "  containerapp state=${STATE}; waiting ($((attempt * 15))s)…"
+                sleep 15
+              done
+              echo "  ✗ containerapp still not idle after 3 min — proceeding anyway"
+            }
+
+            wait_for_idle
+
+            # Retry the update on the specific transient error.
+            for attempt in 1 2 3; do
+              if az containerapp update \
+                --name "$AZURE_CONTAINERAPP" \
+                --resource-group "$AZURE_RG" \
+                --image "$FULL_IMAGE" \
+                --revision-suffix "sha-$(echo $IMAGE_TAG | cut -c1-7)" \
+                --output none 2> /tmp/cau-err; then
+                break
+              fi
+              if grep -q "ContainerAppOperationInProgress" /tmp/cau-err; then
+                echo "  attempt $attempt: ContainerAppOperationInProgress — waiting + retrying"
+                wait_for_idle
+                continue
+              fi
+              cat /tmp/cau-err >&2
+              exit 1
+            done
 
             # Print the latest revision's ingress URL so the pipeline log
             # shows where the new code is live.
