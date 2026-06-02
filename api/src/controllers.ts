@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, HttpCode, NotFoundException, Param, Post
 import { DataService } from './data.service';
 import { Roles, callerRole } from './roles';
 import { GraphFeedService, FeedItem, AppRole } from './graph-feed.service';
+import { PrismaService } from './prisma.service';
 
 // ---- Health ---------------------------------------------------------------
 // Public liveness endpoint hit by:
@@ -29,14 +30,138 @@ export class AuthController {
 }
 
 // ---- Directory ------------------------------------------------------------
+// Reads from Postgres (Prisma) when available; falls back to DataService's
+// in-memory mock if Prisma can't connect. The Postgres data is seeded from
+// Microsoft Entra by /v1/admin/seed-directory.
 @Controller('directory')
 export class DirectoryController {
-  constructor(private data: DataService) {}
-  @Get() list() { return this.data.directory; }
-  @Get(':id') get(@Param('id') id: string) { return found(this.data.directory.find((m) => m._id === id)); }
+  constructor(private data: DataService, private prisma: PrismaService) {}
+
+  @Get() async list() {
+    if (this.prisma.isAvailable) {
+      const rows = await this.prisma.bandMember.findMany({
+        where: { enabled: true },
+        orderBy: { name: 'asc' },
+      });
+      // Map Prisma fields → the legacy BandMember shape the app expects.
+      return rows.map((r) => ({
+        _id: r.id,
+        name: r.name,
+        role: r.role,
+        title: r.title ?? undefined,
+        email: r.email ?? undefined,
+        phone: r.phone ?? undefined,
+        avatarLetter: r.avatarLetter ?? undefined,
+        upn: r.upn,
+        department: r.department ?? undefined,
+        appRole: r.appRole,
+      }));
+    }
+    return this.data.directory;
+  }
+
+  @Get(':id') async get(@Param('id') id: string) {
+    if (this.prisma.isAvailable) {
+      const row = await this.prisma.bandMember.findUnique({ where: { id } });
+      return found(row);
+    }
+    return found(this.data.directory.find((m) => m._id === id));
+  }
+
   @Post() @Roles('admin') create(@Body() b: any) { const m = { _id: this.data.id('m'), ...b }; this.data.directory.unshift(m); return m; }
   @Patch(':id') @Roles('admin') update(@Param('id') id: string, @Body() b: any) { return upsert(this.data.directory, id, b); }
   @Delete(':id') @Roles('admin') @HttpCode(204) remove(@Param('id') id: string) { remove(this.data.directory, id); }
+}
+
+// ---- Admin: seed directory from Entra -------------------------------------
+// One-shot endpoint that pulls all enabled users from the skintyeenation
+// Entra tenant + upserts them into the BandMember Postgres table. Run once
+// after the first api/ deploy, then re-run anytime the tenant's user set
+// changes (idempotent — upsert by Entra object id).
+//
+// POST /v1/admin/seed-directory — role-gated `admin`
+@Controller('admin')
+export class AdminController {
+  constructor(private graph: GraphFeedService, private prisma: PrismaService) {}
+
+  @Post('seed-directory') @Roles('admin')
+  async seedDirectory() {
+    if (!this.prisma.isAvailable) {
+      throw new NotFoundException('Prisma not connected — set DATABASE_URL and re-deploy');
+    }
+
+    const entraUsers = await this.graph.getDirectory();
+    let inserted = 0;
+    let updated = 0;
+
+    for (const u of entraUsers) {
+      const existing = await this.prisma.bandMember.findUnique({ where: { id: u.id } });
+      await this.prisma.bandMember.upsert({
+        where: { id: u.id },
+        create: {
+          id: u.id,
+          upn: u.upn,
+          email: u.email,
+          name: u.name,
+          role: u.role,
+          title: u.title,
+          department: u.department,
+          phone: u.phone,
+          avatarLetter: u.avatarLetter,
+          appRole: u.appRole,
+          enabled: u.enabled,
+        },
+        update: {
+          upn: u.upn,
+          email: u.email,
+          name: u.name,
+          role: u.role,
+          title: u.title,
+          department: u.department,
+          phone: u.phone,
+          avatarLetter: u.avatarLetter,
+          appRole: u.appRole,
+          enabled: u.enabled,
+          syncedAt: new Date(),
+        },
+      });
+      if (existing) updated++; else inserted++;
+    }
+
+    // Mark anyone NOT in this Entra response as disabled (departed)
+    const allIds = entraUsers.map((u) => u.id);
+    const { count: disabledCount } = await this.prisma.bandMember.updateMany({
+      where: { id: { notIn: allIds }, enabled: true },
+      data: { enabled: false },
+    });
+
+    return {
+      ok: true,
+      total: entraUsers.length,
+      inserted,
+      updated,
+      disabled: disabledCount,
+      syncedAt: new Date().toISOString(),
+    };
+  }
+
+  // GET /v1/admin/role-for/:upn — look up an app-role by UPN. Used during
+  // sign-in to derive the signed-in user's app role from their Entra UPN.
+  // Returns 'public' if not found (anonymous users get the public role).
+  @Get('role-for/:upn')
+  async roleFor(@Param('upn') upn: string) {
+    if (!this.prisma.isAvailable) {
+      return { upn, appRole: 'public', source: 'no-db-fallback' };
+    }
+    const row = await this.prisma.bandMember.findUnique({
+      where: { upn: upn.toLowerCase() },
+      select: { upn: true, appRole: true, name: true, enabled: true },
+    });
+    if (!row || !row.enabled) {
+      return { upn, appRole: 'public', source: 'not-found' };
+    }
+    return { upn: row.upn, appRole: row.appRole, name: row.name, source: 'db' };
+  }
 }
 
 // ---- Events ---------------------------------------------------------------
@@ -256,4 +381,5 @@ export const CONTROLLERS = [
   NotificationsController,
   PlannerController,
   FeedController,
+  AdminController,
 ];

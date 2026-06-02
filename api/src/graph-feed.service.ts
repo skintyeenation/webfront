@@ -465,4 +465,73 @@ export class GraphFeedService {
     this.feedCache = undefined;
     this.log.log('caches cleared');
   }
+
+  // ---- Directory --------------------------------------------------------
+  //
+  // Pull all enabled users from the skintyeenation Entra tenant. Used by
+  // the seed endpoint to populate the BandMember table; can also be called
+  // directly when a fresh sync is needed (e.g. someone was added in M365
+  // and we want them visible in the app immediately).
+  //
+  // The break-glass admin (admin@skintyeenation.onmicrosoft.com) is
+  // remapped to "Sandra Williams" in the response, per the team's
+  // convention for the in-app display name of that account.
+  async getDirectory(): Promise<Array<{
+    id: string; upn: string; email?: string; name: string; role: string;
+    title?: string; department?: string; phone?: string; avatarLetter?: string;
+    appRole: string; enabled: boolean;
+  }>> {
+    const users = await this.graphPaged<any>(
+      '/users?$select=id,userPrincipalName,displayName,givenName,surname,mail,jobTitle,businessPhones,mobilePhone,department,accountEnabled&$filter=accountEnabled eq true&$top=999'
+    );
+
+    return users
+      .filter((u) => {
+        const upn = (u.userPrincipalName ?? '').toLowerCase();
+        // Band-member candidates: anyone @skintyee.ca + the break-glass admin.
+        // Skip B2B guests (#EXT#) and pure service accounts.
+        return (
+          (upn.endsWith('@skintyee.ca') || upn === 'admin@skintyeenation.onmicrosoft.com') &&
+          !upn.includes('#ext#')
+        );
+      })
+      .map((u) => {
+        const upn = (u.userPrincipalName ?? '').toLowerCase();
+        const isBreakGlass = upn === 'admin@skintyeenation.onmicrosoft.com';
+        const jobTitle = (u.jobTitle ?? '') as string;
+        const isChief = /chief/i.test(jobTitle);
+        const isCouncil = /council/i.test(jobTitle);
+        const hasTitle = jobTitle.length > 0;
+
+        const name = isBreakGlass
+          ? 'Sandra Williams'
+          : (u.displayName ?? `${u.givenName ?? ''} ${u.surname ?? ''}`).trim() || upn;
+
+        const role = isChief ? 'Chief'
+          : isCouncil ? 'Council'
+          : isBreakGlass ? 'Staff'
+          : hasTitle ? 'Staff'
+          : 'Member';
+
+        const appRole = isBreakGlass
+          ? 'admin'
+          : (isChief || isCouncil || /director|manager|admin/i.test(jobTitle)) ? 'admin'
+          : hasTitle ? 'staff'
+          : 'member';
+
+        return {
+          id: u.id,
+          upn,
+          email: u.mail ?? undefined,
+          name,
+          role,
+          title: u.jobTitle ?? undefined,
+          department: u.department ?? undefined,
+          phone: u.mobilePhone ?? u.businessPhones?.[0] ?? undefined,
+          avatarLetter: (isBreakGlass ? 'S' : (u.displayName ?? u.givenName ?? '?').charAt(0)).toUpperCase(),
+          appRole,
+          enabled: !!u.accountEnabled,
+        };
+      });
+  }
 }

@@ -1,0 +1,45 @@
+// Prisma schema for the Skin Tyee api/. Per ADR-7 (NestJS + Prisma +
+// Azure PostgreSQL Flexible Server). PostGIS-enabled when we add
+// geo data; for now this only covers the BandMember directory,
+// seeded from Microsoft Entra via the api/'s skintyee-app-graph
+// application credential.
+//
+// Other entities (events, notifications, meetings, transparency,
+// timekeeping, financials, polls) stay in DataService's in-memory
+// store until they're each migrated to Postgres in Phase 2 of the
+// per-entity rollout. This keeps the initial Prisma scope small +
+// reviewable.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---- BandMember -----------------------------------------------------------
+// Seeded from Entra users in the skintyeenation tenant by
+// /v1/admin/seed-directory (calls GraphFeedService.getDirectory()).
+// Key is the Entra user's object id (.id from /users); UPN is unique.
+
+model BandMember {
+  id            String   @id              // Entra object id (oid)
+  upn           String   @unique           // userPrincipalName, lowercased
+  email         String?
+  name          String
+  role          String                     // "Member" | "Staff" | "Chief" | "Council"
+  title         String?
+  department    String?
+  phone         String?
+  avatarLetter  String?
+  appRole       String   @default("member") // "public" | "member" | "staff" | "admin" — for the app's role-gating
+  enabled       Boolean  @default(true)
+  syncedAt      DateTime @default(now())   // last time seeded from Entra
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([upn])
+  @@index([enabled])
+}

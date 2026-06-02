@@ -31,10 +31,16 @@ RUN if [ -f pnpm-lock.yaml ]; then \
       npm install; \
     fi
 
-# Copy source + the OpenAPI contract (read at runtime).
+# Copy source + the OpenAPI contract (read at runtime) + Prisma schema.
 COPY tsconfig.json ./
 COPY src ./src
 COPY openapi.yaml ./
+COPY prisma ./prisma
+
+# Generate the Prisma client BEFORE compiling — tsc needs the generated
+# types from @prisma/client at compile time. The generated client is
+# emitted into node_modules/@prisma/client (engine binaries + types).
+RUN npx prisma generate
 
 # Compile TypeScript → dist/.
 RUN npx tsc -p tsconfig.json
@@ -63,6 +69,7 @@ COPY --chown=node:node --from=builder /app/node_modules ./node_modules
 COPY --chown=node:node --from=builder /app/dist ./dist
 COPY --chown=node:node --from=builder /app/openapi.yaml ./openapi.yaml
 COPY --chown=node:node --from=builder /app/package.json ./package.json
+COPY --chown=node:node --from=builder /app/prisma ./prisma
 
 ENV NODE_ENV=production \
     PORT=4000 \
