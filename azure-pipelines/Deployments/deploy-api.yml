@@ -9,6 +9,11 @@ name: deploy-api
 # federated identity has been granted:
 #   - AcrPush on the ACR (so `az acr build` can push)
 #   - Contributor on the Container App (so the revision update works)
+#   - Contributor on the managed environment, e.g.
+#         skintyee-prod-rg/providers/Microsoft.App/managedEnvironments/skintyee-prod-env
+#     because every `az containerapp update` / `secret set` validates
+#     'Microsoft.App/managedEnvironments/join/action' on the linked env.
+#     Without it the Sync env step fails with LinkedAuthorizationFailed.
 #
 # See docs/devops/deployment-plan.md § Phase 1 for the resource set
 # this targets, and § Pipeline + automation pattern for the auth model.
