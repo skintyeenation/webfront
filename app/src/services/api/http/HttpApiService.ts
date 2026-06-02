@@ -123,6 +123,15 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
       list: () => get<BandMeeting[]>('/meetings'),
       types: () => get<any>('/meetings/types'),
       create: (input: any) => post<any>('/meetings', input),
+      update: (id: string, input: any) => patch<any>(`/meetings/${id}`, input),
+      delete: async (id: string, sourceIndex: number) => {
+        const res = await fetch(api(`/meetings/${id}?sourceIndex=${sourceIndex}`), {
+          method: 'DELETE',
+          headers: headers({ 'Cache-Control': 'no-cache' }),
+          cache: 'no-store',
+        });
+        if (!res.ok) throw new Error(`DELETE /meetings/${id} → ${res.status}: ${await res.text()}`);
+      },
     },
     publicRecords: {
       // The /v1/transparency/* endpoints are what serve "public records" in

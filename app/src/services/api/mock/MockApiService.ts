@@ -37,6 +37,8 @@ export const mockApiService: ApiService = {
     list:   () => delay(fixtures.meetings),
     types:  () => { throw new Error('meetings.types requires the real api/ (catalog lives in api/src/skintyee-meeting-types.ts)'); },
     create: () => { throw new Error('meetings.create requires the real api/ (writes a real M365 calendar event via Graph)'); },
+    update: () => { throw new Error('meetings.update requires the real api/ (Graph PATCH)'); },
+    delete: () => { throw new Error('meetings.delete requires the real api/ (Graph DELETE)'); },
   },
   publicRecords: {
     list: () => delay(fixtures.publicRecords),

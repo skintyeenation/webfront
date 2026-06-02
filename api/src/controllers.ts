@@ -632,8 +632,58 @@ export class MeetingsController {
     return m;
   }
 
-  @Patch(':id') @Roles('admin') update(@Param('id') id: string, @Body() b: any) { return upsert(this.data.meetings, id, b); }
-  @Delete(':id') @Roles('admin') @HttpCode(204) remove(@Param('id') id: string) { remove(this.data.meetings, id); }
+  // PATCH /v1/meetings/:id — update an event in-place via Graph (delegated).
+  // Body: { sourceIndex, typeSlug?, title?, agenda?, location?, startsAt?,
+  //         endsAt?, isOnlineMeeting?, attendees? }
+  // sourceIndex is required so we know which calendar path to PATCH.
+  @Patch(':id') @Roles('admin') async update(@Param('id') id: string, @Body() b: any, @Req() req: any) {
+    const authHeader = req?.headers?.authorization ?? req?.headers?.Authorization;
+    const accessToken = typeof authHeader === 'string' && authHeader.startsWith('Bearer ')
+      ? authHeader.slice(7)
+      : undefined;
+
+    if (accessToken && process.env.GRAPH_CLIENT_ID && typeof b?.sourceIndex === 'number') {
+      try {
+        return await this.graph.updateBandMeetingAs({
+          accessToken,
+          eventId: id,
+          sourceIndex: b.sourceIndex,
+          input: b,
+        });
+      } catch (e: any) {
+        this.log.error(`updateBandMeetingAs failed: ${e?.message ?? e}`);
+        throw new Error(`Graph update failed: ${e?.message ?? e}`);
+      }
+    }
+    // No token or no sourceIndex — fall back to in-memory mutation
+    return upsert(this.data.meetings, id, b);
+  }
+
+  // DELETE /v1/meetings/:id — body or query string carries sourceIndex.
+  // Real deletes go through Graph; falls back to in-memory if not signed
+  // in or sourceIndex absent.
+  @Delete(':id') @Roles('admin') @HttpCode(204) async remove(
+    @Param('id') id: string,
+    @Query('sourceIndex') q?: string,
+    @Req() req?: any
+  ) {
+    const sourceIndex = q != null ? Number(q) : NaN;
+    const authHeader = req?.headers?.authorization ?? req?.headers?.Authorization;
+    const accessToken = typeof authHeader === 'string' && authHeader.startsWith('Bearer ')
+      ? authHeader.slice(7)
+      : undefined;
+
+    if (accessToken && process.env.GRAPH_CLIENT_ID && Number.isFinite(sourceIndex)) {
+      try {
+        await this.graph.deleteBandMeetingAs({ accessToken, eventId: id, sourceIndex });
+        return;
+      } catch (e: any) {
+        this.log.error(`deleteBandMeetingAs failed: ${e?.message ?? e}`);
+        throw new Error(`Graph delete failed: ${e?.message ?? e}`);
+      }
+    }
+    remove(this.data.meetings, id);
+  }
 }
 
 // ---- Transparency ---------------------------------------------------------

@@ -94,6 +94,20 @@ export interface ApiService {
       isOnlineMeeting?: boolean;
       attendees?: string[];
     }): Promise<{ id: string; webLink?: string; typeSlug: string; source: string }>;
+    // PATCH an existing event. sourceIndex required so we know which
+    // calendar path to update (Graph events are calendar-scoped).
+    update(id: string, input: {
+      sourceIndex: number;
+      typeSlug?: string;
+      title?: string;
+      agenda?: string;
+      location?: string;
+      startsAt?: string;
+      endsAt?: string;
+      isOnlineMeeting?: boolean;
+      attendees?: string[];
+    }): Promise<{ id: string; webLink?: string }>;
+    delete(id: string, sourceIndex: number): Promise<void>;
   };
   publicRecords: {
     list(): Promise<PublicRecord[]>;

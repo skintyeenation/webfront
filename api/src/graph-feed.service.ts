@@ -43,8 +43,11 @@ export interface BandMeetingFromGraph {
   cancelled?: boolean;
   typeSlug: string;     // matched from categories[]; 'band-meeting' / 'council-meeting' / …
   source: string;       // human-readable source calendar (e.g. "Skin Tyee Council (M365)")
+  sourceIndex: number;  // index into MEETING_SOURCE_CALENDARS for PATCH routing
   organizerName?: string;
   organizerUpn?: string;
+  attendees?: Array<{ upn: string; name?: string; type?: string }>;
+  isOnlineMeeting?: boolean;
   joinUrl?: string;     // Teams join URL if isOnlineMeeting
   webLink?: string;     // Outlook web link
 }
@@ -822,7 +825,8 @@ export class GraphFeedService {
         ? `/users/${source.upn}/calendarView`
         : `/groups/${source.groupId}/calendarView`;
       const url = `${base}?startDateTime=${from}&endDateTime=${to}` +
-                  `&$select=id,subject,bodyPreview,location,start,end,isCancelled,categories,organizer,onlineMeeting,webLink,isOnlineMeeting`;
+                  `&$select=id,subject,bodyPreview,location,start,end,isCancelled,categories,organizer,attendees,onlineMeeting,webLink,isOnlineMeeting`;
+      const srcIdx = MEETING_SOURCE_CALENDARS.indexOf(source);
 
       try {
         const events = useDelegated
@@ -846,8 +850,15 @@ export class GraphFeedService {
             cancelled: !!e.isCancelled,
             typeSlug: type.slug,
             source: source.name,
+            sourceIndex: srcIdx,
             organizerName: e.organizer?.emailAddress?.name,
             organizerUpn:  e.organizer?.emailAddress?.address?.toLowerCase(),
+            attendees: (e.attendees ?? []).map((a: any) => ({
+              upn:  (a.emailAddress?.address ?? '').toLowerCase(),
+              name: a.emailAddress?.name,
+              type: a.type,
+            })),
+            isOnlineMeeting: !!e.isOnlineMeeting,
             joinUrl: e.onlineMeeting?.joinUrl,
             webLink: e.webLink,
           });
@@ -943,6 +954,92 @@ export class GraphFeedService {
       source: source.name,
       organizerUpn: created.organizer?.emailAddress?.address?.toLowerCase(),
     };
+  }
+
+  // PATCH an existing band meeting AS the signed-in user. Same delegated
+  // flow as createBandMeetingAs. Routes by sourceIndex because Graph
+  // events are scoped to a specific calendar path.
+  //
+  // Source change isn't supported here (Graph doesn't move events between
+  // calendars in a single PATCH; would require delete+recreate). The
+  // EditMeeting screen renders source as read-only to prevent that.
+  async updateBandMeetingAs(opts: {
+    accessToken: string;
+    eventId: string;
+    sourceIndex: number;
+    input: {
+      typeSlug?: string;
+      title?: string;
+      agenda?: string;
+      location?: string;
+      startsAt?: string;
+      endsAt?: string;
+      isOnlineMeeting?: boolean;
+      attendees?: string[];
+    };
+  }): Promise<{ id: string; webLink?: string }> {
+    const { accessToken, eventId, sourceIndex, input } = opts;
+    const source: MeetingSource = MEETING_SOURCE_CALENDARS[sourceIndex];
+    if (!source) throw new Error(`Unknown source calendar index: ${sourceIndex}`);
+
+    const path =
+      source.kind === 'me'    ? `/me/events/${eventId}` :
+      source.kind === 'user'  ? `/users/${source.upn}/events/${eventId}` :
+                                `/groups/${source.groupId}/events/${eventId}`;
+
+    // Build a sparse patch — only include keys present in input.
+    const patch: any = {};
+    if (input.title != null)    patch.subject = input.title;
+    if (input.agenda != null)   patch.body = { contentType: 'text', content: input.agenda };
+    if (input.location != null) patch.location = { displayName: input.location };
+    if (input.startsAt != null) patch.start = { dateTime: input.startsAt, timeZone: 'UTC' };
+    if (input.endsAt   != null) patch.end   = { dateTime: input.endsAt,   timeZone: 'UTC' };
+    if (input.typeSlug) {
+      const type = meetingTypeBySlug.get(input.typeSlug);
+      if (!type) throw new Error(`Unknown meeting type: ${input.typeSlug}`);
+      patch.categories = [type.category];
+    }
+    if (input.isOnlineMeeting != null) patch.isOnlineMeeting = input.isOnlineMeeting;
+    if (input.attendees) {
+      patch.attendees = input.attendees.map((a) => ({
+        emailAddress: { address: a },
+        type: 'required',
+      }));
+    }
+
+    const res = await fetch(`https://graph.microsoft.com/v1.0${path}`, {
+      method: 'PATCH',
+      headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`updateBandMeetingAs failed ${res.status}: ${text}`);
+    }
+    const updated: any = await res.json();
+    return { id: updated.id, webLink: updated.webLink };
+  }
+
+  // DELETE an event AS the signed-in user. Routes by sourceIndex.
+  async deleteBandMeetingAs(opts: {
+    accessToken: string;
+    eventId: string;
+    sourceIndex: number;
+  }): Promise<void> {
+    const source: MeetingSource = MEETING_SOURCE_CALENDARS[opts.sourceIndex];
+    if (!source) throw new Error(`Unknown source calendar index: ${opts.sourceIndex}`);
+    const path =
+      source.kind === 'me'    ? `/me/events/${opts.eventId}` :
+      source.kind === 'user'  ? `/users/${source.upn}/events/${opts.eventId}` :
+                                `/groups/${source.groupId}/events/${opts.eventId}`;
+
+    const res = await fetch(`https://graph.microsoft.com/v1.0${path}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${opts.accessToken}` },
+    });
+    if (!res.ok && res.status !== 404) {
+      throw new Error(`deleteBandMeetingAs failed ${res.status}: ${await res.text()}`);
+    }
   }
 
   // Stream a user's profile photo binary from Graph. Used by the api/'s

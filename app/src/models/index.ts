@@ -79,8 +79,11 @@ export interface BandMeeting {
   // than the in-memory fixture)
   type?: MeetingTypeSlug;
   source?: string;     // human-readable source calendar name
+  sourceIndex?: number; // index into MEETING_SOURCE_CALENDARS — needed for PATCH/DELETE
   organizerName?: string;
   organizerUpn?: string;
+  attendees?: Array<{ upn: string; name?: string; type?: string }>;
+  isOnlineMeeting?: boolean;
   joinUrl?: string;    // Teams join URL if isOnlineMeeting
   webLink?: string;    // Outlook web link
 }

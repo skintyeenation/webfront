@@ -58,9 +58,10 @@ export const SKINTYEE_SECURITY_GROUPS: SkintyeeGroup[] = [
   // tenant (allcompany@…onmicrosoft.com). We deliberately DON'T include
   // it — it's a Microsoft-default, not a Skin Tyee group, and managing
   // membership there would be confusing.
-  { id: '425b9e3e-534a-4394-97fc-64b54c2eef10', slug: 'it-project-docs',  displayName: 'IT Project Docs',           kind: 'm365',  description: 'IT documentation team (it-project-docs@skintyee.ca)' },
-  { id: '67abaaf6-d7ba-4007-837d-4174822dbf3d', slug: 'council-m365',     displayName: 'Skin Tyee Council (M365)',  kind: 'm365',  description: 'Council mailbox + SharePoint (council@skintyee.ca)' },
-  { id: 'dc776d31-3549-4c39-9781-34c1cad28c99', slug: 'management-m365',  displayName: 'Skin Tyee Management (M365)', kind: 'm365', description: 'Management mailbox + SharePoint (management@skintyeenation.onmicrosoft.com)' },
+  { id: '425b9e3e-534a-4394-97fc-64b54c2eef10', slug: 'it-project-docs',  displayName: 'IT Project Docs',             kind: 'm365',  description: 'IT documentation team (it-project-docs@skintyee.ca)' },
+  { id: 'dabd4a8a-84a5-44bf-981d-d502862bf701', slug: 'band-members-m365',displayName: 'Skin Tyee Band Members (M365)', kind: 'm365', description: 'Band members mailbox + SharePoint (band@skintyee.ca) — also a Band Meetings source' },
+  { id: '67abaaf6-d7ba-4007-837d-4174822dbf3d', slug: 'council-m365',     displayName: 'Skin Tyee Council (M365)',     kind: 'm365', description: 'Council mailbox + SharePoint (council@skintyee.ca)' },
+  { id: 'dc776d31-3549-4c39-9781-34c1cad28c99', slug: 'management-m365',  displayName: 'Skin Tyee Management (M365)',  kind: 'm365', description: 'Management mailbox + SharePoint (management@skintyee.ca)' },
 ];
 
 // Lookup helpers
