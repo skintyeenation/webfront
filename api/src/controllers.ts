@@ -33,9 +33,60 @@ export class AuthController {
 // Reads from Postgres (Prisma) when available; falls back to DataService's
 // in-memory mock if Prisma can't connect. The Postgres data is seeded from
 // Microsoft Entra by /v1/admin/seed-directory.
+//
+// Safety net: if the table is unexpectedly empty when a request lands
+// (e.g. a dev truncated it mid-session), we kick off a background seed.
+// The current request returns [] but the next refresh shows the data —
+// the truncate-then-no-restart gap no longer leaves the dev stuck.
 @Controller('directory')
 export class DirectoryController {
-  constructor(private data: DataService, private prisma: PrismaService) {}
+  private readonly log = new Logger(DirectoryController.name);
+  private backgroundSeedRunning = false;
+
+  constructor(
+    private data: DataService,
+    private prisma: PrismaService,
+    private graph: GraphFeedService,
+  ) {}
+
+  private async backgroundSeed(): Promise<void> {
+    if (this.backgroundSeedRunning) return;
+    this.backgroundSeedRunning = true;
+    try {
+      this.log.warn('BandMember table empty — kicking off background seed from Entra');
+      const entraUsers = await this.graph.getDirectory();
+      for (const u of entraUsers) {
+        try {
+          await this.prisma.bandMember.upsert({
+            where: { id: u.id },
+            create: {
+              id: u.id, upn: u.upn, email: u.email, name: u.name, role: u.role,
+              title: u.title, department: u.department, phone: u.phone,
+              avatarLetter: u.avatarLetter, appRole: u.appRole,
+              accountType: u.accountType,
+              mailboxMemberships: u.mailboxMemberships.join(','),
+              enabled: u.enabled,
+            },
+            update: {
+              upn: u.upn, email: u.email, name: u.name, role: u.role,
+              title: u.title, department: u.department, phone: u.phone,
+              avatarLetter: u.avatarLetter, appRole: u.appRole,
+              accountType: u.accountType,
+              mailboxMemberships: u.mailboxMemberships.join(','),
+              enabled: u.enabled, syncedAt: new Date(),
+            },
+          });
+        } catch (e) {
+          this.log.warn(`background seed: upsert failed for ${u.upn}: ${e}`);
+        }
+      }
+      this.log.log(`background seed done: ${entraUsers.length} users`);
+    } catch (e) {
+      this.log.warn(`background seed failed: ${e}`);
+    } finally {
+      this.backgroundSeedRunning = false;
+    }
+  }
 
   @Get() async list() {
     if (this.prisma.isAvailable) {
@@ -43,6 +94,10 @@ export class DirectoryController {
         where: { enabled: true },
         orderBy: { name: 'asc' },
       });
+      // Empty table → kick off async seed; current request still returns [].
+      if (rows.length === 0 && process.env.GRAPH_CLIENT_ID) {
+        setImmediate(() => this.backgroundSeed());
+      }
       // Map Prisma fields → the BandMember shape the app expects, including
       // the accountType (toggle filter) + mailboxMemberships (badges on
       // licensed-user cards showing which mail-enabled groups they're in).
