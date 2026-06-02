@@ -227,14 +227,6 @@ export default function Dashboard({ navigation }: any) {
             opens the app to see. */}
         {isStaffOrAdmin ? (
           <View style={{ marginTop: 24 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-              <MaterialCommunityIcons name="shield-account" size={20} color={theme.colors.accent} style={{ marginRight: 8 }} />
-              <Text style={{ color: theme.colors.accent, fontSize: 16, fontWeight: '600' }}>Admin tools</Text>
-              <Chip compact style={{ marginLeft: 8, backgroundColor: theme.colors.secondary }} textStyle={{ fontSize: 10 }}>
-                {role}
-              </Chip>
-            </View>
-
             {/* Planner rollup card */}
             <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12, borderLeftWidth: 3, borderLeftColor: theme.colors.accent }}>
               <Card.Content>
