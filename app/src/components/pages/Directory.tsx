@@ -47,20 +47,29 @@ const bandGroupLabel = (slug: string) =>
   BAND_GROUP_LABELS[slug] ?? slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
 // Shared chip styles for the directory row description. Paper's compact
-// chip is still ~26px tall; tighten further and use bottom-margin only
-// so wrapping rows keep consistent gap. `marginRight + marginBottom`
-// gives us a true grid gap that holds at any row count. `paddingVertical`
-// on the chip + matching small fontSize squeeze the inner content to
-// ~22px tall, which sits comfortably under a single-line description.
+// chip is still ~26px tall and stacks unevenly when rows wrap.
+//
+//   - outer `chipStyle`     → row-grid: marginRight + marginBottom = true
+//                             gap that holds at any row count
+//   - `chipContentStyle`    → the icon+text inner container: zero vertical
+//                             padding + centered alignment keeps the icon
+//                             aligned with the text baseline (Paper's
+//                             default lineHeight on Text was offsetting them)
+//   - `chipTextStyle`       → just fontSize; no lineHeight override (was
+//                             the cause of the misalignment)
 const chipRowStyle = { flexDirection: 'row' as const, flexWrap: 'wrap' as const, marginTop: 4 };
 const chipStyle = {
   marginRight: 4,
   marginBottom: 4,
-  paddingVertical: 0,
-  minHeight: 22,
+  minHeight: 0,                  // let inner content dictate height
   backgroundColor: theme.colors.secondary,
 };
-const chipTextStyle = { fontSize: 10, marginVertical: 0, lineHeight: 14 };
+const chipContentStyle = {
+  alignItems: 'center' as const,
+  paddingVertical: 0,
+  height: 22,
+};
+const chipTextStyle = { fontSize: 10 };
 const chipOverflowStyle = {
   color: theme.colors.textDarker,
   fontSize: 11,
@@ -220,6 +229,7 @@ export default function Directory({ navigation }: any) {
                                   compact
                                   icon="shield-account"
                                   style={chipStyle}
+                                  contentStyle={chipContentStyle}
                                   textStyle={chipTextStyle}
                                 >
                                   {bandGroupLabel(slug)}
@@ -256,6 +266,7 @@ export default function Directory({ navigation }: any) {
                                     compact
                                     icon={icon}
                                     style={chipStyle}
+                                    contentStyle={chipContentStyle}
                                     textStyle={chipTextStyle}
                                   >
                                     {shortMailbox(mail)}
