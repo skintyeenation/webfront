@@ -3,3 +3,6 @@ dist/
 *.log
 .env
 .env.local
+
+# EXO cert + password (cert auth for Exchange Online PowerShell)
+.exo-cert/

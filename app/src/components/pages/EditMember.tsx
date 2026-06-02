@@ -1,25 +1,115 @@
-import React, { useState } from 'react';
-import { View } from 'react-native';
-import { Button, Chip, Text, TextInput } from 'react-native-paper';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
+import { Button, Chip, HelperText, Text, TextInput } from 'react-native-paper';
 import { PageContainer, PageContent, NoContent } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
-import { updateMember } from 'skintyee/store/modules/directory';
+import { setMemberGroups, setMemberMailboxes, updateMember } from 'skintyee/store/modules/directory';
 import { BandMember } from 'skintyee/models';
+import { SecurityGroup, SharedMailbox } from 'skintyee/services/api/ApiService';
+import { apiFactory } from 'skintyee/store/apis';
 import { theme } from 'skintyee/styles';
 
-const ROLES: BandMember['role'][] = ['Member', 'Staff', 'Council', 'Chief'];
+// Pull the "fullaccess" entries out of mailboxMemberships — those are the
+// ones we manage end-to-end through EXO. Other entries (M365 group
+// memberships derived during seed, tagged "owner"/"member") stay untouched.
+function fullAccessMailboxes(memberships?: string[]): string[] {
+  return (memberships ?? [])
+    .map((raw) => raw.split('|'))
+    .filter(([, rel]) => rel === 'fullaccess')
+    .map(([mail]) => mail.toLowerCase());
+}
 
-// Admin: edit a band member (in-memory for the POC).
+// Admin: edit a band member.
+//
+// Identity fields (name/title/email/phone) edit in-memory only — those are
+// derived from Entra on seed and not yet writable here. The role chips are
+// the Entra security-group memberships (see api/src/skintyee-groups.ts):
+// SAVING THEM CALLS BACK TO ENTRA via PATCH /v1/directory/:id/groups, which
+// uses the Group.ReadWrite.All permission to add/remove the user from each
+// group.
+//
+// Sections by kind:
+//   • ACCESS — Public / Band Members / Contractors
+//   • ROLE   — Council / Management / Admins / System Admin
+//   • DEPT   — IT / Finance / Housing / Forestry / Land Resources / Fire Chief
 export default function EditMember({ route, navigation }: any) {
   const dispatch = useAppDispatch();
   const id = route?.params?.id;
   const member = useAppSelector((s) => s.directory.entities.find((m) => m._id === id));
 
   const [name, setName] = useState(member?.name ?? '');
-  const [role, setRole] = useState<BandMember['role']>(member?.role ?? 'Member');
   const [title, setTitle] = useState(member?.title ?? '');
   const [email, setEmail] = useState(member?.email ?? '');
   const [phone, setPhone] = useState(member?.phone ?? '');
+
+  // Catalog of all security groups (fetched once from /v1/admin/security-groups).
+  const [catalog, setCatalog] = useState<SecurityGroup[]>([]);
+  const [catalogError, setCatalogError] = useState<string | undefined>();
+  // Currently selected slugs — initialized from the member's bandGroups.
+  // Re-syncs whenever the member's bandGroups changes (e.g. directory was
+  // still loading when the screen mounted, or another tab updated the row).
+  const [selected, setSelected] = useState<Set<string>>(new Set(member?.bandGroups ?? []));
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | undefined>();
+
+  // Shared mailbox catalog + selected. Only fetched/shown for licensed
+  // users (shared inboxes themselves don't get access to other inboxes).
+  const [mailboxCatalog, setMailboxCatalog] = useState<SharedMailbox[]>([]);
+  const [mailboxCatalogError, setMailboxCatalogError] = useState<string | undefined>();
+  const [selectedMailboxes, setSelectedMailboxes] = useState<Set<string>>(
+    new Set(fullAccessMailboxes(member?.mailboxMemberships))
+  );
+  const isShared = member?.accountType === 'shared-inbox';
+
+  // Key the effect on the SERIALIZED bandGroups so it only fires when the
+  // content actually changes (not on every render where the array identity
+  // is fresh). Without this we'd clobber user toggles every render.
+  const bandGroupsKey = (member?.bandGroups ?? []).join(',');
+  useEffect(() => {
+    setSelected(new Set(member?.bandGroups ?? []));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bandGroupsKey]);
+
+  // Same pattern for mailbox memberships.
+  const mailboxesKey = (member?.mailboxMemberships ?? []).join(',');
+  useEffect(() => {
+    setSelectedMailboxes(new Set(fullAccessMailboxes(member?.mailboxMemberships)));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mailboxesKey]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const groups = await apiFactory().admin.securityGroups();
+        if (!cancelled) setCatalog(groups);
+      } catch (e: any) {
+        if (!cancelled) setCatalogError(e?.message ?? String(e));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Fetch the shared mailbox catalog (only meaningful for licensed users)
+  useEffect(() => {
+    if (isShared) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await apiFactory().admin.sharedMailboxes();
+        if (!cancelled) setMailboxCatalog(list);
+      } catch (e: any) {
+        if (!cancelled) setMailboxCatalogError(e?.message ?? String(e));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isShared]);
+
+  const byKind = useMemo(() => {
+    const out: Record<SecurityGroup['kind'], SecurityGroup[]> = { entra: [], m365: [] };
+    for (const g of catalog) out[g.kind].push(g);
+    return out;
+  }, [catalog]);
 
   if (!member) {
     return (
@@ -31,45 +121,202 @@ export default function EditMember({ route, navigation }: any) {
     );
   }
 
-  const save = () => {
+  const toggle = (slug: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(slug)) next.delete(slug);
+      else next.add(slug);
+      return next;
+    });
+  };
+
+  // Has the role selection diverged from what's currently in Entra (i.e. the
+  // member's bandGroups)? Used to enable/label the save button.
+  const initial = useMemo(() => new Set(member.bandGroups ?? []), [member.bandGroups]);
+  const dirty = useMemo(() => {
+    if (initial.size !== selected.size) return true;
+    for (const s of selected) if (!initial.has(s)) return true;
+    return false;
+  }, [initial, selected]);
+
+  // Same for mailbox memberships
+  const initialMailboxes = useMemo(
+    () => new Set(fullAccessMailboxes(member.mailboxMemberships)),
+    [member.mailboxMemberships]
+  );
+  const mailboxesDirty = useMemo(() => {
+    if (initialMailboxes.size !== selectedMailboxes.size) return true;
+    for (const s of selectedMailboxes) if (!initialMailboxes.has(s)) return true;
+    return false;
+  }, [initialMailboxes, selectedMailboxes]);
+
+  const toggleMailbox = (upn: string) => {
+    setSelectedMailboxes((prev) => {
+      const next = new Set(prev);
+      if (next.has(upn)) next.delete(upn);
+      else next.add(upn);
+      return next;
+    });
+  };
+
+  const save = async () => {
     if (!name.trim()) return;
+    setSaveError(undefined);
+
+    // Identity fields — in-memory only for now.
     dispatch(
       updateMember({
         _id: member._id,
         name: name.trim(),
-        role,
         title: title.trim() || undefined,
         email: email.trim() || undefined,
         phone: phone.trim() || undefined,
         avatarLetter: name.trim()[0]?.toUpperCase(),
       })
     );
+
+    // Role chips — write back to Entra. Mailbox chips — write back to EXO.
+    if (dirty || mailboxesDirty) {
+      setSaving(true);
+      try {
+        if (dirty) {
+          await dispatch(setMemberGroups({ id: member._id, groups: Array.from(selected) })).unwrap();
+        }
+        if (mailboxesDirty) {
+          await dispatch(setMemberMailboxes({ id: member._id, mailboxes: Array.from(selectedMailboxes) })).unwrap();
+        }
+      } catch (e: any) {
+        setSaveError(e?.message ?? String(e));
+        setSaving(false);
+        return;   // stay on screen so admin can retry / cancel
+      }
+      setSaving(false);
+    }
     navigation.goBack();
   };
+
+  const renderSection = (title: string, items: SecurityGroup[]) => (
+    items.length > 0 && (
+      <View style={{ marginBottom: 14 }}>
+        <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginBottom: 6 }}>
+          {title.toUpperCase()}
+        </Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+          {items.map((g) => {
+            const on = selected.has(g.slug);
+            return (
+              <Chip
+                key={g.slug}
+                selected={on}
+                showSelectedCheck
+                onPress={() => toggle(g.slug)}
+                style={{
+                  marginRight: 8,
+                  marginBottom: 8,
+                  backgroundColor: on ? theme.colors.primary : theme.colors.secondary,
+                }}
+                textStyle={{ color: on ? '#000' : theme.colors.text, fontSize: 12 }}
+              >
+                {g.displayName.replace(/^Skin Tyee /, '')}
+              </Chip>
+            );
+          })}
+        </View>
+      </View>
+    )
+  );
 
   return (
     <PageContainer>
       <PageContent>
         <TextInput label="Full name" value={name} onChangeText={setName} mode="outlined" style={{ marginBottom: 10 }} />
-        <Text style={{ color: theme.colors.textDarker, marginBottom: 8 }}>Role</Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 }}>
-          {ROLES.map((r) => (
-            <Chip
-              key={r}
-              selected={role === r}
-              onPress={() => setRole(r)}
-              style={{ marginRight: 8, marginBottom: 8, backgroundColor: role === r ? theme.colors.primary : theme.colors.secondary }}
-              textStyle={{ color: role === r ? '#000' : theme.colors.text, fontSize: 12 }}
-            >
-              {r}
-            </Chip>
-          ))}
-        </View>
         <TextInput label="Title (optional)" value={title} onChangeText={setTitle} mode="outlined" style={{ marginBottom: 10 }} />
         <TextInput label="Email (optional)" value={email} onChangeText={setEmail} mode="outlined" autoCapitalize="none" keyboardType="email-address" style={{ marginBottom: 10 }} />
-        <TextInput label="Phone (optional)" value={phone} onChangeText={setPhone} mode="outlined" keyboardType="phone-pad" style={{ marginBottom: 10 }} />
-        <Button mode="contained" onPress={save} disabled={!name.trim()} buttonColor={theme.colors.primary} textColor="#000" style={{ marginTop: 8 }}>
-          Save changes
+        <TextInput label="Phone (optional)" value={phone} onChangeText={setPhone} mode="outlined" keyboardType="phone-pad" style={{ marginBottom: 16 }} />
+
+        <Text style={{ color: theme.colors.text, fontSize: 16, fontWeight: '600', marginBottom: 4 }}>
+          Group memberships
+        </Text>
+        <HelperText type="info" visible style={{ marginLeft: -8, marginBottom: 8 }}>
+          Edits sync to Microsoft Entra / Microsoft 365. Saving updates the directory directly.
+        </HelperText>
+
+        {catalogError && (
+          <HelperText type="error" visible>
+            Couldn't load groups: {catalogError}
+          </HelperText>
+        )}
+        {catalog.length === 0 && !catalogError && (
+          <ActivityIndicator style={{ marginVertical: 16 }} />
+        )}
+
+        {renderSection('Entra groups', byKind.entra)}
+        {renderSection('Microsoft 365 groups', byKind.m365)}
+
+        {/* Shared mailbox access — FullAccess + SendAs in Exchange Online.
+            Only meaningful for licensed users (a shared mailbox getting
+            FullAccess on another mailbox isn't a normal pattern). */}
+        {!isShared && (
+          <View style={{ marginTop: 8 }}>
+            <Text style={{ color: theme.colors.text, fontSize: 16, fontWeight: '600', marginBottom: 4 }}>
+              Shared mailbox access
+            </Text>
+            <HelperText type="info" visible style={{ marginLeft: -8, marginBottom: 8 }}>
+              FullAccess + SendAs in Exchange Online. Saving updates EXO directly (may take 5-30s).
+            </HelperText>
+
+            {mailboxCatalogError && (
+              <HelperText type="error" visible>
+                Couldn't load shared mailboxes: {mailboxCatalogError}
+              </HelperText>
+            )}
+            {mailboxCatalog.length === 0 && !mailboxCatalogError && (
+              <ActivityIndicator style={{ marginVertical: 16 }} />
+            )}
+
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+              {mailboxCatalog.map((mbx) => {
+                const on = selectedMailboxes.has(mbx.upn);
+                const local = mbx.upn.split('@')[0];
+                return (
+                  <Chip
+                    key={mbx.upn}
+                    selected={on}
+                    showSelectedCheck
+                    icon="email"
+                    onPress={() => toggleMailbox(mbx.upn)}
+                    style={{
+                      marginRight: 8,
+                      marginBottom: 8,
+                      backgroundColor: on ? theme.colors.primary : theme.colors.secondary,
+                    }}
+                    textStyle={{ color: on ? '#000' : theme.colors.text, fontSize: 12 }}
+                  >
+                    {local}@
+                  </Chip>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {saveError && (
+          <HelperText type="error" visible>
+            Couldn't save: {saveError}
+          </HelperText>
+        )}
+
+        <Button
+          mode="contained"
+          onPress={save}
+          disabled={!name.trim() || saving}
+          buttonColor={theme.colors.primary}
+          textColor="#000"
+          style={{ marginTop: 8 }}
+        >
+          {saving
+            ? (mailboxesDirty ? 'Saving to Exchange Online…' : 'Saving to Entra…')
+            : (dirty || mailboxesDirty) ? 'Save changes' : 'Save'}
         </Button>
       </PageContent>
     </PageContainer>

@@ -20,7 +20,7 @@ import {
   PlannerPlanSummary, PlannerRollup, PlannerTask, Poll,
   PublicRecord, Role, TimeEntry,
 } from 'skintyee/models';
-import { ApiService } from 'skintyee/services/api/ApiService';
+import { ApiService, SecurityGroup, SharedMailbox, MailboxAccess } from 'skintyee/services/api/ApiService';
 
 // The auth header context — pulled lazily so the same HttpApiService
 // instance survives sign-in / sign-out / role switches without rebuild.
@@ -87,10 +87,33 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
     return res.json() as Promise<T>;
   }
 
+  async function patch<T>(path: string, body: unknown): Promise<T> {
+    const res = await fetch(api(path), {
+      method: 'PATCH',
+      headers: headers({ 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' }),
+      body: JSON.stringify(body ?? {}),
+      cache: 'no-store',
+    });
+    if (!res.ok) {
+      throw new Error(`PATCH ${api(path)} → ${res.status}: ${await res.text()}`);
+    }
+    return res.json() as Promise<T>;
+  }
+
   return {
     directory: {
       list: () => get<BandMember[]>('/directory'),
       get: (id: string) => get<BandMember | undefined>(`/directory/${id}`).catch(() => undefined),
+      setGroups: (id: string, groups: string[]) => patch<BandMember>(`/directory/${id}/groups`, { groups }),
+      setMailboxes: (id: string, mailboxes: string[]) => patch<BandMember>(`/directory/${id}/mailbox-access`, { mailboxes }),
+    },
+    admin: {
+      securityGroups: () => get<SecurityGroup[]>('/admin/security-groups'),
+      sharedMailboxes: () => get<SharedMailbox[]>('/admin/shared-mailboxes'),
+      mailboxAccess: (mailboxUpn: string) => get<MailboxAccess>(`/admin/shared-mailboxes/${encodeURIComponent(mailboxUpn)}/access`),
+      setMailboxAccess: (mailboxUpn: string, users: string[]) =>
+        patch<MailboxAccess>(`/admin/shared-mailboxes/${encodeURIComponent(mailboxUpn)}/access`, { users }),
+      sync: () => post<any>('/admin/sync', {}),
     },
     events: {
       list: () => get<CommunityEvent[]>('/events'),

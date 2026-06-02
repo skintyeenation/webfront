@@ -24,6 +24,7 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
+import { SKINTYEE_SECURITY_GROUPS } from './skintyee-groups';
 
 // ---- Types ---------------------------------------------------------------
 
@@ -481,6 +482,7 @@ export class GraphFeedService {
     title?: string; department?: string; phone?: string; avatarLetter?: string;
     appRole: string; accountType: 'licensed-user' | 'shared-inbox';
     mailboxMemberships: string[];
+    bandGroups: string[];
     managerId?: string; managerName?: string; managerUpn?: string;
     hasPhoto: boolean;
     enabled: boolean;
@@ -571,6 +573,23 @@ export class GraphFeedService {
       this.log.warn(`couldn't enumerate groups: ${e}`);
     }
 
+    // ---- Skin Tyee security-group memberships ------------------------
+    // The 13 catalog security groups (src/skintyee-groups.ts) are the
+    // app's role model. Walk each one's /members in parallel and build
+    // a per-user slug list.
+    const bandGroupsByUser = new Map<string, Set<string>>();
+    await Promise.all(SKINTYEE_SECURITY_GROUPS.map(async (g) => {
+      try {
+        const members = await this.graphPaged<any>(`/groups/${g.id}/members?$select=id`);
+        for (const m of members) {
+          if (!bandGroupsByUser.has(m.id)) bandGroupsByUser.set(m.id, new Set());
+          bandGroupsByUser.get(m.id)!.add(g.slug);
+        }
+      } catch (e) {
+        this.log.warn(`couldn't fetch members of ${g.displayName}: ${e}`);
+      }
+    }));
+
     return users
       .filter((u) => {
         const upn = (u.userPrincipalName ?? '').toLowerCase();
@@ -628,6 +647,7 @@ export class GraphFeedService {
         ];
 
         const mgr = managerByUser.get(u.id);
+        const bandGroups = Array.from(bandGroupsByUser.get(u.id) ?? new Set<string>()).sort();
 
         return {
           id: u.id,
@@ -642,6 +662,7 @@ export class GraphFeedService {
           appRole,
           accountType,
           mailboxMemberships,
+          bandGroups,
           managerId:   mgr?.id,
           managerName: mgr?.name,
           managerUpn:  mgr?.upn,
@@ -649,6 +670,60 @@ export class GraphFeedService {
           enabled: !!u.accountEnabled,
         };
       });
+  }
+
+  // Set a user's catalog security-group memberships in Entra. `desired` is
+  // a list of slugs from SKINTYEE_SECURITY_GROUPS. The caller passes
+  // `currentSlugs` (the DB-recorded current state) so we don't hit
+  // Graph's eventual-consistency window on /groups/{id}/members reads
+  // immediately after a previous write.
+  //
+  // We diff and POST/DELETE the deltas through /groups/{id}/members/$ref,
+  // tolerating 400 "already exists" (add) and 404 "not a member" (remove)
+  // so drift between DB and Entra self-heals.
+  //
+  // Requires the Group.ReadWrite.All application permission (granted by
+  // scripts/setup-app-graph.sh). Returns the final slug list (sorted).
+  async setUserBandGroups(userId: string, desiredSlugs: string[], currentSlugs: string[]): Promise<string[]> {
+    const tok = await this.getToken();
+    const desired = new Set(desiredSlugs);
+    const current = new Set(currentSlugs);
+
+    const toAdd    = SKINTYEE_SECURITY_GROUPS.filter((g) =>  desired.has(g.slug) && !current.has(g.slug));
+    const toRemove = SKINTYEE_SECURITY_GROUPS.filter((g) => !desired.has(g.slug) &&  current.has(g.slug));
+
+    this.log.log(`setUserBandGroups(${userId}): +${toAdd.map((g)=>g.slug).join(',') || '∅'} -${toRemove.map((g)=>g.slug).join(',') || '∅'}`);
+
+    // Add: POST /groups/{id}/members/$ref with @odata.id reference
+    for (const g of toAdd) {
+      const res = await fetch(`https://graph.microsoft.com/v1.0/groups/${g.id}/members/$ref`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${tok}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ '@odata.id': `https://graph.microsoft.com/v1.0/directoryObjects/${userId}` }),
+      });
+      if (!res.ok && res.status !== 400) {
+        // 400 with "already exist" is acceptable (race condition); other
+        // failures are surfaced to the caller. 204 is success.
+        const text = await res.text();
+        if (!/already exist/i.test(text)) {
+          throw new Error(`Add to ${g.slug} failed: ${res.status} ${text}`);
+        }
+      }
+    }
+
+    // Remove: DELETE /groups/{id}/members/{userId}/$ref
+    for (const g of toRemove) {
+      const res = await fetch(`https://graph.microsoft.com/v1.0/groups/${g.id}/members/${userId}/$ref`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${tok}` },
+      });
+      if (!res.ok && res.status !== 404) {
+        const text = await res.text();
+        throw new Error(`Remove from ${g.slug} failed: ${res.status} ${text}`);
+      }
+    }
+
+    return Array.from(desired).sort();
   }
 
   // Stream a user's profile photo binary from Graph. Used by the api/'s

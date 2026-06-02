@@ -1,0 +1,10 @@
+# Vendored PowerShell modules (~100MB) — Linux Consumption requires them
+# in the function package but they're re-fetched on every deploy by
+# scripts/setup-exo-function.sh, so no point committing them.
+Modules/
+
+# Local Functions runtime artifacts
+local.settings.json
+bin/
+obj/
+.vscode/

@@ -1,10 +1,12 @@
-import React, { useEffect, useMemo } from 'react';
-import { TouchableOpacity, View } from 'react-native';
-import { Avatar, Button, Card, Chip, Divider, Text } from 'react-native-paper';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, TouchableOpacity, View } from 'react-native';
+import { Avatar, Button, Card, Chip, Divider, HelperText, Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { PageContainer, PageContent, NoContent, useConfirm } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { loadDirectory, loadMember, removeMember } from 'skintyee/store/modules/directory';
+import { MailboxAccess } from 'skintyee/services/api/ApiService';
+import { apiFactory } from 'skintyee/store/apis';
 import Config from 'skintyee/config';
 import { theme } from 'skintyee/styles';
 
@@ -30,6 +32,35 @@ const shortMailbox = (full: string) => {
   return local.charAt(0).toUpperCase() + local.slice(1);
 };
 
+// Display labels for the 13 Skin Tyee security-group slugs (catalog lives in
+// api/src/skintyee-groups.ts). Kept inline here for chip labels so the
+// MemberDetail screen doesn't need to fetch the catalog just to render a
+// pretty string. Add a new slug here when adding a group to Entra.
+const BAND_GROUP_LABELS: Record<string, string> = {
+  'public':         'Public',
+  'band-members':   'Band Members',
+  'contractors':    'Contractors',
+  'chief':          'Chief',
+  'council':        'Council',
+  'band-manager':   'Band Manager',
+  'management':     'Management',
+  'admins':         'Admins',
+  'system-admin':   'System Admin',
+  'it':             'IT',
+  'finance':        'Finance',
+  'housing':        'Housing',
+  'forestry':       'Forestry',
+  'land-resources': 'Land Resources',
+  'gis':            'GIS',
+  'fire-chief':     'Fire Chief',
+  // M365 groups
+  'it-project-docs':  'IT Project Docs',
+  'council-m365':     'Council (M365)',
+  'management-m365':  'Management (M365)',
+};
+const bandGroupLabel = (slug: string) =>
+  BAND_GROUP_LABELS[slug] ?? slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
 function FieldRow({ label, value, icon }: { label: string; value?: string; icon?: string }) {
   if (!value || value === '—') return null;
   return (
@@ -52,12 +83,61 @@ export default function MemberDetail({ route, navigation }: any) {
   const isAdmin = role === 'admin';
   const { confirm, ConfirmHost } = useConfirm();
 
+  // For shared-inbox detail pages (admin only): real-time EXO access list.
+  // Populated from /v1/admin/shared-mailboxes/:upn/access. Reloads when
+  // the upn changes or we just saved a change.
+  const [exoAccess, setExoAccess] = useState<MailboxAccess | undefined>();
+  const [exoLoading, setExoLoading] = useState(false);
+  const [exoError, setExoError] = useState<string | undefined>();
+  const [exoSaving, setExoSaving] = useState(false);
+
   useEffect(() => {
     if (id) dispatch(loadMember(id));
     // Also ensure the full directory is loaded — we need it for the
     // shared-mailbox inverse lookup ("who has access to chief@") below.
     dispatch(loadDirectory());
   }, [dispatch, id]);
+
+  // Fetch the real EXO access list for shared-inbox pages (admin only).
+  const selectedUpn = (selected as any)?.upn;
+  const selectedIsShared = (selected as any)?.accountType === 'shared-inbox';
+  useEffect(() => {
+    if (!isAdmin || !selectedIsShared || !selectedUpn) return;
+    let cancelled = false;
+    setExoLoading(true);
+    setExoError(undefined);
+    (async () => {
+      try {
+        const access = await apiFactory().admin.mailboxAccess(selectedUpn);
+        if (!cancelled) setExoAccess(access);
+      } catch (e: any) {
+        if (!cancelled) setExoError(e?.message ?? String(e));
+      } finally {
+        if (!cancelled) setExoLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isAdmin, selectedIsShared, selectedUpn]);
+
+  // Grant or revoke access for a user on this shared mailbox.
+  const toggleExoUser = async (userUpn: string) => {
+    if (!selectedUpn || !exoAccess) return;
+    const currentSet = new Set(exoAccess.full.map((u) => u.user.toLowerCase()));
+    const desired = new Set(currentSet);
+    if (desired.has(userUpn.toLowerCase())) desired.delete(userUpn.toLowerCase());
+    else desired.add(userUpn.toLowerCase());
+
+    setExoSaving(true);
+    setExoError(undefined);
+    try {
+      const updated = await apiFactory().admin.setMailboxAccess(selectedUpn, Array.from(desired));
+      setExoAccess(updated);
+    } catch (e: any) {
+      setExoError(e?.message ?? String(e));
+    } finally {
+      setExoSaving(false);
+    }
+  };
 
   // For shared-inbox detail pages, do the inverse lookup: who in the
   // tenant has THIS upn listed in their mailboxMemberships?
@@ -174,6 +254,31 @@ export default function MemberDetail({ route, navigation }: any) {
           </TouchableOpacity>
         ) : null}
 
+        {/* Skin Tyee security-group memberships — the app's role model.
+            Edited via the EditMember screen, which writes back to Entra. */}
+        {(m.bandGroups?.length ?? 0) > 0 ? (
+          <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
+            <Card.Content>
+              <Text style={{ color: theme.colors.text, fontSize: 14, marginBottom: 8 }}>
+                Roles
+              </Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                {(m.bandGroups ?? []).map((slug) => (
+                  <Chip
+                    key={slug}
+                    compact
+                    icon="shield-account"
+                    style={{ marginRight: 4, marginTop: 2, backgroundColor: theme.colors.secondary }}
+                    textStyle={{ fontSize: 11 }}
+                  >
+                    {bandGroupLabel(slug)}
+                  </Chip>
+                ))}
+              </View>
+            </Card.Content>
+          </Card>
+        ) : null}
+
         {/* For licensed users: their group memberships + shared mailboxes */}
         {!isShared && memberships.length > 0 ? (
           <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
@@ -245,8 +350,113 @@ export default function MemberDetail({ route, navigation }: any) {
           </Card>
         ) : null}
 
-        {/* For shared inboxes: inverse lookup — who has access to this mailbox */}
-        {isShared ? (
+        {/* Shared-inbox detail (admin): real-time EXO access list.
+            Source: GET /v1/admin/shared-mailboxes/:upn/access — uncached,
+            always reflects the current Exchange Online state. Admin can
+            tap any licensed user below to toggle FullAccess + SendAs;
+            change writes back to EXO via PATCH .../access (may take
+            5-30s to propagate but the next render shows fresh state).
+
+            Non-admins fall back to the legacy DB-inferred view below
+            (peopleWithAccess) — what the api/ thinks based on the
+            mailboxMemberships column. */}
+        {isShared && isAdmin ? (
+          <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
+            <Card.Content>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <Text style={{ color: theme.colors.text, fontSize: 14 }}>
+                  Access to {m.upn}
+                </Text>
+                {exoSaving ? <ActivityIndicator size="small" /> : null}
+              </View>
+              <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginBottom: 8 }}>
+                Source: Exchange Online (live). Tap a name to toggle FullAccess + SendAs.
+              </Text>
+              {exoError ? (
+                <HelperText type="error" visible>{exoError}</HelperText>
+              ) : null}
+
+              {exoLoading && !exoAccess ? (
+                <ActivityIndicator style={{ marginVertical: 16 }} />
+              ) : (
+                <>
+                  <Text style={{ color: theme.colors.textDarker, fontSize: 11, textTransform: 'uppercase', marginBottom: 4 }}>
+                    Currently has access ({exoAccess?.full.length ?? 0})
+                  </Text>
+                  {(exoAccess?.full.length ?? 0) === 0 ? (
+                    <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginBottom: 12 }}>
+                      No one outside system accounts.
+                    </Text>
+                  ) : (
+                    <View style={{ marginBottom: 12 }}>
+                      {(exoAccess?.full ?? []).map(({ user }, i) => {
+                        const person = (entities as any[]).find((e) => e.upn?.toLowerCase() === user.toLowerCase());
+                        const hasSendAs = exoAccess?.sendAs.some((s) => s.user.toLowerCase() === user.toLowerCase());
+                        return (
+                          <TouchableOpacity key={user} onPress={() => toggleExoUser(user)} disabled={exoSaving}>
+                            {i > 0 ? <Divider style={{ marginVertical: 6 }} /> : null}
+                            <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 4 }}>
+                              <Avatar.Text
+                                size={32}
+                                label={person?.avatarLetter ?? person?.name?.[0] ?? user[0].toUpperCase()}
+                                style={{ backgroundColor: theme.colors.primary, marginRight: 10 }}
+                              />
+                              <View style={{ flex: 1 }}>
+                                <Text style={{ color: theme.colors.text, fontSize: 14 }}>
+                                  {person?.name ?? user}
+                                </Text>
+                                <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>{user}</Text>
+                              </View>
+                              <Chip
+                                compact
+                                style={{ backgroundColor: theme.colors.secondary, marginRight: 6 }}
+                                textStyle={{ fontSize: 10 }}
+                              >
+                                FullAccess{hasSendAs ? ' + SendAs' : ''}
+                              </Chip>
+                              <MaterialCommunityIcons name="minus-circle-outline" size={18} color={theme.colors.error} />
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  )}
+
+                  {/* Eligible users — all licensed users not already granted */}
+                  {(() => {
+                    const granted = new Set((exoAccess?.full ?? []).map((u) => u.user.toLowerCase()));
+                    const eligible = (entities as any[])
+                      .filter((e) => e.accountType === 'licensed-user' && !granted.has(e.upn?.toLowerCase()));
+                    if (eligible.length === 0) return null;
+                    return (
+                      <>
+                        <Text style={{ color: theme.colors.textDarker, fontSize: 11, textTransform: 'uppercase', marginBottom: 4 }}>
+                          Grant access to ({eligible.length})
+                        </Text>
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                          {eligible.map((p) => (
+                            <Chip
+                              key={p._id}
+                              compact
+                              icon="plus"
+                              onPress={() => toggleExoUser(p.upn)}
+                              disabled={exoSaving}
+                              style={{ marginRight: 4, marginTop: 2, backgroundColor: theme.colors.secondary }}
+                              textStyle={{ fontSize: 11 }}
+                            >
+                              {p.name}
+                            </Chip>
+                          ))}
+                        </View>
+                      </>
+                    );
+                  })()}
+                </>
+              )}
+            </Card.Content>
+          </Card>
+        ) : isShared ? (
+          /* Non-admin: read-only DB-inferred view */
           <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
             <Card.Content>
               <Text style={{ color: theme.colors.text, fontSize: 14, marginBottom: 8 }}>
@@ -255,8 +465,6 @@ export default function MemberDetail({ route, navigation }: any) {
               {peopleWithAccess.length === 0 ? (
                 <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>
                   No one has been assigned access in the directory yet.
-                  Use the admin endpoint to add assignments:{'\n'}
-                  PATCH /v1/admin/users/&lt;upn&gt;/mailbox-memberships
                 </Text>
               ) : (
                 <View>

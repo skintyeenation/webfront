@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { FlatList, TouchableOpacity, View } from 'react-native';
-import { Avatar, Chip, Divider, List, SegmentedButtons, Text } from 'react-native-paper';
+import { ActivityIndicator, FlatList, TouchableOpacity, View } from 'react-native';
+import { Avatar, Button, Chip, Divider, List, SegmentedButtons, Text } from 'react-native-paper';
 import { PageContainer, PageContent, NoContent, AdminAddButton } from 'skintyee/components/layout';
+import { apiFactory } from 'skintyee/store/apis';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { loadDirectory } from 'skintyee/store/modules/directory';
 import { theme } from 'skintyee/styles';
@@ -16,6 +17,34 @@ const shortMailbox = (full: string) => {
   const local = full.split('@')[0];
   return local.charAt(0).toUpperCase() + local.slice(1);
 };
+
+// Display labels for the 13 Skin Tyee security-group slugs (catalog lives in
+// api/src/skintyee-groups.ts). Kept inline here for chip labels — small,
+// rarely changes; keeps the directory render dependency-free.
+const BAND_GROUP_LABELS: Record<string, string> = {
+  'public':         'Public',
+  'band-members':   'Band Members',
+  'contractors':    'Contractors',
+  'chief':          'Chief',
+  'council':        'Council',
+  'band-manager':   'Band Manager',
+  'management':     'Management',
+  'admins':         'Admins',
+  'system-admin':   'System Admin',
+  'it':             'IT',
+  'finance':        'Finance',
+  'housing':        'Housing',
+  'forestry':       'Forestry',
+  'land-resources': 'Land Resources',
+  'gis':            'GIS',
+  'fire-chief':     'Fire Chief',
+  // M365 groups
+  'it-project-docs':  'IT Project Docs',
+  'council-m365':     'Council (M365)',
+  'management-m365':  'Management (M365)',
+};
+const bandGroupLabel = (slug: string) =>
+  BAND_GROUP_LABELS[slug] ?? slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
 // Parse "mail|owner" or "mail|member" entries from the seed. Plain "mail"
 // (no pipe) is treated as a manual admin entry with role unknown.
@@ -39,11 +68,35 @@ function meaningfulRole(role?: string): string | undefined {
 export default function Directory({ navigation }: any) {
   const dispatch = useAppDispatch();
   const { entities, loading, loaded } = useAppSelector((s) => s.directory);
+  const role = useAppSelector((s) => s.auth.role);
+  const isAdmin = role === 'admin';
   const [filter, setFilter] = useState<Filter>('licensed-user');
+  const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | undefined>();
+  const [syncSummary, setSyncSummary] = useState<string | undefined>();
 
   useEffect(() => {
     dispatch(loadDirectory());
   }, [dispatch]);
+
+  const runSync = async () => {
+    setSyncing(true);
+    setSyncError(undefined);
+    setSyncSummary(undefined);
+    try {
+      const r = await apiFactory().admin.sync();
+      // Refresh the local Redux state
+      await dispatch(loadDirectory());
+      setSyncSummary(
+        `${r.total} from Entra (${r.inserted} new, ${r.updated} existing, ${r.disabled} disabled); ` +
+        `EXO: ${r.reconcile?.users ?? 0} users across ${r.reconcile?.mailboxes ?? 0} mailboxes (${r.reconcile?.grants ?? 0} grants)`
+      );
+    } catch (e: any) {
+      setSyncError(e?.message ?? String(e));
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   // Bucket counts so the toggle labels show "Members (N)" / "Shared (M)".
   // Also pre-compute the set of UPNs that are themselves shared mailboxes,
@@ -64,6 +117,34 @@ export default function Directory({ navigation }: any) {
     <PageContainer>
       <PageContent>
         <AdminAddButton label="Add member" onPress={() => navigation.navigate('memberCreate')} />
+
+        {/* Admin Sync — pull fresh from Entra + reconcile Exchange Online
+            mailbox permissions into the directory. Takes 20-60s typically. */}
+        {isAdmin ? (
+          <View style={{ marginBottom: 12 }}>
+            <Button
+              mode="outlined"
+              icon={syncing ? undefined : 'sync'}
+              onPress={runSync}
+              disabled={syncing}
+              textColor={theme.colors.text}
+              style={{ borderColor: theme.colors.secondary }}
+            >
+              {syncing ? 'Syncing… (may take 30-60s)' : 'Sync from Entra + Exchange'}
+            </Button>
+            {syncing ? <ActivityIndicator size="small" style={{ marginTop: 4 }} /> : null}
+            {syncError ? (
+              <Text style={{ color: theme.colors.error, fontSize: 11, marginTop: 4 }}>
+                {syncError}
+              </Text>
+            ) : null}
+            {syncSummary ? (
+              <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginTop: 4 }}>
+                {syncSummary}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
 
         {/* Account-type toggle: Members (licensed users) | Shared inboxes */}
         <SegmentedButtons
@@ -105,6 +186,34 @@ export default function Directory({ navigation }: any) {
                           <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>
                             {descParts.join(' · ')}
                           </Text>
+                          {/* Skin Tyee roles — Entra security-group memberships
+                              (catalog at api/src/skintyee-groups.ts). Shown as
+                              shield-account chips above the mailbox chips. */}
+                          {(item.bandGroups?.length ?? 0) > 0 ? (
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 4 }}>
+                              {(item.bandGroups as string[]).slice(0, 8).map((slug) => (
+                                <Chip
+                                  key={`bg-${slug}`}
+                                  compact
+                                  icon="shield-account"
+                                  style={{
+                                    marginRight: 4,
+                                    marginTop: 2,
+                                    backgroundColor: theme.colors.secondary,
+                                  }}
+                                  textStyle={{ fontSize: 10 }}
+                                >
+                                  {bandGroupLabel(slug)}
+                                </Chip>
+                              ))}
+                              {item.bandGroups.length > 8 ? (
+                                <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginLeft: 4, alignSelf: 'center' }}>
+                                  +{item.bandGroups.length - 8} more
+                                </Text>
+                              ) : null}
+                            </View>
+                          ) : null}
+
                           {/* Chips: only for licensed users with memberships.
                               Split into two groups visually:
                                 - SHARED INBOXES (email icon, accent if owner)

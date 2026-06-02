@@ -15,6 +15,19 @@ export const mockApiService: ApiService = {
   directory: {
     list: () => delay(fixtures.members),
     get: (id) => delay(fixtures.members.find((m) => m._id === id)),
+    // Role + mailbox editing writes to Entra / Exchange Online — there
+    // is no useful mock for these. Anyone hitting them is misconfigured
+    // (mock api selected) and should point EXPO_PUBLIC_API_SERVER at the
+    // real api/.
+    setGroups:    () => { throw new Error('directory.setGroups requires the real api/ (Entra write-back).'); },
+    setMailboxes: () => { throw new Error('directory.setMailboxes requires the real api/ (Exchange Online write-back).'); },
+  },
+  admin: {
+    securityGroups:   () => { throw new Error('admin.securityGroups requires the real api/'); },
+    sharedMailboxes:  () => { throw new Error('admin.sharedMailboxes requires the real api/ (EXO function)'); },
+    mailboxAccess:    () => { throw new Error('admin.mailboxAccess requires the real api/ (EXO function)'); },
+    setMailboxAccess: () => { throw new Error('admin.setMailboxAccess requires the real api/ (EXO function)'); },
+    sync:             () => { throw new Error('admin.sync requires the real api/'); },
   },
   events: {
     list: () => delay(fixtures.events),

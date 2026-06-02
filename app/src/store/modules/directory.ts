@@ -4,7 +4,7 @@ import { ApiService } from 'skintyee/store/apis';
 import { reduceFulfilledState, reducePendingState, reduceRejectedState, thunkApiWithState } from 'skintyee/store/helpers';
 import { BandMember } from 'skintyee/models';
 
-const directoryActionNames = ['load_directory', 'load_member'] as const;
+const directoryActionNames = ['load_directory', 'load_member', 'set_member_groups', 'set_member_mailboxes'] as const;
 export const directoryActions = makeActions(directoryActionNames);
 
 export const loadDirectory = createAsyncThunk(directoryActions.loadDirectory.type, async (_opts = undefined, thunkApi) => {
@@ -16,6 +16,28 @@ export const loadMember = createAsyncThunk(directoryActions.loadMember.type, asy
   const { api } = thunkApiWithState(thunkApi);
   return await (api as ApiService).directory.get(id);
 });
+
+// Write-back a member's Entra security-group memberships. The api/ pushes
+// the diff to Entra and returns the updated BandMember; we merge it into
+// the directory entities so the Directory + MemberDetail screens update
+// without a refetch.
+export const setMemberGroups = createAsyncThunk(
+  directoryActions.setMemberGroups.type,
+  async (args: { id: string; groups: string[] }, thunkApi) => {
+    const { api } = thunkApiWithState(thunkApi);
+    return await (api as ApiService).directory.setGroups(args.id, args.groups);
+  }
+);
+
+// Write-back a member's shared-mailbox FullAccess+SendAs. The api/ calls
+// the EXO PowerShell function per change.
+export const setMemberMailboxes = createAsyncThunk(
+  directoryActions.setMemberMailboxes.type,
+  async (args: { id: string; mailboxes: string[] }, thunkApi) => {
+    const { api } = thunkApiWithState(thunkApi);
+    return await (api as ApiService).directory.setMailboxes(args.id, args.mailboxes);
+  }
+);
 
 export interface DirectoryState {
   entities: BandMember[];
@@ -54,6 +76,26 @@ const directorySlice = createSlice({
     builder.addCase(loadMember.pending, reducePendingState());
     builder.addCase(loadMember.rejected, reduceRejectedState());
     builder.addCase(loadMember.fulfilled, reduceFulfilledState((state, action) => ({ ...state, selected: action.payload })));
+    builder.addCase(setMemberGroups.pending, reducePendingState());
+    builder.addCase(setMemberGroups.rejected, reduceRejectedState());
+    builder.addCase(setMemberGroups.fulfilled, reduceFulfilledState((state, action) => {
+      const updated = action.payload as BandMember;
+      return {
+        ...state,
+        entities: state.entities.map((m) => (m._id === updated._id ? { ...m, ...updated } : m)),
+        selected: state.selected?._id === updated._id ? { ...state.selected, ...updated } : state.selected,
+      };
+    }));
+    builder.addCase(setMemberMailboxes.pending, reducePendingState());
+    builder.addCase(setMemberMailboxes.rejected, reduceRejectedState());
+    builder.addCase(setMemberMailboxes.fulfilled, reduceFulfilledState((state, action) => {
+      const updated = action.payload as BandMember;
+      return {
+        ...state,
+        entities: state.entities.map((m) => (m._id === updated._id ? { ...m, ...updated } : m)),
+        selected: state.selected?._id === updated._id ? { ...state.selected, ...updated } : state.selected,
+      };
+    }));
   },
 });
 

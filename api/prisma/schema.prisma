@@ -54,6 +54,17 @@ model BandMember {
   //      Admins set these via POST /v1/admin/users/{id}/mailbox-memberships.
   mailboxMemberships String @default("")
 
+  // Skin Tyee Entra security-group memberships. Comma-separated slugs
+  // from src/skintyee-groups.ts (SKINTYEE_SECURITY_GROUPS), e.g.:
+  //   "admins,management,it"
+  // This is the app's "role" model — multi-valued, mirrored 1:1 from
+  // Entra security groups. Read from Graph on seed (walks each catalog
+  // group's /members). Edits in the app's EditMember screen call
+  // PATCH /v1/directory/:id/groups which diffs vs Entra and writes
+  // back via POST/DELETE /groups/{id}/members/$ref (requires the
+  // Group.ReadWrite.All application permission).
+  bandGroups   String   @default("")
+
   // Manager (the user's manager in the org chart). Pulled from
   // /users/{id}/manager. Nullable — not everyone has a manager set.
   managerId    String?

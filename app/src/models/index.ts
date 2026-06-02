@@ -24,6 +24,12 @@ export interface BandMember {
   // admins fill the rest manually for classic shared mailboxes that aren't
   // groups (e.g. chief@). Rendered as chips on the directory card.
   mailboxMemberships?: string[];
+  // Skin Tyee Entra security-group memberships (the app's role model).
+  // Array of slugs from the catalog at api/src/skintyee-groups.ts:
+  //   ['admins', 'management', 'it']
+  // Source of truth: Entra. EditMember screen edits these and writes back
+  // via PATCH /v1/directory/:id/groups → Graph add/remove members.
+  bandGroups?: string[];
   // Manager — the user's manager from Entra's /users/{id}/manager.
   // Nullable: not everyone has a manager set.
   managerId?: string;

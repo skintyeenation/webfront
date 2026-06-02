@@ -3,6 +3,39 @@ import { DataService } from './data.service';
 import { Roles, callerRole } from './roles';
 import { GraphFeedService, FeedItem, AppRole } from './graph-feed.service';
 import { PrismaService } from './prisma.service';
+import { ExoService } from './exo.service';
+import { MailboxReconcileService } from './mailbox-reconcile.service';
+import { SKINTYEE_SECURITY_GROUPS, groupBySlug } from './skintyee-groups';
+
+// Map a Prisma BandMember row → the BandMember shape the app expects.
+// Shared between Directory list / get / PATCH so the mapping stays
+// consistent (the "Member not found" bug from earlier was a divergent
+// mapping between list and get).
+function mapBandMember(r: any) {
+  return {
+    _id: r.id,
+    name: r.name,
+    role: r.role,
+    title: r.title ?? undefined,
+    email: r.email ?? undefined,
+    phone: r.phone ?? undefined,
+    avatarLetter: r.avatarLetter ?? undefined,
+    upn: r.upn,
+    department: r.department ?? undefined,
+    appRole: r.appRole,
+    accountType: r.accountType,
+    mailboxMemberships: r.mailboxMemberships
+      ? r.mailboxMemberships.split(',').filter(Boolean)
+      : [],
+    bandGroups: r.bandGroups
+      ? r.bandGroups.split(',').filter(Boolean)
+      : [],
+    managerId:   r.managerId   ?? undefined,
+    managerName: r.managerName ?? undefined,
+    managerUpn:  r.managerUpn  ?? undefined,
+    hasPhoto:    r.hasPhoto,
+  };
+}
 
 // ---- Health ---------------------------------------------------------------
 // Public liveness endpoint hit by:
@@ -47,6 +80,7 @@ export class DirectoryController {
     private data: DataService,
     private prisma: PrismaService,
     private graph: GraphFeedService,
+    private exo: ExoService,
   ) {}
 
   private async backgroundSeed(): Promise<void> {
@@ -65,6 +99,7 @@ export class DirectoryController {
               avatarLetter: u.avatarLetter, appRole: u.appRole,
               accountType: u.accountType,
               mailboxMemberships: u.mailboxMemberships.join(','),
+              bandGroups: u.bandGroups.join(','),
               managerId: u.managerId, managerName: u.managerName, managerUpn: u.managerUpn,
               hasPhoto: u.hasPhoto,
               enabled: u.enabled,
@@ -75,6 +110,7 @@ export class DirectoryController {
               avatarLetter: u.avatarLetter, appRole: u.appRole,
               accountType: u.accountType,
               mailboxMemberships: u.mailboxMemberships.join(','),
+              bandGroups: u.bandGroups.join(','),
               managerId: u.managerId, managerName: u.managerName, managerUpn: u.managerUpn,
               hasPhoto: u.hasPhoto,
               enabled: u.enabled, syncedAt: new Date(),
@@ -102,25 +138,7 @@ export class DirectoryController {
       if (rows.length === 0 && process.env.GRAPH_CLIENT_ID) {
         setImmediate(() => this.backgroundSeed());
       }
-      // Map Prisma fields → the BandMember shape the app expects.
-      return rows.map((r) => ({
-        _id: r.id,
-        name: r.name,
-        role: r.role,
-        title: r.title ?? undefined,
-        email: r.email ?? undefined,
-        phone: r.phone ?? undefined,
-        avatarLetter: r.avatarLetter ?? undefined,
-        upn: r.upn,
-        department: r.department ?? undefined,
-        appRole: r.appRole,
-        accountType: r.accountType,
-        mailboxMemberships: r.mailboxMemberships ? r.mailboxMemberships.split(',').filter(Boolean) : [],
-        managerId:   r.managerId   ?? undefined,
-        managerName: r.managerName ?? undefined,
-        managerUpn:  r.managerUpn  ?? undefined,
-        hasPhoto:    r.hasPhoto,
-      }));
+      return rows.map(mapBandMember);
     }
     return this.data.directory;
   }
@@ -129,28 +147,115 @@ export class DirectoryController {
     if (this.prisma.isAvailable) {
       const r = await this.prisma.bandMember.findUnique({ where: { id } });
       if (!r) throw new NotFoundException('Not found');
-      return {
-        _id: r.id,
-        name: r.name,
-        role: r.role,
-        title: r.title ?? undefined,
-        email: r.email ?? undefined,
-        phone: r.phone ?? undefined,
-        avatarLetter: r.avatarLetter ?? undefined,
-        upn: r.upn,
-        department: r.department ?? undefined,
-        appRole: r.appRole,
-        accountType: r.accountType,
-        mailboxMemberships: r.mailboxMemberships
-          ? r.mailboxMemberships.split(',').filter(Boolean)
-          : [],
-        managerId:   r.managerId   ?? undefined,
-        managerName: r.managerName ?? undefined,
-        managerUpn:  r.managerUpn  ?? undefined,
-        hasPhoto:    r.hasPhoto,
-      };
+      return mapBandMember(r);
     }
     return found(this.data.directory.find((m) => m._id === id));
+  }
+
+  // PATCH /v1/directory/:id/mailbox-access — set the shared mailboxes this
+  // user has FullAccess + SendAs on. Body: { mailboxes: string[] } — UPNs
+  // of the desired mailbox set. Diff vs DB-recorded current, call ExoService
+  // grant/revoke per change, then update DB.
+  //
+  // Persisted to mailboxMemberships column as "upn|fullaccess" entries
+  // alongside any pre-existing manual entries. Source of truth: EXO.
+  //
+  // admin-only. Requires EXO_FUNCTION_URL configured.
+  @Patch(':id/mailbox-access') @Roles('admin') async setMailboxAccess(
+    @Param('id') id: string,
+    @Body() b: { mailboxes?: string[] }
+  ) {
+    if (!this.prisma.isAvailable) {
+      throw new NotFoundException('Prisma not connected');
+    }
+    if (!this.exo.isAvailable) {
+      throw new Error('EXO function not configured — run scripts/setup-exo-function.sh');
+    }
+    const r = await this.prisma.bandMember.findUnique({ where: { id } });
+    if (!r) throw new NotFoundException('Not found');
+
+    const desired = new Set((b?.mailboxes ?? []).map((m) => m.toLowerCase()));
+
+    // DB-tracked current "fullaccess" entries (we treat those as the EXO
+    // truth for diffing). Anything tagged with "owner"/"member" etc. is
+    // a M365-group relationship and stays untouched.
+    const existingMemberships = r.mailboxMemberships
+      ? r.mailboxMemberships.split(',').filter(Boolean)
+      : [];
+    const currentFA = new Set<string>();
+    const otherEntries: string[] = [];
+    for (const raw of existingMemberships) {
+      const [mail, rel] = raw.split('|');
+      if (rel === 'fullaccess') currentFA.add(mail.toLowerCase());
+      else otherEntries.push(raw);
+    }
+
+    const toAdd    = [...desired].filter((m) => !currentFA.has(m));
+    const toRemove = [...currentFA].filter((m) => !desired.has(m));
+
+    this.log.log(`PATCH /directory/${id}/mailbox-access: +${toAdd.join(',') || '∅'} -${toRemove.join(',') || '∅'}`);
+
+    for (const mbx of toAdd) {
+      await this.exo.grantAccess(mbx, r.upn);
+    }
+    for (const mbx of toRemove) {
+      await this.exo.revokeAccess(mbx, r.upn);
+    }
+
+    // Persist new state. Preserve non-fullaccess entries (M365 group
+    // memberships derived during seed).
+    const merged = [
+      ...[...desired].map((m) => `${m}|fullaccess`),
+      ...otherEntries,
+    ];
+    const updated = await this.prisma.bandMember.update({
+      where: { id },
+      data: { mailboxMemberships: merged.join(','), syncedAt: new Date() },
+    });
+
+    return mapBandMember(updated);
+  }
+
+  // PATCH /v1/directory/:id/groups — write-back endpoint for the EditMember
+  // screen. Body: { groups: string[] } — array of slugs from the catalog
+  // (src/skintyee-groups.ts). Diff against current Entra membership, POST
+  // adds + DELETE removes via Graph, then re-save the row.
+  //
+  // admin-only. Requires the Group.ReadWrite.All application permission.
+  @Patch(':id/groups') @Roles('admin') async setGroups(
+    @Param('id') id: string,
+    @Body() b: { groups?: string[] }
+  ) {
+    if (!this.prisma.isAvailable) {
+      throw new NotFoundException('Prisma not connected — set DATABASE_URL and re-deploy');
+    }
+    const r = await this.prisma.bandMember.findUnique({ where: { id } });
+    if (!r) throw new NotFoundException('Not found');
+
+    // Validate slugs against the catalog; reject unknown ones.
+    const requested = Array.isArray(b?.groups) ? b.groups : [];
+    const unknown   = requested.filter((s) => !groupBySlug.has(s));
+    if (unknown.length) {
+      throw new Error(`Unknown group slugs: ${unknown.join(', ')}. Known: ${SKINTYEE_SECURITY_GROUPS.map((g) => g.slug).join(', ')}`);
+    }
+
+    // DB's current bandGroups acts as the "before" — using Graph's read
+    // for this would race with eventual consistency immediately after a
+    // previous PATCH. If DB and Entra drift, the next add/remove tolerates
+    // 400 "already exists" / 404 "not found", so it self-heals.
+    const currentSlugs = r.bandGroups ? r.bandGroups.split(',').filter(Boolean) : [];
+
+    // Push the diff to Entra
+    const finalSlugs = await this.graph.setUserBandGroups(id, requested, currentSlugs);
+
+    // Persist locally
+    const updated = await this.prisma.bandMember.update({
+      where: { id },
+      data: { bandGroups: finalSlugs.join(','), syncedAt: new Date() },
+    });
+
+    this.log.log(`PATCH /directory/${id}/groups: now ${finalSlugs.join(',') || '(none)'}`);
+    return mapBandMember(updated);
   }
 
   // GET /v1/directory/:id/photo — proxy the user's Entra profile photo
@@ -199,7 +304,11 @@ export class DirectoryController {
 export class AdminController implements OnApplicationBootstrap {
   private readonly log = new Logger(AdminController.name);
 
-  constructor(private graph: GraphFeedService, private prisma: PrismaService) {}
+  constructor(
+    private graph: GraphFeedService,
+    private prisma: PrismaService,
+    private reconcile: MailboxReconcileService,
+  ) {}
 
   // NestJS lifecycle hook — fires once after the app starts listening.
   async onApplicationBootstrap() {
@@ -271,6 +380,7 @@ export class AdminController implements OnApplicationBootstrap {
           avatarLetter: u.avatarLetter, appRole: u.appRole,
           accountType: u.accountType,
           mailboxMemberships: merged.join(','),
+          bandGroups: u.bandGroups.join(','),
           managerId: u.managerId, managerName: u.managerName, managerUpn: u.managerUpn,
           hasPhoto: u.hasPhoto,
           enabled: u.enabled,
@@ -281,6 +391,7 @@ export class AdminController implements OnApplicationBootstrap {
           avatarLetter: u.avatarLetter, appRole: u.appRole,
           accountType: u.accountType,
           mailboxMemberships: merged.join(','),
+          bandGroups: u.bandGroups.join(','),
           managerId: u.managerId, managerName: u.managerName, managerUpn: u.managerUpn,
           hasPhoto: u.hasPhoto,
           enabled: u.enabled, syncedAt: new Date(),
@@ -300,14 +411,40 @@ export class AdminController implements OnApplicationBootstrap {
       data: { enabled: false },
     });
 
+    // Pull Exchange Online truth into mailboxMemberships (|fullaccess
+    // entries). Non-fatal — if EXO function isn't configured, skipped.
+    let reconcile: { users: number; mailboxes: number; grants: number } = { users: 0, mailboxes: 0, grants: 0 };
+    try {
+      reconcile = await this.reconcile.reconcileAll();
+    } catch (e: any) {
+      this.log.warn(`seed-directory: EXO reconcile failed: ${e?.message ?? e}`);
+    }
+
     return {
       ok: true,
       total: entraUsers.length,
       inserted,
       updated,
       disabled: disabledCount,
+      reconcile,
       syncedAt: new Date().toISOString(),
     };
+  }
+
+  // POST /v1/admin/sync — full re-sync trigger from the Directory's
+  // sync button. Pulls fresh user data from Entra, then reconciles EXO
+  // mailbox permissions. Same as seedDirectory + extra logging.
+  @Post('sync') @Roles('admin')
+  async sync() {
+    return this.seedDirectory();
+  }
+
+  // POST /v1/admin/reconcile-mailboxes — admin-trigger for ONLY the EXO
+  // reconcile step (skip the Entra fetch). Faster when you've just done
+  // some EXO admin work and want the DB caught up immediately.
+  @Post('reconcile-mailboxes') @Roles('admin')
+  async reconcileMailboxes() {
+    return this.reconcile.reconcileAll();
   }
 
   // PATCH /v1/admin/users/:upn/mailbox-memberships — overwrite the user's
@@ -352,6 +489,20 @@ export class AdminController implements OnApplicationBootstrap {
       return { upn, appRole: 'public', source: 'not-found' };
     }
     return { upn: row.upn, appRole: row.appRole, name: row.name, source: 'db' };
+  }
+
+  // GET /v1/admin/security-groups — return the catalog of the 13 Entra
+  // security groups used as the app's role model. The EditMember screen
+  // calls this to render its multi-select chip list.
+  @Get('security-groups') @Roles('admin')
+  securityGroups() {
+    return SKINTYEE_SECURITY_GROUPS.map((g) => ({
+      id: g.id,
+      slug: g.slug,
+      displayName: g.displayName,
+      description: g.description,
+      kind: g.kind,
+    }));
   }
 }
 
@@ -559,6 +710,89 @@ function remove(coll: any[], id: string) {
   if (i >= 0) coll.splice(i, 1);
 }
 
+// ---- Shared Mailboxes (Exchange Online) ----------------------------------
+// Backed by the skintyee-exo-fn Azure Function (PowerShell EXO).
+// All endpoints admin-only. The Directory's Shared tab navigates here
+// when a shared-inbox row is tapped.
+@Controller('admin/shared-mailboxes')
+export class SharedMailboxesController {
+  private readonly log = new Logger(SharedMailboxesController.name);
+  private cache: { ts: number; data: any[] } = { ts: 0, data: [] };
+  private readonly CACHE_TTL_MS = 5 * 60 * 1000;
+
+  constructor(
+    private exo: ExoService,
+    private reconcile: MailboxReconcileService,
+  ) {}
+
+  // GET /v1/admin/shared-mailboxes — list all shared mailboxes (5 min cache).
+  @Get() @Roles('admin') async list() {
+    if (!this.exo.isAvailable) {
+      throw new NotFoundException('EXO function not configured');
+    }
+    const now = Date.now();
+    if (now - this.cache.ts < this.CACHE_TTL_MS && this.cache.data.length) {
+      return this.cache.data;
+    }
+    const list = await this.exo.listSharedMailboxes();
+    this.cache = { ts: now, data: list };
+    return list;
+  }
+
+  // GET /v1/admin/shared-mailboxes/:upn/access — who has FullAccess+SendAs
+  // on this mailbox. Real-time (uncached) — the source of truth is EXO.
+  @Get(':upn/access') @Roles('admin') async access(@Param('upn') upn: string) {
+    if (!this.exo.isAvailable) {
+      throw new NotFoundException('EXO function not configured');
+    }
+    return this.exo.getMailboxAccess(upn);
+  }
+
+  // PATCH /v1/admin/shared-mailboxes/:upn/access — set the list of users
+  // who have FullAccess + SendAs. Body: { users: string[] } — UPNs.
+  // Diffs vs current EXO truth, grants/revokes per change.
+  @Patch(':upn/access') @Roles('admin') async setAccess(
+    @Param('upn') upn: string,
+    @Body() b: { users?: string[] }
+  ) {
+    if (!this.exo.isAvailable) {
+      throw new NotFoundException('EXO function not configured');
+    }
+    const desired = new Set((b?.users ?? []).map((u) => u.toLowerCase()));
+
+    // Real-time read of current — we always trust EXO over any local cache.
+    const current = await this.exo.getMailboxAccess(upn);
+    const currentSet = new Set(current.full.map((u) => u.user.toLowerCase()));
+
+    const toAdd    = [...desired].filter((u) => !currentSet.has(u));
+    const toRemove = [...currentSet].filter((u) => !desired.has(u));
+
+    this.log.log(`PATCH /shared-mailboxes/${upn}/access: +${toAdd.join(',') || '∅'} -${toRemove.join(',') || '∅'}`);
+
+    for (const user of toAdd)    await this.exo.grantAccess(upn, user);
+    for (const user of toRemove) await this.exo.revokeAccess(upn, user);
+
+    // Write-through to DB: each affected user's mailboxMemberships needs
+    // its |fullaccess set to match EXO. The reconcile step queries EXO
+    // again, so we get the fresh truth.
+    try {
+      await this.reconcile.reconcileAll();
+    } catch (e: any) {
+      this.log.warn(`write-through reconcile failed (EXO succeeded, DB stale): ${e?.message ?? e}`);
+    }
+
+    // Return the fresh state
+    return this.exo.getMailboxAccess(upn);
+  }
+
+  // POST /v1/admin/shared-mailboxes/reconcile — admin-trigger to refresh
+  // every user's mailboxMemberships from the real EXO truth. Same as
+  // /v1/admin/reconcile-mailboxes; here for proximity to the Shared tab.
+  @Post('reconcile') @Roles('admin') async reconcileAll() {
+    return this.reconcile.reconcileAll();
+  }
+}
+
 export const CONTROLLERS = [
   HealthController,
   AuthController,
@@ -573,4 +807,5 @@ export const CONTROLLERS = [
   PlannerController,
   FeedController,
   AdminController,
+  SharedMailboxesController,
 ];

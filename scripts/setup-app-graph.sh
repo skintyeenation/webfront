@@ -6,7 +6,10 @@
 #
 # Read-only application permissions:
 #   - Tasks.Read.All       — Planner tasks across the tenant
-#   - Group.Read.All       — enumerate the M365 Groups that own each Planner plan
+#   - Group.ReadWrite.All  — enumerate the M365 Groups that own each Planner
+#                            plan, AND write-back security-group memberships
+#                            from the app's EditMember screen (POST/DELETE
+#                            /groups/{id}/members/$ref).
 #   - Calendars.Read       — calendar events including Teams meetings
 #   - User.Read.All        — resolve task-assignee user IDs → display names
 #
@@ -64,11 +67,15 @@ GRAPH_RESOURCE_ID="00000003-0000-0000-c000-000000000000"
 #   - delegated:    2c6a42ca-0d4d-49ad-bea1-30dc69e9a6ab  ← wrong here
 #   - application:  f10e1f91-74ed-437f-a6fd-d6ae88e26c1f  ← what we want
 PERMS=(
-  "f10e1f91-74ed-437f-a6fd-d6ae88e26c1f=Role:Tasks.Read.All"   # Planner tasks across tenant
-  "5b567255-7703-4780-807c-7be8301ae99b=Role:Group.Read.All"   # Enumerate M365 Groups (plan owners)
-  "798ee544-9d2d-430c-a058-570e29e34338=Role:Calendars.Read"   # Calendar events (incl. Teams meetings)
-  "df021288-bdef-4463-88db-98f22de89214=Role:User.Read.All"    # Assignee ID → display name lookup
+  "f10e1f91-74ed-437f-a6fd-d6ae88e26c1f=Role:Tasks.Read.All"        # Planner tasks across tenant
+  "62a82d76-70ea-41e2-9197-370581804d09=Role:Group.ReadWrite.All"   # Read M365 Groups (plan owners) + manage security-group membership write-back
+  "798ee544-9d2d-430c-a058-570e29e34338=Role:Calendars.Read"        # Calendar events (incl. Teams meetings)
+  "df021288-bdef-4463-88db-98f22de89214=Role:User.Read.All"         # Assignee ID → display name lookup
 )
+# Note: Group.ReadWrite.All (62a82d76-…) is a superset of Group.Read.All
+# (5b567255-…). Granted because the api/'s EditMember screen writes
+# security-group memberships back via POST/DELETE /groups/{id}/members/$ref
+# — admins curate role assignments in the app, and Entra is the storage.
 
 DRY_RUN=0
 ROTATE_SECRET=0
@@ -366,11 +373,12 @@ fi
 
 cat <<EOF
 
-Permissions granted (application, read-only):
-  • Tasks.Read.All       — Planner tasks
-  • Group.Read.All       — M365 Groups that own Planner plans
-  • Calendars.Read       — Calendar events (incl. Teams meetings)
-  • User.Read.All        — Assignee ID → display name lookup
+Permissions granted (application):
+  • Tasks.Read.All       — Planner tasks                              (read)
+  • Group.ReadWrite.All  — M365 Groups (read) + write-back security
+                           group memberships from EditMember screen   (read/write)
+  • Calendars.Read       — Calendar events (incl. Teams meetings)     (read)
+  • User.Read.All        — Assignee ID → display name lookup           (read)
 
 What the api/ now has available (via Container App secrets):
   GRAPH_CLIENT_ID, GRAPH_CLIENT_SECRET, GRAPH_TENANT_ID
