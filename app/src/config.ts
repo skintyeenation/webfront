@@ -8,9 +8,14 @@ const extra = (Constants?.expoConfig?.extra ?? {}) as Record<string, unknown>;
  * data is served from src/services/api/mock. See STUBS.md.
  */
 const Config = {
-  // STUB: 'mock' selects the in-memory mock ApiService. Swap for a real base URL.
+  // 'mock' selects the in-memory mock ApiService. An http(s) URL selects
+  // HttpApiService pointed at that base URL + /v1/*.
   apiServer: (extra.apiServer as string) ?? 'mock',
   appName: 'Skin Tyee',
+  // Microsoft Entra sign-in (PUBLIC values; public-client + PKCE means
+  // there's no client_secret to protect — safe in the client bundle).
+  signinAppId:    (extra.signinAppId    as string) ?? '',
+  signinTenantId: (extra.signinTenantId as string) ?? '',
   // Google Maps JS API key (web location picker). Read from the environment via
   // app.config.js — never hardcoded/committed. Empty -> picker shows a fallback.
   googleMapsApiKey: (extra.googleMapsApiKey as string) ?? '',

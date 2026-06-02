@@ -4,7 +4,7 @@ import { Avatar, Button, Card, Chip, Divider, Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { PageContainer, PageContent } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
-import { setRole } from 'skintyee/store/modules/auth';
+import { setRole, signIn, signOut } from 'skintyee/store/modules/auth';
 import { Role } from 'skintyee/models';
 import { theme } from 'skintyee/styles';
 
@@ -16,67 +16,125 @@ const ROLES: { role: Role; label: string; desc: string }[] = [
 ];
 
 /**
- * Account screen. Today this is the STUB Role Switcher — there is no real auth yet
- * (see STUBS.md). Flipping the role re-filters the navigation tabs and screen
- * content so each actor's experience can be demoed. Replace this with a real
- * profile + sign-in/out once an identity provider (e.g. Entra ID) is wired up.
+ * Account screen.
+ *
+ * Real auth via Microsoft Entra (skintyee-app-signin app). When signed in:
+ * shows the user's profile + role badge + sign-out button. When NOT signed
+ * in: shows the "Sign in with Microsoft" button + the dev role switcher
+ * underneath (for testing role-gated UI without going through real sign-in).
  */
 export default function Account() {
   const dispatch = useAppDispatch();
-  const { role, name } = useAppSelector((s) => s.auth);
+  const { role, name, signedIn, user, status, error } = useAppSelector((s) => s.auth);
   const isAdmin = role === 'admin';
-
-  // No real auth yet — let the profile badge spoof admin in/out for demos.
-  const toggleAdmin = () => dispatch(setRole(isAdmin ? 'member' : 'admin'));
+  const isSigningIn = status === 'signing-in';
 
   return (
     <PageContainer>
       <PageContent>
+        {/* Header: avatar + name + role chip ----------------------------- */}
         <View style={{ alignItems: 'center', marginBottom: 16 }}>
-          {/* Tappable profile badge — spoofs admin in/out (dev only). */}
-          <TouchableOpacity onPress={toggleAdmin} activeOpacity={0.8} style={{ width: 72, height: 72 }}>
-            <Avatar.Icon size={72} icon="account" style={{ backgroundColor: theme.colors.primary }} />
-            <View
-              style={{
-                position: 'absolute',
-                right: -2,
-                bottom: -2,
-                width: 28,
-                height: 28,
-                borderRadius: 14,
-                backgroundColor: isAdmin ? theme.colors.accent : theme.colors.darkDefault,
-                borderWidth: 2,
-                borderColor: theme.colors.background,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <MaterialCommunityIcons name={isAdmin ? 'shield-account' : 'shield-plus-outline'} size={16} color={isAdmin ? '#000' : theme.colors.primary} />
-            </View>
-          </TouchableOpacity>
+          <View style={{ position: 'relative', width: 72, height: 72 }}>
+            <Avatar.Icon
+              size={72}
+              icon={signedIn ? 'account-check' : 'account'}
+              style={{ backgroundColor: signedIn ? theme.colors.primary : theme.colors.darkDefault }}
+            />
+            {signedIn ? (
+              <View
+                style={{
+                  position: 'absolute',
+                  right: -2, bottom: -2,
+                  width: 28, height: 28, borderRadius: 14,
+                  backgroundColor: isAdmin ? theme.colors.accent : theme.colors.success,
+                  borderWidth: 2, borderColor: theme.colors.background,
+                  alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                <MaterialCommunityIcons
+                  name={isAdmin ? 'shield-account' : 'check'}
+                  size={16}
+                  color={isAdmin ? '#000' : '#000'}
+                />
+              </View>
+            ) : null}
+          </View>
+
           <Text style={{ color: theme.colors.text, fontSize: 18, marginTop: 10 }}>{name}</Text>
+          {user?.upn ? (
+            <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginTop: 2 }}>{user.upn}</Text>
+          ) : null}
+
           <Chip
             compact
             style={{ marginTop: 6, backgroundColor: isAdmin ? theme.colors.accent : theme.colors.secondary }}
             textStyle={{ color: isAdmin ? '#000' : theme.colors.text, fontSize: 11 }}
           >
-            {isAdmin ? 'ADMIN (spoofed)' : `role: ${role}`}
+            {signedIn ? `role: ${role}` : 'not signed in'}
           </Chip>
-          <Button
-            mode={isAdmin ? 'outlined' : 'contained'}
-            icon="shield-account"
-            compact
-            onPress={toggleAdmin}
-            buttonColor={isAdmin ? undefined : theme.colors.accent}
-            textColor={isAdmin ? theme.colors.accent : '#000'}
-            style={{ marginTop: 12, borderColor: theme.colors.accent }}
-          >
-            {isAdmin ? 'Exit admin' : 'Spoof admin'}
-          </Button>
-          <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginTop: 6 }}>No real sign-in yet — tap the badge to spoof admin.</Text>
         </View>
 
-        <Text style={{ color: theme.colors.textDarker, marginBottom: 8 }}>Switch role (development only)</Text>
+        {/* Sign-in / sign-out -------------------------------------------- */}
+        {!signedIn ? (
+          <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 16, borderLeftWidth: 3, borderLeftColor: '#0078D4' }}>
+            <Card.Content>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                <MaterialCommunityIcons name="microsoft" size={22} color="#0078D4" style={{ marginRight: 8 }} />
+                <Text style={{ color: theme.colors.text, fontSize: 16, flex: 1 }}>Sign in with Microsoft</Text>
+              </View>
+              <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginBottom: 12 }}>
+                Use your Skin Tyee Microsoft 365 account ({'@skintyee.ca'}) to see your tasks,
+                meetings, and role-specific tools.
+              </Text>
+              <Button
+                mode="contained"
+                icon="microsoft"
+                buttonColor="#0078D4"
+                textColor="#FFFFFF"
+                loading={isSigningIn}
+                disabled={isSigningIn}
+                onPress={() => dispatch(signIn())}
+              >
+                {isSigningIn ? 'Signing in…' : 'Sign in with Microsoft'}
+              </Button>
+              {error ? (
+                <Text style={{ color: theme.colors.accent, fontSize: 12, marginTop: 8 }}>
+                  {error}
+                </Text>
+              ) : null}
+            </Card.Content>
+          </Card>
+        ) : (
+          <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 16 }}>
+            <Card.Content>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                <MaterialCommunityIcons name="account-check" size={20} color={theme.colors.success} style={{ marginRight: 8 }} />
+                <Text style={{ color: theme.colors.text, fontSize: 15, flex: 1 }}>Signed in</Text>
+              </View>
+              <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginBottom: 12 }}>
+                Your role was derived from your Microsoft account.
+                {role === 'admin' ? ' You have full admin access.' :
+                 role === 'staff' ? ' You have staff access.' :
+                 role === 'member' ? ' You have band-member access.' :
+                 ''}
+              </Text>
+              <Button
+                mode="outlined"
+                icon="logout"
+                textColor={theme.colors.accent}
+                onPress={() => dispatch(signOut())}
+                style={{ borderColor: theme.colors.defaultBorder, alignSelf: 'flex-start' }}
+              >
+                Sign out
+              </Button>
+            </Card.Content>
+          </Card>
+        )}
+
+        {/* Dev role switcher --------------------------------------------- */}
+        <Text style={{ color: theme.colors.textDarker, marginBottom: 8 }}>
+          Switch role (development only)
+        </Text>
         <Card style={{ backgroundColor: theme.colors.darkDefault }}>
           <Card.Content>
             {ROLES.map((r, i) => (

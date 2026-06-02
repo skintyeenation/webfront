@@ -22,15 +22,36 @@ import {
 } from 'skintyee/models';
 import { ApiService } from 'skintyee/services/api/ApiService';
 
-// In a real auth-wired build, this would come from the auth store /
-// Entra-issued JWT. For Phase 1 we read the current role out of the
-// Redux store via a deferred getter so HttpApiService doesn't have to
-// be reconstructed on every role switch.
-type RoleGetter = () => Role;
+// The auth header context — pulled lazily so the same HttpApiService
+// instance survives sign-in / sign-out / role switches without rebuild.
+//
+//   getRole()        → 'public' | 'member' | 'staff' | 'admin' (always present)
+//   getAccessToken() → Microsoft Entra access token if signed in (otherwise null)
+//   getUpn()         → signed-in user's UPN if signed in (otherwise null) —
+//                      lets the api/ fetch Teams meetings + personalized
+//                      Planner views for this specific user
+type AuthCtxGetters = {
+  getRole: () => Role;
+  getAccessToken?: () => string | null;
+  getUpn?: () => string | null;
+};
 
-function buildHttpApiService(baseUrl: string, getRole: RoleGetter): ApiService {
+function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
   const trimmed = baseUrl.replace(/\/+$/, '');
   const api = (path: string): string => `${trimmed}/v1${path}`;
+
+  function headers(extra?: Record<string, string>): Record<string, string> {
+    const out: Record<string, string> = {
+      Accept: 'application/json',
+      'x-role': ctx.getRole(),
+      ...(extra ?? {}),
+    };
+    const token = ctx.getAccessToken?.();
+    if (token) out['Authorization'] = `Bearer ${token}`;
+    const upn = ctx.getUpn?.();
+    if (upn) out['x-upn'] = upn;
+    return out;
+  }
 
   async function get<T>(path: string, query?: Record<string, string | undefined>): Promise<T> {
     const url = new URL(api(path));
@@ -39,12 +60,7 @@ function buildHttpApiService(baseUrl: string, getRole: RoleGetter): ApiService {
         if (v !== undefined && v !== null) url.searchParams.set(k, v);
       }
     }
-    const res = await fetch(url.toString(), {
-      headers: {
-        Accept: 'application/json',
-        'x-role': getRole(),
-      },
-    });
+    const res = await fetch(url.toString(), { headers: headers() });
     if (!res.ok) {
       throw new Error(`GET ${url} → ${res.status}: ${await res.text()}`);
     }
@@ -54,11 +70,7 @@ function buildHttpApiService(baseUrl: string, getRole: RoleGetter): ApiService {
   async function post<T>(path: string, body: unknown): Promise<T> {
     const res = await fetch(api(path), {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        'x-role': getRole(),
-      },
+      headers: headers({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(body ?? {}),
     });
     if (!res.ok) {

@@ -34,11 +34,14 @@ export const apiFactory = (_opts?: any): ApiService => {
   if (httpImpl && httpImplBaseUrl === target) {
     return httpImpl;
   }
-  httpImpl = buildHttpApiService(target, () => {
-    // Lazy require to dodge circular import with store/index.ts
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { store } = require('skintyee/store');
-    return ((store.getState().auth?.role as Role) ?? 'public');
+  // Lazy require to dodge circular import with store/index.ts
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const getStore = () => require('skintyee/store').store;
+
+  httpImpl = buildHttpApiService(target, {
+    getRole:        () => (getStore().getState().auth?.role        as Role) ?? 'public',
+    getAccessToken: () => (getStore().getState().auth?.accessToken as string | null) ?? null,
+    getUpn:         () => (getStore().getState().auth?.user?.upn  as string | undefined) ?? null,
   });
   httpImplBaseUrl = target;
   return httpImpl;

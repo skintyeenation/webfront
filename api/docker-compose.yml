@@ -1,0 +1,43 @@
+# Local development Postgres for the api/.
+#
+# Spin up:
+#   docker compose up -d
+# Tear down (preserves data):
+#   docker compose stop
+# Wipe + restart (drops data):
+#   docker compose down -v && docker compose up -d
+#
+# Connection:
+#   DATABASE_URL=postgresql://api:dev@localhost:5432/api?schema=public
+#
+# Copy that into a local .env file (api/.env, gitignored), then:
+#   pnpm exec prisma db push   # syncs the schema → creates BandMember table
+#   pnpm dev                   # starts NestJS pointed at the local DB
+#
+# Per ADR-7. Production uses Azure Postgres Flexible Server — see
+# scripts/setup-api-azure.sh for the prod equivalent.
+
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: skintyee-api-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: api
+      POSTGRES_PASSWORD: dev
+      POSTGRES_DB: api
+    ports:
+      - "5432:5432"
+    volumes:
+      - skintyee-api-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U api -d api"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  skintyee-api-pgdata:
+    name: skintyee-api-pgdata

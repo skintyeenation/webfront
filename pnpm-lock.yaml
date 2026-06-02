@@ -77,15 +77,24 @@ importers:
       expo:
         specifier: ~48.0.21
         version: 48.0.21(@babel/core@7.29.0)
+      expo-auth-session:
+        specifier: ~4.0.3
+        version: 4.0.3(expo@48.0.21(@babel/core@7.29.0))
       expo-constants:
         specifier: ~14.2.1
         version: 14.2.1(expo@48.0.21(@babel/core@7.29.0))
+      expo-crypto:
+        specifier: ~12.2.1
+        version: 12.2.2(expo@48.0.21(@babel/core@7.29.0))
       expo-font:
         specifier: ~11.1.1
         version: 11.1.1(expo@48.0.21(@babel/core@7.29.0))
       expo-status-bar:
         specifier: ~1.4.4
         version: 1.4.4
+      expo-web-browser:
+        specifier: ~12.1.1
+        version: 12.1.1(expo@48.0.21(@babel/core@7.29.0))
       moment:
         specifier: ~2.29.4
         version: 2.29.4
@@ -2511,6 +2520,10 @@ packages:
   commondir@1.0.1:
     resolution: {integrity: sha512-W9pAhw0ja1Edb5GVdIF1mjZw/ASI0AlShXM83UUGe2DVr5TdAPEA1OA8m/g8zWp9x6On7gqufY+FatDbC3MDQg==}
 
+  compare-urls@2.0.0:
+    resolution: {integrity: sha512-eCJcWn2OYFEIqbm70ta7LQowJOOZZqq1a2YbbFCFI1uwSvj+TWMwXVn7vPR1ceFNcAIt5RSTDbwdlX82gYLTkA==}
+    engines: {node: '>=6'}
+
   compare-versions@3.6.0:
     resolution: {integrity: sha512-W6Af2Iw1z4CB7q4uU4hv646dW9GQuBM+YpC0UvUCWSD8w90SJjp+ujJuXaEMtAXBtSqGfMPuFOVn4/+FlaqfBA==}
 
@@ -3058,6 +3071,9 @@ packages:
   expo-asset@8.9.2:
     resolution: {integrity: sha512-aHMaZkIG5/UoguINEHm2ln/KviU2m/yuryslnhCKR3KXRxiLnMhxmrONLGbknuNE0O1iCaprrl1w3y71u01Rpw==}
 
+  expo-auth-session@4.0.3:
+    resolution: {integrity: sha512-jLDZtSt7ZCuXv4ZYtVPvLf59gd7g3gEgUhiWpEwQvLFL0t+UXL2leFKAG28pzFjDZxbgBk0ya3RyLmBiE6HUqQ==}
+
   expo-constants@14.2.1:
     resolution: {integrity: sha512-DD5u4QmBds2U7uYo409apV7nX+XjudARcgqe7S9aRFJ/6kyftmuxvk1DpaU4X42Av8z/tfKwEpuxl+vl7HHx/Q==}
     peerDependencies:
@@ -3065,6 +3081,11 @@ packages:
 
   expo-constants@14.3.0:
     resolution: {integrity: sha512-O8b+mZlPXZGH4wLLd+jMihGD0ZSMJRSmSsmcG7T60jHU3Dw4yDIuzHM/wMoBoL1pxLIbEwvcwDj0w8c+Sn+1sQ==}
+    peerDependencies:
+      expo: '*'
+
+  expo-crypto@12.2.2:
+    resolution: {integrity: sha512-83SZju/l0UL4n+Dgt+T1csiySa0gwCeE6BKKHzlO+4lJ6B8xXZ5ypu97ttWATBsqcpF/bj1RmYPbfbKsZ+4ixA==}
     peerDependencies:
       expo: '*'
 
@@ -3088,6 +3109,9 @@ packages:
     peerDependencies:
       expo: '*'
 
+  expo-linking@4.0.1:
+    resolution: {integrity: sha512-geRMmKLhtaCigptRzOGW8ZZJKGl47gyu0KFtQOtGf26ELxyt/AietgQjyzF24i7cVD08TnWUJDHgWZkpRHTa7g==}
+
   expo-modules-autolinking@1.2.0:
     resolution: {integrity: sha512-QOPh/iXykNDCAzUual1imSrn2aDakzCGUp2QmxVREr0llajXygroUWlT9sQXh1zKzbNp+a+i/xK375ZeBFiNJA==}
     hasBin: true
@@ -3103,6 +3127,11 @@ packages:
 
   expo-status-bar@1.4.4:
     resolution: {integrity: sha512-5DV0hIEWgatSC3UgQuAZBoQeaS9CqeWRZ3vzBR9R/+IUD87Adbi4FGhU10nymRqFXOizGsureButGZIXPs7zEA==}
+
+  expo-web-browser@12.1.1:
+    resolution: {integrity: sha512-QdFnJKCKzWrvTIjFL2Yb6SlfyJWfBw1S1ceRyGtQSp4p7WFsvfbR6oJyucF04SJD7GshBluIlchrQK7XH/4EWQ==}
+    peerDependencies:
+      expo: '*'
 
   expo@48.0.21:
     resolution: {integrity: sha512-Z211SC4wZP4Xd5/RBJhEw4uwSgpfzAvMh6IVdzwEVAJAcV1s48CACcSmIUe+7QJjEPzmb3T5Yo4EJ/JJXJ2o9A==}
@@ -3770,6 +3799,10 @@ packages:
     resolution: {integrity: sha512-Fd4gABb+ycGAmKou8eMftCupSir5lRxqf4aD/vd0cD2qc4HL07OjCeuHMr8Ro4CoMaeCKDB0/ECBOVWjTwUvPQ==}
     engines: {node: '>=8'}
 
+  is-plain-obj@1.1.0:
+    resolution: {integrity: sha512-yvkRyxmFKEOQ4pNXCmJG5AEQNlXJS5LaONXo5/cLdTZdWvsZ1ioJEonLGAosKlMWE8lwUy/bJzMjcw8az73+Fg==}
+    engines: {node: '>=0.10.0'}
+
   is-plain-obj@2.1.0:
     resolution: {integrity: sha512-YWnfyRwxL/+SsrWYfOpUtz5b3YD+nyfkHvjbcanzk8zgyO4ASD67uVMRt8k5bM4lLMDnXfriRhOpemw+NfT1eA==}
     engines: {node: '>=8'}
@@ -4390,6 +4423,10 @@ packages:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
     engines: {node: '>=0.10.0'}
 
+  normalize-url@2.0.1:
+    resolution: {integrity: sha512-D6MUW4K/VzoJ4rJ01JFKxDrtY1v9wrgzCX5f2qj/lzH1m/lW6MhUZFKerVsnyjOhOsYzI9Kqqak+10l4LvLpMw==}
+    engines: {node: '>=4'}
+
   normalize-url@6.1.0:
     resolution: {integrity: sha512-DlL+XwOy3NxAQ8xuC0okPgK46iuVNAK01YN7RueYBqqFeGsBjV9XmCAzAdgt+667bCl5kPh9EqKKDwnaPG1I7A==}
     engines: {node: '>=10'}
@@ -4866,6 +4903,10 @@ packages:
     resolution: {integrity: sha512-FfR8sjd4em2T6fb3I2MwAJU7HWVMr9zba+enmQeeWFfCbm+UOC/0X4DS8XtpUTMwWMGbjKYP7xjfNekzyGmB3A==}
     engines: {node: ^10 || ^12 || >=14}
 
+  prepend-http@2.0.0:
+    resolution: {integrity: sha512-ravE6m9Atw9Z/jjttRUZ+clIXogdghyZAuWJ3qEzjT+jI/dL1ifAqhZeC5VHzQp1MSt1+jxKkFNemj/iO7tVUA==}
+    engines: {node: '>=4'}
+
   pretty-bytes@5.6.0:
     resolution: {integrity: sha512-FFw039TmrBqFK8ma/7OL3sDz/VytdtJr044/QUJtH0wK9lb9jLq9tJyIxUwtQJHwar2BqtiA4iCWSwo9JLkzFg==}
     engines: {node: '>=6'}
@@ -4928,6 +4969,9 @@ packages:
   pump@3.0.4:
     resolution: {integrity: sha512-VS7sjc6KR7e1ukRFhQSY5LM2uBWAUPiOPa/A3mkKmiMwSmRFUITt0xuj+/lesgnCv+dPIEYlkzrcyXgquIHMcA==}
 
+  punycode@1.4.1:
+    resolution: {integrity: sha512-jmYNElW7yvO7TV33CjSmvSiE2yco3bV2czu/OzDKdMNVZQWfxCblURLhf+47syQRBntjfLdd/H0egrzIG+oaFQ==}
+
   punycode@2.3.1:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
@@ -4951,6 +4995,10 @@ packages:
   qs@6.15.2:
     resolution: {integrity: sha512-Rzq0KEyX/w/tEybncDgdkZrJgVUsUMk3xjh3t5bv3S1HTAtg+uOYt72+ZfwiQwKdysThkTBdL/rTi6HDmX9Ddw==}
     engines: {node: '>=0.6'}
+
+  query-string@5.1.1:
+    resolution: {integrity: sha512-gjWOsm2SoGlgLEdAGt7a6slVOk9mGiXmPFMqrEhLQ68rhQuBnpfs3+EmlvqKyxnCo9/PPlF+9MtY02S1aFg+Jw==}
+    engines: {node: '>=0.10.0'}
 
   query-string@7.1.3:
     resolution: {integrity: sha512-hh2WYhq4fi8+b+/2Kg9CEge4fDPvHS534aOOvOZeQ3+Vf2mCFsaFBYj0i+iXcAq6I9Vzp5fjMFBlONvayDC1qg==}
@@ -5465,6 +5513,10 @@ packages:
     resolution: {integrity: sha512-LJhUYUvItdQ0LkJTmPeaEObWXAqFyfmP85x0tch/ez9cahmhlBBLbIqDFnvBnUJGagb0JbIQrkBs1wJ+yRYpEw==}
     engines: {node: '>= 10.0.0', npm: '>= 3.0.0'}
 
+  sort-keys@2.0.0:
+    resolution: {integrity: sha512-/dPCrG1s3ePpWm6yBbxZq5Be1dXGLyLn9Z791chDC3NFrpkVbWGzkBwPN1knaciexFXgRJ7hzdnwZ4stHSDmjg==}
+    engines: {node: '>=4'}
+
   source-list-map@2.0.1:
     resolution: {integrity: sha512-qnQ7gVMxGNxsiL4lEuJwe/To8UnK7fAnmbGEEH8RpLouuKbeEm0lhbQVFIrNSuB+G7tVrAlVsZgETT5nljf+Iw==}
 
@@ -5555,6 +5607,10 @@ packages:
 
   streamx@2.25.0:
     resolution: {integrity: sha512-0nQuG6jf1w+wddNEEXCF4nTg3LtufWINB5eFEN+5TNZW7KWJp6x87+JFL43vaAUPyCfH1wID+mNVyW6OHtFamg==}
+
+  strict-uri-encode@1.1.0:
+    resolution: {integrity: sha512-R3f198pcvnB+5IpnBlRkphuE9n46WyVl8I39W/ZUTZLz4nqSP/oLYUrcnJrw462Ds8he4YKMov2efsTIw1BDGQ==}
+    engines: {node: '>=0.10.0'}
 
   strict-uri-encode@2.0.0:
     resolution: {integrity: sha512-QwiXZgpRcKkhTj2Scnn++4PKtWsH0kpzZ62L2R6c/LUVYv7hVnZqcg2+sMuT6R7Jusu1vviK/MFsu6kNJfWlEQ==}
@@ -6027,6 +6083,10 @@ packages:
 
   url-parse@1.5.10:
     resolution: {integrity: sha512-WypcfiRhfeUP9vvF0j6rw0J3hrWrw6iZv3+22h6iRMJ/8z1Tj6XfLP4DsUix5MhMPnXpiHDoKyoZ/bdCkwBCiQ==}
+
+  url@0.11.4:
+    resolution: {integrity: sha512-oCwdVC7mTuWiPyjLUz/COz5TLk6wgp0RCsN+wHZ2Ekneac9w8uuV0njcbbie2ME+Vs+d6duwmYuR3HgQXs1fOg==}
+    engines: {node: '>= 0.4'}
 
   use-latest-callback@0.1.11:
     resolution: {integrity: sha512-8nhb73STSD/z3GTHklvNjL8F9wMOo0bj0AFnulpIYuFTm6aQlT3ZcNbXF2YurKImIY8+kpSFSDHZZyQmurGrhw==}
@@ -9331,6 +9391,10 @@ snapshots:
 
   commondir@1.0.1: {}
 
+  compare-urls@2.0.0:
+    dependencies:
+      normalize-url: 2.0.1
+
   compare-versions@3.6.0: {}
 
   component-type@1.2.2: {}
@@ -10020,6 +10084,18 @@ snapshots:
       - expo
       - supports-color
 
+  expo-auth-session@4.0.3(expo@48.0.21(@babel/core@7.29.0)):
+    dependencies:
+      expo-constants: 14.2.1(expo@48.0.21(@babel/core@7.29.0))
+      expo-crypto: 12.2.2(expo@48.0.21(@babel/core@7.29.0))
+      expo-linking: 4.0.1(expo@48.0.21(@babel/core@7.29.0))
+      expo-web-browser: 12.1.1(expo@48.0.21(@babel/core@7.29.0))
+      invariant: 2.2.4
+      qs: 6.15.2
+    transitivePeerDependencies:
+      - expo
+      - supports-color
+
   expo-constants@14.2.1(expo@48.0.21(@babel/core@7.29.0)):
     dependencies:
       '@expo/config': 8.0.5
@@ -10035,6 +10111,11 @@ snapshots:
       uuid: 3.4.0
     transitivePeerDependencies:
       - supports-color
+
+  expo-crypto@12.2.2(expo@48.0.21(@babel/core@7.29.0)):
+    dependencies:
+      base64-js: 1.5.1
+      expo: 48.0.21(@babel/core@7.29.0)
 
   expo-file-system@15.2.2(expo@48.0.21(@babel/core@7.29.0)):
     dependencies:
@@ -10054,6 +10135,17 @@ snapshots:
   expo-keep-awake@12.0.1(expo@48.0.21(@babel/core@7.29.0)):
     dependencies:
       expo: 48.0.21(@babel/core@7.29.0)
+
+  expo-linking@4.0.1(expo@48.0.21(@babel/core@7.29.0)):
+    dependencies:
+      '@types/qs': 6.15.1
+      expo-constants: 14.2.1(expo@48.0.21(@babel/core@7.29.0))
+      invariant: 2.2.4
+      qs: 6.15.2
+      url-parse: 1.5.10
+    transitivePeerDependencies:
+      - expo
+      - supports-color
 
   expo-modules-autolinking@1.2.0:
     dependencies:
@@ -10079,6 +10171,12 @@ snapshots:
       - encoding
 
   expo-status-bar@1.4.4: {}
+
+  expo-web-browser@12.1.1(expo@48.0.21(@babel/core@7.29.0)):
+    dependencies:
+      compare-urls: 2.0.0
+      expo: 48.0.21(@babel/core@7.29.0)
+      url: 0.11.4
 
   expo@48.0.21(@babel/core@7.29.0):
     dependencies:
@@ -10921,6 +11019,8 @@ snapshots:
 
   is-path-inside@3.0.3: {}
 
+  is-plain-obj@1.1.0: {}
+
   is-plain-obj@2.1.0: {}
 
   is-plain-obj@3.0.0: {}
@@ -11748,6 +11848,12 @@ snapshots:
 
   normalize-path@3.0.0: {}
 
+  normalize-url@2.0.1:
+    dependencies:
+      prepend-http: 2.0.0
+      query-string: 5.1.1
+      sort-keys: 2.0.0
+
   normalize-url@6.1.0: {}
 
   npm-package-arg@7.0.0:
@@ -12200,6 +12306,8 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
+  prepend-http@2.0.0: {}
+
   pretty-bytes@5.6.0: {}
 
   pretty-error@4.0.0:
@@ -12274,6 +12382,8 @@ snapshots:
       end-of-stream: 1.4.5
       once: 1.4.0
 
+  punycode@1.4.1: {}
+
   punycode@2.3.1: {}
 
   puppeteer-core@23.11.1:
@@ -12305,6 +12415,12 @@ snapshots:
   qs@6.15.2:
     dependencies:
       side-channel: 1.1.0
+
+  query-string@5.1.1:
+    dependencies:
+      decode-uri-component: 0.2.2
+      object-assign: 4.1.1
+      strict-uri-encode: 1.1.0
 
   query-string@7.1.3:
     dependencies:
@@ -12953,6 +13069,10 @@ snapshots:
       ip-address: 10.2.0
       smart-buffer: 4.2.0
 
+  sort-keys@2.0.0:
+    dependencies:
+      is-plain-obj: 1.1.0
+
   source-list-map@2.0.1: {}
 
   source-map-js@1.2.1: {}
@@ -13050,6 +13170,8 @@ snapshots:
     transitivePeerDependencies:
       - bare-abort-controller
       - react-native-b4a
+
+  strict-uri-encode@1.1.0: {}
 
   strict-uri-encode@2.0.0: {}
 
@@ -13547,6 +13669,11 @@ snapshots:
     dependencies:
       querystringify: 2.2.0
       requires-port: 1.0.0
+
+  url@0.11.4:
+    dependencies:
+      punycode: 1.4.1
+      qs: 6.15.2
 
   use-latest-callback@0.1.11(react@18.2.0):
     dependencies:
