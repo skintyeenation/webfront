@@ -3,10 +3,29 @@ import { ActivityIndicator, View } from 'react-native';
 import { Button, Chip, HelperText, Switch, Text, TextInput } from 'react-native-paper';
 import moment from 'moment';
 import { PageContainer, PageContent, DateTimeField, LocationPicker, LatLng } from 'skintyee/components/layout';
-import { useAppDispatch } from 'skintyee/store';
+import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { addMeeting } from 'skintyee/store/modules/meetings';
+import { loadDirectory } from 'skintyee/store/modules/directory';
 import { apiFactory } from 'skintyee/store/apis';
 import { theme } from 'skintyee/styles';
+
+// Default audience for each meeting type, expressed as a predicate
+// over a BandMember row (using the bandGroups column populated from
+// Entra). Admin can add/remove individuals after auto-fill.
+function defaultAudienceFor(typeSlug: string): (m: any) => boolean {
+  switch (typeSlug) {
+    case 'band-meeting':
+    case 'public-event':
+      return (m) => m.accountType === 'licensed-user';
+    case 'council-meeting':
+    case 'closed-session':
+      return (m) => m.accountType === 'licensed-user' && (m.bandGroups ?? []).includes('council');
+    case 'staff-meeting':
+      return (m) => m.accountType === 'licensed-user' && (m.bandGroups ?? []).includes('management');
+    default:
+      return (m) => m.accountType === 'licensed-user';
+  }
+}
 
 // Admin: schedule a band meeting. Posts to /v1/meetings which creates a
 // real Microsoft 365 calendar event tagged with the chosen Outlook
@@ -42,6 +61,19 @@ export default function CreateMeeting({ navigation }: any) {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | undefined>();
 
+  // Attendees — pulled from the directory in Redux. Auto-defaulted by
+  // type but admin can add/remove via chip toggles.
+  const directory = useAppSelector((s) => s.directory.entities);
+  const licensedUsers = useMemo(
+    () => directory.filter((m: any) => m.accountType === 'licensed-user' && m.upn),
+    [directory]
+  );
+  const [attendees, setAttendees] = useState<Set<string>>(new Set());
+  // Tracks the typeSlug that auto-populated `attendees` so a manual edit
+  // doesn't get overwritten when re-renders refire the effect; only a
+  // genuine type change triggers a refill.
+  const [attendeesAutoForType, setAttendeesAutoForType] = useState<string>('');
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -52,8 +84,28 @@ export default function CreateMeeting({ navigation }: any) {
         if (!cancelled) setCatalogError(e?.message ?? String(e));
       }
     })();
+    dispatch(loadDirectory());
     return () => { cancelled = true; };
-  }, []);
+  }, [dispatch]);
+
+  // Auto-fill attendees when the user picks/changes a type, or when the
+  // directory finishes loading after we already have a type.
+  useEffect(() => {
+    if (!typeSlug || licensedUsers.length === 0) return;
+    if (attendeesAutoForType === typeSlug) return;   // already filled for this type
+    const pred = defaultAudienceFor(typeSlug);
+    setAttendees(new Set(licensedUsers.filter(pred).map((m: any) => m.upn.toLowerCase())));
+    setAttendeesAutoForType(typeSlug);
+  }, [typeSlug, licensedUsers, attendeesAutoForType]);
+
+  const toggleAttendee = (upn: string) => {
+    setAttendees((prev) => {
+      const next = new Set(prev);
+      if (next.has(upn)) next.delete(upn);
+      else next.add(upn);
+      return next;
+    });
+  };
 
   const submit = async () => {
     if (!title.trim()) return;
@@ -68,6 +120,7 @@ export default function CreateMeeting({ navigation }: any) {
         location: location.trim(),
         startsAt,
         isOnlineMeeting,
+        attendees: Array.from(attendees),
       });
       // Mirror into Redux for instant display; the next loadMeetings()
       // refetches the canonical record from the api/ via Graph.
@@ -178,6 +231,55 @@ export default function CreateMeeting({ navigation }: any) {
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
           <Switch value={isOnlineMeeting} onValueChange={setIsOnlineMeeting} />
           <Text style={{ color: theme.colors.text, marginLeft: 8 }}>Create a Teams join link</Text>
+        </View>
+
+        {/* Attendees — auto-defaulted from the type, tap to add/remove.
+            Defaults: Band/Public → all licensed; Council/Closed → council
+            group; Staff → management group. */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+          <Text style={{ color: theme.colors.text, fontSize: 14, fontWeight: '600' }}>
+            Invitees ({attendees.size})
+          </Text>
+          <Button
+            mode="text"
+            compact
+            onPress={() => {
+              if (!typeSlug) return;
+              const pred = defaultAudienceFor(typeSlug);
+              setAttendees(new Set(licensedUsers.filter(pred).map((m: any) => m.upn.toLowerCase())));
+            }}
+            textColor={theme.colors.textDarker}
+            style={{ marginLeft: 4 }}
+          >
+            Reset to type default
+          </Button>
+        </View>
+        <HelperText type="info" visible style={{ marginLeft: -8, marginBottom: 4 }}>
+          Auto-filled by type; tap a name to add/remove.
+        </HelperText>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }}>
+          {licensedUsers
+            .slice()
+            .sort((a: any, b: any) => (a.name ?? '').localeCompare(b.name ?? ''))
+            .map((m: any) => {
+              const on = attendees.has(m.upn.toLowerCase());
+              return (
+                <Chip
+                  key={m._id}
+                  selected={on}
+                  showSelectedCheck
+                  onPress={() => toggleAttendee(m.upn.toLowerCase())}
+                  style={{
+                    marginRight: 6,
+                    marginBottom: 6,
+                    backgroundColor: on ? theme.colors.primary : theme.colors.secondary,
+                  }}
+                  textStyle={{ color: on ? '#000' : theme.colors.text, fontSize: 11 }}
+                >
+                  {m.name}
+                </Chip>
+              );
+            })}
         </View>
 
         {saveError ? <HelperText type="error" visible>{saveError}</HelperText> : null}
