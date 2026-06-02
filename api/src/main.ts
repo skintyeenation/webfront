@@ -24,9 +24,17 @@ function syncSchema() {
     console.log('▸ DATABASE_URL not set — skipping prisma db push');
     return;
   }
+  // Schema path resolves to the same physical file in both layouts:
+  //   • Docker:  /app/dist/main.js  →  __dirname/../prisma/schema.prisma  =  /app/prisma/schema.prisma
+  //   • Local:   api/src/main.ts    →  __dirname/../prisma/schema.prisma  =  api/prisma/schema.prisma
+  const schemaPath = path.resolve(__dirname, '..', 'prisma', 'schema.prisma');
+  if (!fs.existsSync(schemaPath)) {
+    console.warn(`  ⚠ schema not found at ${schemaPath} — skipping prisma db push`);
+    return;
+  }
   try {
-    console.log('▸ running prisma db push…');
-    execSync('npx prisma db push --skip-generate --accept-data-loss --schema=/app/prisma/schema.prisma', {
+    console.log(`▸ running prisma db push (schema: ${schemaPath})…`);
+    execSync(`npx prisma db push --skip-generate --accept-data-loss --schema="${schemaPath}"`, {
       stdio: 'inherit',
       env: process.env,
       timeout: 60_000,
