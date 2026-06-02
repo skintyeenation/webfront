@@ -204,16 +204,21 @@ export default function Directory({ navigation }: any) {
           </View>
         ) : null}
 
-        {/* Sync feedback (error + last-run summary) — shown below the row,
-            outside the button so it's still visible after the spinner stops. */}
+        {/* Sync feedback (in-progress hint, error, last-run summary) — shown
+            below the row so the spinner-in-button stays uncluttered. */}
         {isAdmin ? (
           <View style={{ marginBottom: 12 }}>
+            {syncing ? (
+              <Text style={{ color: theme.colors.accent, fontSize: 11, marginTop: 4 }}>
+                Please wait 30–60 seconds while we pull Entra users and reconcile Exchange mailbox permissions…
+              </Text>
+            ) : null}
             {syncError ? (
               <Text style={{ color: theme.colors.error, fontSize: 11, marginTop: 4 }}>
                 {syncError}
               </Text>
             ) : null}
-            {syncSummary ? (
+            {syncSummary && !syncing ? (
               <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginTop: 4 }}>
                 {syncSummary}
               </Text>
