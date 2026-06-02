@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
-import { Button, Card, Chip, ProgressBar, SegmentedButtons, Text } from 'react-native-paper';
+import { Badge, Button, Card, Chip, ProgressBar, SegmentedButtons, Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import moment from 'moment';
 import { NoContent, PageContainer, PageContent, colorAt } from 'skintyee/components/layout';
@@ -170,140 +170,163 @@ export default function Dashboard({ navigation }: any) {
     }
   }, [dispatch, role, isStaffOrAdmin]);
 
-  // ---- "This week" feed items (scheduled stuff) ---------------------------
-  // Notifications live in their own tab; the calendar/list here is WHEN-first.
+  // ---- My Tasks feed items (Planner tasks within ~7 days) -----------------
+  // Meetings + events have their own tabs; Notifications has one too. This
+  // section is scoped to Planner tasks specifically.
 
-  const visible = useMemo(() => {
+  const taskItems = useMemo(() => {
     const horizon = Date.now() + 7 * 24 * 60 * 60 * 1000;
     return items.filter((it) => {
-      // Notifications have their own tab — don't dupe them here
-      if (it.source === 'notification') return false;
+      if (it.source !== 'planner-task') return false;
       const t = timeOf(it);
       if (!t) return false;
-      // Include OVERDUE planner items so they appear on the calendar even if past
       if (isOverdue(it)) return true;
       const ts = new Date(t).getTime();
       return ts >= Date.now() - 24 * 60 * 60 * 1000 && ts <= horizon;
     });
   }, [items]);
 
+  // ---- Timesheet cut-off (semi-monthly: 15th + last day of month) ----------
+  // Useful "you have N days to submit" cue on the Time Keeping card. Bi-weekly
+  // would need a tenant-configured anchor date; semi-monthly is calendar-only
+  // and good enough for the POC.
+  const { cutoffDate, daysRemaining } = useMemo(() => {
+    const now = moment();
+    const day = now.date();
+    const cutoff = day <= 15
+      ? now.clone().date(15)
+      : now.clone().endOf('month').startOf('day');
+    return {
+      cutoffDate: cutoff,
+      daysRemaining: Math.max(0, cutoff.diff(now.clone().startOf('day'), 'days')),
+    };
+  }, []);
+
   return (
     <PageContainer>
       <PageContent>
-        {/* ── ADMIN TOOLS (staff + admin) ───────────────────────────────────
-            Moved here from the Financial Summary screen — Planner board
-            rollup + Time keeping summary. Not the right home for budget
-            transparency content; it IS the right home for what an admin
-            opens the app to see. */}
+        {/* ── 1. TIME KEEPING (staff + admin) ───────────────────────────── */}
         {isStaffOrAdmin ? (
-          <View >
-            {/* Planner rollup card */}
-            <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12, borderLeftWidth: 3, borderLeftColor: theme.colors.accent }}>
-              <Card.Content>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-                  <MaterialCommunityIcons name="checkbox-marked-circle-outline" size={18} color={theme.colors.accent} style={{ marginRight: 6 }} />
-                  <Text style={{ color: theme.colors.text, fontSize: 15 }}>Tasks across program areas</Text>
+          <Card
+            style={{
+              backgroundColor: theme.colors.darkDefault,
+              marginBottom: 16,
+              // Border-left accent flips to red when something is waiting on
+              // the admin — visual "this needs you" cue.
+              borderLeftWidth: 3,
+              borderLeftColor: pendingApprovals > 0 ? theme.colors.accent : theme.colors.primary,
+            }}
+          >
+            <Card.Content>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                <MaterialCommunityIcons name="clock-outline" size={18} color={theme.colors.primary} style={{ marginRight: 6 }} />
+                <Text style={{ color: theme.colors.text, fontSize: 15, flex: 1 }}>Time keeping</Text>
+                {/* Alert badge when timesheets are awaiting approval. */}
+                {pendingApprovals > 0 ? (
+                  <Badge
+                    style={{ backgroundColor: theme.colors.accent }}
+                  >
+                    {pendingApprovals === 1
+                      ? '1 timesheet to approve'
+                      : `${pendingApprovals} timesheets to approve`}
+                  </Badge>
+                ) : null}
+              </View>
+              <View style={{ flexDirection: 'row' }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: pendingApprovals > 0 ? theme.colors.accent : theme.colors.success, fontSize: 22 }}>{pendingApprovals}</Text>
+                  <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Entries to approve</Text>
                 </View>
-                {!rollup ? (
-                  <Text style={{ color: theme.colors.textDarker }}>Loading Planner data…</Text>
-                ) : (
-                  <>
-                    <View style={{ flexDirection: 'row', marginBottom: 12 }}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ color: theme.colors.primary, fontSize: 22 }}>{rollup.totalOpen}</Text>
-                        <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Open</Text>
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ color: rollup.totalOverdue > 0 ? theme.colors.accent : theme.colors.success, fontSize: 22 }}>{rollup.totalOverdue}</Text>
-                        <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Overdue</Text>
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ color: theme.colors.success, fontSize: 22 }}>{rollup.totalCompleted}</Text>
-                        <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Done</Text>
-                      </View>
-                    </View>
-
-                    {rollup.byProgramArea.slice(0, 6).map((row, idx) => {
-                      const total = row.open + row.completed;
-                      const pct = total > 0 ? row.completed / total : 0;
-                      return (
-                        <View key={row.programArea} style={{ marginBottom: 8 }}>
-                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 }}>
-                            <Text style={{ color: theme.colors.text, fontSize: 13 }}>{row.programArea}</Text>
-                            <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>
-                              {row.open} open · {row.completed} done
-                            </Text>
-                          </View>
-                          <ProgressBar progress={pct} color={colorAt(idx)} style={{ height: 6, backgroundColor: theme.colors.secondary }} />
-                        </View>
-                      );
-                    })}
-
-                    {rollup.topOverdue.length > 0 ? (
-                      <>
-                        <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginTop: 10, marginBottom: 6, textTransform: 'uppercase' }}>
-                          Top overdue
-                        </Text>
-                        {rollup.topOverdue.map((t) => (
-                          <View key={t.id} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                            <MaterialCommunityIcons name="alert-circle-outline" size={14} color={theme.colors.accent} style={{ marginRight: 4 }} />
-                            <Text style={{ color: theme.colors.text, fontSize: 12, flex: 1 }} numberOfLines={1}>
-                              {t.title}
-                            </Text>
-                            {t.categoryLabels?.[0] ? (
-                              <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginLeft: 6 }}>
-                                {t.categoryLabels[0]}
-                              </Text>
-                            ) : null}
-                          </View>
-                        ))}
-                      </>
-                    ) : null}
-
-                    <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginTop: 10 }}>
-                      From Microsoft Planner · refreshed {new Date(rollup.generatedAt).toLocaleTimeString()}
-                    </Text>
-                  </>
-                )}
-              </Card.Content>
-            </Card>
-
-            {/* Time keeping summary */}
-            <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
-              <Card.Content>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-                  <MaterialCommunityIcons name="clock-outline" size={18} color={theme.colors.primary} style={{ marginRight: 6 }} />
-                  <Text style={{ color: theme.colors.text, fontSize: 15, flex: 1 }}>Time keeping</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: theme.colors.primary, fontSize: 22 }}>{hoursLogged}</Text>
+                  <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Hours logged</Text>
                 </View>
-                <View style={{ flexDirection: 'row' }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: pendingApprovals > 0 ? theme.colors.accent : theme.colors.success, fontSize: 22 }}>{pendingApprovals}</Text>
-                    <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Entries to approve</Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: theme.colors.primary, fontSize: 22 }}>{hoursLogged}</Text>
-                    <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Hours logged</Text>
-                  </View>
-                </View>
-                <Button
-                  mode="outlined"
+              </View>
+
+              {/* Next cut-off + days remaining — semi-monthly cycle */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: theme.colors.secondary }}>
+                <MaterialCommunityIcons name="calendar-clock" size={16} color={theme.colors.textDarker} style={{ marginRight: 6 }} />
+                <Text style={{ color: theme.colors.textDarker, fontSize: 12, flex: 1 }}>
+                  Cut-off {cutoffDate.format('ddd, MMM D')}
+                </Text>
+                <Chip
                   compact
-                  icon="clock-outline"
-                  textColor={theme.colors.primary}
-                  style={{ marginTop: 12, alignSelf: 'flex-start' }}
-                  onPress={() => navigation.navigate('timekeeping')}
+                  style={{
+                    backgroundColor: daysRemaining <= 2 ? theme.colors.accent : theme.colors.secondary,
+                  }}
+                  textStyle={{ color: daysRemaining <= 2 ? '#000' : theme.colors.text, fontSize: 10 }}
                 >
-                  Open time keeping
-                </Button>
-              </Card.Content>
-            </Card>
-          </View>
+                  {daysRemaining === 0
+                    ? 'Due today'
+                    : daysRemaining === 1
+                    ? '1 day left'
+                    : `${daysRemaining} days left`}
+                </Chip>
+              </View>
+
+              <Button
+                mode={pendingApprovals > 0 ? 'contained' : 'outlined'}
+                compact
+                icon="clock-outline"
+                buttonColor={pendingApprovals > 0 ? theme.colors.accent : undefined}
+                textColor={pendingApprovals > 0 ? '#000' : theme.colors.primary}
+                style={{ marginTop: 12, alignSelf: 'flex-start' }}
+                onPress={() => navigation.navigate('timekeeping')}
+              >
+                {pendingApprovals > 0 ? 'Review timesheets' : 'Open time keeping'}
+              </Button>
+            </Card.Content>
+          </Card>
         ) : null}
-        {/* ── THIS WEEK feed (Calendar | List) ────────────────────────────── */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, marginTop: 24 }}>
-          <MaterialCommunityIcons name="calendar-blank-outline" size={18} color={theme.colors.text} style={{ marginRight: 6 }} />
+
+        {/* ── 2. MY PROJECTS — Planner plans as project bars ────────────── */}
+        {isStaffOrAdmin ? (
+          <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 16 }}>
+            <Card.Content>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                <MaterialCommunityIcons name="folder-multiple-outline" size={18} color={theme.colors.primary} style={{ marginRight: 6 }} />
+                <Text style={{ color: theme.colors.text, fontSize: 15, flex: 1 }}>My projects</Text>
+                {rollup ? (
+                  <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>
+                    {rollup.byProgramArea.length} plan{rollup.byProgramArea.length === 1 ? '' : 's'}
+                  </Text>
+                ) : null}
+              </View>
+              {!rollup ? (
+                <Text style={{ color: theme.colors.textDarker }}>Loading Planner data…</Text>
+              ) : rollup.byProgramArea.length === 0 ? (
+                <Text style={{ color: theme.colors.textDarker }}>No active Planner plans.</Text>
+              ) : (
+                <>
+                  {rollup.byProgramArea.map((row, idx) => {
+                    const total = row.open + row.completed;
+                    const pct = total > 0 ? row.completed / total : 0;
+                    return (
+                      <View key={row.programArea} style={{ marginBottom: 10 }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 }}>
+                          <Text style={{ color: theme.colors.text, fontSize: 13 }}>{row.programArea}</Text>
+                          <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>
+                            {row.open} open · {row.completed} done
+                          </Text>
+                        </View>
+                        <ProgressBar progress={pct} color={colorAt(idx)} style={{ height: 6, backgroundColor: theme.colors.secondary }} />
+                      </View>
+                    );
+                  })}
+                  <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginTop: 6 }}>
+                    From Microsoft Planner · refreshed {new Date(rollup.generatedAt).toLocaleTimeString()}
+                  </Text>
+                </>
+              )}
+            </Card.Content>
+          </Card>
+        ) : null}
+
+        {/* ── 3. MY TASKS — Planner tasks, list / calendar toggle ───────── */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+          <MaterialCommunityIcons name="checkbox-marked-outline" size={18} color={theme.colors.text} style={{ marginRight: 6 }} />
           <Text style={{ color: theme.colors.text, fontSize: 16, flex: 1 }}>
-            This week {formatRange(visible) ? `· ${formatRange(visible)}` : ''}
+            My tasks {formatRange(taskItems) ? `· ${formatRange(taskItems)}` : ''}
           </Text>
         </View>
 
@@ -319,13 +342,13 @@ export default function Dashboard({ navigation }: any) {
         />
 
         {!loaded && loading ? (
-          <NoContent loading message="Loading your week…" />
-        ) : visible.length === 0 ? (
-          <NoContent message="Nothing scheduled in the next 7 days. Check Events, or come back tomorrow." />
+          <NoContent loading message="Loading your tasks…" />
+        ) : taskItems.length === 0 ? (
+          <NoContent message="No Planner tasks due this week. Clear slate." />
         ) : view === 'list' ? (
-          visible.map((it) => <FeedItemCard key={it.id} item={it} />)
+          taskItems.map((it) => <FeedItemCard key={it.id} item={it} />)
         ) : (
-          <CalendarView items={visible} />
+          <CalendarView items={taskItems} />
         )}
 
       </PageContent>
