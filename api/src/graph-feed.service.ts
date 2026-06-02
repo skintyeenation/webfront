@@ -474,9 +474,9 @@ export class GraphFeedService {
   // directly when a fresh sync is needed (e.g. someone was added in M365
   // and we want them visible in the app immediately).
   //
-  // The break-glass admin (admin@skintyeenation.onmicrosoft.com) is
-  // remapped to "Sandra Williams" in the response, per the team's
-  // convention for the in-app display name of that account.
+  // The break-glass admin (admin@skintyeenation.onmicrosoft.com) is the
+  // tenant's System Admin role account, not a person. We trust whatever
+  // Entra has for its displayName + jobTitle.
   async getDirectory(): Promise<Array<{
     id: string; upn: string; email?: string; name: string; role: string;
     title?: string; department?: string; phone?: string; avatarLetter?: string;
@@ -608,9 +608,7 @@ export class GraphFeedService {
         const isCouncil = /council/i.test(jobTitle);
         const hasTitle = jobTitle.length > 0;
 
-        const name = isBreakGlass
-          ? 'Sandra Williams'
-          : (u.displayName ?? `${u.givenName ?? ''} ${u.surname ?? ''}`).trim() || upn;
+        const name = (u.displayName ?? `${u.givenName ?? ''} ${u.surname ?? ''}`).trim() || upn;
 
         const role = isChief ? 'Chief'
           : isCouncil ? 'Council'
@@ -658,7 +656,7 @@ export class GraphFeedService {
           title: u.jobTitle ?? undefined,
           department: u.department ?? undefined,
           phone: u.mobilePhone ?? u.businessPhones?.[0] ?? undefined,
-          avatarLetter: (isBreakGlass ? 'S' : (u.displayName ?? u.givenName ?? '?').charAt(0)).toUpperCase(),
+          avatarLetter: ((u.displayName ?? u.givenName ?? '?').charAt(0)).toUpperCase(),
           appRole,
           accountType,
           mailboxMemberships,
