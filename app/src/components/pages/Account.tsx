@@ -1,5 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator } from 'react-native';
 import { Avatar, Button, Card, Chip, Divider, Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { PageContainer, PageContent } from 'skintyee/components/layout';
@@ -91,33 +92,42 @@ export default function Account() {
                 icon="microsoft"
                 buttonColor="#0078D4"
                 textColor="#FFFFFF"
-                loading={isSigningIn}
-                // INTENTIONALLY NOT disabled while signing-in: on web,
-                // closing the popup doesn't reliably resolve promptAsync,
-                // so a stuck-spinner state would lock the user out. Each
-                // click resets the in-flight status + starts fresh.
+                // INTENTIONALLY NOT using `loading` prop — Paper's loading
+                // disables onPress, which would lock the user out when
+                // promptAsync hangs after a manually-closed popup. Each
+                // click instead resets in-flight status + starts a fresh
+                // auth flow.
                 onPress={() => {
                   dispatch(resetSignInStatus());
                   dispatch(signIn());
                 }}
               >
-                {isSigningIn ? 'Signing in… (tap again to retry)' : 'Sign in with Microsoft'}
+                {isSigningIn ? 'Try again' : 'Sign in with Microsoft'}
               </Button>
+
+              {/* Visual feedback when in-flight — separate from the button so
+                  it doesn't block taps. Shows a small spinner + cancel link. */}
+              {isSigningIn && !error ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
+                  <ActivityIndicator size="small" color={theme.colors.primary} />
+                  <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginLeft: 8, flex: 1 }}>
+                    Waiting for Microsoft sign-in…
+                  </Text>
+                  <Button
+                    mode="text"
+                    compact
+                    textColor={theme.colors.textDarker}
+                    onPress={() => dispatch(resetSignInStatus())}
+                  >
+                    Cancel
+                  </Button>
+                </View>
+              ) : null}
+
               {error ? (
                 <Text style={{ color: theme.colors.accent, fontSize: 12, marginTop: 8 }}>
                   {error}
                 </Text>
-              ) : null}
-              {isSigningIn && !error ? (
-                <Button
-                  mode="text"
-                  textColor={theme.colors.textDarker}
-                  compact
-                  onPress={() => dispatch(resetSignInStatus())}
-                  style={{ marginTop: 4 }}
-                >
-                  Cancel
-                </Button>
               ) : null}
             </Card.Content>
           </Card>
