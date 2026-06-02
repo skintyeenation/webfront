@@ -7,6 +7,26 @@ import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { loadMeetings, cancelMeeting, removeMeeting } from 'skintyee/store/modules/meetings';
 import { theme } from 'skintyee/styles';
 
+// Display labels + icons for the 5 meeting types. Catalog lives in
+// api/src/skintyee-meeting-types.ts; this mirror keeps the chip render
+// dependency-free (no extra fetch per render).
+const MEETING_TYPE_LABELS: Record<string, string> = {
+  'band-meeting':    'Band Meeting',
+  'council-meeting': 'Council',
+  'staff-meeting':   'Staff',
+  'public-event':    'Public',
+  'closed-session':  'Closed Session',
+};
+const MEETING_TYPE_ICONS: Record<string, string> = {
+  'band-meeting':    'account-group',
+  'council-meeting': 'gavel',
+  'staff-meeting':   'briefcase',
+  'public-event':    'star',
+  'closed-session':  'lock',
+};
+const meetingTypeLabel = (slug: string) => MEETING_TYPE_LABELS[slug] ?? slug;
+const meetingTypeIcon  = (slug: string) => MEETING_TYPE_ICONS[slug]  ?? 'calendar';
+
 export default function Meetings({ navigation }: any) {
   const dispatch = useAppDispatch();
   const { entities, loading, loaded } = useAppSelector((s) => s.meetings);
@@ -34,6 +54,33 @@ export default function Meetings({ navigation }: any) {
                     <Chip compact style={{ backgroundColor: theme.colors.error }} textStyle={{ color: theme.colors.white, fontSize: 11 }}>Cancelled</Chip>
                   ) : null}
                 </View>
+
+                {/* Type chip — comes from the Outlook category on the
+                    underlying M365 event (band-meeting / council-meeting /
+                    staff-meeting / public-event / closed-session). */}
+                {(item as any).type ? (
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 6 }}>
+                    <Chip
+                      compact
+                      icon={meetingTypeIcon((item as any).type)}
+                      style={{ backgroundColor: theme.colors.secondary, marginRight: 6 }}
+                      textStyle={{ fontSize: 10 }}
+                    >
+                      {meetingTypeLabel((item as any).type)}
+                    </Chip>
+                    {(item as any).source ? (
+                      <Chip
+                        compact
+                        icon="calendar"
+                        style={{ backgroundColor: theme.colors.secondary }}
+                        textStyle={{ fontSize: 10 }}
+                      >
+                        {(item as any).source}
+                      </Chip>
+                    ) : null}
+                  </View>
+                ) : null}
+
                 <Text style={{ color: theme.colors.accent, marginTop: 4 }}>{moment(item.startsAt).format('ddd, MMM D · h:mm A')}</Text>
                 <Text style={{ color: theme.colors.textDarker, marginTop: 2 }}>{item.location}</Text>
                 <Text style={{ color: theme.colors.text, marginTop: 8 }}>{item.agenda}</Text>

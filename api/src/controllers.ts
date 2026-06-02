@@ -521,11 +521,86 @@ export class EventsController {
 }
 
 // ---- Meetings -------------------------------------------------------------
+//
+// Band Meetings come from real Microsoft 365 calendars when the GRAPH_*
+// env vars are set: events are pulled from MEETING_SOURCE_CALENDARS
+// (bandmanager@, Skin Tyee Council M365, Skin Tyee Management M365)
+// and filtered by Outlook category (Band Meeting / Council Meeting /
+// Staff Meeting / Public Event / Closed Session). See
+// docs/features/meeting-types.md.
+//
+// Falls back to in-memory mock if Graph isn't configured.
+import { SKINTYEE_MEETING_TYPES, MEETING_SOURCE_CALENDARS } from './skintyee-meeting-types';
+
 @Controller('meetings')
 export class MeetingsController {
-  constructor(private data: DataService) {}
-  @Get() @Roles('member', 'staff', 'admin') list() { return this.data.meetings; }
-  @Post() @Roles('admin') create(@Body() b: any) { const m = { _id: this.data.id('bm'), ...b }; this.data.meetings.unshift(m); return m; }
+  private readonly log = new Logger(MeetingsController.name);
+
+  constructor(private data: DataService, private graph: GraphFeedService) {}
+
+  // GET /v1/meetings — list upcoming band-tagged meetings from M365.
+  // Optional ?type=<slug> filters to a single type.
+  @Get() @Roles('member', 'staff', 'admin') async list(@Query('type') type?: string) {
+    if (process.env.GRAPH_CLIENT_ID) {
+      try {
+        const items = await this.graph.getBandMeetings({ typeSlug: type });
+        // Map to the BandMeeting shape the app expects, preserving typeSlug.
+        return items.map((m) => ({
+          _id: m.id,
+          title: m.title,
+          agenda: m.agenda,
+          location: m.location,
+          startsAt: m.startsAt,
+          endsAt: m.endsAt,
+          cancelled: m.cancelled,
+          type: m.typeSlug,
+          source: m.source,
+          organizerName: m.organizerName,
+          organizerUpn: m.organizerUpn,
+          joinUrl: m.joinUrl,
+          webLink: m.webLink,
+        }));
+      } catch (e: any) {
+        this.log.warn(`Graph fetch failed, falling back to mock: ${e?.message ?? e}`);
+      }
+    }
+    return this.data.meetings;
+  }
+
+  // GET /v1/meetings/types — catalog of meeting types + source calendars.
+  // Drives the schedule-meeting screen's chip selector.
+  @Get('types') @Roles('member', 'staff', 'admin') types() {
+    return {
+      types: SKINTYEE_MEETING_TYPES,
+      sources: MEETING_SOURCE_CALENDARS.map((s, i) => ({
+        index: i,
+        kind: s.kind,
+        name: s.name,
+        ...(s.kind === 'user' ? { upn: s.upn } : { groupId: s.groupId }),
+      })),
+    };
+  }
+
+  // POST /v1/meetings — schedule a new band meeting in a chosen source
+  // calendar via Graph. Auto-tags with the matching Outlook category.
+  // Body: { typeSlug, sourceIndex?, title, agenda?, location?, startsAt,
+  //         endsAt?, isOnlineMeeting?, attendees? }
+  @Post() @Roles('admin') async create(@Body() b: any) {
+    if (process.env.GRAPH_CLIENT_ID) {
+      try {
+        const created = await this.graph.createBandMeeting(b);
+        return created;
+      } catch (e: any) {
+        this.log.error(`createBandMeeting failed: ${e?.message ?? e}`);
+        throw new Error(`Graph create failed: ${e?.message ?? e}`);
+      }
+    }
+    // No Graph configured — fall back to in-memory create
+    const m = { _id: this.data.id('bm'), ...b };
+    this.data.meetings.unshift(m);
+    return m;
+  }
+
   @Patch(':id') @Roles('admin') update(@Param('id') id: string, @Body() b: any) { return upsert(this.data.meetings, id, b); }
   @Delete(':id') @Roles('admin') @HttpCode(204) remove(@Param('id') id: string) { remove(this.data.meetings, id); }
 }

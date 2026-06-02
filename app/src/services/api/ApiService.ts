@@ -74,6 +74,26 @@ export interface ApiService {
   };
   meetings: {
     list(): Promise<BandMeeting[]>;
+    // Catalog of meeting types + source calendars. Drives the schedule
+    // screen's type chip + calendar chip selectors.
+    types(): Promise<{
+      types:   Array<{ slug: string; displayName: string; category: string; description: string }>;
+      sources: Array<{ index: number; kind: 'user'|'group'; name: string; upn?: string; groupId?: string }>;
+    }>;
+    // Create a real Microsoft 365 calendar event (Graph) tagged with
+    // the chosen Outlook category. Returns the created event's id +
+    // webLink + the slug + source name.
+    create(input: {
+      typeSlug: string;
+      sourceIndex?: number;
+      title: string;
+      agenda?: string;
+      location?: string;
+      startsAt: string;
+      endsAt?: string;
+      isOnlineMeeting?: boolean;
+      attendees?: string[];
+    }): Promise<{ id: string; webLink?: string; typeSlug: string; source: string }>;
   };
   publicRecords: {
     list(): Promise<PublicRecord[]>;

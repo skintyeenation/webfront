@@ -121,6 +121,8 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
     },
     meetings: {
       list: () => get<BandMeeting[]>('/meetings'),
+      types: () => get<any>('/meetings/types'),
+      create: (input: any) => post<any>('/meetings', input),
     },
     publicRecords: {
       // The /v1/transparency/* endpoints are what serve "public records" in

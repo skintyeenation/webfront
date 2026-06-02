@@ -54,16 +54,35 @@ export interface CommunityEvent {
   lng?: number;
 }
 
+// Meeting type slug from api/src/skintyee-meeting-types.ts catalog.
+// Drives the type chip render + filter on the Meetings page. The api/
+// derives this from the underlying M365 event's Outlook category.
+export type MeetingTypeSlug =
+  | 'band-meeting'
+  | 'council-meeting'
+  | 'staff-meeting'
+  | 'public-event'
+  | 'closed-session';
+
 export interface BandMeeting {
   _id: string;
   title: string;
   agenda: string;
   location: string;
-  startsAt: string; // ISO date
+  startsAt: string;    // ISO date
+  endsAt?: string;
   minutesUrl?: string;
   cancelled?: boolean;
-  lat?: number; // map pin (set via the location picker)
+  lat?: number;        // map pin (set via the location picker)
   lng?: number;
+  // M365 calendar fields (present when meetings came from Graph rather
+  // than the in-memory fixture)
+  type?: MeetingTypeSlug;
+  source?: string;     // human-readable source calendar name
+  organizerName?: string;
+  organizerUpn?: string;
+  joinUrl?: string;    // Teams join URL if isOnlineMeeting
+  webLink?: string;    // Outlook web link
 }
 
 // Public, transparent band expenditure by program area. The real figures come

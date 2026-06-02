@@ -25,6 +25,29 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { SKINTYEE_SECURITY_GROUPS } from './skintyee-groups';
+import {
+  SKINTYEE_MEETING_TYPES,
+  MEETING_SOURCE_CALENDARS,
+  meetingTypeByCategory,
+  meetingTypeBySlug,
+  MeetingSource,
+} from './skintyee-meeting-types';
+
+export interface BandMeetingFromGraph {
+  id: string;          // Graph event id
+  title: string;
+  agenda: string;      // body.content (plain text preview)
+  location: string;
+  startsAt: string;    // ISO
+  endsAt?: string;
+  cancelled?: boolean;
+  typeSlug: string;     // matched from categories[]; 'band-meeting' / 'council-meeting' / …
+  source: string;       // human-readable source calendar (e.g. "Skin Tyee Council (M365)")
+  organizerName?: string;
+  organizerUpn?: string;
+  joinUrl?: string;     // Teams join URL if isOnlineMeeting
+  webLink?: string;     // Outlook web link
+}
 
 // ---- Types ---------------------------------------------------------------
 
@@ -722,6 +745,144 @@ export class GraphFeedService {
     }
 
     return Array.from(desired).sort();
+  }
+
+  // ---- Band Meetings (M365 calendars + Outlook categories) -------------
+  //
+  // Reads events from the three source calendars in MEETING_SOURCE_CALENDARS
+  // (bandmanager@ shared inbox + Skin Tyee Council M365 + Skin Tyee
+  // Management M365), filters by Outlook category (events tagged with
+  // 'Band Meeting' / 'Council Meeting' / 'Staff Meeting' / 'Public Event'
+  // / 'Closed Session' from SKINTYEE_MEETING_TYPES), and returns
+  // normalized BandMeetingFromGraph rows.
+  //
+  // Why categories not separate calendars: organizers schedule from their
+  // existing flow; one click on Categorize tags the event with its type.
+  // See docs/features/meeting-types.md.
+  async getBandMeetings(opts?: {
+    typeSlug?: string;    // filter to a single type
+    from?: Date;          // ISO-8601 window start (default: now)
+    to?: Date;            // window end (default: now + 90d)
+  }): Promise<BandMeetingFromGraph[]> {
+    const from = (opts?.from ?? new Date()).toISOString();
+    const to   = (opts?.to   ?? new Date(Date.now() + 90 * 86400_000)).toISOString();
+
+    // If a specific type was requested, only match that category;
+    // otherwise match ANY of our catalog categories.
+    const wantedCategories = new Set(
+      (opts?.typeSlug
+        ? SKINTYEE_MEETING_TYPES.filter((t) => t.slug === opts.typeSlug)
+        : SKINTYEE_MEETING_TYPES
+      ).map((t) => t.category.toLowerCase())
+    );
+
+    // Walk all source calendars in parallel and merge results.
+    const results: BandMeetingFromGraph[] = [];
+    await Promise.all(MEETING_SOURCE_CALENDARS.map(async (source) => {
+      // For user calendars use /users/{upn}/calendarView (which honors a
+      // start/end window and expands recurring events). For groups, the
+      // equivalent is /groups/{id}/calendarView.
+      const base = source.kind === 'user'
+        ? `/users/${source.upn}/calendarView`
+        : `/groups/${source.groupId}/calendarView`;
+      const url = `${base}?startDateTime=${from}&endDateTime=${to}` +
+                  `&$select=id,subject,bodyPreview,location,start,end,isCancelled,categories,organizer,onlineMeeting,webLink,isOnlineMeeting`;
+
+      try {
+        const events = await this.graphPaged<any>(url);
+        for (const e of events) {
+          const cats = (e.categories ?? []).map((c: string) => c.toLowerCase());
+          // Match the first catalog category we find; events tagged with
+          // more than one of our categories pick the first hit (rare).
+          const hitCat = cats.find((c: string) => wantedCategories.has(c));
+          if (!hitCat) continue;
+          const type = meetingTypeByCategory.get(hitCat)!;
+
+          results.push({
+            id: e.id,
+            title: e.subject ?? '(no subject)',
+            agenda: (e.bodyPreview ?? '').slice(0, 500),
+            location: e.location?.displayName ?? '',
+            startsAt: e.start?.dateTime,
+            endsAt:   e.end?.dateTime,
+            cancelled: !!e.isCancelled,
+            typeSlug: type.slug,
+            source: source.name,
+            organizerName: e.organizer?.emailAddress?.name,
+            organizerUpn:  e.organizer?.emailAddress?.address?.toLowerCase(),
+            joinUrl: e.onlineMeeting?.joinUrl,
+            webLink: e.webLink,
+          });
+        }
+      } catch (err) {
+        this.log.warn(`getBandMeetings: couldn't read ${source.name}: ${err}`);
+      }
+    }));
+
+    // De-dupe by id (an event lives on one calendar but if a member of the
+    // group calendar mirrors it elsewhere we'd see duplicates) + sort.
+    const byId = new Map<string, BandMeetingFromGraph>();
+    for (const r of results) byId.set(r.id, r);
+    return Array.from(byId.values()).sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+  }
+
+  // Create a band meeting in a chosen source calendar. Auto-tags with the
+  // matching Outlook category so it round-trips through getBandMeetings().
+  // Returns the created event's id + webLink.
+  async createBandMeeting(input: {
+    typeSlug: string;
+    sourceIndex?: number;   // index into MEETING_SOURCE_CALENDARS; default 0 (bandmanager@)
+    title: string;
+    agenda?: string;
+    location?: string;
+    startsAt: string;       // ISO
+    endsAt?: string;        // ISO (default: startsAt + 1h)
+    isOnlineMeeting?: boolean;  // create a Teams join URL
+    attendees?: string[];   // UPNs to invite
+  }): Promise<{ id: string; webLink?: string; typeSlug: string; source: string }> {
+    const type = meetingTypeBySlug.get(input.typeSlug);
+    if (!type) throw new Error(`Unknown meeting type: ${input.typeSlug}`);
+
+    const source: MeetingSource = MEETING_SOURCE_CALENDARS[input.sourceIndex ?? 0];
+    if (!source) throw new Error(`Unknown source calendar index: ${input.sourceIndex}`);
+
+    const endsAt = input.endsAt ?? new Date(new Date(input.startsAt).getTime() + 3600_000).toISOString();
+    const body = {
+      subject: input.title,
+      body: { contentType: 'text', content: input.agenda ?? '' },
+      start: { dateTime: input.startsAt, timeZone: 'UTC' },
+      end:   { dateTime: endsAt,         timeZone: 'UTC' },
+      location: input.location ? { displayName: input.location } : undefined,
+      categories: [type.category],
+      isOnlineMeeting: !!input.isOnlineMeeting,
+      ...(input.isOnlineMeeting ? { onlineMeetingProvider: 'teamsForBusiness' } : {}),
+      attendees: (input.attendees ?? []).map((a) => ({
+        emailAddress: { address: a },
+        type: 'required',
+      })),
+    };
+
+    const path = source.kind === 'user'
+      ? `/users/${source.upn}/events`
+      : `/groups/${source.groupId}/events`;
+
+    const tok = await this.getToken();
+    const res = await fetch(`https://graph.microsoft.com/v1.0${path}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${tok}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`createBandMeeting failed ${res.status}: ${text}`);
+    }
+    const created: any = await res.json();
+    return {
+      id: created.id,
+      webLink: created.webLink,
+      typeSlug: type.slug,
+      source: source.name,
+    };
   }
 
   // Stream a user's profile photo binary from Graph. Used by the api/'s

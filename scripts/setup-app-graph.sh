@@ -69,7 +69,7 @@ GRAPH_RESOURCE_ID="00000003-0000-0000-c000-000000000000"
 PERMS=(
   "f10e1f91-74ed-437f-a6fd-d6ae88e26c1f=Role:Tasks.Read.All"        # Planner tasks across tenant
   "62a82d76-70ea-41e2-9197-370581804d09=Role:Group.ReadWrite.All"   # Read M365 Groups (plan owners) + manage security-group membership write-back
-  "798ee544-9d2d-430c-a058-570e29e34338=Role:Calendars.Read"        # Calendar events (incl. Teams meetings)
+  "ef54d2bf-783f-4e0f-bca1-3210c0444d99=Role:Calendars.ReadWrite"   # Calendar events: read (Teams meetings) + create Band Meetings
   "df021288-bdef-4463-88db-98f22de89214=Role:User.Read.All"         # Assignee ID → display name lookup
 )
 # Note: Group.ReadWrite.All (62a82d76-…) is a superset of Group.Read.All
