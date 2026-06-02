@@ -1,35 +1,29 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
-import { Badge, Card, Chip, SegmentedButtons, Text } from 'react-native-paper';
+import { Button, Card, Chip, ProgressBar, SegmentedButtons, Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import moment from 'moment';
-import { NoContent, PageContainer, PageContent } from 'skintyee/components/layout';
+import { NoContent, PageContainer, PageContent, colorAt } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { loadFeed } from 'skintyee/store/modules/feed';
-import { loadNotifications } from 'skintyee/store/modules/notifications';
+import { loadRollup } from 'skintyee/store/modules/planner';
+import { loadTimeEntries } from 'skintyee/store/modules/timekeeping';
 import { FeedItem, Role } from 'skintyee/models';
 import { theme } from 'skintyee/styles';
 
 // ----------------------------------------------------------------------------
-// Homescreen — the redesigned "Home" tab. Per ADR-14 and
+// Homescreen — the "Home" tab. Per ADR-14 and
 // docs/features/planner-dashboard.md.
 //
-// Two sections:
-//
-//   1. NOTIFICATIONS strip — manually-entered app notifications
-//      (water boil advisory, council announcements, etc.) PLUS
-//      Planner tasks surfaced as alerts when they're overdue / due
-//      in next 24h / recently assigned. Rendered inline as cards so
-//      users see the actual content, not just a count.
-//
-//   2. THIS WEEK feed (calendar OR list toggle) — scheduled events
+//   1. THIS WEEK feed (calendar OR list toggle) — scheduled events
 //      (community salmon BBQ etc.) + Teams meetings + Planner due
 //      dates as time-bound items. Same items as the Events tab,
 //      promoted here for the next 7 days.
 //
-// A Planner task can appear in BOTH sections — once as an alert (in
-// notifications) and once as a time-bound calendar item (in This
-// week). That's intentional UX: tasks deserve aggressive surfacing.
+//   2. ADMIN TOOLS (staff + admin only, additive below the feed) —
+//      Planner board rollup across program areas + Time keeping
+//      summary. Was on the Records (Financial Summary) screen; moved
+//      here so admins land on operational state by default.
 // ----------------------------------------------------------------------------
 
 type FeedView = 'list' | 'calendar';
@@ -48,15 +42,6 @@ const SOURCE_COLORS: Record<FeedItem['source'], string> = {
   'notification':  theme.colors.primary,
 };
 
-const CATEGORY_ICONS: Record<string, string> = {
-  Health: 'medical-bag',
-  Safety: 'alert-octagon',
-  Council: 'gavel',
-  Events: 'calendar-star',
-  Programs: 'account-group',
-  News: 'newspaper-variant-outline',
-  Announcements: 'bullhorn-outline',
-};
 
 function timeOf(item: FeedItem): string | undefined {
   return item.startAt ?? item.dueAt;
@@ -81,49 +66,6 @@ function formatRange(items: FeedItem[]): string {
   const last = timeOf(items[items.length - 1]);
   if (!first || !last) return '';
   return `${moment(first).format('MMM D')} – ${moment(last).format('MMM D')}`;
-}
-
-// ---- Notification-style card (used in the notifications strip) -------------
-//
-// Renders both AppNotification objects AND FeedItems with source='planner-task'
-// in the same visual style — left border accent, icon, title, secondary text.
-
-function NotificationCard({
-  icon, color, title, subtitle, badge,
-}: {
-  icon: string;
-  color: string;
-  title: string;
-  subtitle: string;
-  badge?: string;
-}) {
-  return (
-    <Card
-      style={{
-        marginBottom: 8,
-        backgroundColor: theme.colors.darkDefault,
-        borderLeftWidth: 3,
-        borderLeftColor: color,
-      }}
-    >
-      <Card.Content>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <MaterialCommunityIcons name={icon} size={20} color={color} style={{ marginRight: 8 }} />
-          <Text style={{ color: theme.colors.text, fontSize: 14, flex: 1 }} numberOfLines={2}>
-            {title}
-          </Text>
-          {badge ? (
-            <Chip compact style={{ backgroundColor: theme.colors.secondary, marginLeft: 6 }} textStyle={{ fontSize: 10 }}>
-              {badge}
-            </Chip>
-          ) : null}
-        </View>
-        <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginTop: 4, marginLeft: 28 }}>
-          {subtitle}
-        </Text>
-      </Card.Content>
-    </Card>
-  );
 }
 
 // ---- Calendar (scheduled-stuff) card ---------------------------------------
@@ -207,72 +149,35 @@ export default function Dashboard({ navigation }: any) {
   // not for any conditional UI on the homescreen (which by design shows
   // the same shape to everyone, just with role-tiered ITEMS).
   const role = useAppSelector((s) => s.auth.role) as Role;
+  const isStaffOrAdmin = role === 'staff' || role === 'admin';
   const { items, loading, loaded } = useAppSelector((s) => s.feed);
-  const appNotifications = useAppSelector((s) => s.notifications.entities);
+
+  // Planner rollup + time entries — admin-tools section below the feed
+  const rollup = useAppSelector((s) => s.planner.rollup);
+  const timeEntries = useAppSelector((s) => s.timekeeping.entities);
+  const pendingApprovals = timeEntries.filter((t) => !t.approved).length;
+  const hoursLogged = timeEntries.reduce((s, t) => s + t.hours, 0);
 
   const [view, setView] = useState<FeedView>('list');
 
-  // Pull this week's worth of feed + notifications on mount.
+  // Pull this week's feed on mount; staff/admin also pull Planner + time.
   useEffect(() => {
     const from = moment().startOf('day').toISOString();
     const to = moment().add(7, 'days').endOf('day').toISOString();
     dispatch(loadFeed({ role, from, to }));
-    dispatch(loadNotifications());
-  }, [dispatch, role]);
-
-  // ---- Notifications strip data -------------------------------------------
-  // Merge: (a) manually-entered AppNotifications (water boil advisory etc.)
-  //        (b) Planner tasks that are overdue OR due in the next 24h
-  // — sorted with the most-urgent (overdue) first.
-
-  const notificationItems = useMemo(() => {
-    const fromNotifications = appNotifications.slice(0, 10).map((n) => ({
-      key: `nt-${n._id}`,
-      kind: 'app-notification' as const,
-      title: n.title,
-      subtitle: `${n.category} · ${moment(n.createdAt).fromNow()}`,
-      icon: CATEGORY_ICONS[n.category] ?? 'bell-outline',
-      color: n.category === 'Health' || n.category === 'Safety' ? theme.colors.accent : theme.colors.primary,
-      badge: !n.read ? 'NEW' : undefined,
-      sortKey: -new Date(n.createdAt).getTime(),
-      isUnread: !n.read,
-    }));
-
-    const fromPlanner = items
-      .filter((it) => it.source === 'planner-task' && (isOverdue(it) || isDueSoon(it)))
-      .map((it) => ({
-        key: it.id,
-        kind: 'planner-task' as const,
-        title: it.title,
-        subtitle: isOverdue(it)
-          ? `OVERDUE · ${moment(it.dueAt).fromNow(true)} late · ${it.category ?? 'Planner'}`
-          : `Due ${moment(it.dueAt).fromNow()} · ${it.category ?? 'Planner'}`,
-        icon: isOverdue(it) ? 'alert' : 'clock-alert-outline',
-        color: isOverdue(it) ? theme.colors.accent : '#0078D4',
-        badge: isOverdue(it) ? 'OVERDUE' : 'DUE SOON',
-        sortKey: new Date(it.dueAt ?? 0).getTime(), // overdue earliest first → most-overdue at top
-        isUnread: true,
-      }));
-
-    // Combine, sort: overdue planner first, then due-soon planner, then notifications by date.
-    return [...fromPlanner, ...fromNotifications]
-      .sort((a, b) => {
-        if (a.kind === 'planner-task' && b.kind !== 'planner-task') return -1;
-        if (a.kind !== 'planner-task' && b.kind === 'planner-task') return 1;
-        return a.sortKey - b.sortKey;
-      })
-      .slice(0, 6);
-  }, [items, appNotifications]);
-
-  const unreadCount = notificationItems.filter((n) => n.isUnread).length;
+    if (isStaffOrAdmin) {
+      dispatch(loadRollup());
+      dispatch(loadTimeEntries());
+    }
+  }, [dispatch, role, isStaffOrAdmin]);
 
   // ---- "This week" feed items (scheduled stuff) ---------------------------
-  // Same source as before; the calendar/list emphasizes WHEN, not WHAT.
+  // Notifications live in their own tab; the calendar/list here is WHEN-first.
 
   const visible = useMemo(() => {
     const horizon = Date.now() + 7 * 24 * 60 * 60 * 1000;
     return items.filter((it) => {
-      // Notifications already shown above; don't dupe in the calendar
+      // Notifications have their own tab — don't dupe them here
       if (it.source === 'notification') return false;
       const t = timeOf(it);
       if (!t) return false;
@@ -286,43 +191,8 @@ export default function Dashboard({ navigation }: any) {
   return (
     <PageContainer>
       <PageContent>
-        {/* ── NOTIFICATIONS strip ─────────────────────────────────────────── */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-          <MaterialCommunityIcons name="bell-outline" size={18} color={theme.colors.primary} style={{ marginRight: 6 }} />
-          <Text style={{ color: theme.colors.text, fontSize: 16, flex: 1 }}>Notifications</Text>
-          {unreadCount > 0 ? (
-            <Badge style={{ backgroundColor: theme.colors.primary }}>{unreadCount}</Badge>
-          ) : null}
-        </View>
-
-        {notificationItems.length === 0 ? (
-          <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 16 }}>
-            <Card.Content>
-              <Text style={{ color: theme.colors.textDarker }}>No notifications. You're all caught up.</Text>
-            </Card.Content>
-          </Card>
-        ) : (
-          <>
-            {notificationItems.map((n) => (
-              <NotificationCard
-                key={n.key}
-                icon={n.icon}
-                color={n.color}
-                title={n.title}
-                subtitle={n.subtitle}
-                badge={n.badge}
-              />
-            ))}
-            <TouchableOpacity onPress={() => navigation.navigate('notifications')}>
-              <Text style={{ color: theme.colors.accent, fontSize: 12, marginBottom: 16, marginTop: -2 }}>
-                See all notifications →
-              </Text>
-            </TouchableOpacity>
-          </>
-        )}
-
         {/* ── THIS WEEK feed (Calendar | List) ────────────────────────────── */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, marginTop: 4 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
           <MaterialCommunityIcons name="calendar-blank-outline" size={18} color={theme.colors.text} style={{ marginRight: 6 }} />
           <Text style={{ color: theme.colors.text, fontSize: 16, flex: 1 }}>
             This week {formatRange(visible) ? `· ${formatRange(visible)}` : ''}
@@ -349,6 +219,124 @@ export default function Dashboard({ navigation }: any) {
         ) : (
           <CalendarView items={visible} />
         )}
+
+        {/* ── ADMIN TOOLS (staff + admin) ───────────────────────────────────
+            Moved here from the Financial Summary screen — Planner board
+            rollup + Time keeping summary. Not the right home for budget
+            transparency content; it IS the right home for what an admin
+            opens the app to see. */}
+        {isStaffOrAdmin ? (
+          <View style={{ marginTop: 24 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <MaterialCommunityIcons name="shield-account" size={20} color={theme.colors.accent} style={{ marginRight: 8 }} />
+              <Text style={{ color: theme.colors.accent, fontSize: 16, fontWeight: '600' }}>Admin tools</Text>
+              <Chip compact style={{ marginLeft: 8, backgroundColor: theme.colors.secondary }} textStyle={{ fontSize: 10 }}>
+                {role}
+              </Chip>
+            </View>
+
+            {/* Planner rollup card */}
+            <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12, borderLeftWidth: 3, borderLeftColor: theme.colors.accent }}>
+              <Card.Content>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                  <MaterialCommunityIcons name="checkbox-marked-circle-outline" size={18} color={theme.colors.accent} style={{ marginRight: 6 }} />
+                  <Text style={{ color: theme.colors.text, fontSize: 15 }}>Tasks across program areas</Text>
+                </View>
+                {!rollup ? (
+                  <Text style={{ color: theme.colors.textDarker }}>Loading Planner data…</Text>
+                ) : (
+                  <>
+                    <View style={{ flexDirection: 'row', marginBottom: 12 }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: theme.colors.primary, fontSize: 22 }}>{rollup.totalOpen}</Text>
+                        <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Open</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: rollup.totalOverdue > 0 ? theme.colors.accent : theme.colors.success, fontSize: 22 }}>{rollup.totalOverdue}</Text>
+                        <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Overdue</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: theme.colors.success, fontSize: 22 }}>{rollup.totalCompleted}</Text>
+                        <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Done</Text>
+                      </View>
+                    </View>
+
+                    {rollup.byProgramArea.slice(0, 6).map((row, idx) => {
+                      const total = row.open + row.completed;
+                      const pct = total > 0 ? row.completed / total : 0;
+                      return (
+                        <View key={row.programArea} style={{ marginBottom: 8 }}>
+                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 }}>
+                            <Text style={{ color: theme.colors.text, fontSize: 13 }}>{row.programArea}</Text>
+                            <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>
+                              {row.open} open · {row.completed} done
+                            </Text>
+                          </View>
+                          <ProgressBar progress={pct} color={colorAt(idx)} style={{ height: 6, backgroundColor: theme.colors.secondary }} />
+                        </View>
+                      );
+                    })}
+
+                    {rollup.topOverdue.length > 0 ? (
+                      <>
+                        <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginTop: 10, marginBottom: 6, textTransform: 'uppercase' }}>
+                          Top overdue
+                        </Text>
+                        {rollup.topOverdue.map((t) => (
+                          <View key={t.id} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                            <MaterialCommunityIcons name="alert-circle-outline" size={14} color={theme.colors.accent} style={{ marginRight: 4 }} />
+                            <Text style={{ color: theme.colors.text, fontSize: 12, flex: 1 }} numberOfLines={1}>
+                              {t.title}
+                            </Text>
+                            {t.categoryLabels?.[0] ? (
+                              <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginLeft: 6 }}>
+                                {t.categoryLabels[0]}
+                              </Text>
+                            ) : null}
+                          </View>
+                        ))}
+                      </>
+                    ) : null}
+
+                    <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginTop: 10 }}>
+                      From Microsoft Planner · refreshed {new Date(rollup.generatedAt).toLocaleTimeString()}
+                    </Text>
+                  </>
+                )}
+              </Card.Content>
+            </Card>
+
+            {/* Time keeping summary */}
+            <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
+              <Card.Content>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                  <MaterialCommunityIcons name="clock-outline" size={18} color={theme.colors.primary} style={{ marginRight: 6 }} />
+                  <Text style={{ color: theme.colors.text, fontSize: 15, flex: 1 }}>Time keeping</Text>
+                </View>
+                <View style={{ flexDirection: 'row' }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: pendingApprovals > 0 ? theme.colors.accent : theme.colors.success, fontSize: 22 }}>{pendingApprovals}</Text>
+                    <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Entries to approve</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: theme.colors.primary, fontSize: 22 }}>{hoursLogged}</Text>
+                    <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Hours logged</Text>
+                  </View>
+                </View>
+                <Button
+                  mode="outlined"
+                  compact
+                  icon="clock-outline"
+                  textColor={theme.colors.primary}
+                  style={{ marginTop: 12, alignSelf: 'flex-start' }}
+                  onPress={() => navigation.navigate('timekeeping')}
+                >
+                  Open time keeping
+                </Button>
+              </Card.Content>
+            </Card>
+          </View>
+        ) : null}
       </PageContent>
     </PageContainer>
   );

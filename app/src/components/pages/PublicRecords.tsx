@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
-import { Button, Card, Chip, ProgressBar, SegmentedButtons, Text } from 'react-native-paper';
+import { Card, SegmentedButtons, Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { PageContainer, PageContent, NoContent, BarChart, PieChart, colorAt } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { loadExpenditures, loadMajorProjects } from 'skintyee/store/modules/transparency';
-import { loadRollup } from 'skintyee/store/modules/planner';
-import { loadTimeEntries } from 'skintyee/store/modules/timekeeping';
 import { theme } from 'skintyee/styles';
 
 // ----------------------------------------------------------------------------
@@ -157,146 +155,13 @@ function MemberSection({ navigation }: { navigation: any }) {
   );
 }
 
-// ---- Admin view: operational management depth -----------------------------
-
-function AdminSection({ navigation }: { navigation: any }) {
-  const dispatch = useAppDispatch();
-  const role = useAppSelector((s) => s.auth.role);
-  const rollup = useAppSelector((s) => s.planner.rollup);
-  const timeEntries = useAppSelector((s) => s.timekeeping.entities);
-  const pendingApprovals = timeEntries.filter((t) => !t.approved).length;
-  const hoursLogged = timeEntries.reduce((s, t) => s + t.hours, 0);
-
-  useEffect(() => {
-    dispatch(loadRollup());
-    dispatch(loadTimeEntries());
-  }, [dispatch]);
-
-  return (
-    <View style={{ marginTop: 24 }}>
-      {/* Section divider with admin badge */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-        <MaterialCommunityIcons name="shield-account" size={20} color={theme.colors.accent} style={{ marginRight: 8 }} />
-        <Text style={{ color: theme.colors.accent, fontSize: 16, fontWeight: '600' }}>Admin tools</Text>
-        <Chip compact style={{ marginLeft: 8, backgroundColor: theme.colors.secondary }} textStyle={{ fontSize: 10 }}>
-          {role}
-        </Chip>
-      </View>
-
-      {/* Planner rollup card */}
-      <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12, borderLeftWidth: 3, borderLeftColor: theme.colors.accent }}>
-        <Card.Content>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-            <MaterialCommunityIcons name="checkbox-marked-circle-outline" size={18} color={theme.colors.accent} style={{ marginRight: 6 }} />
-            <Text style={{ color: theme.colors.text, fontSize: 15 }}>Tasks across program areas</Text>
-          </View>
-
-          {!rollup ? (
-            <Text style={{ color: theme.colors.textDarker }}>Loading Planner data…</Text>
-          ) : (
-            <>
-              <View style={{ flexDirection: 'row', marginBottom: 12 }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: theme.colors.primary, fontSize: 22 }}>{rollup.totalOpen}</Text>
-                  <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Open</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: rollup.totalOverdue > 0 ? theme.colors.accent : theme.colors.success, fontSize: 22 }}>{rollup.totalOverdue}</Text>
-                  <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Overdue</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: theme.colors.success, fontSize: 22 }}>{rollup.totalCompleted}</Text>
-                  <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Done</Text>
-                </View>
-              </View>
-
-              {/* Per-program-area breakdown */}
-              {rollup.byProgramArea.slice(0, 6).map((row, idx) => {
-                const total = row.open + row.completed;
-                const pct = total > 0 ? row.completed / total : 0;
-                return (
-                  <View key={row.programArea} style={{ marginBottom: 8 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 }}>
-                      <Text style={{ color: theme.colors.text, fontSize: 13 }}>{row.programArea}</Text>
-                      <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>
-                        {row.open} open · {row.completed} done
-                      </Text>
-                    </View>
-                    <ProgressBar progress={pct} color={colorAt(idx)} style={{ height: 6, backgroundColor: theme.colors.secondary }} />
-                  </View>
-                );
-              })}
-
-              {/* Top overdue */}
-              {rollup.topOverdue.length > 0 ? (
-                <>
-                  <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginTop: 10, marginBottom: 6, textTransform: 'uppercase' }}>
-                    Top overdue
-                  </Text>
-                  {rollup.topOverdue.map((t) => (
-                    <View key={t.id} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                      <MaterialCommunityIcons name="alert-circle-outline" size={14} color={theme.colors.accent} style={{ marginRight: 4 }} />
-                      <Text style={{ color: theme.colors.text, fontSize: 12, flex: 1 }} numberOfLines={1}>
-                        {t.title}
-                      </Text>
-                      {t.categoryLabels?.[0] ? (
-                        <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginLeft: 6 }}>
-                          {t.categoryLabels[0]}
-                        </Text>
-                      ) : null}
-                    </View>
-                  ))}
-                </>
-              ) : null}
-
-              <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginTop: 10 }}>
-                From Microsoft Planner · refreshed {new Date(rollup.generatedAt).toLocaleTimeString()}
-              </Text>
-            </>
-          )}
-        </Card.Content>
-      </Card>
-
-      {/* Time keeping summary */}
-      <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
-        <Card.Content>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-            <MaterialCommunityIcons name="clock-outline" size={18} color={theme.colors.primary} style={{ marginRight: 6 }} />
-            <Text style={{ color: theme.colors.text, fontSize: 15, flex: 1 }}>Time keeping</Text>
-          </View>
-          <View style={{ flexDirection: 'row' }}>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: pendingApprovals > 0 ? theme.colors.accent : theme.colors.success, fontSize: 22 }}>{pendingApprovals}</Text>
-              <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Entries to approve</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: theme.colors.primary, fontSize: 22 }}>{hoursLogged}</Text>
-              <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Hours logged</Text>
-            </View>
-          </View>
-          <Button
-            mode="outlined"
-            compact
-            icon="clock-outline"
-            textColor={theme.colors.primary}
-            style={{ marginTop: 12, alignSelf: 'flex-start' }}
-            onPress={() => navigation.navigate('timekeeping')}
-          >
-            Open time keeping
-          </Button>
-        </Card.Content>
-      </Card>
-
-    </View>
-  );
-}
-
-// ---- Main page: stacks Member view + (if role allows) Admin view ----------
+// ---- Main page ------------------------------------------------------------
+// Admin-tools rollup (Planner + time keeping) used to render below this
+// screen for staff + admin. It moved to the Dashboard so admins land on
+// operational state by default — see app/src/components/pages/Dashboard.tsx.
 
 export default function PublicRecords({ navigation }: any) {
   const dispatch = useAppDispatch();
-  const role = useAppSelector((s) => s.auth.role);
-  const isStaffOrAdmin = role === 'staff' || role === 'admin';
 
   useEffect(() => {
     dispatch(loadExpenditures());
@@ -307,7 +172,6 @@ export default function PublicRecords({ navigation }: any) {
     <PageContainer>
       <PageContent>
         <MemberSection navigation={navigation} />
-        {isStaffOrAdmin ? <AdminSection navigation={navigation} /> : null}
       </PageContent>
     </PageContainer>
   );
