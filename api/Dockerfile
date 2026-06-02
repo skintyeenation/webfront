@@ -56,8 +56,13 @@ RUN if [ -f pnpm-lock.yaml ]; then \
 # ---------- runtime ----------------------------------------------------------
 FROM node:22-alpine AS runtime
 
-# Add wget for the container's HEALTHCHECK (alpine doesn't ship it).
-RUN apk add --no-cache wget
+# - wget       — for the HEALTHCHECK directive
+# - openssl    — Prisma's musl engine binary dlopens libssl.so.3 (and
+#                libcrypto.so.3) at runtime. Alpine's base image doesn't
+#                include them. Without this the api/ logs:
+#                  'Unable to require linux-musl…/libquery_engine.so.node'
+#                and PrismaService silently falls back to in-memory mode.
+RUN apk add --no-cache wget openssl ca-certificates
 
 WORKDIR /app
 

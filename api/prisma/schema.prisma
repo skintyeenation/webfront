@@ -11,7 +11,13 @@
 // reviewable.
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  // Generate engines for the Alpine (musl) runtime our Docker image uses.
+  // Without this Prisma picks the wrong libssl variant at runtime —
+  // saw 'Defaulting to openssl-1.1.x' + 'Unable to require .so.node'
+  // because node:22-alpine ships openssl 3, not 1.1. Pinning both
+  // targets so local (darwin/linux) dev still works alongside prod.
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
