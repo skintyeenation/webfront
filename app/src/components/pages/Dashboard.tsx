@@ -212,15 +212,28 @@ function CalendarView({ items }: { items: FeedItem[] }) {
                   {day.date()}
                 </Text>
                 {itemCount > 0 ? (
-                  <View
-                    style={{
-                      width: 5,
-                      height: 5,
-                      borderRadius: 2.5,
-                      backgroundColor: isSelected ? '#000' : theme.colors.accent,
-                      marginTop: 2,
-                    }}
-                  />
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 3 }}>
+                    <View
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: isSelected ? '#000' : theme.colors.accent,
+                      }}
+                    />
+                    {itemCount > 1 ? (
+                      <Text
+                        style={{
+                          color: isSelected ? '#000' : theme.colors.text,
+                          fontSize: 10,
+                          fontWeight: '600',
+                          marginLeft: 3,
+                        }}
+                      >
+                        {itemCount}
+                      </Text>
+                    ) : null}
+                  </View>
                 ) : null}
               </TouchableOpacity>
             );
