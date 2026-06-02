@@ -1,0 +1,51 @@
+// Customized Expo SDK 48 webpack config.
+//
+// Why:
+//   pnpm's symlinked node_modules + source-map-loader = ENOENT when source-
+//   map-loader tries to resolve transitive deps' source maps at paths the
+//   pnpm layout doesn't have (e.g. `node_modules/react-redux/node_modules/
+//   react-is/index.js`).
+//
+//   Telling source-map-loader to skip ALL node_modules is the standard
+//   workaround. Our own source maps still get processed.
+
+const createExpoWebpackConfigAsync = require('@expo/webpack-config');
+
+module.exports = async function (env, argv) {
+  const config = await createExpoWebpackConfigAsync(env, argv);
+
+  // Find the source-map-loader rule (it's nested inside a `oneOf` block on
+  // some Expo SDK versions, top-level on others) and add a node_modules
+  // exclusion to it.
+  const visit = (rules) => {
+    if (!Array.isArray(rules)) return;
+    for (const rule of rules) {
+      if (rule.oneOf) visit(rule.oneOf);
+      if (typeof rule.loader === 'string' && rule.loader.includes('source-map-loader')) {
+        rule.exclude = /node_modules/;
+      }
+      if (Array.isArray(rule.use)) {
+        for (const useEntry of rule.use) {
+          if (typeof useEntry === 'string' && useEntry.includes('source-map-loader')) {
+            rule.exclude = /node_modules/;
+          }
+          if (typeof useEntry === 'object' && useEntry?.loader?.includes?.('source-map-loader')) {
+            rule.exclude = /node_modules/;
+          }
+        }
+      }
+    }
+  };
+  visit(config.module?.rules ?? []);
+
+  // Also silence the resulting warning chatter — webpack still emits
+  // warnings about missing source maps even when source-map-loader is
+  // excluded.
+  config.ignoreWarnings = [
+    ...(config.ignoreWarnings ?? []),
+    /Failed to parse source map/,
+    /ENOENT: no such file or directory/,
+  ];
+
+  return config;
+};
