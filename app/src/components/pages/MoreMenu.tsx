@@ -21,15 +21,20 @@ const ACCOUNT_ITEMS: MoreItem[] = [
 ];
 
 // Admin-only tools — grouped under the Admin tab for admins.
+//   - "Financial Records" now opens the existing Records screen (bylaws,
+//     notices, reports, forms). The screen used to be its own bottom tab;
+//     after we promoted Meetings to the tab, Records lives here.
+//   - "Budgets & Statements" preserves access to the Financials screen,
+//     which used to share the Financial Records label.
 const ADMIN_ITEMS: MoreItem[] = [
-  { route: 'timekeeping', label: 'Time Keeping', description: 'Worker hours & approvals', icon: 'clock-outline', roles: ['admin'] },
-  { route: 'financials', label: 'Financial Records', description: 'Budgets & statements', icon: 'cash-multiple', roles: ['admin'] },
+  { route: 'timekeeping',   label: 'Time Keeping',         description: 'Worker hours & approvals',           icon: 'clock-outline', roles: ['admin'] },
+  { route: 'publicRecords', label: 'Financial Records',    description: 'Bylaws, notices, reports & forms',   icon: 'file-document-outline', roles: ['admin'] },
+  { route: 'financials',    label: 'Budgets & Statements', description: 'Financial records & program spend',  icon: 'cash-multiple', roles: ['admin'] },
 ];
 
 // General community items.
 const COMMUNITY_ITEMS: MoreItem[] = [
   { route: 'directory', label: 'Band Member Directory', description: 'Members, council & staff', icon: 'account-group', roles: ['public', 'member', 'staff', 'admin'] },
-  { route: 'meetings', label: 'Band Meetings', description: 'Agendas, schedules & minutes', icon: 'gavel', roles: ['member', 'staff', 'admin'] },
   { route: 'polls', label: 'Polling + Surveys', description: 'Surveys & vote on issues', icon: 'vote-outline', roles: ['public', 'member', 'staff', 'admin'] },
   // Staff submit their own timesheets here; admins use the Time Keeping tool above.
   { route: 'timekeeping', label: 'My Timesheets', description: 'Submit & view your hours', icon: 'clock-outline', roles: ['staff'] },

@@ -41,12 +41,13 @@ import EditMeeting from 'skintyee/components/pages/EditMeeting';
 // Five fixed tabs keep the bottom bar clean. Overflow features live under the
 // 5th tab — "More" for public/members, "Admin" for admins (admin tools grouped
 // there). Events + Notifications sit in the middle.
-const CORE_TABS = ['Home', 'Events', 'Notifications', 'Records'] as const;
+const CORE_TABS = ['Home', 'Events', 'Notifications', 'Meetings'] as const;
 
 const tabIcons: Record<string, string> = {
   Home: 'view-dashboard-outline',
   Events: 'calendar-star',
   Notifications: 'bell-outline',
+  Meetings: 'gavel',
   Records: 'file-document-outline',
   More: 'dots-horizontal',
   Admin: 'shield-account',
@@ -70,12 +71,15 @@ const EventsNavigation = () => (
   </EventsStack.Navigator>
 );
 
-const RecordsStack = createStackNavigator();
-const RecordsNavigation = () => (
-  <RecordsStack.Navigator>
-    <RecordsStack.Screen {...routeConfig.publicRecords} component={PublicRecords} />
-    <RecordsStack.Screen {...routeConfig.expenditureDetail} component={ExpenditureDetail} />
-  </RecordsStack.Navigator>
+// Meetings is now a top-level tab (was inside MoreStack). Owns its
+// detail + create + edit screens.
+const MeetingsStack = createStackNavigator();
+const MeetingsNavigation = () => (
+  <MeetingsStack.Navigator>
+    <MeetingsStack.Screen {...routeConfig.meetings} component={Meetings} />
+    <MeetingsStack.Screen {...routeConfig.meetingCreate} component={CreateMeeting} />
+    <MeetingsStack.Screen {...routeConfig.meetingEdit} component={EditMeeting} />
+  </MeetingsStack.Navigator>
 );
 
 const NotificationsStack = createStackNavigator();
@@ -99,14 +103,16 @@ const MoreNavigation = () => {
       <MoreStack.Screen {...routeConfig.memberDetail} component={MemberDetail} />
       <MoreStack.Screen {...routeConfig.memberCreate} component={AddMember} />
       <MoreStack.Screen {...routeConfig.memberEdit} component={EditMember} />
-      <MoreStack.Screen {...routeConfig.meetings} component={Meetings} />
-      <MoreStack.Screen {...routeConfig.meetingCreate} component={CreateMeeting} />
-      <MoreStack.Screen {...routeConfig.meetingEdit} component={EditMeeting} />
       <MoreStack.Screen {...routeConfig.polls} component={Polls} />
       <MoreStack.Screen {...routeConfig.pollDetail} component={PollDetail} />
       <MoreStack.Screen {...routeConfig.timekeeping} component={TimeKeeping} />
       <MoreStack.Screen {...routeConfig.timesheetCreate} component={AddTimesheet} />
       <MoreStack.Screen {...routeConfig.financials} component={Financials} />
+      {/* Public Records (bylaws / notices / reports / forms) used to be its
+          own tab. Now reachable via the Admin Tools "Financial Records"
+          item (and any deep nav). The screen itself is untouched. */}
+      <MoreStack.Screen {...routeConfig.publicRecords} component={PublicRecords} />
+      <MoreStack.Screen {...routeConfig.expenditureDetail} component={ExpenditureDetail} />
     </MoreStack.Navigator>
   );
 };
@@ -115,7 +121,7 @@ const tabComponents: Record<string, React.ComponentType<any>> = {
   Home: DashboardNavigation,
   Events: EventsNavigation,
   Notifications: NotificationsNavigation,
-  Records: RecordsNavigation,
+  Meetings: MeetingsNavigation,
 };
 
 const Tabs = createMaterialBottomTabNavigator();
