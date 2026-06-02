@@ -108,7 +108,13 @@ function FeedItemCard({ item, onPress }: { item: FeedItem; onPress?: () => void 
   );
 }
 
+// Actual month grid: 7-column wall calendar. Days with items get a dot.
+// Tapping a day opens its items below the grid.
 function CalendarView({ items }: { items: FeedItem[] }) {
+  // Month being browsed — defaults to today's month; arrows move it.
+  const [cursor, setCursor] = useState(() => moment().startOf('month'));
+  const [selectedKey, setSelectedKey] = useState(() => moment().format('YYYY-MM-DD'));
+
   const byDay = useMemo(() => {
     const map = new Map<string, FeedItem[]>();
     for (const it of items) {
@@ -120,22 +126,119 @@ function CalendarView({ items }: { items: FeedItem[] }) {
     return map;
   }, [items]);
 
-  if (byDay.size === 0) {
-    return <NoContent message="Nothing scheduled this week." />;
-  }
+  // Grid spans Sunday-of-first-week → Saturday-of-last-week of the cursor's
+  // month, so the first and last rows include some adjacent-month days.
+  const grid = useMemo(() => {
+    const start = cursor.clone().startOf('month').startOf('week');
+    const end = cursor.clone().endOf('month').endOf('week');
+    const days: moment.Moment[] = [];
+    const d = start.clone();
+    while (d.isSameOrBefore(end)) {
+      days.push(d.clone());
+      d.add(1, 'day');
+    }
+    // 6 rows max
+    const rows: moment.Moment[][] = [];
+    for (let i = 0; i < days.length; i += 7) rows.push(days.slice(i, i + 7));
+    return rows;
+  }, [cursor]);
+
+  const today = moment().startOf('day');
+  const weekDayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  const selectedDayItems = byDay.get(selectedKey) ?? [];
 
   return (
     <View>
-      {Array.from(byDay.entries()).map(([day, dayItems]) => (
-        <View key={day} style={{ marginBottom: 12 }}>
-          <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginBottom: 6, textTransform: 'uppercase' }}>
-            {moment(day).format('dddd, MMM D')}
-          </Text>
-          {dayItems.map((it) => (
-            <FeedItemCard key={it.id} item={it} />
-          ))}
+      {/* Month header with prev/next */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+        <TouchableOpacity onPress={() => setCursor((c) => c.clone().subtract(1, 'month'))} style={{ padding: 4 }}>
+          <MaterialCommunityIcons name="chevron-left" size={22} color={theme.colors.text} />
+        </TouchableOpacity>
+        <Text style={{ flex: 1, textAlign: 'center', color: theme.colors.text, fontSize: 15, fontWeight: '600' }}>
+          {cursor.format('MMMM YYYY')}
+        </Text>
+        <TouchableOpacity onPress={() => setCursor((c) => c.clone().add(1, 'month'))} style={{ padding: 4 }}>
+          <MaterialCommunityIcons name="chevron-right" size={22} color={theme.colors.text} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Day-of-week header */}
+      <View style={{ flexDirection: 'row', marginBottom: 4 }}>
+        {weekDayLabels.map((l, i) => (
+          <Text key={i} style={{ flex: 1, textAlign: 'center', color: theme.colors.textDarker, fontSize: 11 }}>{l}</Text>
+        ))}
+      </View>
+
+      {/* Grid */}
+      {grid.map((week, wi) => (
+        <View key={wi} style={{ flexDirection: 'row' }}>
+          {week.map((day) => {
+            const key = day.format('YYYY-MM-DD');
+            const inMonth = day.month() === cursor.month();
+            const isToday = day.isSame(today, 'day');
+            const isSelected = key === selectedKey;
+            const itemCount = byDay.get(key)?.length ?? 0;
+            return (
+              <TouchableOpacity
+                key={key}
+                style={{
+                  flex: 1,
+                  aspectRatio: 1,
+                  margin: 1,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 6,
+                  backgroundColor: isSelected
+                    ? theme.colors.primary
+                    : isToday
+                    ? theme.colors.secondary
+                    : 'transparent',
+                  borderWidth: isToday && !isSelected ? 1 : 0,
+                  borderColor: theme.colors.primary,
+                }}
+                onPress={() => setSelectedKey(key)}
+              >
+                <Text
+                  style={{
+                    color: isSelected
+                      ? '#000'
+                      : inMonth
+                      ? theme.colors.text
+                      : theme.colors.textDarker,
+                    fontSize: 13,
+                    fontWeight: isToday || isSelected ? '700' : '400',
+                  }}
+                >
+                  {day.date()}
+                </Text>
+                {itemCount > 0 ? (
+                  <View
+                    style={{
+                      width: 5,
+                      height: 5,
+                      borderRadius: 2.5,
+                      backgroundColor: isSelected ? '#000' : theme.colors.accent,
+                      marginTop: 2,
+                    }}
+                  />
+                ) : null}
+              </TouchableOpacity>
+            );
+          })}
         </View>
       ))}
+
+      {/* Selected-day items below the grid */}
+      <View style={{ marginTop: 14 }}>
+        <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginBottom: 6, textTransform: 'uppercase' }}>
+          {moment(selectedKey).format('dddd, MMM D')}
+        </Text>
+        {selectedDayItems.length === 0 ? (
+          <Text style={{ color: theme.colors.textDarker, fontSize: 13 }}>Nothing on this day.</Text>
+        ) : (
+          selectedDayItems.map((it) => <FeedItemCard key={it.id} item={it} />)
+        )}
+      </View>
     </View>
   );
 }
@@ -186,19 +289,19 @@ export default function Dashboard({ navigation }: any) {
     });
   }, [items]);
 
-  // ---- Timesheet cut-off (semi-monthly: 15th + last day of month) ----------
-  // Useful "you have N days to submit" cue on the Time Keeping card. Bi-weekly
-  // would need a tenant-configured anchor date; semi-monthly is calendar-only
-  // and good enough for the POC.
+  // ---- Timesheet cut-off (bi-weekly Fridays) -------------------------------
+  // Anchor is the most recent known cutoff: Friday 2026-05-29. Next cutoff
+  // is the smallest anchor + 14n that's ≥ today. Move the anchor when the
+  // tenant pay cycle changes (or surface it from the api/ when wired).
   const { cutoffDate, daysRemaining } = useMemo(() => {
-    const now = moment();
-    const day = now.date();
-    const cutoff = day <= 15
-      ? now.clone().date(15)
-      : now.clone().endOf('month').startOf('day');
+    const anchor = moment('2026-05-29').startOf('day');   // last cutoff
+    const today = moment().startOf('day');
+    const daysSince = today.diff(anchor, 'days');
+    const remainder = ((daysSince % 14) + 14) % 14;
+    const daysToNext = remainder === 0 ? 0 : 14 - remainder;
     return {
-      cutoffDate: cutoff,
-      daysRemaining: Math.max(0, cutoff.diff(now.clone().startOf('day'), 'days')),
+      cutoffDate: today.clone().add(daysToNext, 'days'),
+      daysRemaining: daysToNext,
     };
   }, []);
 
@@ -346,7 +449,26 @@ export default function Dashboard({ navigation }: any) {
         ) : taskItems.length === 0 ? (
           <NoContent message="No Planner tasks due this week. Clear slate." />
         ) : view === 'list' ? (
-          taskItems.map((it) => <FeedItemCard key={it.id} item={it} />)
+          // List groups items under a date heading so dates aren't lost.
+          (() => {
+            const byDay = new Map<string, typeof taskItems>();
+            for (const it of taskItems) {
+              const t = timeOf(it);
+              if (!t) continue;
+              const key = moment(t).format('YYYY-MM-DD');
+              byDay.set(key, [...(byDay.get(key) ?? []), it]);
+            }
+            return Array.from(byDay.entries()).map(([day, dayItems]) => (
+              <View key={day} style={{ marginBottom: 12 }}>
+                <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginBottom: 6, textTransform: 'uppercase' }}>
+                  {moment(day).format('dddd, MMM D')}
+                </Text>
+                {dayItems.map((it) => (
+                  <FeedItemCard key={it.id} item={it} />
+                ))}
+              </View>
+            ));
+          })()
         ) : (
           <CalendarView items={taskItems} />
         )}
