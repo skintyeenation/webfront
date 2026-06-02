@@ -46,6 +46,29 @@ const BAND_GROUP_LABELS: Record<string, string> = {
 const bandGroupLabel = (slug: string) =>
   BAND_GROUP_LABELS[slug] ?? slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
+// Shared chip styles for the directory row description. Paper's compact
+// chip is still ~26px tall; tighten further and use bottom-margin only
+// so wrapping rows keep consistent gap. `marginRight + marginBottom`
+// gives us a true grid gap that holds at any row count. `paddingVertical`
+// on the chip + matching small fontSize squeeze the inner content to
+// ~22px tall, which sits comfortably under a single-line description.
+const chipRowStyle = { flexDirection: 'row' as const, flexWrap: 'wrap' as const, marginTop: 4 };
+const chipStyle = {
+  marginRight: 4,
+  marginBottom: 4,
+  paddingVertical: 0,
+  minHeight: 22,
+  backgroundColor: theme.colors.secondary,
+};
+const chipTextStyle = { fontSize: 10, marginVertical: 0, lineHeight: 14 };
+const chipOverflowStyle = {
+  color: theme.colors.textDarker,
+  fontSize: 11,
+  marginLeft: 4,
+  marginBottom: 4,
+  alignSelf: 'center' as const,
+};
+
 // Parse "mail|owner" or "mail|member" entries from the seed. Plain "mail"
 // (no pipe) is treated as a manual admin entry with role unknown.
 type MembershipRel = 'owner' | 'member' | 'manual';
@@ -190,24 +213,20 @@ export default function Directory({ navigation }: any) {
                               (catalog at api/src/skintyee-groups.ts). Shown as
                               shield-account chips above the mailbox chips. */}
                           {(item.bandGroups?.length ?? 0) > 0 ? (
-                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 4 }}>
+                            <View style={chipRowStyle}>
                               {(item.bandGroups as string[]).slice(0, 8).map((slug) => (
                                 <Chip
                                   key={`bg-${slug}`}
                                   compact
                                   icon="shield-account"
-                                  style={{
-                                    marginRight: 4,
-                                    marginTop: 2,
-                                    backgroundColor: theme.colors.secondary,
-                                  }}
-                                  textStyle={{ fontSize: 10 }}
+                                  style={chipStyle}
+                                  textStyle={chipTextStyle}
                                 >
                                   {bandGroupLabel(slug)}
                                 </Chip>
                               ))}
                               {item.bandGroups.length > 8 ? (
-                                <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginLeft: 4, alignSelf: 'center' }}>
+                                <Text style={chipOverflowStyle}>
                                   +{item.bandGroups.length - 8} more
                                 </Text>
                               ) : null}
@@ -220,7 +239,7 @@ export default function Directory({ navigation }: any) {
                                 - M365 GROUPS (account-group icon, secondary)
                               Owners of either get a star + accent background. */}
                           {!isShared && memberships.length > 0 ? (
-                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 4 }}>
+                            <View style={chipRowStyle}>
                               {memberships.slice(0, 8).map((raw) => {
                                 const { mail, rel } = parseMembership(raw);
                                 const isOwner = rel === 'owner';
@@ -236,19 +255,15 @@ export default function Directory({ navigation }: any) {
                                     key={raw}
                                     compact
                                     icon={icon}
-                                    style={{
-                                      marginRight: 4,
-                                      marginTop: 2,
-                                      backgroundColor: theme.colors.secondary,
-                                    }}
-                                    textStyle={{ fontSize: 10 }}
+                                    style={chipStyle}
+                                    textStyle={chipTextStyle}
                                   >
                                     {shortMailbox(mail)}
                                   </Chip>
                                 );
                               })}
                               {memberships.length > 8 ? (
-                                <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginLeft: 4, alignSelf: 'center' }}>
+                                <Text style={chipOverflowStyle}>
                                   +{memberships.length - 8} more
                                 </Text>
                               ) : null}
