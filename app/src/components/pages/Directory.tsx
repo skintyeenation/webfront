@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, TouchableOpacity, View } from 'react-native';
-import { Avatar, Button, Chip, Divider, List, SegmentedButtons, Text } from 'react-native-paper';
+import { Avatar, Button, Chip, Divider, List, SegmentedButtons, Searchbar, Text } from 'react-native-paper';
 import { PageContainer, PageContent, NoContent, AdminAddButton } from 'skintyee/components/layout';
 import { apiFactory } from 'skintyee/store/apis';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
@@ -103,6 +103,7 @@ export default function Directory({ navigation }: any) {
   const role = useAppSelector((s) => s.auth.role);
   const isAdmin = role === 'admin';
   const [filter, setFilter] = useState<Filter>('licensed-user');
+  const [query, setQuery] = useState('');
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | undefined>();
   const [syncSummary, setSyncSummary] = useState<string | undefined>();
@@ -133,17 +134,43 @@ export default function Directory({ navigation }: any) {
   // Bucket counts so the toggle labels show "Members (N)" / "Shared (M)".
   // Also pre-compute the set of UPNs that are themselves shared mailboxes,
   // so chip rendering can tag those as "shared inbox" instead of "group".
+  // Search filters AFTER bucketing — i.e. the tab still shows accurate
+  // bucket totals, but the rendered list narrows to matches.
   const { licensed, shared, currentList, sharedMailboxUpns } = useMemo(() => {
     const lic = entities.filter((e: any) => (e.accountType ?? 'licensed-user') === 'licensed-user');
     const shr = entities.filter((e: any) => e.accountType === 'shared-inbox');
     const sharedSet = new Set<string>(shr.map((e: any) => (e.upn ?? '').toLowerCase()));
+
+    const base = filter === 'licensed-user' ? lic : shr;
+    const q = query.trim().toLowerCase();
+    // Match on: name, email, upn, the legacy role field, the appRole
+    // (admin/staff/member/public), and any bandGroups slug or its display
+    // label (so a search for "council" matches Skin Tyee Council members).
+    const matches = (e: any) => {
+      if (!q) return true;
+      const hay = [
+        e.name,
+        e.email,
+        e.upn,
+        e.title,
+        e.role,
+        e.appRole,
+        ...(e.bandGroups ?? []),
+        ...(e.bandGroups ?? []).map((slug: string) => bandGroupLabel(slug)),
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return hay.includes(q);
+    };
+
     return {
       licensed: lic,
       shared: shr,
-      currentList: filter === 'licensed-user' ? lic : shr,
+      currentList: base.filter(matches),
       sharedMailboxUpns: sharedSet,
     };
-  }, [entities, filter]);
+  }, [entities, filter, query]);
 
   return (
     <PageContainer>
@@ -177,6 +204,19 @@ export default function Directory({ navigation }: any) {
             ) : null}
           </View>
         ) : null}
+
+        {/* Search — matches on name, email, upn, title, role, appRole,
+            and any bandGroup slug or display label. */}
+        <Searchbar
+          placeholder="Search by name, email, or role"
+          value={query}
+          onChangeText={setQuery}
+          mode="bar"
+          style={{ marginBottom: 8, backgroundColor: theme.colors.darkDefault }}
+          inputStyle={{ color: theme.colors.text, fontSize: 14 }}
+          iconColor={theme.colors.textDarker}
+          placeholderTextColor={theme.colors.textDarker}
+        />
 
         {/* Account-type toggle: Members (licensed users) | Shared inboxes */}
         <SegmentedButtons
