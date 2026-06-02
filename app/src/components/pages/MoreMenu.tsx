@@ -14,6 +14,12 @@ interface MoreItem {
   root?: boolean; // navigate on the root navigator (e.g. the Account modal)
 }
 
+// Account & Role — sits at the top of the More page for every role
+// (above Admin tools). Single item: "My Account" → the Account modal.
+const ACCOUNT_ITEMS: MoreItem[] = [
+  { route: 'Account', label: 'My Account', description: 'Profile, sign-in, and role', icon: 'account-circle', roles: ['public', 'member', 'staff', 'admin'], root: true },
+];
+
 // Admin-only tools — grouped under the Admin tab for admins.
 const ADMIN_ITEMS: MoreItem[] = [
   { route: 'timekeeping', label: 'Time Keeping', description: 'Worker hours & approvals', icon: 'clock-outline', roles: ['admin'] },
@@ -27,7 +33,6 @@ const COMMUNITY_ITEMS: MoreItem[] = [
   { route: 'polls', label: 'Polling + Surveys', description: 'Surveys & vote on issues', icon: 'vote-outline', roles: ['public', 'member', 'staff', 'admin'] },
   // Staff submit their own timesheets here; admins use the Time Keeping tool above.
   { route: 'timekeeping', label: 'My Timesheets', description: 'Submit & view your hours', icon: 'clock-outline', roles: ['staff'] },
-  { route: 'Account', label: 'Account & Role', description: 'Profile and role (dev)', icon: 'account-circle', roles: ['public', 'member', 'staff', 'admin'], root: true },
 ];
 
 function Section({ title, items, role, navigation }: { title?: string; items: MoreItem[]; role: Role; navigation: any }) {
@@ -62,8 +67,11 @@ export default function MoreMenu({ navigation }: any) {
   return (
     <PageContainer>
       <PageContent>
+        {/* Account & Role pinned at the top for every role so signing
+            in / switching role is always the first thing visible. */}
+        <Section title="Account & Role" items={ACCOUNT_ITEMS} role={role} navigation={navigation} />
         {isAdmin ? <Section title="Admin tools" items={ADMIN_ITEMS} role={role} navigation={navigation} /> : null}
-        <Section title={isAdmin ? 'Community' : undefined} items={COMMUNITY_ITEMS} role={role} navigation={navigation} />
+        <Section title="Community" items={COMMUNITY_ITEMS} role={role} navigation={navigation} />
       </PageContent>
     </PageContainer>
   );
