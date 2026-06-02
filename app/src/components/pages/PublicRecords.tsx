@@ -287,23 +287,6 @@ function AdminSection({ navigation }: { navigation: any }) {
         </Card.Content>
       </Card>
 
-      {/* Link to Financial Records (admin only) */}
-      {role === 'admin' ? (
-        <TouchableOpacity onPress={() => navigation.navigate('financials')}>
-          <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12, borderLeftWidth: 3, borderLeftColor: theme.colors.accent }}>
-            <Card.Content style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <MaterialCommunityIcons name="file-document-multiple-outline" size={22} color={theme.colors.accent} style={{ marginRight: 10 }} />
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: theme.colors.text, fontSize: 15 }}>Financial Records →</Text>
-                <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginTop: 2 }}>
-                  Detailed ledgers, invoices, audit-ready exports
-                </Text>
-              </View>
-              <MaterialCommunityIcons name="chevron-right" size={22} color={theme.colors.textDarker} />
-            </Card.Content>
-          </Card>
-        </TouchableOpacity>
-      ) : null}
     </View>
   );
 }

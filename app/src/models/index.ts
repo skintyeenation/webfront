@@ -136,15 +136,6 @@ export interface TimeEntry {
   approved: boolean;
 }
 
-export interface FinancialRecord {
-  _id: string;
-  title: string;
-  period: string;
-  category: 'Budget' | 'Statement' | 'Grant' | 'Expense';
-  amount: number;
-  notes?: string;
-}
-
 // Notification categories mirror the skintyee.ca WordPress category taxonomy
 // (website/importer/setup-categories.php): the Announcements sub-categories
 // Health / Safety / Council, plus the top-level Events / Programs / News /

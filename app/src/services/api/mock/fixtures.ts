@@ -1,4 +1,4 @@
-import { AppNotification, BandMember, BandMeeting, CommunityEvent, Expenditure, FinancialRecord, MajorProject, Poll, PublicRecord, TimeEntry } from 'skintyee/models';
+import { AppNotification, BandMember, BandMeeting, CommunityEvent, Expenditure, MajorProject, Poll, PublicRecord, TimeEntry } from 'skintyee/models';
 
 // STUB DATA. Hand-authored sample content so every screen renders realistically
 // without a backend. Replace with real API responses. See STUBS.md.
@@ -76,13 +76,6 @@ export const timeEntries: TimeEntry[] = [
   { _id: 't2', workerName: 'Sandra Williams', date: daysFromNow(-1), hours: 8, task: 'Administration', approved: true },
   { _id: 't3', workerName: 'Albert John', date: daysFromNow(0), hours: 6, task: 'Community hall setup', approved: false },
   { _id: 't4', workerName: 'Rita Thomas', date: daysFromNow(0), hours: 4, task: 'Reception coverage', approved: false },
-];
-
-export const financials: FinancialRecord[] = [
-  { _id: 'f1', title: 'Operating Budget', period: 'FY2024', category: 'Budget', amount: 1850000, notes: 'Approved by Council.' },
-  { _id: 'f2', title: 'Q1 Financial Statement', period: 'Q1 FY2024', category: 'Statement', amount: 462300 },
-  { _id: 'f3', title: 'Housing Capital Grant', period: 'FY2024', category: 'Grant', amount: 320000, notes: 'ISC capital funding.' },
-  { _id: 'f4', title: 'Community Hall Repairs', period: 'Mar 2024', category: 'Expense', amount: 28750 },
 ];
 
 // Public, transparent band expenditures by program area (FY2024). Areas mirror

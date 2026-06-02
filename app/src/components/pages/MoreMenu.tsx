@@ -24,12 +24,9 @@ const ACCOUNT_ITEMS: MoreItem[] = [
 //   - "Public Records" opens the bylaws/notices/reports/forms screen
 //     that used to be its own bottom tab (promoted Meetings → tab,
 //     PublicRecords landed here).
-//   - "Financial Records" opens the Financials screen — budgets,
-//     statements, program spend.
 const ADMIN_ITEMS: MoreItem[] = [
-  { route: 'timekeeping',   label: 'Time Keeping',      description: 'Worker hours & approvals',          icon: 'clock-outline',          roles: ['admin'] },
-  { route: 'publicRecords', label: 'Public Records',    description: 'Bylaws, notices, reports & forms', icon: 'file-document-outline',  roles: ['admin'] },
-  { route: 'financials',    label: 'Financial Records', description: 'Budgets, statements & program spend', icon: 'cash-multiple',      roles: ['admin'] },
+  { route: 'timekeeping',   label: 'Time Keeping',   description: 'Worker hours & approvals',          icon: 'clock-outline',          roles: ['admin'] },
+  { route: 'publicRecords', label: 'Public Records', description: 'Bylaws, notices, reports & forms', icon: 'file-document-outline',  roles: ['admin'] },
 ];
 
 // General community items.

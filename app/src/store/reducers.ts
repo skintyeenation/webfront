@@ -7,7 +7,6 @@ import events from 'skintyee/store/modules/events';
 import meetings from 'skintyee/store/modules/meetings';
 import publicRecords from 'skintyee/store/modules/publicRecords';
 import timekeeping from 'skintyee/store/modules/timekeeping';
-import financials from 'skintyee/store/modules/financials';
 import polls from 'skintyee/store/modules/polls';
 import notifications from 'skintyee/store/modules/notifications';
 import transparency from 'skintyee/store/modules/transparency';
@@ -22,7 +21,6 @@ export const rootReducer = combineReducers({
   meetings,
   publicRecords,
   timekeeping,
-  financials,
   polls,
   notifications,
   transparency,

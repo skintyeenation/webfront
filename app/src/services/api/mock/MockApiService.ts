@@ -46,9 +46,6 @@ export const mockApiService: ApiService = {
   timekeeping: {
     list: () => delay(fixtures.timeEntries),
   },
-  financials: {
-    list: () => delay(fixtures.financials),
-  },
   polls: {
     list: () => delay(polls),
     get: (id) => delay(polls.find((p) => p._id === id)),

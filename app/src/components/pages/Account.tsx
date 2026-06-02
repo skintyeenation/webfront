@@ -32,7 +32,7 @@ const ROLES: { role: Role; label: string; desc: string }[] = [
   { role: 'public', label: 'Public', desc: 'Anyone — events & public records only' },
   { role: 'member', label: 'Band Member', desc: 'Members — meetings, directory, voting' },
   { role: 'staff', label: 'Staff (worker)', desc: 'Members + submit your own timesheets' },
-  { role: 'admin', label: 'Admin', desc: 'Everything + time approvals & financials' },
+  { role: 'admin', label: 'Admin', desc: 'Everything + time approvals & records' },
 ];
 
 /**

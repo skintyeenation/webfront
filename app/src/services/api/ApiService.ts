@@ -1,4 +1,4 @@
-import { AppNotification, BandMember, BandMeeting, CommunityEvent, Expenditure, FeedItem, FinancialRecord, MajorProject, PlannerPlanSummary, PlannerRollup, PlannerTask, Poll, PublicRecord, Role, TimeEntry } from 'skintyee/models';
+import { AppNotification, BandMember, BandMeeting, CommunityEvent, Expenditure, FeedItem, MajorProject, PlannerPlanSummary, PlannerRollup, PlannerTask, Poll, PublicRecord, Role, TimeEntry } from 'skintyee/models';
 
 /**
  * ApiService is the single seam between the app and its backend.
@@ -121,9 +121,6 @@ export interface ApiService {
   };
   timekeeping: {
     list(): Promise<TimeEntry[]>;
-  };
-  financials: {
-    list(): Promise<FinancialRecord[]>;
   };
   polls: {
     list(): Promise<Poll[]>;

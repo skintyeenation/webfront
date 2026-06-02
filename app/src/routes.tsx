@@ -15,7 +15,6 @@ export const routeConfig = {
   publicRecords: { name: 'publicRecords', options: { title: 'Records', header: header('Records') } },
   expenditureDetail: { name: 'expenditureDetail', options: { title: 'Breakdown', header: header('Expenditure Breakdown') } },
   timekeeping: { name: 'timekeeping', options: { title: 'Time', header: header('Time Keeping') } },
-  financials: { name: 'financials', options: { title: 'Finance', header: header('Financial Records') } },
   polls: { name: 'polls', options: { title: 'Polls', header: header('Polling + Surveys') } },
   notifications: { name: 'notifications', options: { title: 'Alerts', header: header('Notifications') } },
   more: { name: 'more', options: { title: 'More', header: header('More') } },

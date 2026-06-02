@@ -22,7 +22,6 @@ import Meetings from 'skintyee/components/pages/Meetings';
 import PublicRecords from 'skintyee/components/pages/PublicRecords';
 import ExpenditureDetail from 'skintyee/components/pages/ExpenditureDetail';
 import TimeKeeping from 'skintyee/components/pages/TimeKeeping';
-import Financials from 'skintyee/components/pages/Financials';
 import Polls from 'skintyee/components/pages/Polls';
 import PollDetail from 'skintyee/components/pages/PollDetail';
 import Notifications from 'skintyee/components/pages/Notifications';
@@ -110,7 +109,6 @@ const MoreNavigation = () => {
       <MoreStack.Screen {...routeConfig.pollDetail} component={PollDetail} />
       <MoreStack.Screen {...routeConfig.timekeeping} component={TimeKeeping} />
       <MoreStack.Screen {...routeConfig.timesheetCreate} component={AddTimesheet} />
-      <MoreStack.Screen {...routeConfig.financials} component={Financials} />
       {/* Public Records (bylaws / notices / reports / forms) used to be its
           own tab. Now reachable via the Admin Tools "Financial Records"
           item (and any deep nav). The screen itself is untouched. */}

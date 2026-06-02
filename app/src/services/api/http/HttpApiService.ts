@@ -16,7 +16,7 @@
 
 import {
   AppNotification, BandMember, BandMeeting, CommunityEvent,
-  Expenditure, FeedItem, FinancialRecord, MajorProject,
+  Expenditure, FeedItem, MajorProject,
   PlannerPlanSummary, PlannerRollup, PlannerTask, Poll,
   PublicRecord, Role, TimeEntry,
 } from 'skintyee/models';
@@ -144,9 +144,6 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
     },
     timekeeping: {
       list: () => get<TimeEntry[]>('/timekeeping/entries'),
-    },
-    financials: {
-      list: () => get<FinancialRecord[]>('/financials'),
     },
     polls: {
       list: () => get<Poll[]>('/polls'),
