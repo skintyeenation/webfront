@@ -47,7 +47,10 @@ const tabIcons: Record<string, string> = {
   Home: 'view-dashboard-outline',
   Events: 'calendar-star',
   Notifications: 'bell-outline',
-  Meetings: 'gavel',
+  // Material icon for a meeting / discussion — picked over 'gavel' which
+  // reads as a courtroom action, and 'account-group' which is already
+  // the bandGroups chip icon. 'forum' = grouped speech bubbles.
+  Meetings: 'forum',
   Records: 'file-document-outline',
   More: 'dots-horizontal',
   Admin: 'shield-account',
