@@ -7,7 +7,26 @@ import { PageContainer, PageContent } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { resetSignInStatus, setRole, signIn, signOut } from 'skintyee/store/modules/auth';
 import { Role } from 'skintyee/models';
+import Config from 'skintyee/config';
 import { theme } from 'skintyee/styles';
+
+// Derive 2-letter initials from a display name. "Lucas Lopatka" → "LL",
+// "System Admin" → "SA", "Madonna" → "M". Falls back to '?'.
+function initialsOf(name?: string): string {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return (parts[0][0] ?? '?').toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+// Build the api/ photo proxy URL when we have a real (non-mock) backend.
+function photoUrl(memberId: string): string | undefined {
+  if (!Config.apiServer || Config.apiServer === 'mock' || !/^https?:\/\//.test(Config.apiServer)) {
+    return undefined;
+  }
+  return `${Config.apiServer.replace(/\/+$/, '')}/v1/directory/${memberId}/photo`;
+}
 
 const ROLES: { role: Role; label: string; desc: string }[] = [
   { role: 'public', label: 'Public', desc: 'Anyone — events & public records only' },
@@ -27,8 +46,20 @@ const ROLES: { role: Role; label: string; desc: string }[] = [
 export default function Account() {
   const dispatch = useAppDispatch();
   const { role, name, signedIn, user, status, error } = useAppSelector((s) => s.auth);
+  const directory = useAppSelector((s) => s.directory.entities);
   const isAdmin = role === 'admin';
   const isSigningIn = status === 'signing-in';
+
+  // Match the signed-in user against the directory to pick up hasPhoto +
+  // the member id needed by the photo proxy. Falls through if the user
+  // isn't synced yet — initials still render fine without it.
+  const myUpn = (user?.upn ?? '').toLowerCase();
+  const me = myUpn
+    ? (directory as any[]).find((m) => (m.upn ?? '').toLowerCase() === myUpn)
+    : undefined;
+  const photoSrc = me?.hasPhoto ? photoUrl(me._id) : undefined;
+  const ini = initialsOf(name);
+  const hasName = !!(name && name.trim() && ini !== '?');
 
   return (
     <PageContainer>
@@ -36,11 +67,30 @@ export default function Account() {
         {/* Header: avatar + name + role chip ----------------------------- */}
         <View style={{ alignItems: 'center', marginBottom: 16 }}>
           <View style={{ position: 'relative', width: 72, height: 72 }}>
-            <Avatar.Icon
-              size={72}
-              icon={signedIn ? 'account-check' : 'account'}
-              style={{ backgroundColor: signedIn ? theme.colors.primary : theme.colors.darkDefault }}
-            />
+            {/* Avatar cascade:
+                1. real M365 profile photo (when signed in + directory says hasPhoto)
+                2. initials over the brand background (whenever we have a name)
+                3. generic person icon (only when truly nothing — public role, no name) */}
+            {photoSrc ? (
+              <Avatar.Image
+                size={72}
+                source={{ uri: photoSrc }}
+              />
+            ) : hasName ? (
+              <Avatar.Text
+                size={72}
+                label={ini}
+                color="#000"
+                style={{ backgroundColor: signedIn ? theme.colors.primary : theme.colors.secondary }}
+                labelStyle={{ fontSize: 28, fontWeight: '600' }}
+              />
+            ) : (
+              <Avatar.Icon
+                size={72}
+                icon={signedIn ? 'account-check' : 'account'}
+                style={{ backgroundColor: signedIn ? theme.colors.primary : theme.colors.darkDefault }}
+              />
+            )}
             {signedIn ? (
               <View
                 style={{
