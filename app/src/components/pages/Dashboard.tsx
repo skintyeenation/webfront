@@ -15,15 +15,14 @@ import { theme } from 'skintyee/styles';
 // Homescreen — the "Home" tab. Per ADR-14 and
 // docs/features/planner-dashboard.md.
 //
-//   1. THIS WEEK feed (calendar OR list toggle) — scheduled events
+//   1. ADMIN TOOLS (staff + admin only) — Planner board rollup
+//      across program areas + Time keeping summary. Pinned to the
+//      top because it's what an admin opens the app to check.
+//
+//   2. THIS WEEK feed (calendar OR list toggle) — scheduled events
 //      (community salmon BBQ etc.) + Teams meetings + Planner due
 //      dates as time-bound items. Same items as the Events tab,
 //      promoted here for the next 7 days.
-//
-//   2. ADMIN TOOLS (staff + admin only, additive below the feed) —
-//      Planner board rollup across program areas + Time keeping
-//      summary. Was on the Records (Financial Summary) screen; moved
-//      here so admins land on operational state by default.
 // ----------------------------------------------------------------------------
 
 type FeedView = 'list' | 'calendar';
