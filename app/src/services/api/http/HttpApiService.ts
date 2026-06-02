@@ -60,7 +60,14 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
         if (v !== undefined && v !== null) url.searchParams.set(k, v);
       }
     }
-    const res = await fetch(url.toString(), { headers: headers() });
+    const res = await fetch(url.toString(), {
+      headers: headers({ 'Cache-Control': 'no-cache', Pragma: 'no-cache' }),
+      // cache: 'no-store' — bypass the browser HTTP cache entirely. NestJS
+      // sends ETags by default, so without this the browser caches the
+      // first response + uses 304 cached-body forever (saw stale empty
+      // directory after the table got seeded mid-session).
+      cache: 'no-store',
+    });
     if (!res.ok) {
       throw new Error(`GET ${url} → ${res.status}: ${await res.text()}`);
     }
@@ -70,8 +77,9 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
   async function post<T>(path: string, body: unknown): Promise<T> {
     const res = await fetch(api(path), {
       method: 'POST',
-      headers: headers({ 'Content-Type': 'application/json' }),
+      headers: headers({ 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' }),
       body: JSON.stringify(body ?? {}),
+      cache: 'no-store',
     });
     if (!res.ok) {
       throw new Error(`POST ${api(path)} → ${res.status}: ${await res.text()}`);

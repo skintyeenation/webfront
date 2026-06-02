@@ -134,12 +134,23 @@ export class AdminController implements OnApplicationBootstrap {
       throw new NotFoundException('Prisma not connected — set DATABASE_URL and re-deploy');
     }
 
-    const entraUsers = await this.graph.getDirectory();
+    let entraUsers: Awaited<ReturnType<typeof this.graph.getDirectory>>;
+    try {
+      this.log.log('seed-directory: fetching users from Microsoft Graph…');
+      entraUsers = await this.graph.getDirectory();
+      this.log.log(`seed-directory: Graph returned ${entraUsers.length} band-member candidates`);
+    } catch (e: any) {
+      this.log.error(`seed-directory: Graph fetch failed: ${e?.message ?? e}`, e?.stack);
+      // Surface the actual error to the client instead of generic 500.
+      throw new Error(`Graph fetch failed: ${e?.message ?? e}`);
+    }
+
     let inserted = 0;
     let updated = 0;
 
     for (const u of entraUsers) {
-      const existing = await this.prisma.bandMember.findUnique({ where: { id: u.id } });
+      try {
+        const existing = await this.prisma.bandMember.findUnique({ where: { id: u.id } });
       // Merge graph-derived memberships with any manual additions an admin
       // has made (preserve hand-edits that would otherwise be lost on
       // re-seed). Graph memberships come from M365 Group memberOf; manual
@@ -183,7 +194,11 @@ export class AdminController implements OnApplicationBootstrap {
           syncedAt: new Date(),
         },
       });
-      if (existing) updated++; else inserted++;
+        if (existing) updated++; else inserted++;
+      } catch (e: any) {
+        // Log + skip the bad row, don't tank the whole seed.
+        this.log.warn(`seed-directory: upsert failed for ${u.upn} (${u.id}): ${e?.message ?? e}`);
+      }
     }
 
     // Mark anyone NOT in this Entra response as disabled (departed)
