@@ -53,6 +53,11 @@ export interface AuthState {
   name: string;
   status: 'idle' | 'signing-in' | 'error';
   error: string | null;
+  // Gate bypass — true once the user has explicitly chosen a role via the
+  // dev Role Switcher (we treat that as "user knows what they're doing,
+  // let them in"). Real sign-in (signedIn=true) takes precedence over
+  // this; bypassed is the dev-only escape hatch.
+  bypassed: boolean;
 }
 
 export const authInitialState: AuthState = {
@@ -65,6 +70,7 @@ export const authInitialState: AuthState = {
   name: 'Guest',
   status: 'idle',
   error: null,
+  bypassed: false,
 };
 
 // ---- Helpers -------------------------------------------------------------
@@ -206,8 +212,21 @@ const authSlice = createSlice({
   extraReducers: (builder) => {
     builder.addCase(setRole, (state, action) => {
       // Dev-only override (Account screen Role Switcher). Real auth comes
-      // through signIn; this stays for testing role-gated UI.
-      return { ...state, role: action.payload };
+      // through signIn; this stays for testing role-gated UI. Setting any
+      // role via this action also flips `bypassed: true` so the sign-in
+      // gate lets the user past — they've explicitly chosen access.
+      const nameByRole: Record<Role, string> = {
+        admin: 'Admin (spoofed)',
+        staff: 'Staff (spoofed)',
+        member: 'Member (spoofed)',
+        public: 'Guest (public)',
+      };
+      return {
+        ...state,
+        role: action.payload,
+        bypassed: true,
+        name: nameByRole[action.payload],
+      };
     });
 
     builder.addCase(signOut, () => ({

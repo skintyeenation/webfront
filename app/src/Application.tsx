@@ -159,6 +159,15 @@ export default function Application() {
     return () => clearTimeout(t);
   }, []);
 
+  // Sign-in gate — block all tabs until the user either:
+  //   • Signs in via Microsoft Entra (signedIn === true), OR
+  //   • Explicitly chooses a role via the dev Role Switcher (bypassed === true)
+  // Initial launch: signedIn=false, bypassed=false → render the Account
+  // screen full-page (which has both the Microsoft button + dev role
+  // switcher). After either path completes, the tabs appear.
+  const { signedIn, bypassed } = useAppSelector((s) => s.auth);
+  const allowedIn = signedIn || bypassed;
+
   return (
     <PaperProvider theme={customTheme} settings={{ icon: (props: any) => <MaterialCommunityIcons {...props} /> }}>
       <StatusBar style="light" />
@@ -166,10 +175,23 @@ export default function Application() {
         <SplashScreen />
       ) : (
       <NavigationContainer>
-        <RootStack.Navigator>
-          <RootStack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
-          <RootStack.Screen name="Account" component={Account} options={{ presentation: 'modal', ...routeConfig.account.options }} />
-        </RootStack.Navigator>
+        {!allowedIn ? (
+          // Pre-sign-in: show only the Account screen (no tabs).
+          // The Account screen contains BOTH the Microsoft sign-in button
+          // AND the dev Role Switcher. Picking either path flips the gate.
+          <RootStack.Navigator>
+            <RootStack.Screen
+              name="Account"
+              component={Account}
+              options={{ ...routeConfig.account.options, headerShown: true }}
+            />
+          </RootStack.Navigator>
+        ) : (
+          <RootStack.Navigator>
+            <RootStack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
+            <RootStack.Screen name="Account" component={Account} options={{ presentation: 'modal', ...routeConfig.account.options }} />
+          </RootStack.Navigator>
+        )}
       </NavigationContainer>
       )}
     </PaperProvider>
