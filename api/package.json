@@ -12,7 +12,10 @@
     "lint:openapi": "swagger-cli validate openapi.yaml",
     "prisma:generate": "prisma generate",
     "prisma:migrate:deploy": "prisma migrate deploy",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "db:backup:prod": "az postgres flexible-server backup create --resource-group skintyee-prod-rg --name skintyee-prod-pg --backup-name \"manual-$(date -u +%Y%m%dT%H%M%SZ)\"",
+    "db:backup:prod:list": "az postgres flexible-server backup list --resource-group skintyee-prod-rg --name skintyee-prod-pg --query \"reverse(sort_by([], &completedTime))[].{name:name, type:backupType, completedTime:completedTime}\" -o table",
+    "db:backup:prod:tagged": "test -n \"$TAG\" || (echo 'set TAG, e.g. TAG=pre-bandgroups pnpm db:backup:prod:tagged' && exit 1); az postgres flexible-server backup create --resource-group skintyee-prod-rg --name skintyee-prod-pg --backup-name \"$TAG-$(date -u +%Y%m%dT%H%M%SZ)\""
   },
   "dependencies": {
     "@nestjs/common": "^10.3.10",
