@@ -12,6 +12,17 @@ type Filter = 'licensed-user' | 'shared-inbox';
 // "council@skintyee.ca" → "council"
 const shortMailbox = (full: string) => full.split('@')[0];
 
+// Parse "mail|owner" or "mail|member" entries from the seed. Plain "mail"
+// (no pipe) is treated as a manual admin entry with role unknown.
+type MembershipRel = 'owner' | 'member' | 'manual';
+interface ParsedMembership { mail: string; rel: MembershipRel; }
+function parseMembership(raw: string): ParsedMembership {
+  const [mail, rel] = raw.split('|');
+  if (rel === 'owner')  return { mail, rel: 'owner' };
+  if (rel === 'member') return { mail, rel: 'member' };
+  return { mail, rel: 'manual' };
+}
+
 export default function Directory({ navigation }: any) {
   const dispatch = useAppDispatch();
   const { entities, loading, loaded } = useAppSelector((s) => s.directory);
@@ -72,23 +83,32 @@ export default function Directory({ navigation }: any) {
                           {item.title ?? item.role}
                           {item.upn ? ` · ${item.upn}` : ''}
                         </Text>
-                        {/* Mailbox-access chips: only for licensed users with memberships */}
+                        {/* Mailbox-access chips: only for licensed users with memberships.
+                            Owner chips use accent color; member chips use secondary. */}
                         {!isShared && memberships.length > 0 ? (
                           <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 4 }}>
-                            {memberships.slice(0, 4).map((m) => (
-                              <Chip
-                                key={m}
-                                compact
-                                icon="email"
-                                style={{ marginRight: 4, marginTop: 2, backgroundColor: theme.colors.secondary }}
-                                textStyle={{ fontSize: 10 }}
-                              >
-                                {shortMailbox(m)}
-                              </Chip>
-                            ))}
-                            {memberships.length > 4 ? (
+                            {memberships.slice(0, 6).map((raw) => {
+                              const { mail, rel } = parseMembership(raw);
+                              const isOwner = rel === 'owner';
+                              return (
+                                <Chip
+                                  key={raw}
+                                  compact
+                                  icon={isOwner ? 'star' : 'email'}
+                                  style={{
+                                    marginRight: 4,
+                                    marginTop: 2,
+                                    backgroundColor: isOwner ? theme.colors.accent : theme.colors.secondary,
+                                  }}
+                                  textStyle={{ fontSize: 10, color: isOwner ? '#000' : undefined }}
+                                >
+                                  {shortMailbox(mail)}{isOwner ? ' (owner)' : ''}
+                                </Chip>
+                              );
+                            })}
+                            {memberships.length > 6 ? (
                               <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginLeft: 4, alignSelf: 'center' }}>
-                                +{memberships.length - 4} more
+                                +{memberships.length - 6} more
                               </Text>
                             ) : null}
                           </View>
