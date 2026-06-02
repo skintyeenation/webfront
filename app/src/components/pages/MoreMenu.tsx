@@ -68,10 +68,12 @@ export default function MoreMenu({ navigation }: any) {
     <PageContainer>
       <PageContent>
         {/* Account & Role pinned at the top for every role so signing
-            in / switching role is always the first thing visible. */}
+            in / switching role is always the first thing visible.
+            Community is the everyday stuff and goes next. Admin tools
+            sink to the bottom — they're a small, infrequent surface. */}
         <Section title="Account & Role" items={ACCOUNT_ITEMS} role={role} navigation={navigation} />
-        {isAdmin ? <Section title="Admin tools" items={ADMIN_ITEMS} role={role} navigation={navigation} /> : null}
         <Section title="Community" items={COMMUNITY_ITEMS} role={role} navigation={navigation} />
+        {isAdmin ? <Section title="Admin tools" items={ADMIN_ITEMS} role={role} navigation={navigation} /> : null}
       </PageContent>
     </PageContainer>
   );
