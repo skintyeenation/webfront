@@ -4,7 +4,7 @@ import { Avatar, Button, Card, Chip, Divider, Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { PageContainer, PageContent } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
-import { setRole, signIn, signOut } from 'skintyee/store/modules/auth';
+import { resetSignInStatus, setRole, signIn, signOut } from 'skintyee/store/modules/auth';
 import { Role } from 'skintyee/models';
 import { theme } from 'skintyee/styles';
 
@@ -92,15 +92,32 @@ export default function Account() {
                 buttonColor="#0078D4"
                 textColor="#FFFFFF"
                 loading={isSigningIn}
-                disabled={isSigningIn}
-                onPress={() => dispatch(signIn())}
+                // INTENTIONALLY NOT disabled while signing-in: on web,
+                // closing the popup doesn't reliably resolve promptAsync,
+                // so a stuck-spinner state would lock the user out. Each
+                // click resets the in-flight status + starts fresh.
+                onPress={() => {
+                  dispatch(resetSignInStatus());
+                  dispatch(signIn());
+                }}
               >
-                {isSigningIn ? 'Signing in…' : 'Sign in with Microsoft'}
+                {isSigningIn ? 'Signing in… (tap again to retry)' : 'Sign in with Microsoft'}
               </Button>
               {error ? (
                 <Text style={{ color: theme.colors.accent, fontSize: 12, marginTop: 8 }}>
                   {error}
                 </Text>
+              ) : null}
+              {isSigningIn && !error ? (
+                <Button
+                  mode="text"
+                  textColor={theme.colors.textDarker}
+                  compact
+                  onPress={() => dispatch(resetSignInStatus())}
+                  style={{ marginTop: 4 }}
+                >
+                  Cancel
+                </Button>
               ) : null}
             </Card.Content>
           </Card>

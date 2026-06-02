@@ -131,6 +131,11 @@ async function fetchRoleFromApi(upn: string): Promise<Role | null> {
 
 export const setRole = createAction<Role>('set_role');        // dev-only override
 export const signOut = createAction('sign_out');
+// resetSignInStatus — clears the in-flight 'signing-in' status + any error.
+// Used when the user wants to retry after closing the Microsoft popup
+// (which on web doesn't always trigger a 'dismiss' result, leaving the
+// thunk pending forever otherwise).
+export const resetSignInStatus = createAction('reset_sign_in_status');
 
 // signIn — the OAuth flow. Returns the new auth state slice on success.
 // On native + Expo Go this opens a system browser; on web it opens a popup
@@ -231,6 +236,10 @@ const authSlice = createSlice({
 
     builder.addCase(signOut, () => ({
       ...authInitialState,
+    }));
+
+    builder.addCase(resetSignInStatus, (state) => ({
+      ...state, status: 'idle', error: null,
     }));
 
     builder.addCase(signIn.pending, (state) => ({
