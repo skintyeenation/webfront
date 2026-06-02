@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, TouchableOpacity, View } from 'react-native';
+import { FlatList, TouchableOpacity, View } from 'react-native';
 import { Avatar, Button, Chip, Divider, List, SegmentedButtons, Searchbar, Text } from 'react-native-paper';
-import { PageContainer, PageContent, NoContent, AdminAddButton } from 'skintyee/components/layout';
+import { PageContainer, PageContent, NoContent } from 'skintyee/components/layout';
 import { apiFactory } from 'skintyee/store/apis';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { loadDirectory } from 'skintyee/store/modules/directory';
@@ -175,23 +175,37 @@ export default function Directory({ navigation }: any) {
   return (
     <PageContainer>
       <PageContent>
-        <AdminAddButton label="Add member" onPress={() => navigation.navigate('memberCreate')} />
-
-        {/* Admin Sync — pull fresh from Entra + reconcile Exchange Online
-            mailbox permissions into the directory. Takes 20-60s typically. */}
+        {/* Add member + Sync side-by-side on a single row (admin only). */}
         {isAdmin ? (
-          <View style={{ marginBottom: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
+            <Button
+              mode="contained"
+              icon="plus"
+              onPress={() => navigation.navigate('memberCreate')}
+              buttonColor={theme.colors.accent}
+              textColor="#000"
+              style={{ marginRight: 8, marginBottom: 4 }}
+            >
+              Add member
+            </Button>
             <Button
               mode="outlined"
-              icon={syncing ? undefined : 'sync'}
+              icon="sync"
+              loading={syncing}              // Paper's loading prop renders a spinner INSIDE the button.
+              disabled={syncing}             // …and also disables onPress, which is what we want here.
               onPress={runSync}
-              disabled={syncing}
               textColor={theme.colors.text}
-              style={{ borderColor: theme.colors.secondary }}
+              style={{ borderColor: theme.colors.secondary, marginBottom: 4 }}
             >
-              {syncing ? 'Syncing… (may take 30-60s)' : 'Sync from Entra + Exchange'}
+              {syncing ? 'Syncing…' : 'Sync'}
             </Button>
-            {syncing ? <ActivityIndicator size="small" style={{ marginTop: 4 }} /> : null}
+          </View>
+        ) : null}
+
+        {/* Sync feedback (error + last-run summary) — shown below the row,
+            outside the button so it's still visible after the spinner stops. */}
+        {isAdmin ? (
+          <View style={{ marginBottom: 12 }}>
             {syncError ? (
               <Text style={{ color: theme.colors.error, fontSize: 11, marginTop: 4 }}>
                 {syncError}
