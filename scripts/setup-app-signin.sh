@@ -43,8 +43,10 @@ ADO_VARGROUP="${ADO_VARGROUP:-skintyee-prod-azure}"
 
 # Microsoft Graph
 GRAPH_RESOURCE_ID="00000003-0000-0000-c000-000000000000"
-# User.Read delegated permission ID — well-known
+# Delegated permission IDs (well-known, stable forever)
 USER_READ_DELEGATED="e1fe6dd8-ba31-4d61-89e7-88639da4683d"
+CALENDARS_READWRITE_DELEGATED="1ec239c2-d7c9-4623-a91a-a9775856bb36"   # Calendars.ReadWrite (Delegated)
+GROUP_READWRITE_ALL_DELEGATED="4e46008b-f24c-477d-8fff-7bb4ec7aafe0"   # Group.ReadWrite.All (Delegated)
 
 DRY_RUN=0
 while [ $# -gt 0 ]; do
@@ -155,18 +157,30 @@ EOF
   ok "SPA + public-client redirect URIs registered"
 fi
 
-# ----- 3) Add User.Read (delegated) permission ------------------------------
-say "adding Microsoft Graph User.Read (delegated)…"
-run az ad app permission add \
-  --id "$APP_ID" \
-  --api "$GRAPH_RESOURCE_ID" \
-  --api-permissions "${USER_READ_DELEGATED}=Scope" \
-  --only-show-errors 2>/dev/null
+# ----- 3) Add Microsoft Graph delegated permissions -------------------------
+# User.Read              — basic profile (default-consentable)
+# Calendars.ReadWrite    — write Band Meetings to user/shared calendars
+# Group.ReadWrite.All    — write Band Meetings to M365 group calendars
+#                          (Skin Tyee Council, Skin Tyee Management)
+say "adding Microsoft Graph delegated permissions…"
+for PERM in "$USER_READ_DELEGATED" "$CALENDARS_READWRITE_DELEGATED" "$GROUP_READWRITE_ALL_DELEGATED"; do
+  run az ad app permission add \
+    --id "$APP_ID" \
+    --api "$GRAPH_RESOURCE_ID" \
+    --api-permissions "${PERM}=Scope" \
+    --only-show-errors 2>/dev/null || true
+done
 
-# User.Read is default-consentable — users consent for themselves on
-# first sign-in. No admin consent needed. (If we add Group.Read or
-# similar later, we'd need to grant admin consent.)
-ok "User.Read added (default-consentable; users consent on first sign-in)"
+# Calendars.ReadWrite + Group.ReadWrite.All are NOT default-consentable
+# (they need an admin's tenant-wide consent the first time). User.Read
+# is still default-consentable; if admin consent fails we can fall back
+# to per-user consent on first sign-in for User.Read alone.
+say "granting admin consent for the delegated permissions…"
+if [ "$DRY_RUN" -eq 0 ]; then
+  sleep 3
+  az ad app permission admin-consent --id "$APP_ID" 2>&1 | tail -3 || warn "admin-consent failed; users will be prompted on first sign-in"
+fi
+ok "delegated permissions added (User.Read, Calendars.ReadWrite, Group.ReadWrite.All)"
 
 # ----- 4) Update ADO variable group with non-secret fields ------------------
 if [ "$DRY_RUN" -eq 0 ]; then

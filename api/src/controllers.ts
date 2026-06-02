@@ -581,21 +581,44 @@ export class MeetingsController {
     };
   }
 
-  // POST /v1/meetings — schedule a new band meeting in a chosen source
-  // calendar via Graph. Auto-tags with the matching Outlook category.
-  // Body: { typeSlug, sourceIndex?, title, agenda?, location?, startsAt,
-  //         endsAt?, isOnlineMeeting?, attendees? }
-  @Post() @Roles('admin') async create(@Body() b: any) {
-    if (process.env.GRAPH_CLIENT_ID) {
+  // POST /v1/meetings — schedule a new meeting AS the signed-in admin
+  // (delegated flow). The user's Bearer access token from Entra sign-in
+  // is forwarded to Graph so the meeting's organizer is the human
+  // scheduling it (not bandmanager@ or our app's SP).
+  //
+  // Body: { typeSlug, sourceIndex?, title, agenda?, location?,
+  //         startsAt, endsAt?, isOnlineMeeting?, attendees? }
+  //
+  // Required delegated scopes on the user's token (added in
+  // setup-app-signin.sh):
+  //   - Calendars.ReadWrite — write to user/shared calendars
+  //   - Group.ReadWrite.All — write to M365 group calendars
+  //
+  // sourceIndex maps to MEETING_SOURCE_CALENDARS:
+  //   0: My calendar              (always allowed)
+  //   1: bandmanager@             (allowed if user has FullAccess via EXO)
+  //   2: Skin Tyee Council (M365) (allowed if user is a group member/owner)
+  //   3: Skin Tyee Management (M365)
+  @Post() @Roles('admin') async create(@Body() b: any, @Req() req: any) {
+    // Extract delegated Bearer token from the inbound request
+    const authHeader = req.headers?.authorization ?? req.headers?.Authorization;
+    const accessToken = typeof authHeader === 'string' && authHeader.startsWith('Bearer ')
+      ? authHeader.slice(7)
+      : undefined;
+
+    if (accessToken && process.env.GRAPH_CLIENT_ID) {
       try {
-        const created = await this.graph.createBandMeeting(b);
+        const created = await this.graph.createBandMeetingAs({ accessToken, input: b });
         return created;
       } catch (e: any) {
-        this.log.error(`createBandMeeting failed: ${e?.message ?? e}`);
+        this.log.error(`createBandMeetingAs failed: ${e?.message ?? e}`);
         throw new Error(`Graph create failed: ${e?.message ?? e}`);
       }
     }
-    // No Graph configured — fall back to in-memory create
+    if (!accessToken) {
+      this.log.warn('POST /meetings without Bearer token; falling back to in-memory create');
+    }
+    // No token (or no Graph configured) — fall back to in-memory create
     const m = { _id: this.data.id('bm'), ...b };
     this.data.meetings.unshift(m);
     return m;

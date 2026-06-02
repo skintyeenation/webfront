@@ -217,7 +217,7 @@ export const signIn = createAsyncThunk<
     authUrl.searchParams.set('response_type',         'code');
     authUrl.searchParams.set('redirect_uri',          redirectUri);
     authUrl.searchParams.set('response_mode',         'query');
-    authUrl.searchParams.set('scope',                 'openid profile email User.Read');
+    authUrl.searchParams.set('scope',                 'openid profile email User.Read Calendars.ReadWrite Group.ReadWrite.All');
     authUrl.searchParams.set('state',                 state);
     authUrl.searchParams.set('code_challenge',        codeChallenge);
     authUrl.searchParams.set('code_challenge_method', 'S256');
@@ -238,7 +238,7 @@ export const signIn = createAsyncThunk<
   const request = new AuthSession.AuthRequest({
     clientId: Config.signinAppId,
     redirectUri,
-    scopes: ['openid', 'profile', 'email', 'User.Read'],
+    scopes: ['openid', 'profile', 'email', 'User.Read', 'Calendars.ReadWrite', 'Group.ReadWrite.All'],
     usePKCE: true,
     responseType: AuthSession.ResponseType.Code,
     prompt: AuthSession.Prompt.SelectAccount,
@@ -328,7 +328,7 @@ export const handleAuthCallback = createAsyncThunk<
     code,
     redirect_uri:  redirectUri,
     code_verifier: codeVerifier,
-    scope:         'openid profile email User.Read',
+    scope:         'openid profile email User.Read Calendars.ReadWrite Group.ReadWrite.All',
   });
   const tokenRes = await fetch(
     `https://login.microsoftonline.com/${Config.signinTenantId}/oauth2/v2.0/token`,

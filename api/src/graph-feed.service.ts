@@ -776,9 +776,12 @@ export class GraphFeedService {
       ).map((t) => t.category.toLowerCase())
     );
 
-    // Walk all source calendars in parallel and merge results.
+    // Walk all SHARED source calendars in parallel and merge results.
+    // Skip the 'me' source — it's a write-time-only routing target
+    // (the signed-in user's personal calendar) that wouldn't be a
+    // useful place to fan out reads from on the app-only path.
     const results: BandMeetingFromGraph[] = [];
-    await Promise.all(MEETING_SOURCE_CALENDARS.map(async (source) => {
+    await Promise.all(MEETING_SOURCE_CALENDARS.filter((s) => s.kind !== 'me').map(async (source) => {
       // For user calendars use /users/{upn}/calendarView (which honors a
       // start/end window and expands recurring events). For groups, the
       // equivalent is /groups/{id}/calendarView.
@@ -826,20 +829,37 @@ export class GraphFeedService {
     return Array.from(byId.values()).sort((a, b) => a.startsAt.localeCompare(b.startsAt));
   }
 
-  // Create a band meeting in a chosen source calendar. Auto-tags with the
-  // matching Outlook category so it round-trips through getBandMeetings().
-  // Returns the created event's id + webLink.
-  async createBandMeeting(input: {
-    typeSlug: string;
-    sourceIndex?: number;   // index into MEETING_SOURCE_CALENDARS; default 0 (bandmanager@)
-    title: string;
-    agenda?: string;
-    location?: string;
-    startsAt: string;       // ISO
-    endsAt?: string;        // ISO (default: startsAt + 1h)
-    isOnlineMeeting?: boolean;  // create a Teams join URL
-    attendees?: string[];   // UPNs to invite
-  }): Promise<{ id: string; webLink?: string; typeSlug: string; source: string }> {
+  // Create a band meeting AS THE SIGNED-IN USER (delegated flow). The
+  // caller passes their own Bearer access token (from Entra sign-in)
+  // and Graph creates the event with them as organizer.
+  //
+  // Why delegated, not app-only:
+  //   1. Events get the right organizer name (the human scheduling)
+  //   2. Sidesteps the M365 group calendar problem — group owners/
+  //      members can write to /groups/{id}/events from their own
+  //      delegated token, no Exchange RBAC dance needed
+  //   3. Audit trail is native
+  //
+  // Required delegated scope on the user's token: Calendars.ReadWrite
+  // (plus Group.ReadWrite.All if posting to a group calendar). Added
+  // to scripts/setup-app-signin.sh.
+  //
+  // Auto-tags with the Outlook category for the chosen meeting type.
+  async createBandMeetingAs(opts: {
+    accessToken: string;    // user's delegated Bearer token
+    input: {
+      typeSlug: string;
+      sourceIndex?: number;
+      title: string;
+      agenda?: string;
+      location?: string;
+      startsAt: string;
+      endsAt?: string;
+      isOnlineMeeting?: boolean;
+      attendees?: string[];
+    };
+  }): Promise<{ id: string; webLink?: string; typeSlug: string; source: string; organizerUpn?: string }> {
+    const { input, accessToken } = opts;
     const type = meetingTypeBySlug.get(input.typeSlug);
     if (!type) throw new Error(`Unknown meeting type: ${input.typeSlug}`);
 
@@ -862,19 +882,23 @@ export class GraphFeedService {
       })),
     };
 
-    const path = source.kind === 'user'
-      ? `/users/${source.upn}/events`
-      : `/groups/${source.groupId}/events`;
+    // Delegated path:
+    //   - 'me'    → /me/events                       (user's own calendar)
+    //   - 'user'  → /users/{upn}/events              (shared mailbox; user must have FullAccess)
+    //   - 'group' → /groups/{groupId}/events         (M365 group; user must be member/owner)
+    const path =
+      source.kind === 'me'    ? '/me/events' :
+      source.kind === 'user'  ? `/users/${source.upn}/events` :
+                                `/groups/${source.groupId}/events`;
 
-    const tok = await this.getToken();
     const res = await fetch(`https://graph.microsoft.com/v1.0${path}`, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${tok}`, 'Content-Type': 'application/json' },
+      headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
     if (!res.ok) {
       const text = await res.text();
-      throw new Error(`createBandMeeting failed ${res.status}: ${text}`);
+      throw new Error(`createBandMeetingAs failed ${res.status}: ${text}`);
     }
     const created: any = await res.json();
     return {
@@ -882,6 +906,7 @@ export class GraphFeedService {
       webLink: created.webLink,
       typeSlug: type.slug,
       source: source.name,
+      organizerUpn: created.organizer?.emailAddress?.address?.toLowerCase(),
     };
   }
 

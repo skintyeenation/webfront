@@ -72,7 +72,7 @@ try {
         -Certificate $x509 `
         -Organization $env:EXO_ORGANIZATION `
         -ShowBanner:$false `
-        -CommandName 'Get-Mailbox','Get-MailboxPermission','Add-MailboxPermission','Remove-MailboxPermission','Get-RecipientPermission','Add-RecipientPermission','Remove-RecipientPermission' `
+        -CommandName 'Get-Mailbox','Get-MailboxPermission','Add-MailboxPermission','Remove-MailboxPermission','Get-RecipientPermission','Add-RecipientPermission','Remove-RecipientPermission','Get-ServicePrincipal','New-ServicePrincipal','Get-ManagementRoleAssignment','New-ManagementRoleAssignment' `
         -ErrorAction Stop | Out-Null
 } catch {
     Send-Json 500 @{ error = "Connect-ExchangeOnline failed: $_" }; return
@@ -155,8 +155,63 @@ try {
             Send-Json 200 @{ ok = $true; revoked = @{ mailbox = $mailbox; user = $user } }
         }
 
+        # Register the Entra SP in Exchange Online as an Application
+        # Service Principal (modern RBAC for Applications — replaces the
+        # legacy ApplicationAccessPolicy mechanism). Then assign the
+        # 'Application Calendars.ReadWrite' management role so the SP
+        # can read/write M365 Group calendars (which the directory-only
+        # Calendars.ReadWrite app-permission DOESN'T cover for groups).
+        #
+        # Required env vars on the Function App:
+        #   EXO_APP_ID         — the Entra application (client) id
+        #   EXO_SP_OBJECT_ID   — the SP's object id in Entra
+        #
+        # Idempotent: re-running tolerates "already exists" errors on both
+        # the SP entry and the role assignment.
+        'setup-app-rbac' {
+            $appId   = $env:EXO_APP_ID
+            $spOid   = $env:EXO_SP_OBJECT_ID
+            $appName = 'skintyee-app-graph'
+            if (-not $spOid) { Send-Json 400 @{ error = "EXO_SP_OBJECT_ID env var not set on Function App" }; return }
+
+            $created = $false
+            try {
+                Get-ServicePrincipal -Identity $appId -ErrorAction Stop | Out-Null
+            } catch {
+                try {
+                    New-ServicePrincipal -AppId $appId -ServiceId $spOid -DisplayName $appName -ErrorAction Stop | Out-Null
+                    $created = $true
+                } catch {
+                    Send-Json 500 @{ error = "New-ServicePrincipal failed: $_" }; return
+                }
+            }
+
+            # Assign Application Calendars.ReadWrite (tenant-wide for now;
+            # can be scoped later via -CustomResourceScope if we want to
+            # restrict to specific groups).
+            $assigned = $false
+            try {
+                $existing = Get-ManagementRoleAssignment -RoleAssignee $spOid -ErrorAction SilentlyContinue |
+                            Where-Object { $_.Role -eq 'Application Calendars.ReadWrite' }
+                if (-not $existing) {
+                    New-ManagementRoleAssignment -App $spOid -Role 'Application Calendars.ReadWrite' -ErrorAction Stop | Out-Null
+                    $assigned = $true
+                }
+            } catch {
+                Send-Json 500 @{ error = "Role assignment failed: $_" }; return
+            }
+
+            Send-Json 200 @{
+                ok = $true
+                servicePrincipalCreated = $created
+                roleAssigned            = $assigned
+                role                    = 'Application Calendars.ReadWrite'
+                note                    = '30-60 min propagation across Exchange caches before group calendar writes start working.'
+            }
+        }
+
         default {
-            Send-Json 400 @{ error = "unknown op '$op' — known: list, list-access, list-for-user, grant, revoke" }
+            Send-Json 400 @{ error = "unknown op '$op' — known: list, list-access, list-for-user, grant, revoke, setup-app-rbac" }
         }
     }
 } catch {

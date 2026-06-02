@@ -36,14 +36,30 @@ export const SKINTYEE_MEETING_TYPES: MeetingType[] = [
   { slug: 'closed-session',  displayName: 'Closed Session',   category: 'Closed Session',   description: 'In-camera / confidential council session' },
 ];
 
-// A meeting source — either a user's primary calendar (shared inbox or
-// licensed user) or an M365 group's calendar.
+// A meeting source — what calendar the organizer is posting to.
+//   - { kind: 'me' }                — the signed-in user's own calendar
+//                                     (/me/events; always available)
+//   - { kind: 'user', upn }          — a shared-mailbox calendar
+//                                     (e.g. bandmanager@); requires the
+//                                     signed-in user to have FullAccess
+//                                     on that mailbox in EXO
+//   - { kind: 'group', groupId }     — an M365 group calendar
+//                                     (e.g. council@); requires the
+//                                     signed-in user to be a group
+//                                     member or owner
+//
+// All three are written via the user's delegated Bearer token — the
+// permission check happens in Exchange against the signed-in user, not
+// against our app's SP. This is what makes "organizer = the person
+// scheduling" work AND sidesteps the app-only M365 group restriction.
 export type MeetingSource =
-  | { kind: 'user';  upn: string;    name: string }
-  | { kind: 'group'; groupId: string; name: string };
+  | { kind: 'me';                       name: string }
+  | { kind: 'user';  upn: string;       name: string }
+  | { kind: 'group'; groupId: string;   name: string };
 
 export const MEETING_SOURCE_CALENDARS: MeetingSource[] = [
-  { kind: 'user',  upn: 'bandmanager@skintyee.ca',                     name: 'Band Manager' },
+  { kind: 'me',                                                       name: 'My calendar' },
+  { kind: 'user',  upn: 'bandmanager@skintyee.ca',                    name: 'Band Manager' },
   { kind: 'group', groupId: '67abaaf6-d7ba-4007-837d-4174822dbf3d',    name: 'Skin Tyee Council (M365)' },
   { kind: 'group', groupId: 'dc776d31-3549-4c39-9781-34c1cad28c99',    name: 'Skin Tyee Management (M365)' },
 ];
