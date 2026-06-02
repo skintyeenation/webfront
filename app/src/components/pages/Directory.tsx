@@ -8,9 +8,14 @@ import { theme } from 'skintyee/styles';
 
 type Filter = 'licensed-user' | 'shared-inbox';
 
-// Compact display for a mailbox UPN — strip the domain to keep chips short.
-// "council@skintyee.ca" → "council"
-const shortMailbox = (full: string) => full.split('@')[0];
+// Compact display for a mailbox UPN — strip the domain + capitalize the
+// first letter to keep chips short but readable.
+// "council@skintyee.ca" → "Council"
+// "it-project-docs@skintyee.ca" → "It-project-docs"
+const shortMailbox = (full: string) => {
+  const local = full.split('@')[0];
+  return local.charAt(0).toUpperCase() + local.slice(1);
+};
 
 // Parse "mail|owner" or "mail|member" entries from the seed. Plain "mail"
 // (no pipe) is treated as a manual admin entry with role unknown.
