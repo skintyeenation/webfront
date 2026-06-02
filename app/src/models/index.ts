@@ -1,7 +1,7 @@
 // Domain models for the Skintyee app. These mirror the entities implied by the
-// SkinTyee.drawio.pdf diagram (Directory, Events, Meetings, Records, Time Keeping,
-// Financials, Polls). When the real API arrives these should be replaced by / kept
-// in sync with the backend contract (see src/services/api/ApiService.ts).
+// SkinTyee.drawio.pdf diagram (Directory, Events, Meetings, Records, Time
+// Keeping, Polls). When the real API arrives these should be replaced by /
+// kept in sync with the backend contract (see src/services/api/ApiService.ts).
 
 export type Role = 'public' | 'member' | 'staff' | 'admin';
 
