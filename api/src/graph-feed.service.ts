@@ -489,38 +489,29 @@ export class GraphFeedService {
       '/users?$select=id,userPrincipalName,displayName,givenName,surname,mail,jobTitle,businessPhones,mobilePhone,department,accountEnabled,assignedLicenses&$filter=accountEnabled eq true&$top=999'
     );
 
-    // Build the per-user "shared mailboxes you have access to" list.
-    // Approach: walk GROUPS from the group side, query each group's
-    // members + owners, then aggregate per user. Group OWNERSHIP at
-    // Skin Tyee corresponds to shared-mailbox access for the role/dept
-    // mailbox (council@, management@, etc.); group MEMBERSHIP is the
-    // broader "I receive this mail" relationship.
+    // Build per-user M365 Group relationships (NOT shared mailboxes —
+    // those live in Exchange Online and aren't readable from Graph v1.0).
     //
-    // We'll show BOTH on the directory card but tag them differently:
-    //   - Where the user is OWNER → "council (owner)"
-    //   - Where the user is MEMBER → just "management"
+    // For each mail-enabled group: query owners + members in parallel,
+    // aggregate per user.
     //
-    // The card field stores them as a single comma-separated list; the
-    // app's Directory page can split + render.
-    //
-    // Parallelized over groups; per-user aggregation in-memory.
-    const ownsByUser    = new Map<string, Set<string>>();   // userId → set of group mails they OWN
-    const memberByUser  = new Map<string, Set<string>>();   // userId → set of group mails they're MEMBER OF
-
+    // The Directory UI distinguishes groups from shared mailboxes at
+    // render time by checking each entry against the set of known
+    // shared-mailbox UPNs (accountType='shared-inbox'). The data
+    // structure here is the same; presentation differs.
+    const ownsByUser    = new Map<string, Set<string>>();
+    const memberByUser  = new Map<string, Set<string>>();
     try {
-      // 1. List all mail-enabled groups in the tenant
       const allGroups = await this.graphPaged<any>(
         '/groups?$select=id,displayName,mail,mailEnabled,groupTypes&$top=999'
       );
       const mailGroups = allGroups.filter((g) => g.mailEnabled && typeof g.mail === 'string');
-
-      // 2. For each mail-enabled group, fetch owners + members in parallel
       await Promise.all(mailGroups.map(async (g) => {
         const mail = (g.mail as string).toLowerCase();
         try {
           const [owners, members] = await Promise.all([
-            this.graphPaged<any>(`/groups/${g.id}/owners?$select=id,userPrincipalName`),
-            this.graphPaged<any>(`/groups/${g.id}/members?$select=id,userPrincipalName`),
+            this.graphPaged<any>(`/groups/${g.id}/owners?$select=id`),
+            this.graphPaged<any>(`/groups/${g.id}/members?$select=id`),
           ]);
           for (const o of owners) {
             if (!ownsByUser.has(o.id)) ownsByUser.set(o.id, new Set());
@@ -531,11 +522,11 @@ export class GraphFeedService {
             memberByUser.get(m.id)!.add(mail);
           }
         } catch (e) {
-          this.log.warn(`couldn't fetch owners/members of group ${g.displayName}: ${e}`);
+          this.log.warn(`couldn't fetch owners/members of ${g.displayName}: ${e}`);
         }
       }));
     } catch (e) {
-      this.log.warn(`couldn't enumerate groups for mailbox membership: ${e}`);
+      this.log.warn(`couldn't enumerate groups: ${e}`);
     }
 
     return users

@@ -23,6 +23,14 @@ function parseMembership(raw: string): ParsedMembership {
   return { mail, rel: 'manual' };
 }
 
+// Strip the "Member" role from the description — everyone in the directory
+// is a member, so it adds no information. Show the role ONLY if it's
+// something distinctive (Chief / Council / Staff).
+function meaningfulRole(role?: string): string | undefined {
+  if (!role || role.toLowerCase() === 'member') return undefined;
+  return role;
+}
+
 export default function Directory({ navigation }: any) {
   const dispatch = useAppDispatch();
   const { entities, loading, loaded } = useAppSelector((s) => s.directory);
@@ -33,13 +41,17 @@ export default function Directory({ navigation }: any) {
   }, [dispatch]);
 
   // Bucket counts so the toggle labels show "Members (N)" / "Shared (M)".
-  const { licensed, shared, currentList } = useMemo(() => {
+  // Also pre-compute the set of UPNs that are themselves shared mailboxes,
+  // so chip rendering can tag those as "shared inbox" instead of "group".
+  const { licensed, shared, currentList, sharedMailboxUpns } = useMemo(() => {
     const lic = entities.filter((e: any) => (e.accountType ?? 'licensed-user') === 'licensed-user');
     const shr = entities.filter((e: any) => e.accountType === 'shared-inbox');
+    const sharedSet = new Set<string>(shr.map((e: any) => (e.upn ?? '').toLowerCase()));
     return {
       licensed: lic,
       shared: shr,
       currentList: filter === 'licensed-user' ? lic : shr,
+      sharedMailboxUpns: sharedSet,
     };
   }, [entities, filter]);
 
@@ -77,44 +89,60 @@ export default function Directory({ navigation }: any) {
                 <TouchableOpacity onPress={() => navigation.navigate('memberDetail', { id: item._id })}>
                   <List.Item
                     title={item.name}
-                    description={() => (
-                      <View>
-                        <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>
-                          {item.title ?? item.role}
-                          {item.upn ? ` · ${item.upn}` : ''}
-                        </Text>
-                        {/* Mailbox-access chips: only for licensed users with memberships.
-                            Owner chips use accent color; member chips use secondary. */}
-                        {!isShared && memberships.length > 0 ? (
-                          <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 4 }}>
-                            {memberships.slice(0, 6).map((raw) => {
-                              const { mail, rel } = parseMembership(raw);
-                              const isOwner = rel === 'owner';
-                              return (
-                                <Chip
-                                  key={raw}
-                                  compact
-                                  icon={isOwner ? 'star' : 'email'}
-                                  style={{
-                                    marginRight: 4,
-                                    marginTop: 2,
-                                    backgroundColor: isOwner ? theme.colors.accent : theme.colors.secondary,
-                                  }}
-                                  textStyle={{ fontSize: 10, color: isOwner ? '#000' : undefined }}
-                                >
-                                  {shortMailbox(mail)}{isOwner ? ' (owner)' : ''}
-                                </Chip>
-                              );
-                            })}
-                            {memberships.length > 6 ? (
-                              <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginLeft: 4, alignSelf: 'center' }}>
-                                +{memberships.length - 6} more
-                              </Text>
-                            ) : null}
-                          </View>
-                        ) : null}
-                      </View>
-                    )}
+                    description={() => {
+                      // Description = title OR distinctive role (Chief/Council/Staff)
+                      // + the UPN. Drops "Member" since everyone is a member —
+                      // adds no information.
+                      const lead = item.title ?? meaningfulRole(item.role);
+                      const descParts = [lead, item.upn].filter(Boolean);
+                      return (
+                        <View>
+                          <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>
+                            {descParts.join(' · ')}
+                          </Text>
+                          {/* Chips: only for licensed users with memberships.
+                              Split into two groups visually:
+                                - SHARED INBOXES (email icon, accent if owner)
+                                - M365 GROUPS (account-group icon, secondary)
+                              Owners of either get a star + accent background. */}
+                          {!isShared && memberships.length > 0 ? (
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 4 }}>
+                              {memberships.slice(0, 8).map((raw) => {
+                                const { mail, rel } = parseMembership(raw);
+                                const isOwner = rel === 'owner';
+                                const isSharedInbox = sharedMailboxUpns.has(mail);
+                                // All chips share the secondary background. Owners get
+                                // the star icon as the differentiator (no shouty color).
+                                // Shared inboxes get the email icon; M365 groups get
+                                // account-group.
+                                const icon = isOwner ? 'star' :
+                                             isSharedInbox ? 'email' : 'account-group';
+                                return (
+                                  <Chip
+                                    key={raw}
+                                    compact
+                                    icon={icon}
+                                    style={{
+                                      marginRight: 4,
+                                      marginTop: 2,
+                                      backgroundColor: theme.colors.secondary,
+                                    }}
+                                    textStyle={{ fontSize: 10 }}
+                                  >
+                                    {shortMailbox(mail)}
+                                  </Chip>
+                                );
+                              })}
+                              {memberships.length > 8 ? (
+                                <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginLeft: 4, alignSelf: 'center' }}>
+                                  +{memberships.length - 8} more
+                                </Text>
+                              ) : null}
+                            </View>
+                          ) : null}
+                        </View>
+                      );
+                    }}
                     titleStyle={{ color: theme.colors.text }}
                     left={() => (
                       <Avatar.Text
@@ -129,8 +157,9 @@ export default function Directory({ navigation }: any) {
                       isShared ? (
                         <Chip
                           compact
-                          style={{ alignSelf: 'center', marginRight: 8, backgroundColor: theme.colors.accent }}
-                          textStyle={{ color: '#000', fontSize: 10 }}
+                          icon="email-multiple-outline"
+                          style={{ alignSelf: 'center', marginRight: 8, backgroundColor: theme.colors.secondary }}
+                          textStyle={{ fontSize: 10 }}
                         >
                           shared
                         </Chip>
