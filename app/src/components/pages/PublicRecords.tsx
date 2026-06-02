@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
-import { Card, SegmentedButtons, Text } from 'react-native-paper';
+import { Card, Chip, ProgressBar, SegmentedButtons, Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { PageContainer, PageContent, NoContent, BarChart, PieChart, colorAt } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
