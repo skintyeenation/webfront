@@ -26,7 +26,7 @@ const ACCOUNT_ITEMS: MoreItem[] = [
 //     PublicRecords landed here).
 const ADMIN_ITEMS: MoreItem[] = [
   { route: 'timekeeping',   label: 'Time Keeping',   description: 'Worker hours & approvals',          icon: 'clock-outline',          roles: ['admin'] },
-  { route: 'publicRecords', label: 'Transparency',  description: 'Where the money goes — budgets, expenditures & projects', icon: 'chart-pie',  roles: ['admin'] },
+  { route: 'publicRecords', label: 'Financial Summary',  description: 'Where the money goes — budgets, expenditures & projects', icon: 'chart-pie',  roles: ['admin'] },
 ];
 
 // General community items.
