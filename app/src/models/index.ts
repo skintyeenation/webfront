@@ -13,6 +13,17 @@ export interface BandMember {
   email?: string; // sensitive: hidden from the public view
   phone?: string; // sensitive: hidden from the public view
   avatarLetter?: string;
+  upn?: string;
+  department?: string;
+  appRole?: 'public' | 'member' | 'staff' | 'admin';
+  // What kind of Entra account this is — drives the Directory tab's toggle
+  // between "Members" (licensed users) and "Shared inboxes" (chief@, etc.).
+  accountType?: 'licensed-user' | 'shared-inbox';
+  // For licensed users: which shared mailboxes / mail-enabled groups they
+  // have access to. Auto-populated from Graph memberOf (M365 Groups);
+  // admins fill the rest manually for classic shared mailboxes that aren't
+  // groups (e.g. chief@). Rendered as chips on the directory card.
+  mailboxMemberships?: string[];
 }
 
 export interface CommunityEvent {

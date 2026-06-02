@@ -479,10 +479,41 @@ export class GraphFeedService {
   async getDirectory(): Promise<Array<{
     id: string; upn: string; email?: string; name: string; role: string;
     title?: string; department?: string; phone?: string; avatarLetter?: string;
-    appRole: string; enabled: boolean;
+    appRole: string; accountType: 'licensed-user' | 'shared-inbox';
+    mailboxMemberships: string[]; enabled: boolean;
   }>> {
+    // assignedLicenses is what distinguishes a "real" licensed user (gets
+    // a Business Standard SKU assigned) from a shared mailbox (no license).
+    // We $select it to avoid pulling everything.
     const users = await this.graphPaged<any>(
-      '/users?$select=id,userPrincipalName,displayName,givenName,surname,mail,jobTitle,businessPhones,mobilePhone,department,accountEnabled&$filter=accountEnabled eq true&$top=999'
+      '/users?$select=id,userPrincipalName,displayName,givenName,surname,mail,jobTitle,businessPhones,mobilePhone,department,accountEnabled,assignedLicenses&$filter=accountEnabled eq true&$top=999'
+    );
+
+    // For each licensed user, fetch their memberOf (M365 Group memberships).
+    // This is THE inverse of "who has access to chief@" — we ask each user
+    // "what mail-enabled groups are you in?" and store the group mails. The
+    // Directory UI uses this to show "Has access to: council@, management@".
+    // Done in parallel for speed; failures are non-fatal per user.
+    const upnFor = new Map<string, string>();   // userId → upn (for logging)
+    const memberOfByUser = new Map<string, string[]>();
+    await Promise.all(
+      users
+        .filter((u) => Array.isArray(u.assignedLicenses) && u.assignedLicenses.length > 0)
+        .map(async (u) => {
+          upnFor.set(u.id, u.userPrincipalName);
+          try {
+            const groups = await this.graphPaged<any>(
+              `/users/${u.id}/memberOf?$select=id,displayName,mail,mailEnabled,groupTypes`
+            );
+            const mails = groups
+              .filter((g) => g.mailEnabled && typeof g.mail === 'string')
+              .map((g) => (g.mail as string).toLowerCase());
+            memberOfByUser.set(u.id, mails);
+          } catch (e) {
+            this.log.warn(`couldn't fetch memberOf for ${u.userPrincipalName}: ${e}`);
+            memberOfByUser.set(u.id, []);
+          }
+        })
     );
 
     return users
@@ -519,6 +550,18 @@ export class GraphFeedService {
           : hasTitle ? 'staff'
           : 'member';
 
+        // Account type — license check distinguishes shared mailboxes from
+        // real users. The 13 shared mailboxes (it@, chief@, councillor1@,
+        // councillor2@, finance@, firechief@, forestry@, housing@,
+        // landresources@, gis@, media@, referrals@, bandmanager@) have
+        // accountEnabled=true but zero licenses; licensed users have at
+        // least one Business Standard / E3 SKU.
+        const assignedLicenses = Array.isArray(u.assignedLicenses) ? u.assignedLicenses : [];
+        const accountType: 'licensed-user' | 'shared-inbox' =
+          assignedLicenses.length > 0 || isBreakGlass
+            ? 'licensed-user'
+            : 'shared-inbox';
+
         return {
           id: u.id,
           upn,
@@ -530,6 +573,8 @@ export class GraphFeedService {
           phone: u.mobilePhone ?? u.businessPhones?.[0] ?? undefined,
           avatarLetter: (isBreakGlass ? 'S' : (u.displayName ?? u.givenName ?? '?').charAt(0)).toUpperCase(),
           appRole,
+          accountType,
+          mailboxMemberships: memberOfByUser.get(u.id) ?? [],
           enabled: !!u.accountEnabled,
         };
       });

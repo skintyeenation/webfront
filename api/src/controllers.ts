@@ -43,7 +43,9 @@ export class DirectoryController {
         where: { enabled: true },
         orderBy: { name: 'asc' },
       });
-      // Map Prisma fields → the legacy BandMember shape the app expects.
+      // Map Prisma fields → the BandMember shape the app expects, including
+      // the accountType (toggle filter) + mailboxMemberships (badges on
+      // licensed-user cards showing which mail-enabled groups they're in).
       return rows.map((r) => ({
         _id: r.id,
         name: r.name,
@@ -55,6 +57,8 @@ export class DirectoryController {
         upn: r.upn,
         department: r.department ?? undefined,
         appRole: r.appRole,
+        accountType: r.accountType,
+        mailboxMemberships: r.mailboxMemberships ? r.mailboxMemberships.split(',').filter(Boolean) : [],
       }));
     }
     return this.data.directory;
@@ -136,6 +140,16 @@ export class AdminController implements OnApplicationBootstrap {
 
     for (const u of entraUsers) {
       const existing = await this.prisma.bandMember.findUnique({ where: { id: u.id } });
+      // Merge graph-derived memberships with any manual additions an admin
+      // has made (preserve hand-edits that would otherwise be lost on
+      // re-seed). Graph memberships come from M365 Group memberOf; manual
+      // ones live in extras like classic shared-mailbox grants.
+      const graphMemberships = new Set(u.mailboxMemberships.map((m) => m.toLowerCase()));
+      const existingExtras = existing?.mailboxMemberships
+        ? existing.mailboxMemberships.split(',').filter(Boolean).filter((m) => !graphMemberships.has(m))
+        : [];
+      const merged = [...graphMemberships, ...existingExtras];
+
       await this.prisma.bandMember.upsert({
         where: { id: u.id },
         create: {
@@ -149,6 +163,8 @@ export class AdminController implements OnApplicationBootstrap {
           phone: u.phone,
           avatarLetter: u.avatarLetter,
           appRole: u.appRole,
+          accountType: u.accountType,
+          mailboxMemberships: merged.join(','),
           enabled: u.enabled,
         },
         update: {
@@ -161,6 +177,8 @@ export class AdminController implements OnApplicationBootstrap {
           phone: u.phone,
           avatarLetter: u.avatarLetter,
           appRole: u.appRole,
+          accountType: u.accountType,
+          mailboxMemberships: merged.join(','),
           enabled: u.enabled,
           syncedAt: new Date(),
         },
@@ -182,6 +200,32 @@ export class AdminController implements OnApplicationBootstrap {
       updated,
       disabled: disabledCount,
       syncedAt: new Date().toISOString(),
+    };
+  }
+
+  // PATCH /v1/admin/users/:upn/mailbox-memberships — overwrite the user's
+  // mailbox-memberships list. For classic shared mailboxes (chief@,
+  // councillor1@, etc.) where permissions live in Exchange Online and
+  // aren't readable from Graph v1.0, an admin curates the list manually
+  // here. The auto-seed merges (doesn't overwrite) these on re-run, so
+  // hand-edits survive subsequent syncs.
+  //
+  // Body: { mailboxes: ["chief@skintyee.ca", "council@skintyee.ca", …] }
+  @Patch('users/:upn/mailbox-memberships') @Roles('admin')
+  async setMailboxMemberships(@Param('upn') upn: string, @Body() body: { mailboxes?: string[] }) {
+    if (!this.prisma.isAvailable) {
+      throw new NotFoundException('Prisma not connected');
+    }
+    const mailboxes = (body.mailboxes ?? []).map((m) => m.toLowerCase()).filter(Boolean);
+    const row = await this.prisma.bandMember.update({
+      where: { upn: upn.toLowerCase() },
+      data: { mailboxMemberships: mailboxes.join(',') },
+      select: { upn: true, name: true, mailboxMemberships: true },
+    });
+    return {
+      upn: row.upn,
+      name: row.name,
+      mailboxMemberships: row.mailboxMemberships ? row.mailboxMemberships.split(',').filter(Boolean) : [],
     };
   }
 

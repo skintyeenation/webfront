@@ -35,6 +35,24 @@ model BandMember {
   phone         String?
   avatarLetter  String?
   appRole       String   @default("member") // "public" | "member" | "staff" | "admin" — for the app's role-gating
+  // What kind of Entra account this is:
+  //   "licensed-user"  — a real person with an M365 license (chief, councillors, staff members)
+  //   "shared-inbox"   — a shared mailbox / role mailbox (info@, finance@, housing@, etc.)
+  // Derived in GraphFeedService.getDirectory() from the user's assignedLicenses
+  // array (length > 0 → licensed-user; empty → shared-inbox).
+  accountType   String   @default("licensed-user")
+  // For licensed users: which shared mailboxes / mail-enabled groups they
+  // have access to. Comma-separated UPN/mail list, e.g.:
+  //   "council@skintyee.ca,management@skintyeenation.onmicrosoft.com"
+  // Populated from TWO sources:
+  //   1. Microsoft Graph /users/{id}/memberOf — gives M365 Group memberships
+  //      (mail-enabled groups represent shared mailboxes the user can access
+  //      via their group membership). Auto-populated on seed.
+  //   2. Manual admin entry — for CLASSIC shared mailboxes (chief@,
+  //      councillor1@, etc.) where permissions are stored in Exchange
+  //      Online's Get-MailboxPermission and aren't exposed in Graph v1.0.
+  //      Admins set these via POST /v1/admin/users/{id}/mailbox-memberships.
+  mailboxMemberships String @default("")
   enabled       Boolean  @default(true)
   syncedAt      DateTime @default(now())   // last time seeded from Entra
   createdAt     DateTime @default(now())
@@ -42,4 +60,5 @@ model BandMember {
 
   @@index([upn])
   @@index([enabled])
+  @@index([accountType])
 }
