@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, NotFoundException, Param, Post, Patch, Query, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Logger, NotFoundException, OnApplicationBootstrap, Param, Post, Patch, Query, Req } from '@nestjs/common';
 import { DataService } from './data.service';
 import { Roles, callerRole } from './roles';
 import { GraphFeedService, FeedItem, AppRole } from './graph-feed.service';
@@ -74,15 +74,55 @@ export class DirectoryController {
 }
 
 // ---- Admin: seed directory from Entra -------------------------------------
-// One-shot endpoint that pulls all enabled users from the skintyeenation
-// Entra tenant + upserts them into the BandMember Postgres table. Run once
-// after the first api/ deploy, then re-run anytime the tenant's user set
-// changes (idempotent — upsert by Entra object id).
+// Pulls all enabled users from the skintyeenation Entra tenant + upserts
+// them into the BandMember Postgres table. Idempotent — upsert by Entra
+// object id; can be re-run any time.
 //
-// POST /v1/admin/seed-directory — role-gated `admin`
+// Two trigger paths:
+//
+//   1. **Auto on app bootstrap** — if the BandMember table is EMPTY when
+//      the api/ starts, seed it. Anyone deploying for the first time, or
+//      anyone starting against a fresh local Postgres, gets users
+//      without manual intervention. We DON'T re-seed on every restart
+//      because that would burn Graph quota + clobber any hand-edits.
+//
+//   2. **Manual POST /v1/admin/seed-directory** — admin-only endpoint
+//      to force a fresh sync (e.g. after someone joins or leaves M365).
+//
 @Controller('admin')
-export class AdminController {
+export class AdminController implements OnApplicationBootstrap {
+  private readonly log = new Logger(AdminController.name);
+
   constructor(private graph: GraphFeedService, private prisma: PrismaService) {}
+
+  // NestJS lifecycle hook — fires once after the app starts listening.
+  async onApplicationBootstrap() {
+    // Don't block startup on seed failures
+    setImmediate(() => this.maybeSeedOnStartup());
+  }
+
+  private async maybeSeedOnStartup(): Promise<void> {
+    if (!this.prisma.isAvailable) {
+      this.log.warn('Prisma not connected — skipping startup seed');
+      return;
+    }
+    try {
+      const count = await this.prisma.bandMember.count();
+      if (count > 0) {
+        this.log.log(`startup seed skipped: BandMember table already has ${count} rows`);
+        return;
+      }
+      if (!process.env.GRAPH_CLIENT_ID || !process.env.GRAPH_CLIENT_SECRET || !process.env.GRAPH_TENANT_ID) {
+        this.log.warn('GRAPH_* env vars not set — skipping startup seed (set them in .env then restart)');
+        return;
+      }
+      this.log.log('startup seed starting: BandMember table is empty, pulling from Entra…');
+      const result = await this.seedDirectory();
+      this.log.log(`startup seed done: ${result.total} users (${result.inserted} new, ${result.updated} existing, ${result.disabled} disabled)`);
+    } catch (e) {
+      this.log.warn(`startup seed failed (api/ stays up): ${e}`);
+    }
+  }
 
   @Post('seed-directory') @Roles('admin')
   async seedDirectory() {
