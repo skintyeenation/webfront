@@ -820,10 +820,13 @@ export class GraphFeedService {
     await Promise.all(sources.map(async (source) => {
       // For user calendars use /users/{upn}/calendarView (which honors a
       // start/end window and expands recurring events). For groups, the
-      // equivalent is /groups/{id}/calendarView.
-      const base = source.kind === 'user'
-        ? `/users/${source.upn}/calendarView`
-        : `/groups/${source.groupId}/calendarView`;
+      // equivalent is /groups/{id}/calendarView. We filter out 'me' sources
+      // earlier (only the write path uses /me/events) but the union still
+      // includes it, so narrow exhaustively for the type checker.
+      const base =
+        source.kind === 'me'    ? '/me/calendarView' :
+        source.kind === 'user'  ? `/users/${source.upn}/calendarView` :
+                                  `/groups/${source.groupId}/calendarView`;
       const url = `${base}?startDateTime=${from}&endDateTime=${to}` +
                   `&$select=id,subject,bodyPreview,location,start,end,isCancelled,categories,organizer,attendees,onlineMeeting,webLink,isOnlineMeeting`;
       const srcIdx = MEETING_SOURCE_CALENDARS.indexOf(source);

@@ -584,7 +584,9 @@ export class MeetingsController {
         index: i,
         kind: s.kind,
         name: s.name,
-        ...(s.kind === 'user' ? { upn: s.upn } : { groupId: s.groupId }),
+        ...(s.kind === 'user'  ? { upn: s.upn } :
+            s.kind === 'group' ? { groupId: s.groupId } :
+                                   {}),
       })),
     };
   }
