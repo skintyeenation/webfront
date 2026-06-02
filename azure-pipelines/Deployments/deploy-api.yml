@@ -65,6 +65,50 @@ jobs:
               --file api/Dockerfile \
               api
 
+      # Sync env vars + secrets from the variable group onto the
+      # container app BEFORE the image update. Idempotent: --secrets and
+      # --set-env-vars overwrite by name. The pipeline becomes the
+      # source of truth — change a value in the ADO variable group +
+      # next deploy applies it.
+      - task: AzureCLI@2
+        displayName: Sync env vars + secrets from variable group
+        env:
+          # ADO doesn't expose secret variables to scriptType=bash by
+          # default — explicit env mapping is required for each.
+          GRAPH_CLIENT_SECRET: $(GRAPH_CLIENT_SECRET)
+          EXO_FUNCTION_KEY:    $(EXO_FUNCTION_KEY)
+          PG_PASSWORD:         $(PG_PASSWORD)
+        inputs:
+          azureSubscription: skintyee-prod-azure
+          scriptType: bash
+          scriptLocation: inlineScript
+          inlineScript: |
+            set -euo pipefail
+            DATABASE_URL="postgresql://${PG_USER}:${PG_PASSWORD}@${PG_HOST}:${PG_PORT}/${PG_DATABASE}?sslmode=${PG_SSL_MODE}&schema=public"
+
+            echo "▸ pushing secrets onto $AZURE_CONTAINERAPP…"
+            az containerapp secret set \
+              --name "$AZURE_CONTAINERAPP" --resource-group "$AZURE_RG" \
+              --secrets \
+                "database-url=$DATABASE_URL" \
+                "graph-client-id=$GRAPH_APP_ID" \
+                "graph-client-secret=$GRAPH_CLIENT_SECRET" \
+                "graph-tenant-id=$GRAPH_TENANT_ID" \
+                "exo-function-key=$EXO_FUNCTION_KEY" \
+              --output none
+
+            echo "▸ wiring env vars (plain + secretRef)…"
+            az containerapp update \
+              --name "$AZURE_CONTAINERAPP" --resource-group "$AZURE_RG" \
+              --set-env-vars \
+                "DATABASE_URL=secretref:database-url" \
+                "GRAPH_CLIENT_ID=secretref:graph-client-id" \
+                "GRAPH_CLIENT_SECRET=secretref:graph-client-secret" \
+                "GRAPH_TENANT_ID=secretref:graph-tenant-id" \
+                "EXO_FUNCTION_URL=$EXO_FUNCTION_URL" \
+                "EXO_FUNCTION_KEY=secretref:exo-function-key" \
+              --output none
+
       - task: AzureCLI@2
         displayName: Update Container App revision
         inputs:
