@@ -192,7 +192,7 @@ export default function Directory({ navigation }: any) {
             </Button>
             <Button
               mode="outlined"
-              icon="sync"
+              icon="cloud-sync"              // Cloud + arrows reads as "pull from M365" rather than the generic spinner that 'sync' suggests.
               loading={syncing}              // Paper's loading prop renders a spinner INSIDE the button.
               disabled={syncing}             // …and also disables onPress, which is what we want here.
               onPress={runSync}
