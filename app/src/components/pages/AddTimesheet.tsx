@@ -32,17 +32,19 @@ interface DraftEntry {
 
 const newRowId = () => `row-${Math.random().toString(36).slice(2, 9)}`;
 
+function toMinutes(s?: string): number {
+  if (!s) return NaN;
+  const parts = s.split(':');
+  if (parts.length !== 2) return NaN;
+  const h = parseInt(parts[0], 10);
+  const mi = parseInt(parts[1], 10);
+  if (isNaN(h) || isNaN(mi)) return NaN;
+  return h * 60 + mi;
+}
+
 function hoursBetween(timeIn?: string, timeOut?: string): number {
   if (!timeIn || !timeOut) return 0;
-  const m = (s: string) => {
-    const parts = s.split(':');
-    if (parts.length !== 2) return NaN;
-    const h = parseInt(parts[0], 10);
-    const mi = parseInt(parts[1], 10);
-    if (isNaN(h) || isNaN(mi)) return NaN;
-    return h * 60 + mi;
-  };
-  const a = m(timeIn), b = m(timeOut);
+  const a = toMinutes(timeIn), b = toMinutes(timeOut);
   if (isNaN(a) || isNaN(b) || b <= a) return 0;
   return Math.round(((b - a) / 60) * 100) / 100;
 }
@@ -50,6 +52,42 @@ function hoursBetween(timeIn?: string, timeOut?: string): number {
 function isValidTime(s?: string): boolean {
   if (!s) return true; // empty is fine — manual hours
   return /^\d{1,2}:\d{2}$/.test(s);
+}
+
+// For each row on the same date that has a valid timeIn/timeOut span,
+// flag every row whose interval intersects another row's interval.
+// Returns a Set of offending row IDs so the UI can highlight them and
+// the persist step can refuse to save.
+//
+// Two half-open intervals [a1, a2) and [b1, b2) overlap iff
+//   a1 < b2 && b1 < a2.
+// Equal endpoints (a row that ends at 12:00 and another that starts at
+// 12:00) are *not* an overlap — that's a back-to-back schedule.
+function findOverlappingRowIds(rows: DraftEntry[]): Set<string> {
+  const byDate = new Map<string, DraftEntry[]>();
+  for (const r of rows) {
+    const a = toMinutes(r.timeIn);
+    const b = toMinutes(r.timeOut);
+    if (isNaN(a) || isNaN(b) || b <= a) continue;
+    if (!byDate.has(r.date)) byDate.set(r.date, []);
+    byDate.get(r.date)!.push(r);
+  }
+  const bad = new Set<string>();
+  for (const day of byDate.values()) {
+    for (let i = 0; i < day.length; i++) {
+      for (let j = i + 1; j < day.length; j++) {
+        const a1 = toMinutes(day[i].timeIn);
+        const a2 = toMinutes(day[i].timeOut);
+        const b1 = toMinutes(day[j].timeIn);
+        const b2 = toMinutes(day[j].timeOut);
+        if (a1 < b2 && b1 < a2) {
+          bad.add(day[i].id);
+          bad.add(day[j].id);
+        }
+      }
+    }
+  }
+  return bad;
 }
 
 function rowsFromTimesheet(existing: Timesheet | null): DraftEntry[] {
@@ -149,6 +187,15 @@ export default function AddTimesheet({ navigation, route }: any) {
     };
   }, [rows, payPeriod, config]);
 
+  // Per-day overlap detection. Memoised because every row update would
+  // otherwise re-run the O(n²) inner scan on each keystroke.
+  const overlapIds = useMemo(() => findOverlappingRowIds(rows), [rows]);
+  const daysWithOverlaps = useMemo(() => {
+    const out = new Set<string>();
+    for (const r of rows) if (overlapIds.has(r.id)) out.add(r.date);
+    return out;
+  }, [rows, overlapIds]);
+
   const dayBlocks = useMemo(() => {
     if (!payPeriod) return [] as Array<{ date: string; rows: DraftEntry[]; weekIdx: 1 | 2 }>;
     const start = dayjs(payPeriod.startISO);
@@ -175,6 +222,14 @@ export default function AddTimesheet({ navigation, route }: any) {
         if (!isValidTime(r.timeIn) || !isValidTime(r.timeOut)) {
           throw new Error(`Invalid time on ${r.date}. Use HH:mm (e.g. 08:00).`);
         }
+      }
+      // Hard gate on overlapping intervals — two tasks can't run at the
+      // same clock minute. Surface the first offending day so the user
+      // knows where to look (the affected rows are also highlighted in
+      // the form).
+      if (daysWithOverlaps.size > 0) {
+        const first = Array.from(daysWithOverlaps).sort()[0];
+        throw new Error(`Overlapping entries on ${dayjs(first).format('ddd MMM D')}. Adjust the times so the periods don't intersect.`);
       }
       const api = apiFactory();
       const body = {
@@ -269,13 +324,35 @@ export default function AddTimesheet({ navigation, route }: any) {
                 ) : null}
               </View>
 
-              {dayBlocks.filter((d) => d.weekIdx === wk).map((d) => (
-                <Card key={d.date} style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 8 }}>
+              {dayBlocks.filter((d) => d.weekIdx === wk).map((d) => {
+                const dayHasOverlap = daysWithOverlaps.has(d.date);
+                return (
+                <Card
+                  key={d.date}
+                  style={{
+                    backgroundColor: theme.colors.darkDefault,
+                    marginBottom: 8,
+                    // Red outline on the whole day card when its rows
+                    // overlap — visually loud enough that the user can
+                    // spot it while scrolling the 14-day stack.
+                    borderWidth: dayHasOverlap ? 1 : 0,
+                    borderColor: dayHasOverlap ? theme.colors.error : 'transparent',
+                  }}
+                >
                   <Card.Content>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
                       <Text style={{ color: theme.colors.text, fontSize: 14, flex: 1 }}>
                         {dayjs(d.date).format('ddd MMM D')}
                       </Text>
+                      {dayHasOverlap ? (
+                        <Chip
+                          compact icon="alert-circle"
+                          style={{ marginRight: 6, backgroundColor: theme.colors.error }}
+                          textStyle={{ color: '#fff', fontSize: 10 }}
+                        >
+                          Overlap
+                        </Chip>
+                      ) : null}
                       <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>
                         {Math.round(d.rows.reduce((s, r) => s + (Number(r.hours) || 0), 0) * 100) / 100}h
                       </Text>
@@ -305,14 +382,14 @@ export default function AddTimesheet({ navigation, route }: any) {
                               value={r.timeIn ?? ''}
                               onChange={(v) => updateRow(r.id, { timeIn: v.trim() || undefined })}
                               style={{ flex: 1, marginRight: 6 }}
-                              error={!isValidTime(r.timeIn)}
+                              error={!isValidTime(r.timeIn) || overlapIds.has(r.id)}
                               placeholder="08:00"
                             />
                             <TimeField
                               value={r.timeOut ?? ''}
                               onChange={(v) => updateRow(r.id, { timeOut: v.trim() || undefined })}
                               style={{ flex: 1, marginRight: 6 }}
-                              error={!isValidTime(r.timeOut)}
+                              error={!isValidTime(r.timeOut) || overlapIds.has(r.id)}
                               placeholder="16:30"
                             />
                             {/* Hours — read-only, derived from In/Out. Styled
@@ -329,6 +406,12 @@ export default function AddTimesheet({ navigation, route }: any) {
                       ))
                     )}
 
+                    {dayHasOverlap ? (
+                      <HelperText type="error" visible style={{ marginLeft: -8 }}>
+                        Entries on this day overlap. Adjust the times so the periods don't intersect.
+                      </HelperText>
+                    ) : null}
+
                     <Button
                       compact mode="text" icon="plus"
                       textColor={theme.colors.primary}
@@ -339,7 +422,8 @@ export default function AddTimesheet({ navigation, route }: any) {
                     </Button>
                   </Card.Content>
                 </Card>
-              ))}
+                );
+              })}
             </View>
           );
         })}
@@ -403,7 +487,7 @@ export default function AddTimesheet({ navigation, route }: any) {
                   mode="contained" icon="send"
                   buttonColor={theme.colors.primary} textColor="#000"
                   onPress={() => persist('submit')}
-                  disabled={saving || rows.length === 0 || !submitOpen}
+                  disabled={saving || rows.length === 0 || !submitOpen || daysWithOverlaps.size > 0}
                   loading={saving && submittedMode === 'submit'}
                   style={{ marginBottom: 6 }}
                 >
