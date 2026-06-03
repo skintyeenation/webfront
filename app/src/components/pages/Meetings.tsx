@@ -5,6 +5,7 @@ import moment from 'moment';
 import { PageContainer, PageContent, NoContent, AdminAddButton, useConfirm } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { loadMeetings, cancelMeeting, removeMeeting } from 'skintyee/store/modules/meetings';
+import { BandMeeting, MeetingLink, TeamsConference } from 'skintyee/models';
 import { theme } from 'skintyee/styles';
 
 // ----------------------------------------------------------------------------
@@ -94,8 +95,17 @@ async function copyText(text: string): Promise<boolean> {
   return false;
 }
 
-function MeetingAgenda({ agenda }: { agenda?: string }) {
-  const { teams, otherText } = parseAgenda(agenda);
+// Driven by the structured fields on BandMeeting first; falls back to
+// agenda-string parsing for legacy events that haven't been re-read
+// from Graph since the server-side parser shipped.
+function MeetingAgenda({ meeting }: { meeting: BandMeeting }) {
+  // Prefer structured conference/links on the meeting itself; fall back
+  // to inline parsing of the agenda string for legacy/local data.
+  const fallback = parseAgenda(meeting.agenda);
+  const teams: TeamsBlock | undefined = meeting.conference ?? fallback.teams;
+  const links: MeetingLink[] | undefined = meeting.links;
+  const otherText = meeting.conference || meeting.links ? (meeting.agenda ?? '') : fallback.otherText;
+
   const [copiedKey, setCopiedKey] = useState<string | undefined>();
   const doCopy = async (key: string, value: string) => {
     const ok = await copyText(value);
@@ -173,6 +183,33 @@ function MeetingAgenda({ agenda }: { agenda?: string }) {
           {teams.meetingId ? <TeamsRow icon="🆔" label="Meeting ID" value={teams.meetingId} /> : null}
           {teams.passcode ? <TeamsRow icon="🔒" label="Passcode" value={teams.passcode} /> : null}
           {teams.helpUrl ? <TeamsRow icon="❓" label="Help" value={teams.helpUrl} display={shortenUrl(teams.helpUrl)} link /> : null}
+        </View>
+      ) : null}
+      {links && links.length ? (
+        <View
+          style={{
+            marginTop: 10,
+            paddingHorizontal: 12,
+            paddingVertical: 10,
+            backgroundColor: 'rgba(255,255,255,0.04)',
+            borderRadius: 6,
+            borderLeftWidth: 3,
+            borderLeftColor: theme.colors.primary,
+          }}
+        >
+          <Text style={{ color: theme.colors.text, fontSize: 13, fontWeight: '700' }}>
+            🔗  Links
+          </Text>
+          {links.map((l, i) => (
+            <TeamsRow
+              key={`${l.url}-${i}`}
+              icon="•"
+              label={l.label || l.url}
+              value={l.url}
+              display={shortenUrl(l.url)}
+              link
+            />
+          ))}
         </View>
       ) : null}
     </View>
@@ -255,7 +292,7 @@ export default function Meetings({ navigation }: any) {
 
                 <Text style={{ color: theme.colors.accent, marginTop: 4 }}>{moment(item.startsAt).format('ddd, MMM D · h:mm A')}</Text>
                 <Text style={{ color: theme.colors.textDarker, marginTop: 2 }}>{item.location}</Text>
-                <MeetingAgenda agenda={item.agenda} />
+                <MeetingAgenda meeting={item} />
 
                 {isAdmin ? (
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 10 }}>

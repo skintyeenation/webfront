@@ -553,6 +553,9 @@ export class MeetingsController {
       try {
         const items = await this.graph.getBandMeetings({ typeSlug: type, accessToken });
         // Map to the BandMeeting shape the app expects, preserving typeSlug.
+        // conference + links are extracted from the Graph body by the
+        // feed service so the agenda field on the client only carries
+        // the user's prose.
         return items.map((m) => ({
           _id: m.id,
           title: m.title,
@@ -563,10 +566,15 @@ export class MeetingsController {
           cancelled: m.cancelled,
           type: m.typeSlug,
           source: m.source,
+          sourceIndex: m.sourceIndex,
           organizerName: m.organizerName,
           organizerUpn: m.organizerUpn,
+          attendees: m.attendees,
+          isOnlineMeeting: m.isOnlineMeeting,
           joinUrl: m.joinUrl,
           webLink: m.webLink,
+          conference: m.conference,
+          links: m.links,
         }));
       } catch (e: any) {
         this.log.warn(`Graph fetch failed, falling back to mock: ${e?.message ?? e}`);

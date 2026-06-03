@@ -64,28 +64,47 @@ export type MeetingTypeSlug =
   | 'public-event'
   | 'closed-session';
 
+// Structured Teams conference details, extracted server-side from the
+// event body so the agenda field carries only the user's prose. See
+// api/src/teams-block.ts for the parser.
+export interface TeamsConference {
+  joinUrl?: string;
+  meetingId?: string;
+  passcode?: string;
+  helpUrl?: string;
+}
+
+// Arbitrary {label, url} pairs from a "Links:" section the app author
+// inside the event body. Round-trips through Graph as plain text.
+export interface MeetingLink {
+  label: string;
+  url: string;
+}
+
 export interface BandMeeting {
   _id: string;
   title: string;
-  agenda: string;
+  agenda: string;         // user prose only (Teams + Links sections extracted)
   location: string;
-  startsAt: string;    // ISO date
+  startsAt: string;       // ISO date
   endsAt?: string;
   minutesUrl?: string;
   cancelled?: boolean;
-  lat?: number;        // map pin (set via the location picker)
+  lat?: number;           // map pin (set via the location picker)
   lng?: number;
   // M365 calendar fields (present when meetings came from Graph rather
   // than the in-memory fixture)
   type?: MeetingTypeSlug;
-  source?: string;     // human-readable source calendar name
-  sourceIndex?: number; // index into MEETING_SOURCE_CALENDARS — needed for PATCH/DELETE
+  source?: string;        // human-readable source calendar name
+  sourceIndex?: number;   // index into MEETING_SOURCE_CALENDARS — needed for PATCH/DELETE
   organizerName?: string;
   organizerUpn?: string;
   attendees?: Array<{ upn: string; name?: string; type?: string }>;
   isOnlineMeeting?: boolean;
-  joinUrl?: string;    // Teams join URL if isOnlineMeeting
-  webLink?: string;    // Outlook web link
+  joinUrl?: string;       // Teams join URL if isOnlineMeeting (mirrors conference.joinUrl)
+  webLink?: string;       // Outlook web link
+  conference?: TeamsConference;  // structured Teams details parsed from body
+  links?: MeetingLink[];         // structured "Links:" section parsed from body
 }
 
 // Public, transparent band expenditure by program area. The real figures come

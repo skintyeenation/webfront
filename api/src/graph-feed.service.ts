@@ -32,11 +32,17 @@ import {
   meetingTypeBySlug,
   MeetingSource,
 } from './skintyee-meeting-types';
+import {
+  parseMeetingBody,
+  serialiseMeetingBody,
+  TeamsConference,
+  MeetingLink,
+} from './teams-block';
 
 export interface BandMeetingFromGraph {
   id: string;          // Graph event id
   title: string;
-  agenda: string;      // body.content (plain text preview)
+  agenda: string;      // user prose only — Teams + Links sections are extracted
   location: string;
   startsAt: string;    // ISO
   endsAt?: string;
@@ -48,8 +54,10 @@ export interface BandMeetingFromGraph {
   organizerUpn?: string;
   attendees?: Array<{ upn: string; name?: string; type?: string }>;
   isOnlineMeeting?: boolean;
-  joinUrl?: string;     // Teams join URL if isOnlineMeeting
+  joinUrl?: string;     // Teams join URL if isOnlineMeeting (mirrors conference.joinUrl)
   webLink?: string;     // Outlook web link
+  conference?: TeamsConference; // joinUrl / meetingId / passcode / helpUrl extracted from body
+  links?: MeetingLink[];        // links from a "Links:" section we author ourselves
 }
 
 // ---- Types ---------------------------------------------------------------
@@ -843,10 +851,26 @@ export class GraphFeedService {
           if (!hitCat) continue;
           const type = meetingTypeByCategory.get(hitCat)!;
 
+          // Split the body into (prose, Teams conference, links). The
+          // app used to receive the raw bodyPreview verbatim and parse
+          // the Teams block itself; now the conference lives in its
+          // own field and the agenda only carries the user's prose.
+          const parsed = parseMeetingBody(e.bodyPreview ?? '');
+          // Prefer onlineMeeting.joinUrl from Graph (canonical) over
+          // the regex-matched one — same value normally, but Graph's
+          // is guaranteed to be the live join URL.
+          const conference: TeamsConference | undefined = (parsed.conference || e.onlineMeeting?.joinUrl)
+            ? {
+                joinUrl:   e.onlineMeeting?.joinUrl ?? parsed.conference?.joinUrl,
+                meetingId: parsed.conference?.meetingId,
+                passcode:  parsed.conference?.passcode,
+                helpUrl:   parsed.conference?.helpUrl,
+              }
+            : undefined;
           results.push({
             id: e.id,
             title: e.subject ?? '(no subject)',
-            agenda: (e.bodyPreview ?? '').slice(0, 500),
+            agenda: parsed.agenda.slice(0, 500),
             location: e.location?.displayName ?? '',
             startsAt: e.start?.dateTime,
             endsAt:   e.end?.dateTime,
@@ -864,6 +888,8 @@ export class GraphFeedService {
             isOnlineMeeting: !!e.isOnlineMeeting,
             joinUrl: e.onlineMeeting?.joinUrl,
             webLink: e.webLink,
+            conference,
+            links: parsed.links,
           });
         }
       } catch (err) {
@@ -906,6 +932,7 @@ export class GraphFeedService {
       endsAt?: string;
       isOnlineMeeting?: boolean;
       attendees?: string[];
+      links?: MeetingLink[];
     };
   }): Promise<{ id: string; webLink?: string; typeSlug: string; source: string; organizerUpn?: string }> {
     const { input, accessToken } = opts;
@@ -916,9 +943,12 @@ export class GraphFeedService {
     if (!source) throw new Error(`Unknown source calendar index: ${input.sourceIndex}`);
 
     const endsAt = input.endsAt ?? new Date(new Date(input.startsAt).getTime() + 3600_000).toISOString();
+    // Compose the body from prose + links. Teams meeting block is
+    // appended by Graph itself when isOnlineMeeting=true.
+    const composedBody = serialiseMeetingBody({ agenda: input.agenda, links: input.links });
     const body = {
       subject: input.title,
-      body: { contentType: 'text', content: input.agenda ?? '' },
+      body: { contentType: 'text', content: composedBody },
       start: { dateTime: input.startsAt, timeZone: 'UTC' },
       end:   { dateTime: endsAt,         timeZone: 'UTC' },
       location: input.location ? { displayName: input.location } : undefined,
@@ -979,6 +1009,7 @@ export class GraphFeedService {
       endsAt?: string;
       isOnlineMeeting?: boolean;
       attendees?: string[];
+      links?: MeetingLink[];
     };
   }): Promise<{ id: string; webLink?: string }> {
     const { accessToken, eventId, sourceIndex, input } = opts;
@@ -993,7 +1024,16 @@ export class GraphFeedService {
     // Build a sparse patch — only include keys present in input.
     const patch: any = {};
     if (input.title != null)    patch.subject = input.title;
-    if (input.agenda != null)   patch.body = { contentType: 'text', content: input.agenda };
+    // Body re-serialises agenda + links together. If only agenda is in
+    // the input but links was set on the original event, this would
+    // strip the links — but the controller always passes both keys
+    // when either changes, so this is safe by contract.
+    if (input.agenda != null || input.links != null) {
+      patch.body = {
+        contentType: 'text',
+        content: serialiseMeetingBody({ agenda: input.agenda, links: input.links }),
+      };
+    }
     if (input.location != null) patch.location = { displayName: input.location };
     if (input.startsAt != null) patch.start = { dateTime: input.startsAt, timeZone: 'UTC' };
     if (input.endsAt   != null) patch.end   = { dateTime: input.endsAt,   timeZone: 'UTC' };

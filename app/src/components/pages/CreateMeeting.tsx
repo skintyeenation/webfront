@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { Button, Chip, HelperText, Switch, Text, TextInput } from 'react-native-paper';
+import { Button, Chip, HelperText, IconButton, Switch, Text, TextInput } from 'react-native-paper';
 import moment from 'moment';
 import { PageContainer, PageContent, DateTimeField, LocationPicker, LatLng } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { addMeeting } from 'skintyee/store/modules/meetings';
 import { loadDirectory } from 'skintyee/store/modules/directory';
 import { apiFactory } from 'skintyee/store/apis';
+import { MeetingLink } from 'skintyee/models';
 import { theme } from 'skintyee/styles';
 
 // Default audience for each meeting type, expressed as a predicate
@@ -61,6 +62,16 @@ export default function CreateMeeting({ navigation }: any) {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | undefined>();
 
+  // Optional "Links:" section appended to the event body — round-trips
+  // as plain text through Graph and is parsed back into a structured
+  // array on read.
+  const [links, setLinks] = useState<MeetingLink[]>([]);
+  const addLink = () => setLinks((prev) => [...prev, { label: '', url: '' }]);
+  const updateLink = (i: number, patch: Partial<MeetingLink>) =>
+    setLinks((prev) => prev.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
+  const removeLink = (i: number) =>
+    setLinks((prev) => prev.filter((_, idx) => idx !== i));
+
   // Attendees — pulled from the directory in Redux. Auto-defaulted by
   // type but admin can add/remove via chip toggles.
   const directory = useAppSelector((s) => s.directory.entities);
@@ -112,6 +123,9 @@ export default function CreateMeeting({ navigation }: any) {
     setSaving(true);
     setSaveError(undefined);
     try {
+      const cleanLinks = links
+        .map((l) => ({ label: l.label.trim(), url: l.url.trim() }))
+        .filter((l) => l.url);
       const created = await (apiFactory() as any).meetings.create({
         typeSlug,
         sourceIndex,
@@ -121,6 +135,7 @@ export default function CreateMeeting({ navigation }: any) {
         startsAt,
         isOnlineMeeting,
         attendees: Array.from(attendees),
+        links: cleanLinks,
       });
       // Mirror into Redux for instant display; the next loadMeetings()
       // refetches the canonical record from the api/ via Graph.
@@ -232,6 +247,43 @@ export default function CreateMeeting({ navigation }: any) {
           <Switch value={isOnlineMeeting} onValueChange={setIsOnlineMeeting} />
           <Text style={{ color: theme.colors.text, marginLeft: 8 }}>Create a Teams join link</Text>
         </View>
+
+        {/* Links — optional list of supporting URLs. Saved as a
+            "Links:" section in the event body so Graph round-trips them. */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+          <Text style={{ color: theme.colors.text, fontSize: 14, fontWeight: '600' }}>
+            🔗  Links
+          </Text>
+          <Button compact mode="text" icon="plus" textColor={theme.colors.primary} onPress={addLink} style={{ marginLeft: 4 }}>
+            Add link
+          </Button>
+        </View>
+        {links.length === 0 ? (
+          <HelperText type="info" visible style={{ marginLeft: -8, marginBottom: 8 }}>
+            Optional. Agendas, supporting documents, or any URL members should have handy.
+          </HelperText>
+        ) : null}
+        {links.map((l, i) => (
+          <View key={i} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+            <TextInput
+              dense mode="outlined" label="Label" value={l.label}
+              onChangeText={(v) => updateLink(i, { label: v })}
+              style={{ width: 140, marginRight: 6 }}
+            />
+            <TextInput
+              dense mode="outlined" label="URL" value={l.url}
+              onChangeText={(v) => updateLink(i, { url: v })}
+              style={{ flex: 1, marginRight: 6 }}
+              autoCapitalize="none"
+              keyboardType="url"
+            />
+            <IconButton
+              icon="close" size={18}
+              iconColor={theme.colors.textDarker}
+              onPress={() => removeLink(i)}
+            />
+          </View>
+        ))}
 
         {/* Attendees — auto-defaulted from the type, tap to add/remove.
             Defaults: Band/Public → all licensed; Council/Closed → council
