@@ -54,9 +54,15 @@ export function TimeField({ label, value, onChange, placeholder = '—:—', err
   const [openH, setOpenH] = useState(false);
   const [openM, setOpenM] = useState(false);
 
+  // Minute defaults to "00" the moment an hour is picked so the field
+  // never sits half-filled (and downstream hour math doesn't have to
+  // distinguish "07:00" from "7:--"). Picking just the minute first
+  // can't pre-fill a sensible hour, so that path still no-ops the emit.
   const pickHour = (nextH: string) => {
+    const nextM = m ?? '00';
     setH(nextH);
-    onChange(m ? `${nextH}:${m}` : '');
+    setM(nextM);
+    onChange(`${nextH}:${nextM}`);
     setOpenH(false);
   };
   const pickMinute = (nextM: string) => {
@@ -86,14 +92,16 @@ export function TimeField({ label, value, onChange, placeholder = '—:—', err
     };
 
     const SANS = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif';
+    // Matches the per-row Hours value in AddTimesheet (18 / weight 600)
+    // so the In / Out / Hours triad reads as one typography unit.
     const segmentText = (val?: string, fallback = '--') => (
       <NativeText
         style={{
           color: val ? theme.colors.text : theme.colors.textDarker,
-          fontSize: 22,
-          fontWeight: 700,
+          fontSize: 18,
+          fontWeight: 600,
           fontFamily: SANS,
-          fontVariantNumeric: 'tabular-nums', // 0/8 same width — keeps colons aligned across rows
+          fontVariantNumeric: 'tabular-nums',
         }}
       >
         {val ?? fallback}
@@ -143,8 +151,8 @@ export function TimeField({ label, value, onChange, placeholder = '—:—', err
           <NativeText
             style={{
               color: theme.colors.textDarker,
-              fontSize: 22,
-              fontWeight: 700,
+              fontSize: 18,
+              fontWeight: 600,
               fontFamily: SANS,
             }}
           >
