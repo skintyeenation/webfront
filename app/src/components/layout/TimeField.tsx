@@ -1,6 +1,7 @@
-import React from 'react';
-import { Platform, View, StyleProp, ViewStyle } from 'react-native';
-import { TextInput } from 'react-native-paper';
+import React, { useMemo, useState } from 'react';
+import { Platform, ScrollView, StyleProp, View, ViewStyle } from 'react-native';
+import { Menu, TextInput, TouchableRipple } from 'react-native-paper';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { theme } from 'skintyee/styles';
 
 export interface TimeFieldProps {
@@ -13,51 +14,106 @@ export interface TimeFieldProps {
   style?: StyleProp<ViewStyle>;
 }
 
-// Time-only "HH:mm" picker. Sibling of DateTimeField but trimmed down for
-// the timesheet rows where the date is implied by the row's day.
-//
-//   - Web: real native <input type="time"> — gets the OS time picker (the
-//     Chrome / Safari one with the spinner + 24h mode honoring locale).
-//   - Native (iOS/Android): TextInput fallback with HH:mm validation
-//     surfaced via the `error` prop. A future revision can swap this for
-//     @react-native-community/datetimepicker if we want the OS picker
-//     on phones too.
-export function TimeField({ label, value, onChange, placeholder = 'HH:mm', error, style }: TimeFieldProps) {
-  if (Platform.OS === 'web') {
-    // 15-min slot list: 00:00, 00:15, 00:30, …, 23:45.
-    // Rendered as a native <select> so the dropdown shows ONLY these
-    // options instead of an open time picker with every minute.
-    const slots: string[] = [];
-    for (let h = 0; h < 24; h++) {
-      for (let m = 0; m < 60; m += 15) {
-        slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
-      }
+// Build the 15-minute slot list once at module load.
+// 00:00, 00:15, 00:30, …, 23:45 = 96 values.
+const SLOTS_15MIN: string[] = (() => {
+  const out: string[] = [];
+  for (let h = 0; h < 24; h++) {
+    for (let m = 0; m < 60; m += 15) {
+      out.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
     }
-    const selectStyle: any = {
-      colorScheme: 'dark',
+  }
+  return out;
+})();
+
+// Time-only picker constrained to 15-minute increments.
+//
+//   - Web: TouchableRipple anchor + Paper Menu with the slot list. All
+//     dark-themed, brand-coloured selected state. The native <select>
+//     and the OS-supplied <input type="time"> dropdown both looked
+//     out-of-style and (in select's case) gross, so this is a self-
+//     rendered dropdown that matches the rest of the form.
+//   - Native: TextInput fallback (manual HH:mm entry). Future swap
+//     point: same Paper Menu pattern works fine on RN; the native
+//     path can adopt it once the on-screen keyboard story is sorted.
+export function TimeField({ label, value, onChange, placeholder = '—', error, style }: TimeFieldProps) {
+  const [open, setOpen] = useState(false);
+
+  if (Platform.OS === 'web') {
+    const anchorStyle: ViewStyle = {
       backgroundColor: theme.colors.darkDefault,
-      color: theme.colors.text,
-      border: `1px solid ${error ? theme.colors.error : 'rgba(255,255,255,0.29)'}`,
+      borderWidth: 1,
+      borderColor: error ? theme.colors.error : 'rgba(255,255,255,0.29)',
       borderRadius: 4,
-      padding: '8px 10px',
-      fontSize: 14,
-      fontFamily: 'inherit',
-      width: '100%',
-      boxSizing: 'border-box',
-      appearance: 'none',
-      WebkitAppearance: 'none',
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      flexDirection: 'row',
+      alignItems: 'center',
     };
+
     return (
       <View style={style}>
-        {React.createElement('select', {
-          value: value || '',
-          style: selectStyle,
-          onChange: (e: any) => onChange(e.target.value || ''),
-        }, [
-          // Blank option so empty value is selectable + acts as placeholder
-          React.createElement('option', { key: '__blank', value: '' }, placeholder ?? '—'),
-          ...slots.map((s) => React.createElement('option', { key: s, value: s }, s)),
-        ])}
+        <Menu
+          visible={open}
+          onDismiss={() => setOpen(false)}
+          anchor={
+            <TouchableRipple onPress={() => setOpen(true)} style={anchorStyle}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%' }}>
+                <MaterialCommunityIcons
+                  name="clock-outline"
+                  size={16}
+                  color={theme.colors.textDarker}
+                  style={{ marginRight: 6 }}
+                />
+                <View style={{ flex: 1 }}>
+                  {/* Current value or placeholder */}
+                  {/* No <Text> wrapper styling tricks — keeps the row
+                      a fixed height matching the other Paper inputs. */}
+                  <View>
+                    <NativeText
+                      style={{
+                        color: value ? theme.colors.text : theme.colors.textDarker,
+                        fontSize: 14,
+                      }}
+                    >
+                      {value || placeholder}
+                    </NativeText>
+                  </View>
+                </View>
+                <MaterialCommunityIcons
+                  name="chevron-down"
+                  size={16}
+                  color={theme.colors.textDarker}
+                />
+              </View>
+            </TouchableRipple>
+          }
+          contentStyle={{ backgroundColor: theme.colors.darkDefault, maxHeight: 280 }}
+        >
+          <ScrollView style={{ maxHeight: 280 }}>
+            {/* Blank/clear option */}
+            <Menu.Item
+              title="—"
+              onPress={() => { onChange(''); setOpen(false); }}
+              titleStyle={{ color: theme.colors.textDarker }}
+            />
+            {SLOTS_15MIN.map((slot) => {
+              const selected = slot === value;
+              return (
+                <Menu.Item
+                  key={slot}
+                  title={slot}
+                  onPress={() => { onChange(slot); setOpen(false); }}
+                  titleStyle={{
+                    color: selected ? theme.colors.primary : theme.colors.text,
+                    fontWeight: selected ? '700' : '400',
+                  }}
+                  leadingIcon={selected ? 'check' : undefined}
+                />
+              );
+            })}
+          </ScrollView>
+        </Menu>
       </View>
     );
   }
@@ -75,4 +131,10 @@ export function TimeField({ label, value, onChange, placeholder = 'HH:mm', error
       keyboardType="numbers-and-punctuation"
     />
   );
+}
+
+// Lightweight Text wrapper for web — avoids importing Paper's Text just for
+// one line inside the anchor (Paper's Text adds extra typography styles).
+function NativeText({ children, style }: { children: React.ReactNode; style?: any }) {
+  return React.createElement('span', { style }, children);
 }
