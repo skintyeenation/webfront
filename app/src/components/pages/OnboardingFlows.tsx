@@ -99,14 +99,16 @@ export default function OnboardingFlows({ navigation }: any) {
   return (
     <PageContainer>
       <PageContent>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+        {/* alignItems centres the two buttons vertically; dropping
+            `compact` on the outlined button so it matches the
+            AdminAddButton (contained mode, non-compact) in height. */}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' }}>
           <AdminAddButton label="New flow" icon="file-tree" onPress={() => navigation.navigate('onboardingFlowCreate')} />
-          <View style={{ width: 6 }} />
           <Button
-            compact mode="outlined" icon="account-hard-hat"
+            mode="outlined" icon="account-hard-hat"
             textColor={theme.colors.text}
             onPress={() => navigation.navigate('onboardingContractors')}
-            style={{ marginLeft: 6 }}
+            style={{ marginLeft: 6, marginBottom: 12 }}
           >
             Contractors ({contractors.length})
           </Button>
