@@ -211,7 +211,7 @@ export interface ApiService {
     delete(id: string): Promise<void>; // 409 if inUseCount > 0 on the server.
   };
   // Phase 2 — Onboarding flows. Admin-only endpoints + a public tokenised
-  // path for contractors. See docs/features/documents-and-onboarding.md.
+  // path for people. See docs/features/documents-and-onboarding.md.
   onboarding: {
     listFlows(): Promise<OnboardingFlowDto[]>;
     getFlow(id: string): Promise<OnboardingFlowDto>;
@@ -221,15 +221,15 @@ export interface ApiService {
     addStep(flowId: string, input: { title: string; instructions?: string; completion?: StepCompletion }): Promise<OnboardingStepDto>;
     updateStep(id: string, patch: Partial<{ title: string; instructions: string | null; completion: StepCompletion; order: number }>): Promise<OnboardingStepDto>;
     deleteStep(id: string): Promise<void>;
-    attachDocument(stepId: string, input: { documentId: string; contractorUploadAllowed?: boolean }): Promise<void>;
+    attachDocument(stepId: string, input: { documentId: string; personUploadAllowed?: boolean }): Promise<void>;
     detachDocument(rowId: string): Promise<void>;
     addLink(stepId: string, input: { label: string; url: string }): Promise<void>;
     removeLink(rowId: string): Promise<void>;
-    listContractors(): Promise<ContractorDto[]>;
-    createContractor(input: { displayName: string; email?: string; phone?: string; companyId?: string }): Promise<ContractorDto>;
-    listAssignments(opts?: { flowId?: string; contractorId?: string }): Promise<OnboardingAssignmentDto[]>;
+    listPeople(): Promise<PersonDto[]>;
+    createPerson(input: { displayName?: string; email?: string; phone?: string; companyId?: string; bandMemberId?: string }): Promise<PersonDto>;
+    listAssignments(opts?: { flowId?: string; personId?: string }): Promise<OnboardingAssignmentDto[]>;
     getAssignment(id: string): Promise<OnboardingAssignmentDto>;
-    createAssignment(input: { flowId: string; contractorId: string }): Promise<OnboardingAssignmentDto>;
+    createAssignment(input: { flowId: string; personId: string }): Promise<OnboardingAssignmentDto>;
     rotateToken(id: string): Promise<{ publicToken: string }>;
     approveStep(assignmentId: string, stepId: string, notes?: string): Promise<OnboardingStepStateDto>;
     rejectStep(assignmentId: string, stepId: string, notes?: string): Promise<OnboardingStepStateDto>;
@@ -243,7 +243,7 @@ export interface ApiService {
 
 // ---- Onboarding DTOs -------------------------------------------------------
 
-export type StepCompletion = 'admin_marks' | 'contractor_uploads' | 'both';
+export type StepCompletion = 'admin_marks' | 'person_uploads' | 'both';
 export type OnboardingStepStatus = 'pending' | 'in_progress' | 'completed' | 'rejected';
 
 export interface OnboardingFlowDto {
@@ -265,23 +265,28 @@ export interface OnboardingStepDto {
   title: string;
   instructions: string | null;
   completion: StepCompletion;
-  documents: Array<{ id: string; documentId: string; contractorUploadAllowed: boolean }>;
+  documents: Array<{ id: string; documentId: string; personUploadAllowed: boolean }>;
   links: Array<{ id: string; label: string; url: string }>;
 }
 
-export interface ContractorDto {
+export interface PersonDto {
   id: string;
   displayName: string;
   email: string | null;
   phone: string | null;
   companyId: string | null;
+  /** Optional 1:1 link to a BandMember row. When set, the linked
+   *  member's name/email/phone are the source of truth. */
+  bandMemberId: string | null;
+  bandMemberName: string | null;
+  bandMemberUpn: string | null;
   createdAt: string;
 }
 
 export interface OnboardingAssignmentDto {
   id: string;
   flowId: string;
-  contractorId: string;
+  personId: string;
   publicToken: string;
   startedAt: string;
   completedAt: string | null;
@@ -293,11 +298,11 @@ export interface OnboardingStepStateDto {
   assignmentId: string;
   stepId: string;
   status: OnboardingStepStatus;
-  contractorFileKey: string | null;
-  contractorFileUrl: string | null;
-  contractorFileName: string | null;
-  contractorMimeType: string | null;
-  contractorSizeBytes: number | null;
+  personFileKey: string | null;
+  personFileUrl: string | null;
+  personFileName: string | null;
+  personMimeType: string | null;
+  personSizeBytes: number | null;
   notes: string | null;
   completedAt: string | null;
   completedBy: string | null;

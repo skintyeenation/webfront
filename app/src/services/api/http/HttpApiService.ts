@@ -24,7 +24,7 @@ import {
   ApiService, SecurityGroup, SharedMailbox, MailboxAccess,
   DocumentDto, DocumentTagDto,
   OnboardingFlowDto, OnboardingStepDto, OnboardingAssignmentDto, OnboardingStepStateDto,
-  ContractorDto,
+  PersonDto,
 } from 'skintyee/services/api/ApiService';
 
 // The auth header context — pulled lazily so the same HttpApiService
@@ -280,9 +280,9 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
           const res = await fetch(api(`/onboarding/step-links/${encodeURIComponent(rowId)}`), { method: 'DELETE', headers: headers() });
           if (!res.ok && res.status !== 204) throw new Error(`DELETE /onboarding/step-links/${rowId} → ${res.status}: ${await res.text()}`);
         },
-        listContractors:   () => get<ContractorDto[]>('/onboarding/contractors'),
-        createContractor:  (input: any) => post<ContractorDto>('/onboarding/contractors', input),
-        listAssignments:   (opts?: any) => get<OnboardingAssignmentDto[]>('/onboarding/assignments', opts ? { flowId: opts.flowId, contractorId: opts.contractorId } : undefined),
+        listPeople:   () => get<PersonDto[]>('/onboarding/people'),
+        createPerson:  (input: any) => post<PersonDto>('/onboarding/people', input),
+        listAssignments:   (opts?: any) => get<OnboardingAssignmentDto[]>('/onboarding/assignments', opts ? { flowId: opts.flowId, personId: opts.personId } : undefined),
         getAssignment:     (id: string) => get<OnboardingAssignmentDto>(`/onboarding/assignments/${encodeURIComponent(id)}`),
         createAssignment:  (input: any) => post<OnboardingAssignmentDto>('/onboarding/assignments', input),
         rotateToken:       (id: string) => post<{ publicToken: string }>(`/onboarding/assignments/${encodeURIComponent(id)}/rotate-token`, {}),

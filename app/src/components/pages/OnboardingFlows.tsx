@@ -6,7 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import dayjs from 'dayjs';
 import { PageContainer, PageContent, NoContent, AdminAddButton, useConfirm } from 'skintyee/components/layout';
 import { apiFactory } from 'skintyee/store/apis';
-import { OnboardingFlowDto, ContractorDto, OnboardingAssignmentDto } from 'skintyee/services/api/ApiService';
+import { OnboardingFlowDto, PersonDto, OnboardingAssignmentDto } from 'skintyee/services/api/ApiService';
 import { theme } from 'skintyee/styles';
 
 // ----------------------------------------------------------------------------
@@ -14,10 +14,10 @@ import { theme } from 'skintyee/styles';
 //
 // Two tabs (mirroring TimeKeeping.tsx's My/Approvals SegmentedButtons):
 //   - Flows        : reusable flow templates the admin designs
-//   - Assignments  : flows assigned to contractors; in-progress + completed
+//   - Assignments  : flows assigned to people; in-progress + completed
 //
-// Contractors tab is a side-trip — admin manages them on the linked
-// Contractors screen. Step approvals live inside AssignmentTimeline.
+// People tab is a side-trip — admin manages them on the linked
+// People screen. Step approvals live inside AssignmentTimeline.
 // ----------------------------------------------------------------------------
 
 type Tab = 'flows' | 'assignments';
@@ -30,18 +30,18 @@ const statusColor = (s?: string) =>
   : theme.colors.secondary;
 
 export default function OnboardingFlows({ navigation }: any) {
-  // Assignments is the everyday view (admin manages active contractors);
+  // Assignments is the everyday view (admin manages active people);
   // Flows is where they go to design templates. Default to Assignments.
   const [tab, setTab] = useState<Tab>('assignments');
   const [flows, setFlows] = useState<OnboardingFlowDto[]>([]);
-  const [contractors, setContractors] = useState<ContractorDto[]>([]);
+  const [people, setPeople] = useState<PersonDto[]>([]);
   const [assignments, setAssignments] = useState<OnboardingAssignmentDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>();
   const { confirm, ConfirmHost } = useConfirm();
 
-  // Assign-flow modal state — single home for picking flow + contractor.
-  // Two-step: pick flow (only active ones with steps) → pick contractor.
+  // Assign-flow modal state — single home for picking flow + person.
+  // Two-step: pick flow (only active ones with steps) → pick person.
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [assignFlowId, setAssignFlowId] = useState<string | undefined>();
   const [assignSaving, setAssignSaving] = useState(false);
@@ -55,11 +55,11 @@ export default function OnboardingFlows({ navigation }: any) {
       const api = apiFactory();
       const [fs, cs, as] = await Promise.all([
         api.onboarding.listFlows(),
-        api.onboarding.listContractors(),
+        api.onboarding.listPeople(),
         api.onboarding.listAssignments(),
       ]);
       setFlows(fs);
-      setContractors(cs);
+      setPeople(cs);
       setAssignments(as);
     } catch (e: any) {
       setError(e?.message ?? String(e));
@@ -70,7 +70,7 @@ export default function OnboardingFlows({ navigation }: any) {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  const contractorById = new Map(contractors.map((c) => [c.id, c]));
+  const personById = new Map(people.map((c) => [c.id, c]));
   const flowById = new Map(flows.map((f) => [f.id, f]));
   const assignableFlows = flows.filter((f) => f.active && f.steps.length > 0);
 
@@ -79,12 +79,12 @@ export default function OnboardingFlows({ navigation }: any) {
     setAssignError(undefined);
     setAssignModalOpen(true);
   };
-  const assignToContractor = async (contractorId: string) => {
+  const assignToPerson = async (personId: string) => {
     if (!assignFlowId) { setAssignError('Pick a flow first.'); return; }
     setAssignSaving(true);
     setAssignError(undefined);
     try {
-      const r = await apiFactory().onboarding.createAssignment({ flowId: assignFlowId, contractorId });
+      const r = await apiFactory().onboarding.createAssignment({ flowId: assignFlowId, personId });
       setAssignModalOpen(false);
       setAssignments((prev) => [r, ...prev]);
       setToast('Assignment created');
@@ -105,12 +105,12 @@ export default function OnboardingFlows({ navigation }: any) {
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' }}>
           <AdminAddButton label="New flow" icon="file-tree" onPress={() => navigation.navigate('onboardingFlowCreate')} />
           <Button
-            mode="outlined" icon="account-hard-hat"
+            mode="outlined" icon="account-multiple"
             textColor={theme.colors.text}
-            onPress={() => navigation.navigate('onboardingContractors')}
+            onPress={() => navigation.navigate('onboardingPeople')}
             style={{ marginLeft: 6, marginBottom: 12 }}
           >
-            Contractors ({contractors.length})
+            People ({people.length})
           </Button>
         </View>
 
@@ -181,23 +181,23 @@ export default function OnboardingFlows({ navigation }: any) {
         {tab === 'assignments' && !loading ? (
           <>
             {/* Assign-flow CTA lives here now (was on EditOnboardingFlow).
-                Single home: pick a flow + a contractor in one modal. */}
+                Single home: pick a flow + a person in one modal. */}
             <View style={{ marginTop: 10 }}>
               <Button
                 mode="contained" icon="account-plus"
                 buttonColor={theme.colors.primary} textColor="#fff"
                 onPress={openAssignModal}
-                disabled={assignableFlows.length === 0 || contractors.length === 0}
+                disabled={assignableFlows.length === 0 || people.length === 0}
               >
-                Assign flow to contractor
+                Assign flow to person
               </Button>
               {assignableFlows.length === 0 ? (
                 <HelperText type="info" visible style={{ marginLeft: -8 }}>
                   Create an active flow with at least one step first.
                 </HelperText>
-              ) : contractors.length === 0 ? (
+              ) : people.length === 0 ? (
                 <HelperText type="info" visible style={{ marginLeft: -8 }}>
-                  Add a contractor first (Contractors button above).
+                  Add a person first (People button above).
                 </HelperText>
               ) : null}
             </View>
@@ -206,7 +206,7 @@ export default function OnboardingFlows({ navigation }: any) {
             ) : (
               assignments.map((a) => {
               const flow = flowById.get(a.flowId);
-              const contractor = contractorById.get(a.contractorId);
+              const person = personById.get(a.personId);
               const completed = a.stepStates.filter((s) => s.status === 'completed').length;
               const pendingAdmin = a.stepStates.filter((s) => s.status === 'in_progress').length;
               const overall =
@@ -219,7 +219,7 @@ export default function OnboardingFlows({ navigation }: any) {
                   <Card.Content>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                       <View style={{ flex: 1 }}>
-                        <Text style={{ color: theme.colors.text, fontSize: 15 }}>{contractor?.displayName ?? a.contractorId}</Text>
+                        <Text style={{ color: theme.colors.text, fontSize: 15 }}>{person?.displayName ?? a.personId}</Text>
                         <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginTop: 2 }}>
                           {flow?.title ?? a.flowId}
                         </Text>
@@ -255,7 +255,7 @@ export default function OnboardingFlows({ navigation }: any) {
           </>
         ) : null}
 
-        {/* Assign-flow modal — pick flow (top section), then contractor
+        {/* Assign-flow modal — pick flow (top section), then person
             (bottom section). Two-step on a single surface so the admin
             can see both choices without paging. */}
         <Portal>
@@ -299,10 +299,10 @@ export default function OnboardingFlows({ navigation }: any) {
             })}
 
             <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginTop: 14 }}>
-              2. CONTRACTOR
+              2. PERSON
             </Text>
             <Divider style={{ marginVertical: 6, backgroundColor: 'rgba(255,255,255,0.08)' }} />
-            {contractors.map((c) => (
+            {people.map((c) => (
               <View key={c.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6 }}>
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: theme.colors.text, fontSize: 13 }}>{c.displayName}</Text>
@@ -311,7 +311,7 @@ export default function OnboardingFlows({ navigation }: any) {
                 <Button
                   compact mode="contained" icon="check"
                   buttonColor={theme.colors.primary} textColor="#fff"
-                  onPress={() => assignToContractor(c.id)}
+                  onPress={() => assignToPerson(c.id)}
                   disabled={!assignFlowId || assignSaving}
                 >
                   Assign

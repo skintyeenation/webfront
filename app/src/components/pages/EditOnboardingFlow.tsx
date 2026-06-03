@@ -4,7 +4,7 @@ import { ActivityIndicator, Button, Card, Chip, Divider, HelperText, IconButton,
 import { PageContainer, PageContent, NoContent } from 'skintyee/components/layout';
 import { apiFactory } from 'skintyee/store/apis';
 import {
-  OnboardingFlowDto, ContractorDto, OnboardingAssignmentDto,
+  OnboardingFlowDto, PersonDto, OnboardingAssignmentDto,
   DocumentDto, StepCompletion,
 } from 'skintyee/services/api/ApiService';
 import { theme } from 'skintyee/styles';
@@ -18,13 +18,13 @@ import { theme } from 'skintyee/styles';
 // a completion mode.
 //
 // The header card carries Title / Description / Active switch, plus an
-// "Assign to contractor" button that opens a modal-picker over the
-// already-loaded contractors list.
+// "Assign to person" button that opens a modal-picker over the
+// already-loaded people list.
 // ----------------------------------------------------------------------------
 
 const COMPLETION_LABEL: Record<StepCompletion, string> = {
   admin_marks: 'Admin marks complete',
-  contractor_uploads: 'Contractor uploads',
+  person_uploads: 'Person uploads',
   both: 'Upload + admin review',
 };
 
@@ -41,16 +41,16 @@ export default function EditOnboardingFlow({ navigation, route }: any) {
   const [active, setActive] = useState(true);
   const [flow, setFlow] = useState<OnboardingFlowDto | undefined>();
   const [documents, setDocuments] = useState<DocumentDto[]>([]);
-  const [contractors, setContractors] = useState<ContractorDto[]>([]);
+  const [people, setPeople] = useState<PersonDto[]>([]);
   const [assignments, setAssignments] = useState<OnboardingAssignmentDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [toast, setToast] = useState<string | null>(null);
 
-  // Per-step menus, attach modal etc. (Assigning a flow to a contractor
+  // Per-step menus, attach modal etc. (Assigning a flow to a person
   // lives on the Onboarding screen's Assignments tab now — single home
-  // for picking flow + contractor instead of two entry points.)
+  // for picking flow + person instead of two entry points.)
   const [attachOpenForStep, setAttachOpenForStep] = useState<string | null>(null);
   const [linkModalForStep, setLinkModalForStep] = useState<string | null>(null);
   const [linkLabel, setLinkLabel] = useState('');
@@ -63,11 +63,11 @@ export default function EditOnboardingFlow({ navigation, route }: any) {
       const api = apiFactory();
       const [docs, conts, asg] = await Promise.all([
         api.documents.list().catch(() => []),
-        api.onboarding.listContractors(),
+        api.onboarding.listPeople(),
         flowId ? api.onboarding.listAssignments({ flowId }) : Promise.resolve([]),
       ]);
       setDocuments(docs);
-      setContractors(conts);
+      setPeople(conts);
       setAssignments(asg);
       if (existingFlow) {
         setFlow(existingFlow);
@@ -153,7 +153,7 @@ export default function EditOnboardingFlow({ navigation, route }: any) {
   };
 
   const attachDoc = async (stepId: string, doc: DocumentDto, allowUpload: boolean) => {
-    await apiFactory().onboarding.attachDocument(stepId, { documentId: doc.id, contractorUploadAllowed: allowUpload });
+    await apiFactory().onboarding.attachDocument(stepId, { documentId: doc.id, personUploadAllowed: allowUpload });
     setAttachOpenForStep(null);
     await reloadFlow();
   };
@@ -254,7 +254,7 @@ export default function EditOnboardingFlow({ navigation, route }: any) {
                   }
                   contentStyle={{ backgroundColor: theme.colors.darkDefault }}
                 >
-                  {(['admin_marks', 'contractor_uploads', 'both'] as StepCompletion[]).map((c) => (
+                  {(['admin_marks', 'person_uploads', 'both'] as StepCompletion[]).map((c) => (
                     <Menu.Item
                       key={c} title={COMPLETION_LABEL[c]}
                       trailingIcon={c === s.completion ? 'check' : undefined}
@@ -276,7 +276,7 @@ export default function EditOnboardingFlow({ navigation, route }: any) {
                     <View key={sd.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 4 }}>
                       <Text style={{ color: theme.colors.text, fontSize: 12, flex: 1 }}>
                         📄 {doc?.title ?? sd.documentId}
-                        {sd.contractorUploadAllowed ? '  ·  contractor uploads' : ''}
+                        {sd.personUploadAllowed ? '  ·  upload required' : ''}
                       </Text>
                       <IconButton icon="close" size={16} iconColor={theme.colors.textDarker} onPress={() => detachDoc(sd.id)} />
                     </View>
@@ -324,16 +324,16 @@ export default function EditOnboardingFlow({ navigation, route }: any) {
                 Assignments ({assignments.length})
               </Text>
               <HelperText type="info" visible style={{ marginLeft: -8 }}>
-                Assign this flow to a contractor from Onboarding → Assignments.
+                Assign this flow from Onboarding → Assignments.
               </HelperText>
               <Divider style={{ marginVertical: 6, backgroundColor: 'rgba(255,255,255,0.08)' }} />
               {assignments.map((a) => {
-                const c = contractors.find((x) => x.id === a.contractorId);
+                const c = people.find((x) => x.id === a.personId);
                 const completed = a.stepStates.filter((s) => s.status === 'completed').length;
                 return (
                   <View key={a.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6 }}>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ color: theme.colors.text, fontSize: 13 }}>{c?.displayName ?? a.contractorId}</Text>
+                      <Text style={{ color: theme.colors.text, fontSize: 13 }}>{c?.displayName ?? a.personId}</Text>
                       <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>
                         {completed}/{a.stepStates.length} steps done
                       </Text>

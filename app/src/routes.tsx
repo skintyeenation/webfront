@@ -39,7 +39,7 @@ export const routeConfig = {
   onboardingFlows: { name: 'onboardingFlows', options: { title: 'Onboarding', header: header('Onboarding') } },
   onboardingFlowCreate: { name: 'onboardingFlowCreate', options: { title: 'New flow', header: header('New Onboarding Flow') } },
   onboardingFlowEdit: { name: 'onboardingFlowEdit', options: { title: 'Edit flow', header: header('Edit Onboarding Flow') } },
-  onboardingContractors: { name: 'onboardingContractors', options: { title: 'Contractors', header: header('Contractors') } },
+  onboardingPeople: { name: 'onboardingPeople', options: { title: 'People', header: header('People') } },
   onboardingAssignment: { name: 'onboardingAssignment', options: { title: 'Assignment', header: header('Assignment') } },
   // Account / role switcher
   account: { name: 'account', options: { title: 'Account', header: header('Account') } },

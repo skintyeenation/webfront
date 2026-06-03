@@ -15,7 +15,7 @@ function readCallerUpn(req: any): string {
 // ---- /v1/onboarding/* -----------------------------------------------------
 //
 // Admin-only design + approvals; PUBLIC tokenised endpoints under
-// /public/:token/* let a contractor view + upload to their assignment
+// /public/:token/* let a person view + upload to their assignment
 // without authenticating.
 //
 // See docs/features/documents-and-onboarding.md for the full plan +
@@ -90,7 +90,7 @@ export class OnboardingController {
 
   @Post('steps/:id/documents') @Roles('admin') async attachDocument(@Param('id') stepId: string, @Body() b: any) {
     if (!b.documentId) throw new BadRequestException('documentId required');
-    await this.svc.attachDocument(stepId, b.documentId, !!b.contractorUploadAllowed);
+    await this.svc.attachDocument(stepId, b.documentId, !!b.personUploadAllowed);
     return { attached: true };
   }
   @Delete('step-documents/:id') @Roles('admin') @HttpCode(204) async detachDocument(@Param('id') id: string) {
@@ -105,17 +105,23 @@ export class OnboardingController {
     await this.svc.removeLink(id);
   }
 
-  // ---- Contractors -------------------------------------------------------
+  // ---- People ------------------------------------------------------------
 
-  @Get('contractors') @Roles('admin') async listContractors() { return this.svc.listContractors(); }
+  @Get('people') @Roles('admin') async listPeople() { return this.svc.listPeople(); }
 
-  @Post('contractors') @Roles('admin') async createContractor(@Body() b: any) {
-    if (!b.displayName) throw new BadRequestException('displayName required');
-    return this.svc.createContractor({
-      displayName: b.displayName.trim(),
+  @Post('people') @Roles('admin') async createPerson(@Body() b: any) {
+    // displayName is required when there's no band-member link; the
+    // linked path pulls displayName from the BandMember row, so a
+    // bandMemberId payload alone is enough.
+    if (!b.bandMemberId && !b.displayName) {
+      throw new BadRequestException('displayName or bandMemberId required');
+    }
+    return this.svc.createPerson({
+      displayName: b.displayName?.trim() || '',
       email: b.email?.trim() || undefined,
       phone: b.phone?.trim() || undefined,
       companyId: b.companyId || undefined,
+      bandMemberId: b.bandMemberId || undefined,
     });
   }
 
@@ -123,9 +129,9 @@ export class OnboardingController {
 
   @Get('assignments') @Roles('admin') async listAssignments(
     @Query('flowId') flowId?: string,
-    @Query('contractorId') contractorId?: string,
+    @Query('personId') personId?: string,
   ) {
-    return this.svc.listAssignments({ flowId, contractorId });
+    return this.svc.listAssignments({ flowId, personId });
   }
 
   @Get('assignments/:id') @Roles('admin') async getAssignment(@Param('id') id: string) {
@@ -135,10 +141,10 @@ export class OnboardingController {
   }
 
   @Post('assignments') @Roles('admin') async createAssignment(@Body() b: any) {
-    if (!b.flowId || !b.contractorId) {
-      throw new BadRequestException('flowId + contractorId required');
+    if (!b.flowId || !b.personId) {
+      throw new BadRequestException('flowId + personId required');
     }
-    return this.svc.createAssignment(b.flowId, b.contractorId);
+    return this.svc.createAssignment(b.flowId, b.personId);
   }
 
   @Post('assignments/:id/rotate-token') @Roles('admin') async rotateToken(@Param('id') id: string) {
@@ -172,7 +178,7 @@ export class OnboardingController {
     return r;
   }
 
-  // Admin-side upload (admin uploading on behalf of contractor, e.g.
+  // Admin-side upload (admin uploading on behalf of the person, e.g.
   // receiving a paper form). Goes through the same path as the public
   // tokenised upload below.
   @Post('assignments/:id/steps/:stepId/upload')
@@ -183,7 +189,7 @@ export class OnboardingController {
     @UploadedFile() file: any,
   ) {
     if (!file) throw new BadRequestException('file required');
-    const r = await this.svc.contractorUpload(id, stepId, {
+    const r = await this.svc.personUpload(id, stepId, {
       fileName: file.originalname, mimeType: file.mimetype, bytes: file.buffer,
     });
     if (!r) throw new NotFoundException();
@@ -216,7 +222,7 @@ export class OnboardingPublicController {
     if (!file) throw new BadRequestException('file required');
     const a = await this.svc.getAssignmentByToken(token);
     if (!a) throw new NotFoundException('Invalid token');
-    const r = await this.svc.contractorUpload(a.id, stepId, {
+    const r = await this.svc.personUpload(a.id, stepId, {
       fileName: file.originalname, mimeType: file.mimetype, bytes: file.buffer,
     });
     if (!r) throw new NotFoundException();

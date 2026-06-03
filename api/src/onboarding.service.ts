@@ -10,7 +10,7 @@ import { ONBOARDING_SEED } from './onboarding.seed';
 // degrades to an in-memory store when Postgres isn't available so the
 // POC runs on a clean checkout.
 
-export type StepCompletion = 'admin_marks' | 'contractor_uploads' | 'both';
+export type StepCompletion = 'admin_marks' | 'person_uploads' | 'both';
 export type StepStatus = 'pending' | 'in_progress' | 'completed' | 'rejected';
 
 export interface FlowRecord {
@@ -32,23 +32,30 @@ export interface StepRecord {
   title: string;
   instructions: string | null;
   completion: StepCompletion;
-  documents: Array<{ id: string; documentId: string; contractorUploadAllowed: boolean }>;
+  documents: Array<{ id: string; documentId: string; personUploadAllowed: boolean }>;
   links: Array<{ id: string; label: string; url: string }>;
 }
 
-export interface ContractorRecord {
+export interface PersonRecord {
   id: string;
   displayName: string;
   email: string | null;
   phone: string | null;
   companyId: string | null;
+  /** Optional 1:1 link to a BandMember row (Entra-backed). When set,
+   *  the linked member's name/email/phone are kept in sync on save. */
+  bandMemberId: string | null;
+  /** Inlined display name from the linked BandMember so the UI doesn't
+   *  need a second fetch. Null when bandMemberId is null. */
+  bandMemberName: string | null;
+  bandMemberUpn: string | null;
   createdAt: string;
 }
 
 export interface AssignmentRecord {
   id: string;
   flowId: string;
-  contractorId: string;
+  personId: string;
   publicToken: string;
   startedAt: string;
   completedAt: string | null;
@@ -60,11 +67,11 @@ export interface StepStateRecord {
   assignmentId: string;
   stepId: string;
   status: StepStatus;
-  contractorFileKey: string | null;
-  contractorFileUrl: string | null;
-  contractorFileName: string | null;
-  contractorMimeType: string | null;
-  contractorSizeBytes: number | null;
+  personFileKey: string | null;
+  personFileUrl: string | null;
+  personFileName: string | null;
+  personMimeType: string | null;
+  personSizeBytes: number | null;
   notes: string | null;
   completedAt: string | null;
   completedBy: string | null;
@@ -80,7 +87,7 @@ export class OnboardingService implements OnApplicationBootstrap {
 
   // In-memory fallback
   private memFlows = new Map<string, FlowRecord>();
-  private memContractors = new Map<string, ContractorRecord>();
+  private memPeople = new Map<string, PersonRecord>();
   private memAssignments = new Map<string, AssignmentRecord>();
   // In-memory document tracking — used only when running without
   // Postgres so the seeded sample doc round-trips through the same
@@ -145,9 +152,9 @@ export class OnboardingService implements OnApplicationBootstrap {
               order: 0,
               title: ONBOARDING_SEED.SAMPLE_STEP_TITLE,
               instructions: 'Read the attached NDA, sign it, and upload the signed copy.',
-              completion: 'contractor_uploads',
+              completion: 'person_uploads',
               documentLinks: {
-                create: [{ documentId: doc.id, contractorUploadAllowed: true }],
+                create: [{ documentId: doc.id, personUploadAllowed: true }],
               },
             }],
           },
@@ -181,8 +188,8 @@ export class OnboardingService implements OnApplicationBootstrap {
         id: stepId, flowId, order: 0,
         title: ONBOARDING_SEED.SAMPLE_STEP_TITLE,
         instructions: 'Read the attached NDA, sign it, and upload the signed copy.',
-        completion: 'contractor_uploads',
-        documents: [{ id: `seed-sd`, documentId: docId, contractorUploadAllowed: true }],
+        completion: 'person_uploads',
+        documents: [{ id: `seed-sd`, documentId: docId, personUploadAllowed: true }],
         links: [],
       }],
       createdAt: now, createdBy: ONBOARDING_SEED.SEED_AUTHOR_UPN, updatedAt: now,
@@ -349,17 +356,17 @@ export class OnboardingService implements OnApplicationBootstrap {
 
   // Step attachments — documents + free URL links.
 
-  async attachDocument(stepId: string, documentId: string, contractorUploadAllowed = false): Promise<void> {
+  async attachDocument(stepId: string, documentId: string, personUploadAllowed = false): Promise<void> {
     if (this.prisma.isAvailable) {
       await this.prisma.onboardingStepDocument.create({
-        data: { stepId, documentId, contractorUploadAllowed },
+        data: { stepId, documentId, personUploadAllowed },
       });
       return;
     }
     for (const flow of this.memFlows.values()) {
       const step = flow.steps.find((s) => s.id === stepId);
       if (step) {
-        step.documents.push({ id: `sd-${++this.memSeq}`, documentId, contractorUploadAllowed });
+        step.documents.push({ id: `sd-${++this.memSeq}`, documentId, personUploadAllowed });
         return;
       }
     }
@@ -402,44 +409,70 @@ export class OnboardingService implements OnApplicationBootstrap {
     }
   }
 
-  // ---- Contractors --------------------------------------------------------
+  // ---- People -------------------------------------------------------------
 
-  async listContractors(): Promise<ContractorRecord[]> {
+  async listPeople(): Promise<PersonRecord[]> {
     if (this.prisma.isAvailable) {
-      const rows = await this.prisma.contractor.findMany({ orderBy: { createdAt: 'desc' } });
-      return rows.map(toContractorRecord);
+      const rows = await this.prisma.person.findMany({
+        orderBy: { createdAt: 'desc' },
+        include: { bandMember: { select: { id: true, name: true, upn: true } } },
+      });
+      return rows.map(toPersonRecord);
     }
-    return Array.from(this.memContractors.values()).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return Array.from(this.memPeople.values()).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
-  async createContractor(input: { displayName: string; email?: string; phone?: string; companyId?: string }): Promise<ContractorRecord> {
+  // If bandMemberId is supplied, pull name/email/phone from the linked
+  // BandMember row so they stay authoritative; admin's overrides are only
+  // used when there's no link.
+  async createPerson(input: { displayName: string; email?: string; phone?: string; companyId?: string; bandMemberId?: string }): Promise<PersonRecord> {
     if (this.prisma.isAvailable) {
-      const r = await this.prisma.contractor.create({ data: {
-        displayName: input.displayName,
-        email: input.email ?? null,
-        phone: input.phone ?? null,
-        companyId: input.companyId ?? null,
-      } });
-      return toContractorRecord(r);
+      let displayName = input.displayName;
+      let email = input.email;
+      let phone = input.phone;
+      if (input.bandMemberId) {
+        const bm = await this.prisma.bandMember.findUnique({
+          where: { id: input.bandMemberId },
+          select: { id: true, name: true, email: true, phone: true },
+        });
+        if (!bm) throw new Error('Linked band member not found.');
+        displayName = bm.name;
+        email = bm.email ?? email;
+        phone = bm.phone ?? phone;
+      }
+      const r = await this.prisma.person.create({
+        data: {
+          displayName,
+          email: email ?? null,
+          phone: phone ?? null,
+          companyId: input.companyId ?? null,
+          bandMemberId: input.bandMemberId ?? null,
+        },
+        include: { bandMember: { select: { id: true, name: true, upn: true } } },
+      });
+      return toPersonRecord(r);
     }
     const id = `c-${++this.memSeq}-${Math.random().toString(36).slice(2, 6)}`;
-    const r: ContractorRecord = {
+    const r: PersonRecord = {
       id, displayName: input.displayName,
       email: input.email ?? null, phone: input.phone ?? null,
       companyId: input.companyId ?? null,
+      bandMemberId: input.bandMemberId ?? null,
+      bandMemberName: null,
+      bandMemberUpn: null,
       createdAt: new Date().toISOString(),
     };
-    this.memContractors.set(id, r);
+    this.memPeople.set(id, r);
     return r;
   }
 
   // ---- Assignments --------------------------------------------------------
 
-  async listAssignments(opts?: { flowId?: string; contractorId?: string }): Promise<AssignmentRecord[]> {
+  async listAssignments(opts?: { flowId?: string; personId?: string }): Promise<AssignmentRecord[]> {
     if (this.prisma.isAvailable) {
       const where: any = {};
       if (opts?.flowId) where.flowId = opts.flowId;
-      if (opts?.contractorId) where.contractorId = opts.contractorId;
+      if (opts?.personId) where.personId = opts.personId;
       const rows = await this.prisma.onboardingAssignment.findMany({
         where, include: { stepStates: true }, orderBy: { startedAt: 'desc' },
       });
@@ -447,7 +480,7 @@ export class OnboardingService implements OnApplicationBootstrap {
     }
     return Array.from(this.memAssignments.values())
       .filter((a) => !opts?.flowId || a.flowId === opts.flowId)
-      .filter((a) => !opts?.contractorId || a.contractorId === opts.contractorId)
+      .filter((a) => !opts?.personId || a.personId === opts.personId)
       .sort((a, b) => b.startedAt.localeCompare(a.startedAt));
   }
 
@@ -472,7 +505,7 @@ export class OnboardingService implements OnApplicationBootstrap {
     return null;
   }
 
-  async createAssignment(flowId: string, contractorId: string): Promise<AssignmentRecord> {
+  async createAssignment(flowId: string, personId: string): Promise<AssignmentRecord> {
     const token = mintToken();
     if (this.prisma.isAvailable) {
       // Seed a StepState row for every step in the flow so the timeline
@@ -481,7 +514,7 @@ export class OnboardingService implements OnApplicationBootstrap {
       const steps = await this.prisma.onboardingStep.findMany({ where: { flowId }, select: { id: true } });
       const row = await this.prisma.onboardingAssignment.create({
         data: {
-          flowId, contractorId, publicToken: token,
+          flowId, personId, publicToken: token,
           stepStates: { create: steps.map((s) => ({ stepId: s.id })) },
         },
         include: { stepStates: true },
@@ -491,13 +524,13 @@ export class OnboardingService implements OnApplicationBootstrap {
     const id = `a-${++this.memSeq}-${Math.random().toString(36).slice(2, 6)}`;
     const flow = this.memFlows.get(flowId);
     const r: AssignmentRecord = {
-      id, flowId, contractorId, publicToken: token,
+      id, flowId, personId, publicToken: token,
       startedAt: new Date().toISOString(), completedAt: null,
       stepStates: (flow?.steps ?? []).map((s) => ({
         id: `ss-${++this.memSeq}`, assignmentId: id, stepId: s.id,
         status: 'pending',
-        contractorFileKey: null, contractorFileUrl: null, contractorFileName: null,
-        contractorMimeType: null, contractorSizeBytes: null,
+        personFileKey: null, personFileUrl: null, personFileName: null,
+        personMimeType: null, personSizeBytes: null,
         notes: null, completedAt: null, completedBy: null,
       })),
     };
@@ -579,12 +612,12 @@ export class OnboardingService implements OnApplicationBootstrap {
     }
   }
 
-  // Contractor upload — replaces any previously-uploaded file for this
+  // Person upload — replaces any previously-uploaded file for this
   // step state. Bumps status to 'in_progress' so the admin sees it in
-  // the Approvals queue. For 'contractor_uploads' steps it stays
+  // the Approvals queue. For 'person_uploads' steps it stays
   // in_progress (waiting on admin review). The admin marks completed
   // separately via markStepComplete.
-  async contractorUpload(
+  async personUpload(
     assignmentId: string,
     stepId: string,
     file: { fileName: string; mimeType: string; bytes: Buffer },
@@ -594,11 +627,11 @@ export class OnboardingService implements OnApplicationBootstrap {
       const r = await this.prisma.onboardingStepState.update({
         where: { assignmentId_stepId: { assignmentId, stepId } },
         data: {
-          contractorStorage: this.storage.driver,
-          contractorFileKey: up.key, contractorFileUrl: up.url,
-          contractorFileName: file.fileName,
-          contractorMimeType: up.mimeType ?? file.mimeType,
-          contractorSizeBytes: up.sizeBytes ?? file.bytes.length,
+          personStorage: this.storage.driver,
+          personFileKey: up.key, personFileUrl: up.url,
+          personFileName: file.fileName,
+          personMimeType: up.mimeType ?? file.mimeType,
+          personSizeBytes: up.sizeBytes ?? file.bytes.length,
           status: 'in_progress',
         },
       }).catch(() => null);
@@ -607,11 +640,11 @@ export class OnboardingService implements OnApplicationBootstrap {
     const a = this.memAssignments.get(assignmentId);
     const s = a?.stepStates.find((s) => s.stepId === stepId);
     if (!s) return null;
-    s.contractorFileKey = up.key;
-    s.contractorFileUrl = up.url;
-    s.contractorFileName = file.fileName;
-    s.contractorMimeType = up.mimeType ?? file.mimeType;
-    s.contractorSizeBytes = up.sizeBytes ?? file.bytes.length;
+    s.personFileKey = up.key;
+    s.personFileUrl = up.url;
+    s.personFileName = file.fileName;
+    s.personMimeType = up.mimeType ?? file.mimeType;
+    s.personSizeBytes = up.sizeBytes ?? file.bytes.length;
     s.status = 'in_progress';
     return s;
   }
@@ -640,17 +673,20 @@ function toStepRecord(row: any): StepRecord {
     title: row.title,
     instructions: row.instructions,
     completion: row.completion,
-    documents: (row.documentLinks ?? []).map((d: any) => ({ id: d.id, documentId: d.documentId, contractorUploadAllowed: d.contractorUploadAllowed })),
+    documents: (row.documentLinks ?? []).map((d: any) => ({ id: d.id, documentId: d.documentId, personUploadAllowed: d.personUploadAllowed })),
     links: (row.links ?? []).map((l: any) => ({ id: l.id, label: l.label, url: l.url })),
   };
 }
-function toContractorRecord(row: any): ContractorRecord {
+function toPersonRecord(row: any): PersonRecord {
   return {
     id: row.id,
     displayName: row.displayName,
     email: row.email,
     phone: row.phone,
     companyId: row.companyId,
+    bandMemberId: row.bandMemberId ?? null,
+    bandMemberName: row.bandMember?.name ?? null,
+    bandMemberUpn: row.bandMember?.upn ?? null,
     createdAt: (row.createdAt instanceof Date ? row.createdAt : new Date(row.createdAt)).toISOString(),
   };
 }
@@ -658,7 +694,7 @@ function toAssignmentRecord(row: any): AssignmentRecord {
   return {
     id: row.id,
     flowId: row.flowId,
-    contractorId: row.contractorId,
+    personId: row.personId,
     publicToken: row.publicToken,
     startedAt: (row.startedAt instanceof Date ? row.startedAt : new Date(row.startedAt)).toISOString(),
     completedAt: row.completedAt ? (row.completedAt instanceof Date ? row.completedAt : new Date(row.completedAt)).toISOString() : null,
@@ -671,11 +707,11 @@ function toStepStateRecord(row: any): StepStateRecord {
     assignmentId: row.assignmentId,
     stepId: row.stepId,
     status: row.status,
-    contractorFileKey: row.contractorFileKey,
-    contractorFileUrl: row.contractorFileUrl,
-    contractorFileName: row.contractorFileName,
-    contractorMimeType: row.contractorMimeType,
-    contractorSizeBytes: row.contractorSizeBytes,
+    personFileKey: row.personFileKey,
+    personFileUrl: row.personFileUrl,
+    personFileName: row.personFileName,
+    personMimeType: row.personMimeType,
+    personSizeBytes: row.personSizeBytes,
     notes: row.notes,
     completedAt: row.completedAt ? (row.completedAt instanceof Date ? row.completedAt : new Date(row.completedAt)).toISOString() : null,
     completedBy: row.completedBy,

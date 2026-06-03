@@ -42,7 +42,7 @@ import EditDocument from 'skintyee/components/pages/EditDocument';
 import TagManager from 'skintyee/components/pages/TagManager';
 import OnboardingFlows from 'skintyee/components/pages/OnboardingFlows';
 import EditOnboardingFlow from 'skintyee/components/pages/EditOnboardingFlow';
-import Contractors from 'skintyee/components/pages/Contractors';
+import People from 'skintyee/components/pages/People';
 import AssignmentTimeline from 'skintyee/components/pages/AssignmentTimeline';
 
 // Five fixed tabs keep the bottom bar clean. Overflow features live under the
@@ -129,7 +129,7 @@ const MoreNavigation = () => {
       <MoreStack.Screen {...routeConfig.onboardingFlows} component={OnboardingFlows} />
       <MoreStack.Screen {...routeConfig.onboardingFlowCreate} component={EditOnboardingFlow} />
       <MoreStack.Screen {...routeConfig.onboardingFlowEdit} component={EditOnboardingFlow} />
-      <MoreStack.Screen {...routeConfig.onboardingContractors} component={Contractors} />
+      <MoreStack.Screen {...routeConfig.onboardingPeople} component={People} />
       <MoreStack.Screen {...routeConfig.onboardingAssignment} component={AssignmentTimeline} />
     </MoreStack.Navigator>
   );

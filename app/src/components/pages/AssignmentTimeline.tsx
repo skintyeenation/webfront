@@ -7,18 +7,18 @@ import { PageContainer, PageContent, NoContent } from 'skintyee/components/layou
 import { useAppSelector } from 'skintyee/store';
 import { apiFactory } from 'skintyee/store/apis';
 import {
-  OnboardingAssignmentDto, OnboardingFlowDto, ContractorDto, OnboardingStepStateDto, DocumentDto,
+  OnboardingAssignmentDto, OnboardingFlowDto, PersonDto, OnboardingStepStateDto, DocumentDto,
 } from 'skintyee/services/api/ApiService';
 import { theme } from 'skintyee/styles';
 
 // ----------------------------------------------------------------------------
-// AssignmentTimeline — admin view of a single contractor's progress
+// AssignmentTimeline — admin view of a single person's progress
 // through an onboarding flow. Mirrors the TimeKeeping approval pattern:
 //
-//   - Top card: contractor + flow summary + tokenised public link
+//   - Top card: person + flow summary + tokenised public link
 //     (copy button) + overall status chip.
 //   - One Card per step: status chip, attached docs (Open), free links
-//     (Open), contractor's uploaded file (Open + admin replace), and the
+//     (Open), person's uploaded file (Open + admin replace), and the
 //     ApprovalCard-style row (Approve / Reject / Reset) when there's
 //     something to act on.
 //   - Rejection notes captured via a modal, surfaced as HelperText on
@@ -35,7 +35,7 @@ const statusLabel = (s?: string) => (s || 'pending').toUpperCase();
 
 const COMPLETION_LABEL: Record<string, string> = {
   admin_marks: 'Admin marks complete',
-  contractor_uploads: 'Contractor uploads',
+  person_uploads: 'Person uploads',
   both: 'Upload + admin review',
 };
 
@@ -46,7 +46,7 @@ export default function AssignmentTimeline({ navigation, route }: any) {
 
   const [assignment, setAssignment] = useState<OnboardingAssignmentDto | undefined>();
   const [flow, setFlow] = useState<OnboardingFlowDto | undefined>();
-  const [contractor, setContractor] = useState<ContractorDto | undefined>();
+  const [person, setPerson] = useState<PersonDto | undefined>();
   const [documents, setDocuments] = useState<DocumentDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>();
@@ -68,11 +68,11 @@ export default function AssignmentTimeline({ navigation, route }: any) {
       setAssignment(a);
       const [f, conts, docs] = await Promise.all([
         api.onboarding.getFlow(a.flowId),
-        api.onboarding.listContractors(),
+        api.onboarding.listPeople(),
         api.documents.list().catch(() => []),
       ]);
       setFlow(f);
-      setContractor(conts.find((c) => c.id === a.contractorId));
+      setPerson(conts.find((c) => c.id === a.personId));
       setDocuments(docs);
     } catch (e: any) {
       setError(e?.message ?? String(e));
@@ -153,7 +153,7 @@ export default function AssignmentTimeline({ navigation, route }: any) {
 
   const copyPublicLink = async () => {
     if (!assignment) return;
-    // Web's URL convention for the public contractor link.
+    // Web's URL convention for the public person link.
     const url = (typeof window !== 'undefined' ? window.location.origin : 'https://app.skintyee.ca')
       + `/onboard/${assignment.id}/${assignment.publicToken}`;
     if (Platform.OS === 'web' && navigator?.clipboard) {
@@ -204,7 +204,7 @@ export default function AssignmentTimeline({ navigation, route }: any) {
           <Card.Content>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: theme.colors.text, fontSize: 16 }}>{contractor?.displayName ?? assignment.contractorId}</Text>
+                <Text style={{ color: theme.colors.text, fontSize: 16 }}>{person?.displayName ?? assignment.personId}</Text>
                 <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginTop: 2 }}>
                   {flow.title} · {completed}/{assignment.stepStates.length} complete
                 </Text>
@@ -216,7 +216,7 @@ export default function AssignmentTimeline({ navigation, route }: any) {
             {isAdmin ? (
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 10, alignItems: 'center' }}>
                 <Button compact mode="outlined" icon="link-variant" textColor={theme.colors.text} onPress={copyPublicLink}>
-                  Copy contractor link
+                  Copy public link
                 </Button>
                 <View style={{ width: 6 }} />
                 <Button compact mode="text" icon="refresh" textColor={theme.colors.textDarker} onPress={rotateToken}>
@@ -292,20 +292,20 @@ export default function AssignmentTimeline({ navigation, route }: any) {
                   </View>
                 ) : null}
 
-                {/* Contractor's uploaded file */}
-                {state?.contractorFileUrl ? (
+                {/* Person's uploaded file */}
+                {state?.personFileUrl ? (
                   <View style={{
                     marginTop: 8, padding: 8, borderRadius: 4,
                     backgroundColor: 'rgba(255,255,255,0.04)',
                     borderLeftWidth: 3, borderLeftColor: theme.colors.accent,
                   }}>
-                    <Text style={{ color: theme.colors.textDarker, fontSize: 10, letterSpacing: 1 }}>CONTRACTOR UPLOAD</Text>
+                    <Text style={{ color: theme.colors.textDarker, fontSize: 10, letterSpacing: 1 }}>UPLOADED</Text>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
                       <Text style={{ color: theme.colors.text, fontSize: 12, flex: 1 }} numberOfLines={1}>
-                        📤 {state.contractorFileName ?? 'file'}
-                        {state.contractorSizeBytes ? `  ·  ${Math.round(state.contractorSizeBytes / 1024)} KB` : ''}
+                        📤 {state.personFileName ?? 'file'}
+                        {state.personSizeBytes ? `  ·  ${Math.round(state.personSizeBytes / 1024)} KB` : ''}
                       </Text>
-                      <Button compact mode="text" icon="download" textColor={theme.colors.primary} onPress={() => Linking.openURL(state.contractorFileUrl!)}>
+                      <Button compact mode="text" icon="download" textColor={theme.colors.primary} onPress={() => Linking.openURL(state.personFileUrl!)}>
                         Open
                       </Button>
                     </View>
@@ -323,7 +323,7 @@ export default function AssignmentTimeline({ navigation, route }: any) {
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
                     {(step.completion !== 'admin_marks') ? (
                       <Button compact mode="text" icon="upload" textColor={theme.colors.text} onPress={() => adminUpload(step.id)} disabled={busyStep === step.id}>
-                        Upload for contractor
+                        Upload on their behalf
                       </Button>
                     ) : null}
                     <View style={{ flex: 1 }} />

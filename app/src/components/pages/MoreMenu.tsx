@@ -28,7 +28,8 @@ const ADMIN_ITEMS: MoreItem[] = [
   { route: 'timekeeping',     label: 'Time Keeping',       description: 'Worker hours & approvals',                                 icon: 'clock-outline',           roles: ['admin'] },
   { route: 'publicRecords',   label: 'Financial Summary',  description: 'Where the money goes — budgets, expenditures & projects', icon: 'chart-pie',               roles: ['admin'] },
   { route: 'documents',       label: 'Documents',          description: 'Forms, filings & PDFs by tag',                             icon: 'file-document-multiple',  roles: ['admin'] },
-  { route: 'onboardingFlows', label: 'Onboarding',         description: 'Design contractor onboarding flows & track progress',     icon: 'clipboard-check-multiple', roles: ['admin'] },
+  { route: 'onboardingFlows', label: 'Onboarding',         description: 'Design onboarding flows & track progress for new people', icon: 'clipboard-check-multiple', roles: ['admin'] },
+  { route: 'onboardingPeople', label: 'Staff Management',  description: 'People on file — band members + external contractors',    icon: 'account-supervisor',      roles: ['admin'] },
 ];
 
 // General community items.

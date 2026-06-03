@@ -87,6 +87,9 @@ model BandMember {
   syncedAt  DateTime @default(now()) // last time seeded from Entra
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  // Reverse side of the optional 1:1 Person <-> BandMember link
+  // (set when an admin links a Person row to this band member).
+  person    Person?
 
   @@index([upn])
   @@index([enabled])
@@ -239,7 +242,7 @@ model Company {
   active      Boolean          @default(true)
   documents   Document[]
   flows       OnboardingFlow[]
-  contractors Contractor[]
+  people      Person[]
   createdAt   DateTime         @default(now())
 
   @@index([parentSlug, active])
@@ -247,11 +250,12 @@ model Company {
 
 // ---- Onboarding (Phase 2) -------------------------------------------------
 //
-// Admin-designed onboarding flows for groups of contractors. A flow is a
+// Admin-designed onboarding flows for new people (contractors, staff
+// hires, volunteers — anyone going through a process). A flow is a
 // reusable template of ordered steps; each step attaches Documents +
 // arbitrary URLs and declares who completes it. A flow assigned to a
-// Contractor becomes an OnboardingAssignment, and each step gets its
-// own OnboardingStepState row tracking status + the contractor's
+// Person becomes an OnboardingAssignment, and each step gets its
+// own OnboardingStepState row tracking status + the person's
 // uploaded file (if any). Visual + approval language is borrowed from
 // the Timesheets feature — see docs/features/documents-and-onboarding.md.
 
@@ -280,7 +284,7 @@ model OnboardingStep {
   title        String
   instructions String? // markdown
   // Who completes the step.
-  // 'admin_marks' | 'contractor_uploads' | 'both'
+  // 'admin_marks' | 'person_uploads' | 'both'
   completion   String         @default("admin_marks")
 
   documentLinks OnboardingStepDocument[]
@@ -290,15 +294,15 @@ model OnboardingStep {
 }
 
 // Bridge — step references existing Document templates (the admin built
-// in Phase 1). `contractorUploadAllowed` says whether this step expects
-// the contractor to upload a replacement (e.g. signed form).
+// in Phase 1). `personUploadAllowed` says whether this step expects
+// the person to upload a replacement (e.g. signed form).
 model OnboardingStepDocument {
-  id                      String         @id @default(cuid())
-  stepId                  String
-  step                    OnboardingStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
-  documentId              String
-  document                Document       @relation(fields: [documentId], references: [id])
-  contractorUploadAllowed Boolean        @default(false)
+  id                  String         @id @default(cuid())
+  stepId              String
+  step                OnboardingStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  documentId          String
+  document            Document       @relation(fields: [documentId], references: [id])
+  personUploadAllowed Boolean        @default(false)
 
   @@index([stepId])
   @@index([documentId])
@@ -316,61 +320,70 @@ model OnboardingStepLink {
   @@index([stepId])
 }
 
-// Contractor — passive record so an admin can track progress on the
-// contractor's behalf. Full auth / portal accounts are future work;
-// for now contractors interact via tokenised public links.
-model Contractor {
-  id          String                 @id @default(cuid())
-  displayName String
-  email       String?
-  phone       String?
-  companyId   String?
-  company     Company?               @relation(fields: [companyId], references: [id])
-  assignments OnboardingAssignment[]
-  createdAt   DateTime               @default(now())
+// Person — anyone the admin tracks onboarding progress for (contractors,
+// staff hires, volunteers, externals…). Optionally linked 1:1 to a
+// BandMember when the person IS also a band member with an Entra
+// identity; for everyone else (most contractors), bandMemberId is null
+// and displayName/email/phone are filled in by the admin directly.
+// Full auth / portal accounts are future work; for now they interact
+// via tokenised public links.
+model Person {
+  id           String                 @id @default(cuid())
+  displayName  String
+  email        String?
+  phone        String?
+  companyId    String?
+  company      Company?               @relation(fields: [companyId], references: [id])
+  // Optional 1:1 link to a BandMember (Entra-backed). When set, the
+  // linked member's name/email/phone are the source of truth and the
+  // Person row's fields are kept in sync at save time.
+  bandMemberId String?                @unique
+  bandMember   BandMember?            @relation(fields: [bandMemberId], references: [id])
+  assignments  OnboardingAssignment[]
+  createdAt    DateTime               @default(now())
 
   @@index([companyId])
 }
 
 model OnboardingAssignment {
-  id           String                @id @default(cuid())
-  flowId       String
-  flow         OnboardingFlow        @relation(fields: [flowId], references: [id])
-  contractorId String
-  contractor   Contractor            @relation(fields: [contractorId], references: [id])
-  // Hex token for the contractor's public link. Treated as a bearer
-  // secret — anyone with it can view the assignment + upload to steps
-  // that allow it. Re-issue via POST /assignments/:id/rotate-token.
-  publicToken  String                @unique
-  startedAt    DateTime              @default(now())
-  completedAt  DateTime?
-  stepStates   OnboardingStepState[]
+  id          String                @id @default(cuid())
+  flowId      String
+  flow        OnboardingFlow        @relation(fields: [flowId], references: [id])
+  personId    String
+  person      Person                @relation(fields: [personId], references: [id])
+  // Hex token for the public link. Treated as a bearer secret — anyone
+  // with it can view the assignment + upload to steps that allow it.
+  // Re-issue via POST /assignments/:id/rotate-token.
+  publicToken String                @unique
+  startedAt   DateTime              @default(now())
+  completedAt DateTime?
+  stepStates  OnboardingStepState[]
 
   @@index([flowId])
-  @@index([contractorId])
+  @@index([personId])
 }
 
 model OnboardingStepState {
-  id                  String               @id @default(cuid())
-  assignmentId        String
-  assignment          OnboardingAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  id              String               @id @default(cuid())
+  assignmentId    String
+  assignment      OnboardingAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   // Loose reference (no FK) so reordering / editing the flow doesn't
   // cascade into assignment history. The UI resolves stepId → step on
   // read.
-  stepId              String
-  status              String               @default("pending") // pending | in_progress | completed | rejected
-  // Contractor's upload, when the step expects one. Same adapter as
+  stepId          String
+  status          String               @default("pending") // pending | in_progress | completed | rejected
+  // Person's upload, when the step expects one. Same adapter as
   // Document.fileKey / fileUrl — the StepState owns its own file
   // separate from the step's template Document.
-  contractorStorage   String? // 'blob' | 'sharepoint'
-  contractorFileKey   String?
-  contractorFileUrl   String?
-  contractorFileName  String?
-  contractorMimeType  String?
-  contractorSizeBytes Int?
-  notes               String? // admin-authored rejection / completion notes
-  completedAt         DateTime?
-  completedBy         String? // UPN or 'contractor' for self-upload-to-complete steps
+  personStorage   String? // 'blob' | 'sharepoint'
+  personFileKey   String?
+  personFileUrl   String?
+  personFileName  String?
+  personMimeType  String?
+  personSizeBytes Int?
+  notes           String? // admin-authored rejection / completion notes
+  completedAt     DateTime?
+  completedBy     String? // UPN or 'person' for self-upload-to-complete steps
 
   @@unique([assignmentId, stepId])
   @@index([status])
