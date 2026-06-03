@@ -391,30 +391,87 @@ function ApprovalCard({
   onReject: (id: string) => void;
 }) {
   const busy = actingOn === t.id;
+  const [open, setOpen] = useState(false);
+
+  // Group entries by day for the expanded detail view.
+  const byDay = useMemo(() => {
+    const map = new Map<string, Timesheet['entries']>();
+    for (const e of t.entries ?? []) {
+      const list = map.get(e.date) ?? [];
+      list.push(e);
+      map.set(e.date, list);
+    }
+    return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [t.entries]);
+
   return (
     <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 8, borderLeftWidth: 3, borderLeftColor: t.requiresAdminApproval ? theme.colors.error : theme.colors.accent }}>
       <Card.Content>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-          <Text style={{ color: theme.colors.text, fontSize: 15, flex: 1 }}>{t.workerName}</Text>
-          {t.requiresAdminApproval ? (
-            <Chip compact icon="fire" style={{ backgroundColor: theme.colors.error, marginRight: 6 }} textStyle={{ color: '#fff', fontSize: 10 }}>
-              {t.overtimeHours}h OT
-            </Chip>
+        {/* Tappable summary row — toggles details */}
+        <TouchableOpacity onPress={() => setOpen((v) => !v)}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+            <MaterialCommunityIcons
+              name={open ? 'chevron-down' : 'chevron-right'}
+              size={18}
+              color={theme.colors.textDarker}
+              style={{ marginRight: 4 }}
+            />
+            <Text style={{ color: theme.colors.text, fontSize: 15, flex: 1 }}>{t.workerName}</Text>
+            {t.requiresAdminApproval ? (
+              <Chip compact icon="fire" style={{ backgroundColor: theme.colors.error, marginRight: 6 }} textStyle={{ color: '#fff', fontSize: 10 }}>
+                {t.overtimeHours}h OT
+              </Chip>
+            ) : null}
+            <Text style={{ color: theme.colors.textDarker }}>{t.totalHours}h</Text>
+          </View>
+          <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginLeft: 22 }}>
+            Week 1 {t.week1Hours}h · Week 2 {t.week2Hours}h
+          </Text>
+          {t.submittedAt ? (
+            <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginLeft: 22, marginTop: 2 }}>
+              Submitted {dayjs(t.submittedAt).format('ddd MMM D · h:mm A')}
+            </Text>
           ) : null}
-          <Text style={{ color: theme.colors.textDarker }}>{t.totalHours}h</Text>
-        </View>
-        <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>
-          Week 1 {t.week1Hours}h · Week 2 {t.week2Hours}h
-        </Text>
-        {t.submittedAt ? (
-          <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginTop: 2 }}>
-            Submitted {dayjs(t.submittedAt).format('ddd MMM D · h:mm A')}
-          </Text>
-        ) : null}
-        {t.notes ? (
-          <Text style={{ color: theme.colors.text, fontSize: 12, marginTop: 6 }}>
-            “{t.notes}”
-          </Text>
+          {t.notes ? (
+            <Text style={{ color: theme.colors.text, fontSize: 12, marginLeft: 22, marginTop: 6 }}>
+              “{t.notes}”
+            </Text>
+          ) : null}
+        </TouchableOpacity>
+
+        {/* Expanded detail — entries grouped by day */}
+        {open ? (
+          <View style={{ marginTop: 10, marginLeft: 22 }}>
+            <Divider style={{ marginBottom: 8 }} />
+            {byDay.length === 0 ? (
+              <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>No entries.</Text>
+            ) : (
+              byDay.map(([date, entries]) => {
+                const dayTotal = entries.reduce((s, e) => s + (Number(e.hours) || 0), 0);
+                return (
+                  <View key={date} style={{ marginBottom: 8 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                      <Text style={{ color: theme.colors.text, fontSize: 12, fontWeight: '600', flex: 1 }}>
+                        {dayjs(date).format('ddd MMM D')}
+                      </Text>
+                      <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>
+                        {Math.round(dayTotal * 100) / 100}h
+                      </Text>
+                    </View>
+                    {entries.map((e) => (
+                      <View key={e.id} style={{ flexDirection: 'row', alignItems: 'center', paddingLeft: 6, paddingVertical: 2 }}>
+                        <Text style={{ color: theme.colors.textDarker, fontSize: 11, flex: 1 }} numberOfLines={1}>
+                          {e.task || 'Regular'}
+                          {e.timeIn && e.timeOut ? ` · ${e.timeIn}–${e.timeOut}` : ''}
+                        </Text>
+                        <Text style={{ color: theme.colors.text, fontSize: 11 }}>{e.hours}h</Text>
+                      </View>
+                    ))}
+                  </View>
+                );
+              })
+            )}
+          </View>
         ) : null}
 
         <View style={{ flexDirection: 'row', marginTop: 10 }}>
