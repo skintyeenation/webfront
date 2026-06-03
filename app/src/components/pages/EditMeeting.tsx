@@ -295,7 +295,18 @@ export default function EditMeeting({ route, navigation }: any) {
         ) : null}
 
         <TextInput label="Location" value={location} onChangeText={setLocation} mode="outlined" style={{ marginBottom: 10 }} />
-        <LocationPicker value={coords} onChange={setCoords} />
+        {/* Map collapsed by default — admins can set a pin if they want
+            one, but most meetings don't need one (the Location text
+            field is enough). Address inside the picker is wired to the
+            form's Location field so typing in either keeps both in
+            sync, and "Find" geocodes it onto the map. */}
+        <LocationPicker
+          value={coords}
+          onChange={setCoords}
+          onClear={() => setCoords(undefined)}
+          address={location}
+          onAddressChange={setLocation}
+        />
         <DateTimeField label="Date & time" value={startsAt} onChange={setStartsAt} />
         <TextInput label="Agenda" value={agenda} onChangeText={setAgenda} mode="outlined" multiline numberOfLines={4} style={{ marginBottom: 10 }} />
 

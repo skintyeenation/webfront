@@ -239,7 +239,17 @@ export default function CreateMeeting({ navigation }: any) {
         ) : null}
 
         <TextInput label="Location" value={location} onChangeText={setLocation} mode="outlined" style={{ marginBottom: 10 }} />
-        <LocationPicker value={coords} onChange={setCoords} />
+        {/* Map is hidden by default; tap "Set map pin" to expand. The
+            picker's address search is wired to the form's Location
+            field so typing in either stays in sync, and "Find"
+            geocodes via Nominatim onto the map. */}
+        <LocationPicker
+          value={coords}
+          onChange={setCoords}
+          onClear={() => setCoords(undefined)}
+          address={location}
+          onAddressChange={setLocation}
+        />
         <DateTimeField label="Date & time" value={startsAt} onChange={setStartsAt} />
         <TextInput label="Agenda" value={agenda} onChangeText={setAgenda} mode="outlined" multiline numberOfLines={4} style={{ marginBottom: 10 }} />
 
