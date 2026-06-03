@@ -4,12 +4,15 @@ import { AppHeader } from 'skintyee/components/layout';
 // Route configuration, modeled on the ppt routes.tsx: each entry carries a name and
 // navigation options (including the shared AppHeader). Tabs are gated by role in
 // Application.tsx.
-const header = (title: string) => (props: any) => <AppHeader {...props} options={{ title }} />;
+// `titleLong` is the expanded form shown on tablets / desktop web — see
+// AppHeader's LONG_TITLE_BREAKPOINT. Falls back to `title` on phones.
+const header = (title: string, titleLong?: string) => (props: any) =>
+  <AppHeader {...props} options={{ title, titleLong }} />;
 
 export const routeConfig = {
   // Tabs
   dashboard: { name: 'dashboard', options: { title: 'Home', header: header('Dashboard') } },
-  directory: { name: 'directory', options: { title: 'Directory', header: header('Management Directory') } },
+  directory: { name: 'directory', options: { title: 'Directory', header: header('Management Directory', 'Band Management Directory') } },
   events: { name: 'events', options: { title: 'Events', header: header('Community Events') } },
   meetings: { name: 'meetings', options: { title: 'Meetings', header: header('Band Meetings') } },
   publicRecords: { name: 'publicRecords', options: { title: 'Records', header: header('Records') } },

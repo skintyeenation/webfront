@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, View } from 'react-native';
+import { TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { Appbar, Avatar } from 'react-native-paper';
 import { Logo } from './Logo';
 import { useAppSelector } from 'skintyee/store';
@@ -37,8 +37,16 @@ function photoUrl(memberId: string): string | undefined {
 }
 
 // Header modeled on the ppt AppHeader, simplified (no search wiring yet).
+// Responsive title — routes can supply a longer form via options.titleLong
+// to render on roomier viewports. Phones get the short form; tablets +
+// desktop web get the descriptive one.
+const LONG_TITLE_BREAKPOINT = 600;
+
 export function AppHeader({ title, navigation, back, options, showAccount = true }: AppHeaderProps) {
-  const headerTitle = options?.title ?? title ?? '';
+  const { width } = useWindowDimensions();
+  const short = options?.title ?? title ?? '';
+  const long  = options?.titleLong;
+  const headerTitle = long && width >= LONG_TITLE_BREAKPOINT ? long : short;
   const { name, signedIn, user } = useAppSelector((s) => s.auth);
   const directory = useAppSelector((s) => s.directory.entities);
 
