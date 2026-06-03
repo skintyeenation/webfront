@@ -9,7 +9,8 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 
 import { theme } from 'skintyee/styles';
 import { routeConfig } from 'skintyee/routes';
-import { useAppSelector } from 'skintyee/store';
+import { useAppDispatch, useAppSelector } from 'skintyee/store';
+import { refreshStoreForSignedInUser } from 'skintyee/store/refresh';
 import { SplashScreen, AppHeader } from 'skintyee/components/layout';
 import { Role } from 'skintyee/models';
 
@@ -172,8 +173,19 @@ export default function Application() {
   // Initial launch: signedIn=false, bypassed=false → render the Account
   // screen full-page (which has both the Microsoft button + dev role
   // switcher). After either path completes, the tabs appear.
-  const { signedIn, bypassed } = useAppSelector((s) => s.auth);
+  const { signedIn, bypassed, role } = useAppSelector((s) => s.auth);
   const allowedIn = signedIn || bypassed;
+
+  // When the user transitions from anonymous → signed-in (or boots into
+  // an already-signed-in session restored from localStorage), every
+  // role-gated slice needs to refetch. Without this they keep the
+  // empty/limited public-role responses that loaded before sign-in,
+  // and the user lands on screens with no data + no apparent buttons.
+  const dispatch = useAppDispatch();
+  useEffect(() => {
+    if (!signedIn) return;
+    refreshStoreForSignedInUser(dispatch, role);
+  }, [dispatch, signedIn, role]);
 
   return (
     <PaperProvider theme={customTheme} settings={{ icon: (props: any) => <MaterialCommunityIcons {...props} /> }}>
