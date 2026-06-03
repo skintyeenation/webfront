@@ -127,6 +127,58 @@ export interface PublicRecord {
   publishedAt: string; // ISO date
 }
 
+// ---- Pay period (bi-weekly) ----------------------------------------------
+// Mirrors api/src/skintyee-pay-periods.ts. The api/ is the source of truth
+// for cycles; the app fetches /v1/timekeeping/pay-periods to populate the
+// history dropdown + Dashboard countdown.
+export interface PayPeriod {
+  id: string;          // YYYY-MM-DD of the cutoff Friday
+  startISO: string;
+  endISO: string;
+  payDateISO: string;
+  label: string;       // e.g. "May 30 – Jun 12"
+}
+
+export interface PayPeriodConfig {
+  lengthDays: number;
+  overtimeWeeklyHoursThreshold: number;
+  payDaysAfterCutoff: number;
+}
+
+// ---- New pay-period-aware timesheet model --------------------------------
+export type TimesheetStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
+
+export interface TimesheetEntry {
+  id: string;
+  date: string;        // YYYY-MM-DD
+  hours: number;       // auto-computed from timeIn/Out when both present
+  timeIn?: string;     // "HH:mm" 24h
+  timeOut?: string;    // "HH:mm" 24h
+  task: string;
+}
+
+export interface Timesheet {
+  id: string;          // <workerUpn>:<payPeriodId>
+  workerUpn: string;
+  workerName: string;
+  payPeriodId: string;
+  status: TimesheetStatus;
+  notes?: string | null;
+  week1Hours: number;
+  week2Hours: number;
+  totalHours: number;
+  overtimeHours: number;
+  requiresAdminApproval: boolean;
+  submittedAt?: string | null;
+  approvedBy?: string | null;
+  approvedAt?: string | null;
+  rejectedReason?: string | null;
+  entries: TimesheetEntry[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ---- Legacy single-row TimeEntry (the old TimeKeeping page) --------------
 export interface TimeEntry {
   _id: string;
   workerName: string;

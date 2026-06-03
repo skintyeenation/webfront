@@ -45,6 +45,13 @@ export const mockApiService: ApiService = {
   },
   timekeeping: {
     list: () => delay(fixtures.timeEntries),
+    payPeriods:    () => { throw new Error('timekeeping.payPeriods requires the real api/'); },
+    myTimesheets:  () => { throw new Error('timekeeping.myTimesheets requires the real api/'); },
+    saveDraft:     () => { throw new Error('timekeeping.saveDraft requires the real api/ (Postgres-backed)'); },
+    submit:        () => { throw new Error('timekeeping.submit requires the real api/'); },
+    allTimesheets: () => { throw new Error('timekeeping.allTimesheets requires the real api/'); },
+    approve:       () => { throw new Error('timekeeping.approve requires the real api/'); },
+    reject:        () => { throw new Error('timekeeping.reject requires the real api/'); },
   },
   polls: {
     list: () => delay(polls),

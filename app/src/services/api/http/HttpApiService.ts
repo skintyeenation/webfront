@@ -144,6 +144,17 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
     },
     timekeeping: {
       list: () => get<TimeEntry[]>('/timekeeping/entries'),
+      payPeriods: (count?: number) => get<any>('/timekeeping/pay-periods', count ? { count: String(count) } : undefined),
+      myTimesheets: (period?: string) => get<any>('/timekeeping/timesheets', period ? { period } : undefined),
+      saveDraft: (periodId: string, body: any) => patch<any>(`/timekeeping/timesheets/${encodeURIComponent(periodId)}/draft`, body),
+      submit:    (periodId: string, body: any) => post<any>(`/timekeeping/timesheets/${encodeURIComponent(periodId)}`, body),
+      allTimesheets: (period?: string, status?: string) =>
+        get<any>('/timekeeping/timesheets/all', {
+          ...(period ? { period } : {}),
+          ...(status ? { status } : {}),
+        }),
+      approve: (id: string)                  => post<any>(`/timekeeping/timesheets/${encodeURIComponent(id)}/approve`, {}),
+      reject:  (id: string, reason?: string) => post<any>(`/timekeeping/timesheets/${encodeURIComponent(id)}/reject`,  { reason }),
     },
     polls: {
       list: () => get<Poll[]>('/polls'),

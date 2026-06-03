@@ -1,4 +1,4 @@
-import { AppNotification, BandMember, BandMeeting, CommunityEvent, Expenditure, FeedItem, MajorProject, PlannerPlanSummary, PlannerRollup, PlannerTask, Poll, PublicRecord, Role, TimeEntry } from 'skintyee/models';
+import { AppNotification, BandMember, BandMeeting, CommunityEvent, Expenditure, FeedItem, MajorProject, PayPeriod, PayPeriodConfig, PlannerPlanSummary, PlannerRollup, PlannerTask, Poll, PublicRecord, Role, TimeEntry, Timesheet } from 'skintyee/models';
 
 /**
  * ApiService is the single seam between the app and its backend.
@@ -121,6 +121,35 @@ export interface ApiService {
   };
   timekeeping: {
     list(): Promise<TimeEntry[]>;
+    // Pay periods — current + recent N (default 12) for the history
+    // dropdown + Dashboard countdown. Returns the engine config too
+    // (cycle length + OT threshold + pay-days-after-cutoff).
+    payPeriods(count?: number): Promise<{
+      current: PayPeriod;
+      recent: PayPeriod[];
+      config: PayPeriodConfig;
+    }>;
+    // My timesheet for one period (default current) + the last 6 history.
+    myTimesheets(period?: string): Promise<{
+      period: PayPeriod;
+      current: Timesheet | null;
+      history: Timesheet[];
+    }>;
+    // Save draft (no submit) — replaces all entries on the timesheet.
+    saveDraft(periodId: string, body: {
+      entries: Array<{ date: string; hours: number; task: string; timeIn?: string; timeOut?: string }>;
+      notes?: string;
+    }): Promise<Timesheet>;
+    // Submit timesheet — same body, but flips status to 'submitted'
+    // and records submittedAt.
+    submit(periodId: string, body: {
+      entries: Array<{ date: string; hours: number; task: string; timeIn?: string; timeOut?: string }>;
+      notes?: string;
+    }): Promise<Timesheet>;
+    // Approver view — all workers' timesheets for a period.
+    allTimesheets(period?: string, status?: string): Promise<Timesheet[]>;
+    approve(id: string): Promise<Timesheet>;
+    reject(id: string, reason?: string): Promise<Timesheet>;
   };
   polls: {
     list(): Promise<Poll[]>;

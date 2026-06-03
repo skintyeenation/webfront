@@ -1,65 +1,444 @@
-import React, { useEffect } from 'react';
-import { View } from 'react-native';
-import { Button, Card, Chip, Text } from 'react-native-paper';
-import moment from 'moment';
-import { PageContainer, PageContent, NoContent, AdminAddButton } from 'skintyee/components/layout';
-import { useAppDispatch, useAppSelector } from 'skintyee/store';
-import { loadTimeEntries, approveTimeEntry } from 'skintyee/store/modules/timekeeping';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, ScrollView, TouchableOpacity, View } from 'react-native';
+import { Badge, Button, Card, Chip, Divider, HelperText, Menu, SegmentedButtons, Text } from 'react-native-paper';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import dayjs from 'dayjs';
+import { PageContainer, PageContent, NoContent } from 'skintyee/components/layout';
+import { useAppSelector } from 'skintyee/store';
+import { apiFactory } from 'skintyee/store/apis';
+import { PayPeriod, Timesheet } from 'skintyee/models';
 import { theme } from 'skintyee/styles';
 
-const cleanName = (n: string) => n.replace(/\s*\(.*\)\s*$/, '').trim();
+// ----------------------------------------------------------------------------
+// Time Keeping — two modes role-gated on a tab:
+//
+//   • My timesheet  — current pay period + history dropdown
+//   • Approvals     — workers' submitted timesheets in a chosen period
+//                     (visible when admin appRole OR bandGroups includes
+//                     'band-manager'; OT-flagged sheets need admin)
+//
+// All data lives on Postgres via /v1/timekeeping. See
+// docs/features/timesheets.md for the full design.
+// ----------------------------------------------------------------------------
 
-// Time keeping. Staff submit/view their own timesheets; admins see everyone's
-// and can approve. Reachable for staff ("My Timesheets") and admins ("Time Keeping").
+type Tab = 'mine' | 'approvals';
+
+const statusColor = (s?: string) =>
+  s === 'approved' ? theme.colors.success
+  : s === 'rejected' ? theme.colors.error
+  : s === 'submitted' ? theme.colors.accent
+  : theme.colors.secondary;
+
+const statusLabel = (s?: string) => (s || 'draft').toUpperCase();
+
 export default function TimeKeeping({ navigation }: any) {
-  const dispatch = useAppDispatch();
-  const { entities, loading, loaded } = useAppSelector((s) => s.timekeeping);
   const role = useAppSelector((s) => s.auth.role);
-  const me = cleanName(useAppSelector((s) => s.auth.name));
-  const isAdmin = role === 'admin';
+  const myUpn = (useAppSelector((s) => s.auth.user?.upn) || '').toLowerCase();
+  const directoryEntities = useAppSelector((s) => s.directory.entities);
+  const me = (directoryEntities as any[]).find((m) => (m.upn ?? '').toLowerCase() === myUpn);
+  const myBandGroups: string[] = (me?.bandGroups ?? []) as string[];
+  const canApprove = role === 'admin' || (role === 'staff' && myBandGroups.includes('band-manager'));
 
+  const [tab, setTab] = useState<Tab>('mine');
+  const [recent, setRecent] = useState<PayPeriod[]>([]);
+  const [currentPeriod, setCurrentPeriod] = useState<PayPeriod | undefined>();
+  const [selectedPeriodId, setSelectedPeriodId] = useState<string | undefined>();
+  const [periodMenuOpen, setPeriodMenuOpen] = useState(false);
+
+  const [myCurrent, setMyCurrent] = useState<Timesheet | null>(null);
+  const [myHistory, setMyHistory] = useState<Timesheet[]>([]);
+  const [allTimesheets, setAllTimesheets] = useState<Timesheet[]>([]);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | undefined>();
+  const [actingOn, setActingOn] = useState<string | undefined>();
+
+  // Initial bootstrap: load periods + the current view's data.
   useEffect(() => {
-    dispatch(loadTimeEntries());
-  }, [dispatch]);
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+        const api = apiFactory();
+        const periods = await api.timekeeping.payPeriods();
+        if (cancelled) return;
+        setRecent(periods.recent);
+        setCurrentPeriod(periods.current);
+        setSelectedPeriodId((prev) => prev ?? periods.current.id);
+      } catch (e: any) {
+        if (!cancelled) setError(e?.message ?? String(e));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
-  // Admins see all entries; staff/members see only their own.
-  const visible = isAdmin ? entities : entities.filter((e) => e.workerName === me);
-  const totalHours = visible.reduce((sum, e) => sum + e.hours, 0);
+  // Whenever the period or tab changes, reload the appropriate dataset.
+  useEffect(() => {
+    if (!selectedPeriodId) return;
+    let cancelled = false;
+    (async () => {
+      setError(undefined);
+      try {
+        const api = apiFactory();
+        if (tab === 'mine') {
+          const my = await api.timekeeping.myTimesheets(selectedPeriodId);
+          if (cancelled) return;
+          setMyCurrent(my.current);
+          setMyHistory(my.history);
+        } else {
+          const all = await api.timekeeping.allTimesheets(selectedPeriodId);
+          if (cancelled) return;
+          setAllTimesheets(all);
+        }
+      } catch (e: any) {
+        if (!cancelled) setError(e?.message ?? String(e));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [tab, selectedPeriodId]);
+
+  const selectedPeriod = useMemo(
+    () => recent.find((p) => p.id === selectedPeriodId) ?? currentPeriod,
+    [recent, currentPeriod, selectedPeriodId]
+  );
+
+  const pendingCount = useMemo(
+    () => allTimesheets.filter((t) => t.status === 'submitted').length,
+    [allTimesheets]
+  );
+
+  const onApprove = async (id: string) => {
+    setActingOn(id);
+    setError(undefined);
+    try {
+      const updated = await apiFactory().timekeeping.approve(id);
+      setAllTimesheets((prev) => prev.map((t) => (t.id === id ? updated : t)));
+    } catch (e: any) {
+      setError(e?.message ?? String(e));
+    } finally {
+      setActingOn(undefined);
+    }
+  };
+  const onReject = async (id: string) => {
+    setActingOn(id);
+    setError(undefined);
+    try {
+      const updated = await apiFactory().timekeeping.reject(id, undefined);
+      setAllTimesheets((prev) => prev.map((t) => (t.id === id ? updated : t)));
+    } catch (e: any) {
+      setError(e?.message ?? String(e));
+    } finally {
+      setActingOn(undefined);
+    }
+  };
+
+  if (loading) {
+    return (
+      <PageContainer><PageContent>
+        <ActivityIndicator style={{ marginVertical: 24 }} />
+      </PageContent></PageContainer>
+    );
+  }
+  if (error && !selectedPeriod) {
+    return (
+      <PageContainer><PageContent>
+        <HelperText type="error" visible>{error}</HelperText>
+      </PageContent></PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
       <PageContent>
-        <AdminAddButton label="Add timesheet" icon="clock-plus-outline" roles={['staff', 'admin']} onPress={() => navigation.navigate('timesheetCreate')} />
+        {/* Tab — only if user is an approver */}
+        {canApprove ? (
+          <SegmentedButtons
+            value={tab}
+            onValueChange={(v) => setTab(v as Tab)}
+            style={{ marginBottom: 12 }}
+            density="small"
+            buttons={[
+              { value: 'mine', label: 'My timesheet', icon: 'account-clock' },
+              {
+                value: 'approvals',
+                label: `Approvals${pendingCount > 0 ? ` (${pendingCount})` : ''}`,
+                icon: 'check-decagram',
+              },
+            ]}
+          />
+        ) : null}
 
-        {visible.length === 0 ? (
-          <NoContent loading={loading || !loaded} message={isAdmin ? 'No time entries logged.' : 'You have no timesheets yet.'} />
-        ) : (
-          <>
-            <Text style={{ color: theme.colors.textDarker, marginBottom: 10 }}>
-              {isAdmin ? 'All workers' : 'Your timesheets'} · {totalHours} hrs total
-            </Text>
-            {visible.map((item) => (
-              <Card key={item._id} style={{ marginBottom: 10, backgroundColor: theme.colors.darkDefault }}>
-                <Card.Content>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text style={{ color: theme.colors.text, fontSize: 16 }}>{item.workerName}</Text>
-                    <Chip compact style={{ backgroundColor: item.approved ? theme.colors.success : theme.colors.secondary }} textStyle={{ color: item.approved ? '#000' : theme.colors.text, fontSize: 11 }}>
-                      {item.approved ? 'Approved' : 'Pending'}
-                    </Chip>
-                  </View>
-                  <Text style={{ color: theme.colors.accent, marginTop: 4 }}>{item.hours} hrs · {moment(item.date).format('MMM D')}</Text>
-                  <Text style={{ color: theme.colors.textDarker, marginTop: 2 }}>{item.task}</Text>
-                  {isAdmin && !item.approved ? (
-                    <Button mode="outlined" compact icon="check" textColor={theme.colors.success} style={{ marginTop: 8, alignSelf: 'flex-start', borderColor: theme.colors.success }} onPress={() => dispatch(approveTimeEntry(item._id))}>
-                      Approve
-                    </Button>
-                  ) : null}
-                </Card.Content>
-              </Card>
+        {/* Pay period dropdown */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+          <Menu
+            visible={periodMenuOpen}
+            onDismiss={() => setPeriodMenuOpen(false)}
+            anchor={
+              <Button
+                mode="outlined"
+                icon="calendar-range"
+                textColor={theme.colors.text}
+                onPress={() => setPeriodMenuOpen(true)}
+                style={{ borderColor: theme.colors.secondary }}
+              >
+                {selectedPeriod?.label ?? 'Choose period'}
+              </Button>
+            }
+          >
+            {recent.map((p) => (
+              <Menu.Item
+                key={p.id}
+                title={p.label + (p.id === currentPeriod?.id ? ' · current' : '')}
+                onPress={() => {
+                  setSelectedPeriodId(p.id);
+                  setPeriodMenuOpen(false);
+                }}
+              />
             ))}
-          </>
+          </Menu>
+          {selectedPeriod ? (
+            <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginLeft: 10 }}>
+              Cutoff Fri {dayjs(selectedPeriod.endISO).format('MMM D')} · Pay Fri {dayjs(selectedPeriod.payDateISO).format('MMM D')}
+            </Text>
+          ) : null}
+        </View>
+
+        {error ? <HelperText type="error" visible>{error}</HelperText> : null}
+
+        {tab === 'mine' ? (
+          <MyTimesheetView
+            navigation={navigation}
+            period={selectedPeriod}
+            current={myCurrent}
+            history={myHistory}
+            currentPeriodId={currentPeriod?.id}
+          />
+        ) : (
+          <ApprovalsView
+            timesheets={allTimesheets}
+            actingOn={actingOn}
+            onApprove={onApprove}
+            onReject={onReject}
+          />
         )}
       </PageContent>
     </PageContainer>
+  );
+}
+
+// ---- My timesheet view -----------------------------------------------------
+
+function MyTimesheetView({
+  navigation, period, current, history, currentPeriodId,
+}: {
+  navigation: any;
+  period?: PayPeriod;
+  current: Timesheet | null;
+  history: Timesheet[];
+  currentPeriodId?: string;
+}) {
+  if (!period) return null;
+  const isCurrentPeriod = period.id === currentPeriodId;
+  const editable = isCurrentPeriod && current?.status !== 'approved';
+
+  return (
+    <View>
+      <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
+        <Card.Content>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <Text style={{ color: theme.colors.text, fontSize: 16 }}>{period.label}</Text>
+            <Chip compact style={{ backgroundColor: statusColor(current?.status) }} textStyle={{ color: '#000', fontSize: 11 }}>
+              {statusLabel(current?.status)}
+            </Chip>
+          </View>
+          <View style={{ flexDirection: 'row' }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: theme.colors.primary, fontSize: 22 }}>{current?.totalHours ?? 0}h</Text>
+              <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Total</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: theme.colors.text, fontSize: 22 }}>{current?.week1Hours ?? 0}h</Text>
+              <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Week 1</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: theme.colors.text, fontSize: 22 }}>{current?.week2Hours ?? 0}h</Text>
+              <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Week 2</Text>
+            </View>
+            {current?.overtimeHours ? (
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: theme.colors.error, fontSize: 22 }}>{current.overtimeHours}h</Text>
+                <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Overtime</Text>
+              </View>
+            ) : null}
+          </View>
+
+          {current?.rejectedReason ? (
+            <Text style={{ color: theme.colors.error, fontSize: 12, marginTop: 8 }}>
+              Rejected: {current.rejectedReason}
+            </Text>
+          ) : null}
+
+          <Button
+            mode={editable ? 'contained' : 'outlined'}
+            icon={editable ? 'pencil' : 'eye-outline'}
+            buttonColor={editable ? theme.colors.primary : undefined}
+            textColor={editable ? '#000' : theme.colors.text}
+            onPress={() => navigation.navigate('timesheetCreate', { periodId: period.id })}
+            style={{ marginTop: 12, alignSelf: 'flex-start', borderColor: theme.colors.secondary }}
+          >
+            {editable ? 'Edit / submit' : 'View'}
+          </Button>
+        </Card.Content>
+      </Card>
+
+      {/* History list */}
+      {history.length > 0 ? (
+        <View>
+          <Text style={{ color: theme.colors.accent, fontSize: 12, fontWeight: '700', letterSpacing: 1, marginTop: 8, marginBottom: 6 }}>
+            HISTORY
+          </Text>
+          {history.map((t) => (
+            <Card
+              key={t.id}
+              style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 6 }}
+            >
+              <Card.Content>
+                <TouchableOpacity onPress={() => navigation.navigate('timesheetCreate', { periodId: t.payPeriodId })}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text style={{ color: theme.colors.text, flex: 1 }}>
+                      {dayjs(t.payPeriodId).format('MMM D, YYYY')}
+                    </Text>
+                    <Text style={{ color: theme.colors.textDarker, marginRight: 8 }}>
+                      {t.totalHours}h
+                    </Text>
+                    <Chip compact style={{ backgroundColor: statusColor(t.status) }} textStyle={{ color: '#000', fontSize: 10 }}>
+                      {statusLabel(t.status)}
+                    </Chip>
+                  </View>
+                </TouchableOpacity>
+              </Card.Content>
+            </Card>
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+// ---- Approvals view --------------------------------------------------------
+
+function ApprovalsView({
+  timesheets, actingOn, onApprove, onReject,
+}: {
+  timesheets: Timesheet[];
+  actingOn?: string;
+  onApprove: (id: string) => void;
+  onReject: (id: string) => void;
+}) {
+  if (timesheets.length === 0) {
+    return <NoContent message="No timesheets in this pay period yet." />;
+  }
+  const submitted = timesheets.filter((t) => t.status === 'submitted');
+  const done = timesheets.filter((t) => t.status !== 'submitted');
+
+  return (
+    <View>
+      <Text style={{ color: theme.colors.accent, fontSize: 12, fontWeight: '700', letterSpacing: 1, marginBottom: 6 }}>
+        PENDING ({submitted.length})
+      </Text>
+      {submitted.length === 0 ? (
+        <Text style={{ color: theme.colors.textDarker, marginBottom: 12, fontSize: 12 }}>
+          Nothing waiting. Inbox zero.
+        </Text>
+      ) : (
+        submitted.map((t) => (
+          <ApprovalCard key={t.id} t={t} actingOn={actingOn} onApprove={onApprove} onReject={onReject} />
+        ))
+      )}
+
+      {done.length > 0 ? (
+        <>
+          <Text style={{ color: theme.colors.accent, fontSize: 12, fontWeight: '700', letterSpacing: 1, marginTop: 16, marginBottom: 6 }}>
+            ALREADY DECIDED
+          </Text>
+          {done.map((t) => (
+            <Card key={t.id} style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 6 }}>
+              <Card.Content>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={{ color: theme.colors.text, flex: 1 }}>{t.workerName}</Text>
+                  <Text style={{ color: theme.colors.textDarker, marginRight: 8 }}>{t.totalHours}h</Text>
+                  <Chip compact style={{ backgroundColor: statusColor(t.status) }} textStyle={{ color: '#000', fontSize: 10 }}>
+                    {statusLabel(t.status)}
+                  </Chip>
+                </View>
+              </Card.Content>
+            </Card>
+          ))}
+        </>
+      ) : null}
+    </View>
+  );
+}
+
+function ApprovalCard({
+  t, actingOn, onApprove, onReject,
+}: {
+  t: Timesheet;
+  actingOn?: string;
+  onApprove: (id: string) => void;
+  onReject: (id: string) => void;
+}) {
+  const busy = actingOn === t.id;
+  return (
+    <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 8, borderLeftWidth: 3, borderLeftColor: t.requiresAdminApproval ? theme.colors.error : theme.colors.accent }}>
+      <Card.Content>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+          <Text style={{ color: theme.colors.text, fontSize: 15, flex: 1 }}>{t.workerName}</Text>
+          {t.requiresAdminApproval ? (
+            <Chip compact icon="fire" style={{ backgroundColor: theme.colors.error, marginRight: 6 }} textStyle={{ color: '#fff', fontSize: 10 }}>
+              {t.overtimeHours}h OT
+            </Chip>
+          ) : null}
+          <Text style={{ color: theme.colors.textDarker }}>{t.totalHours}h</Text>
+        </View>
+        <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>
+          Week 1 {t.week1Hours}h · Week 2 {t.week2Hours}h
+        </Text>
+        {t.submittedAt ? (
+          <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginTop: 2 }}>
+            Submitted {dayjs(t.submittedAt).format('ddd MMM D · h:mm A')}
+          </Text>
+        ) : null}
+        {t.notes ? (
+          <Text style={{ color: theme.colors.text, fontSize: 12, marginTop: 6 }}>
+            “{t.notes}”
+          </Text>
+        ) : null}
+
+        <View style={{ flexDirection: 'row', marginTop: 10 }}>
+          <Button
+            mode="contained" compact icon="check"
+            buttonColor={theme.colors.success} textColor="#000"
+            disabled={busy}
+            loading={busy}
+            onPress={() => onApprove(t.id)}
+            style={{ marginRight: 8 }}
+          >
+            Approve
+          </Button>
+          <Button
+            mode="outlined" compact icon="close"
+            textColor={theme.colors.error}
+            disabled={busy}
+            onPress={() => onReject(t.id)}
+            style={{ borderColor: theme.colors.error }}
+          >
+            Reject
+          </Button>
+        </View>
+      </Card.Content>
+    </Card>
   );
 }
