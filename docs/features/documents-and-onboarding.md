@@ -12,9 +12,9 @@ own as soon as it's built.
 
 ## Status
 
-- **Phase 1 — Documents:** planned (this doc)
-- **Phase 2 — Onboarding flows:** planned (this doc)
-- Each phase will land as its own PR / branch off `master`.
+- **Phase 1 — Documents:** ✅ shipped — see commits `6b418aa` (API + storage) and `4c9f6e0` (UI screens).
+- **Phase 2 — Onboarding flows:** ✅ shipped — schema, API, admin UI, public tokenised contractor link, and a seeded sample flow (one step: "Sign Non-Disclosure (NDA)" with a generated 1-page PDF attached via the active storage adapter).
+- A POC-grade demo is now live end-to-end. Hardenings tracked in [Open questions](#open-questions).
 
 ## System overview
 

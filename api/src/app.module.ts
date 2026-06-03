@@ -10,10 +10,16 @@ import { MailboxReconcileService } from './mailbox-reconcile.service';
 import { StorageModule } from './storage/storage.module';
 import { DocumentsService } from './documents.service';
 import { DocumentsController, DocumentTagsController } from './documents.controller';
+import { OnboardingService } from './onboarding.service';
+import { OnboardingController, OnboardingPublicController } from './onboarding.controller';
 
 @Module({
   imports: [StorageModule],
-  controllers: [...CONTROLLERS, DocumentsController, DocumentTagsController],
+  controllers: [
+    ...CONTROLLERS,
+    DocumentsController, DocumentTagsController,
+    OnboardingController, OnboardingPublicController,
+  ],
   providers: [
     DataService,
     GraphFeedService,  // ADR-14: Microsoft Graph reader for Planner + Teams meetings
@@ -21,6 +27,7 @@ import { DocumentsController, DocumentTagsController } from './documents.control
     ExoService,        // ADR-15: Exchange Online PowerShell via Azure Function (shared mailbox perms)
     MailboxReconcileService,  // Pulls EXO truth → mailboxMemberships column on seed + admin sync
     DocumentsService,  // Phase 1 Documents library w/ pluggable storage adapter
+    OnboardingService, // Phase 2 Onboarding flows (uses the same storage adapter)
     // Role guard runs on every route; handlers without @Roles are public.
     { provide: APP_GUARD, useClass: RolesGuard },
   ],

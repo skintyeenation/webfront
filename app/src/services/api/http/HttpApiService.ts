@@ -20,7 +20,12 @@ import {
   PlannerPlanSummary, PlannerRollup, PlannerTask, Poll,
   PublicRecord, Role, TimeEntry,
 } from 'skintyee/models';
-import { ApiService, SecurityGroup, SharedMailbox, MailboxAccess, DocumentDto, DocumentTagDto } from 'skintyee/services/api/ApiService';
+import {
+  ApiService, SecurityGroup, SharedMailbox, MailboxAccess,
+  DocumentDto, DocumentTagDto,
+  OnboardingFlowDto, OnboardingStepDto, OnboardingAssignmentDto, OnboardingStepStateDto,
+  ContractorDto,
+} from 'skintyee/services/api/ApiService';
 
 // The auth header context — pulled lazily so the same HttpApiService
 // instance survives sign-in / sign-out / role switches without rebuild.
@@ -233,6 +238,67 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
         if (!res.ok) throw new Error(`DELETE /document-tags/${id} → ${res.status}: ${await res.text()}`);
       },
     },
+    onboarding: (() => {
+      const uploadFile = async (path: string, file: { uri: string; name: string; mimeType: string }, withHeaders = true) => {
+        const fd = new FormData();
+        if (typeof window !== 'undefined') {
+          const blob = await (await fetch(file.uri)).blob();
+          fd.append('file', blob, file.name);
+        } else {
+          fd.append('file', { uri: file.uri, name: file.name, type: file.mimeType } as any);
+        }
+        const res = await fetch(api(path), {
+          method: 'POST',
+          headers: withHeaders ? (() => { const h = headers(); delete (h as any)['Accept']; return h; })() : { 'x-role': 'public' },
+          body: fd as any,
+        });
+        if (!res.ok) throw new Error(`POST ${path} → ${res.status}: ${await res.text()}`);
+        return res.json();
+      };
+      return {
+        listFlows: () => get<OnboardingFlowDto[]>('/onboarding/flows'),
+        getFlow:   (id: string) => get<OnboardingFlowDto>(`/onboarding/flows/${encodeURIComponent(id)}`),
+        createFlow: (input: any) => post<OnboardingFlowDto>('/onboarding/flows', input),
+        updateFlow: (id: string, body: any) => patch<OnboardingFlowDto>(`/onboarding/flows/${encodeURIComponent(id)}`, body),
+        deleteFlow: async (id: string) => {
+          const res = await fetch(api(`/onboarding/flows/${encodeURIComponent(id)}`), { method: 'DELETE', headers: headers() });
+          if (!res.ok && res.status !== 204) throw new Error(`DELETE /onboarding/flows/${id} → ${res.status}: ${await res.text()}`);
+        },
+        addStep:    (flowId: string, input: any) => post<OnboardingStepDto>(`/onboarding/flows/${encodeURIComponent(flowId)}/steps`, input),
+        updateStep: (id: string, body: any) => patch<OnboardingStepDto>(`/onboarding/steps/${encodeURIComponent(id)}`, body),
+        deleteStep: async (id: string) => {
+          const res = await fetch(api(`/onboarding/steps/${encodeURIComponent(id)}`), { method: 'DELETE', headers: headers() });
+          if (!res.ok && res.status !== 204) throw new Error(`DELETE /onboarding/steps/${id} → ${res.status}: ${await res.text()}`);
+        },
+        attachDocument: async (stepId: string, input: any) => { await post<any>(`/onboarding/steps/${encodeURIComponent(stepId)}/documents`, input); },
+        detachDocument: async (rowId: string) => {
+          const res = await fetch(api(`/onboarding/step-documents/${encodeURIComponent(rowId)}`), { method: 'DELETE', headers: headers() });
+          if (!res.ok && res.status !== 204) throw new Error(`DELETE /onboarding/step-documents/${rowId} → ${res.status}: ${await res.text()}`);
+        },
+        addLink: async (stepId: string, input: any) => { await post<any>(`/onboarding/steps/${encodeURIComponent(stepId)}/links`, input); },
+        removeLink: async (rowId: string) => {
+          const res = await fetch(api(`/onboarding/step-links/${encodeURIComponent(rowId)}`), { method: 'DELETE', headers: headers() });
+          if (!res.ok && res.status !== 204) throw new Error(`DELETE /onboarding/step-links/${rowId} → ${res.status}: ${await res.text()}`);
+        },
+        listContractors:   () => get<ContractorDto[]>('/onboarding/contractors'),
+        createContractor:  (input: any) => post<ContractorDto>('/onboarding/contractors', input),
+        listAssignments:   (opts?: any) => get<OnboardingAssignmentDto[]>('/onboarding/assignments', opts ? { flowId: opts.flowId, contractorId: opts.contractorId } : undefined),
+        getAssignment:     (id: string) => get<OnboardingAssignmentDto>(`/onboarding/assignments/${encodeURIComponent(id)}`),
+        createAssignment:  (input: any) => post<OnboardingAssignmentDto>('/onboarding/assignments', input),
+        rotateToken:       (id: string) => post<{ publicToken: string }>(`/onboarding/assignments/${encodeURIComponent(id)}/rotate-token`, {}),
+        approveStep:       (assignmentId: string, stepId: string, notes?: string) =>
+          post<OnboardingStepStateDto>(`/onboarding/assignments/${encodeURIComponent(assignmentId)}/steps/${encodeURIComponent(stepId)}/complete`, { notes }),
+        rejectStep:        (assignmentId: string, stepId: string, notes?: string) =>
+          post<OnboardingStepStateDto>(`/onboarding/assignments/${encodeURIComponent(assignmentId)}/steps/${encodeURIComponent(stepId)}/reject`, { notes }),
+        resetStep:         (assignmentId: string, stepId: string) =>
+          post<OnboardingStepStateDto>(`/onboarding/assignments/${encodeURIComponent(assignmentId)}/steps/${encodeURIComponent(stepId)}/reset`, {}),
+        adminUpload: (assignmentId: string, stepId: string, file: any) =>
+          uploadFile(`/onboarding/assignments/${encodeURIComponent(assignmentId)}/steps/${encodeURIComponent(stepId)}/upload`, file),
+        publicView: (token: string) => get<OnboardingAssignmentDto>(`/onboarding/public/${encodeURIComponent(token)}`),
+        publicUpload: (token: string, stepId: string, file: any) =>
+          uploadFile(`/onboarding/public/${encodeURIComponent(token)}/steps/${encodeURIComponent(stepId)}/upload`, file, false),
+      };
+    })(),
   };
 }
 

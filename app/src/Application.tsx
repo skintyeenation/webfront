@@ -40,6 +40,10 @@ import EditMeeting from 'skintyee/components/pages/EditMeeting';
 import Documents from 'skintyee/components/pages/Documents';
 import EditDocument from 'skintyee/components/pages/EditDocument';
 import TagManager from 'skintyee/components/pages/TagManager';
+import OnboardingFlows from 'skintyee/components/pages/OnboardingFlows';
+import EditOnboardingFlow from 'skintyee/components/pages/EditOnboardingFlow';
+import Contractors from 'skintyee/components/pages/Contractors';
+import AssignmentTimeline from 'skintyee/components/pages/AssignmentTimeline';
 
 // Five fixed tabs keep the bottom bar clean. Overflow features live under the
 // 5th tab — "More" for public/members, "Admin" for admins (admin tools grouped
@@ -122,6 +126,11 @@ const MoreNavigation = () => {
       <MoreStack.Screen {...routeConfig.documentCreate} component={EditDocument} />
       <MoreStack.Screen {...routeConfig.documentEdit} component={EditDocument} />
       <MoreStack.Screen {...routeConfig.tagManager} component={TagManager} />
+      <MoreStack.Screen {...routeConfig.onboardingFlows} component={OnboardingFlows} />
+      <MoreStack.Screen {...routeConfig.onboardingFlowCreate} component={EditOnboardingFlow} />
+      <MoreStack.Screen {...routeConfig.onboardingFlowEdit} component={EditOnboardingFlow} />
+      <MoreStack.Screen {...routeConfig.onboardingContractors} component={Contractors} />
+      <MoreStack.Screen {...routeConfig.onboardingAssignment} component={AssignmentTimeline} />
     </MoreStack.Navigator>
   );
 };

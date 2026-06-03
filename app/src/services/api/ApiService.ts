@@ -210,6 +210,97 @@ export interface ApiService {
     update(id: string, patch: { slug?: string; displayName?: string }): Promise<DocumentTagDto>;
     delete(id: string): Promise<void>; // 409 if inUseCount > 0 on the server.
   };
+  // Phase 2 — Onboarding flows. Admin-only endpoints + a public tokenised
+  // path for contractors. See docs/features/documents-and-onboarding.md.
+  onboarding: {
+    listFlows(): Promise<OnboardingFlowDto[]>;
+    getFlow(id: string): Promise<OnboardingFlowDto>;
+    createFlow(input: { title: string; description?: string; companyId?: string }): Promise<OnboardingFlowDto>;
+    updateFlow(id: string, patch: Partial<{ title: string; description: string | null; active: boolean; companyId: string | null }>): Promise<OnboardingFlowDto>;
+    deleteFlow(id: string): Promise<void>;
+    addStep(flowId: string, input: { title: string; instructions?: string; completion?: StepCompletion }): Promise<OnboardingStepDto>;
+    updateStep(id: string, patch: Partial<{ title: string; instructions: string | null; completion: StepCompletion; order: number }>): Promise<OnboardingStepDto>;
+    deleteStep(id: string): Promise<void>;
+    attachDocument(stepId: string, input: { documentId: string; contractorUploadAllowed?: boolean }): Promise<void>;
+    detachDocument(rowId: string): Promise<void>;
+    addLink(stepId: string, input: { label: string; url: string }): Promise<void>;
+    removeLink(rowId: string): Promise<void>;
+    listContractors(): Promise<ContractorDto[]>;
+    createContractor(input: { displayName: string; email?: string; phone?: string; companyId?: string }): Promise<ContractorDto>;
+    listAssignments(opts?: { flowId?: string; contractorId?: string }): Promise<OnboardingAssignmentDto[]>;
+    getAssignment(id: string): Promise<OnboardingAssignmentDto>;
+    createAssignment(input: { flowId: string; contractorId: string }): Promise<OnboardingAssignmentDto>;
+    rotateToken(id: string): Promise<{ publicToken: string }>;
+    approveStep(assignmentId: string, stepId: string, notes?: string): Promise<OnboardingStepStateDto>;
+    rejectStep(assignmentId: string, stepId: string, notes?: string): Promise<OnboardingStepStateDto>;
+    resetStep(assignmentId: string, stepId: string): Promise<OnboardingStepStateDto>;
+    adminUpload(assignmentId: string, stepId: string, file: { uri: string; name: string; mimeType: string }): Promise<OnboardingStepStateDto>;
+    // Public — no role needed; pass the assignment token.
+    publicView(token: string): Promise<OnboardingAssignmentDto>;
+    publicUpload(token: string, stepId: string, file: { uri: string; name: string; mimeType: string }): Promise<OnboardingStepStateDto>;
+  };
+}
+
+// ---- Onboarding DTOs -------------------------------------------------------
+
+export type StepCompletion = 'admin_marks' | 'contractor_uploads' | 'both';
+export type OnboardingStepStatus = 'pending' | 'in_progress' | 'completed' | 'rejected';
+
+export interface OnboardingFlowDto {
+  id: string;
+  title: string;
+  description: string | null;
+  companyId: string | null;
+  active: boolean;
+  steps: OnboardingStepDto[];
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+}
+
+export interface OnboardingStepDto {
+  id: string;
+  flowId: string;
+  order: number;
+  title: string;
+  instructions: string | null;
+  completion: StepCompletion;
+  documents: Array<{ id: string; documentId: string; contractorUploadAllowed: boolean }>;
+  links: Array<{ id: string; label: string; url: string }>;
+}
+
+export interface ContractorDto {
+  id: string;
+  displayName: string;
+  email: string | null;
+  phone: string | null;
+  companyId: string | null;
+  createdAt: string;
+}
+
+export interface OnboardingAssignmentDto {
+  id: string;
+  flowId: string;
+  contractorId: string;
+  publicToken: string;
+  startedAt: string;
+  completedAt: string | null;
+  stepStates: OnboardingStepStateDto[];
+}
+
+export interface OnboardingStepStateDto {
+  id: string;
+  assignmentId: string;
+  stepId: string;
+  status: OnboardingStepStatus;
+  contractorFileKey: string | null;
+  contractorFileUrl: string | null;
+  contractorFileName: string | null;
+  contractorMimeType: string | null;
+  contractorSizeBytes: number | null;
+  notes: string | null;
+  completedAt: string | null;
+  completedBy: string | null;
 }
 
 // ---- Documents DTOs --------------------------------------------------------

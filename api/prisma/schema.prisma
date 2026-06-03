@@ -205,9 +205,10 @@ model Document {
 
   tags DocumentTag[] @relation("DocumentTags")
 
-  createdAt DateTime @default(now())
-  createdBy String // UPN of uploading admin
-  updatedAt DateTime @updatedAt
+  createdAt              DateTime                 @default(now())
+  createdBy              String // UPN of uploading admin
+  updatedAt              DateTime                 @updatedAt
+  OnboardingStepDocument OnboardingStepDocument[]
 
   @@index([audience])
   @@index([companyId])
@@ -232,12 +233,145 @@ model DocumentTag {
 // Document compiles; the UI exposes it disabled. Populated by admin
 // UI in Phase 2 onboarding work.
 model Company {
-  id          String     @id @default(cuid())
+  id          String           @id @default(cuid())
   displayName String
   parentSlug  String // 'skintyee-management' for sub-companies of the main band
-  active      Boolean    @default(true)
+  active      Boolean          @default(true)
   documents   Document[]
-  createdAt   DateTime   @default(now())
+  flows       OnboardingFlow[]
+  contractors Contractor[]
+  createdAt   DateTime         @default(now())
 
   @@index([parentSlug, active])
+}
+
+// ---- Onboarding (Phase 2) -------------------------------------------------
+//
+// Admin-designed onboarding flows for groups of contractors. A flow is a
+// reusable template of ordered steps; each step attaches Documents +
+// arbitrary URLs and declares who completes it. A flow assigned to a
+// Contractor becomes an OnboardingAssignment, and each step gets its
+// own OnboardingStepState row tracking status + the contractor's
+// uploaded file (if any). Visual + approval language is borrowed from
+// the Timesheets feature — see docs/features/documents-and-onboarding.md.
+
+model OnboardingFlow {
+  id          String                 @id @default(cuid())
+  title       String
+  description String?
+  companyId   String? // optional — same placeholder as Document.companyId
+  company     Company?               @relation(fields: [companyId], references: [id])
+  active      Boolean                @default(true)
+  steps       OnboardingStep[]
+  assignments OnboardingAssignment[]
+  createdAt   DateTime               @default(now())
+  createdBy   String // UPN of designing admin
+  updatedAt   DateTime               @updatedAt
+
+  @@index([active])
+  @@index([companyId])
+}
+
+model OnboardingStep {
+  id           String         @id @default(cuid())
+  flowId       String
+  flow         OnboardingFlow @relation(fields: [flowId], references: [id], onDelete: Cascade)
+  order        Int // 0-based; admin drag-handle reorder bumps these
+  title        String
+  instructions String? // markdown
+  // Who completes the step.
+  // 'admin_marks' | 'contractor_uploads' | 'both'
+  completion   String         @default("admin_marks")
+
+  documentLinks OnboardingStepDocument[]
+  links         OnboardingStepLink[]
+
+  @@index([flowId, order])
+}
+
+// Bridge — step references existing Document templates (the admin built
+// in Phase 1). `contractorUploadAllowed` says whether this step expects
+// the contractor to upload a replacement (e.g. signed form).
+model OnboardingStepDocument {
+  id                      String         @id @default(cuid())
+  stepId                  String
+  step                    OnboardingStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  documentId              String
+  document                Document       @relation(fields: [documentId], references: [id])
+  contractorUploadAllowed Boolean        @default(false)
+
+  @@index([stepId])
+  @@index([documentId])
+}
+
+// Free URL links on a step — admin-authored pointers to SharePoint
+// folders, gov.ca form pages, anything.
+model OnboardingStepLink {
+  id     String         @id @default(cuid())
+  stepId String
+  step   OnboardingStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  label  String
+  url    String
+
+  @@index([stepId])
+}
+
+// Contractor — passive record so an admin can track progress on the
+// contractor's behalf. Full auth / portal accounts are future work;
+// for now contractors interact via tokenised public links.
+model Contractor {
+  id          String                 @id @default(cuid())
+  displayName String
+  email       String?
+  phone       String?
+  companyId   String?
+  company     Company?               @relation(fields: [companyId], references: [id])
+  assignments OnboardingAssignment[]
+  createdAt   DateTime               @default(now())
+
+  @@index([companyId])
+}
+
+model OnboardingAssignment {
+  id           String                @id @default(cuid())
+  flowId       String
+  flow         OnboardingFlow        @relation(fields: [flowId], references: [id])
+  contractorId String
+  contractor   Contractor            @relation(fields: [contractorId], references: [id])
+  // Hex token for the contractor's public link. Treated as a bearer
+  // secret — anyone with it can view the assignment + upload to steps
+  // that allow it. Re-issue via POST /assignments/:id/rotate-token.
+  publicToken  String                @unique
+  startedAt    DateTime              @default(now())
+  completedAt  DateTime?
+  stepStates   OnboardingStepState[]
+
+  @@index([flowId])
+  @@index([contractorId])
+}
+
+model OnboardingStepState {
+  id                  String               @id @default(cuid())
+  assignmentId        String
+  assignment          OnboardingAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  // Loose reference (no FK) so reordering / editing the flow doesn't
+  // cascade into assignment history. The UI resolves stepId → step on
+  // read.
+  stepId              String
+  status              String               @default("pending") // pending | in_progress | completed | rejected
+  // Contractor's upload, when the step expects one. Same adapter as
+  // Document.fileKey / fileUrl — the StepState owns its own file
+  // separate from the step's template Document.
+  contractorStorage   String? // 'blob' | 'sharepoint'
+  contractorFileKey   String?
+  contractorFileUrl   String?
+  contractorFileName  String?
+  contractorMimeType  String?
+  contractorSizeBytes Int?
+  notes               String? // admin-authored rejection / completion notes
+  completedAt         DateTime?
+  completedBy         String? // UPN or 'contractor' for self-upload-to-complete steps
+
+  @@unique([assignmentId, stepId])
+  @@index([status])
 }
