@@ -21,26 +21,26 @@ const ACCOUNT_ITEMS: MoreItem[] = [
 ];
 
 // Admin-only tools — grouped under the Admin tab for admins.
-//   - "Public Records" opens the bylaws/notices/reports/forms screen
-//     that used to be its own bottom tab (promoted Meetings → tab,
-//     PublicRecords landed here).
-// Order requested by Lucas: Onboarding → Time Keeping → Staff Management
-// → Documents → Financial Summary.
+// Order requested by Lucas: Onboarding → Time Keeping → Band Management
+// → Staff Management → Documents. "Band Management" is the admin-facing
+// label for the directory (membership CRUD lives there).
 const ADMIN_ITEMS: MoreItem[] = [
   { route: 'onboardingFlows',  label: 'Onboarding',        description: 'Design onboarding flows & track progress for new people', icon: 'clipboard-check-multiple', roles: ['admin'] },
   { route: 'timekeeping',      label: 'Time Keeping',      description: 'Worker hours & approvals',                                 icon: 'clock-outline',            roles: ['admin'] },
+  { route: 'directory',        label: 'Band Management',   description: 'Members, council & staff — add, remove, manage groups',   icon: 'account-group',            roles: ['admin'] },
   { route: 'onboardingPeople', label: 'Staff Management',  description: 'People on file — band members + external contractors',    icon: 'account-supervisor',       roles: ['admin'] },
   { route: 'documents',        label: 'Documents',         description: 'Forms, filings & PDFs by tag',                             icon: 'file-document-multiple',   roles: ['admin'] },
-  { route: 'publicRecords',    label: 'Financial Summary', description: 'Where the money goes — budgets, expenditures & projects', icon: 'chart-pie',                roles: ['admin'] },
 ];
 
-// General community items.
+// General community items — Financial Summary lives here so everyone
+// can see where the money goes (it was previously under Admin tools).
 const COMMUNITY_ITEMS: MoreItem[] = [
-  { route: 'directory', label: 'Band Member Directory', description: 'Members, council & staff', icon: 'account-group', roles: ['public', 'member', 'staff', 'admin'] },
-  { route: 'polls', label: 'Polling + Surveys', description: 'Surveys & vote on issues', icon: 'vote-outline', roles: ['public', 'member', 'staff', 'admin'] },
-  { route: 'documents', label: 'Forms & Documents', description: 'Forms, filings & PDFs by category', icon: 'file-document-outline', roles: ['member', 'staff'] },
+  { route: 'directory',     label: 'Band Member Directory', description: 'Members, council & staff',                                 icon: 'account-group',         roles: ['public', 'member', 'staff'] },
+  { route: 'polls',         label: 'Polling + Surveys',     description: 'Surveys & vote on issues',                                 icon: 'vote-outline',          roles: ['public', 'member', 'staff', 'admin'] },
+  { route: 'publicRecords', label: 'Financial Summary',     description: 'Where the money goes — budgets, expenditures & projects', icon: 'chart-pie',             roles: ['public', 'member', 'staff', 'admin'] },
+  { route: 'documents',     label: 'Forms & Documents',     description: 'Forms, filings & PDFs by category',                       icon: 'file-document-outline', roles: ['member', 'staff'] },
   // Staff submit their own timesheets here; admins use the Time Keeping tool above.
-  { route: 'timekeeping', label: 'My Timesheets', description: 'Submit & view your hours', icon: 'clock-outline', roles: ['staff'] },
+  { route: 'timekeeping',   label: 'My Timesheets',         description: 'Submit & view your hours',                                 icon: 'clock-outline',         roles: ['staff'] },
 ];
 
 function Section({ title, items, role, navigation }: { title?: string; items: MoreItem[]; role: Role; navigation: any }) {
@@ -75,13 +75,15 @@ export default function MoreMenu({ navigation }: any) {
   return (
     <PageContainer>
       <PageContent>
-        {/* Account & Role pinned at the top for every role so signing
-            in / switching role is always the first thing visible.
-            Community is the everyday stuff and goes next. Admin tools
-            sink to the bottom — they're a small, infrequent surface. */}
+        {/* Account & Role pinned at the top for every role. For admins
+            we surface Admin tools next (their daily work) and Community
+            sinks below — admin's everyday view is action-oriented and
+            community browsing is the lower-frequency surface for them.
+            Non-admins don't have admin tools so they just see Community
+            below their account. */}
         <Section title="Account & Role" items={ACCOUNT_ITEMS} role={role} navigation={navigation} />
-        <Section title="Community" items={COMMUNITY_ITEMS} role={role} navigation={navigation} />
         {isAdmin ? <Section title="Admin tools" items={ADMIN_ITEMS} role={role} navigation={navigation} /> : null}
+        <Section title="Community" items={COMMUNITY_ITEMS} role={role} navigation={navigation} />
       </PageContent>
     </PageContainer>
   );
