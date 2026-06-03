@@ -377,9 +377,8 @@ function ApprovalCard({
   return (
     <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 8, borderLeftWidth: 3, borderLeftColor: theme.colors.accent }}>
       <Card.Content>
-        {/* Summary — no longer tappable to expand; the info icon at the
-            bottom right opens the full detail modal instead. */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+        {/* Minimal summary — everything else lives in the detail modal. */}
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Text style={{ color: theme.colors.text, fontSize: 15, flex: 1 }}>{t.workerName}</Text>
           {t.requiresAdminApproval ? (
             <Chip compact icon="fire" style={{ backgroundColor: theme.colors.accent, marginRight: 6 }} textStyle={{ color: '#000', fontSize: 10 }}>
@@ -388,19 +387,6 @@ function ApprovalCard({
           ) : null}
           <Text style={{ color: theme.colors.textDarker }}>{t.totalHours}h</Text>
         </View>
-        <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>
-          Week 1 {t.week1Hours}h · Week 2 {t.week2Hours}h
-        </Text>
-        {t.submittedAt ? (
-          <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginTop: 2 }}>
-            Submitted {dayjs(t.submittedAt).format('ddd MMM D · h:mm A')}
-          </Text>
-        ) : null}
-        {t.notes ? (
-          <Text style={{ color: theme.colors.text, fontSize: 12, marginTop: 6 }} numberOfLines={2}>
-            “{t.notes}”
-          </Text>
-        ) : null}
 
         <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
           <Button
