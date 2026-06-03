@@ -193,7 +193,7 @@ export default function AddTimesheet({ navigation, route }: any) {
         ? await api.timekeeping.submit(payPeriod.id, body)
         : await api.timekeeping.saveDraft(payPeriod.id, body);
       setExisting(saved);
-      setToast(mode === 'submit' ? 'Submitted for approval' : 'Draft saved');
+      setToast(mode === 'submit' ? 'Submitted for approval' : 'Saved');
       if (mode === 'submit') {
         setTimeout(() => navigation?.goBack?.(), 900);
       }
@@ -397,7 +397,7 @@ export default function AddTimesheet({ navigation, route }: any) {
                   textColor={theme.colors.text}
                   style={{ marginBottom: 6 }}
                 >
-                  Save draft
+                  Save
                 </Button>
                 <Button
                   mode="contained" icon="send"
