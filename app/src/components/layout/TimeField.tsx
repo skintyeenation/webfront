@@ -66,13 +66,15 @@ export function TimeField({ label, value, onChange, placeholder = '—:—', err
   };
 
   if (Platform.OS === 'web') {
+    // Segments hug their content (HH or MM) — flex:1 was causing the
+    // text to float in a wide centred segment with dead space between
+    // the minute and the chevron. A spacer View below now consumes
+    // the extra width inside the container.
     const segmentStyle: ViewStyle = {
-      flex: 1,
-      paddingHorizontal: 10,
+      paddingHorizontal: 8,
       paddingVertical: 8,
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
     };
     const containerStyle: ViewStyle = {
       backgroundColor: theme.colors.darkDefault,
@@ -163,6 +165,10 @@ export function TimeField({ label, value, onChange, placeholder = '—:—', err
               );
             })}
           </Menu>
+
+          {/* Spacer absorbs any extra width so the chevron sits tight
+              against the right edge instead of floating mid-row. */}
+          <View style={{ flex: 1 }} />
 
           {/* Trailing chevron */}
           <View style={{ paddingRight: 8 }}>
