@@ -22,6 +22,7 @@
     "@nestjs/core": "^10.3.10",
     "@nestjs/platform-express": "^10.3.10",
     "@prisma/client": "~5.18.0",
+    "dayjs": "^1.11.21",
     "js-yaml": "~4.1.0",
     "reflect-metadata": "~0.2.2",
     "rxjs": "~7.8.1",
