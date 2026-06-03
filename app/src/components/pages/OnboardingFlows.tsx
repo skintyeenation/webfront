@@ -30,7 +30,9 @@ const statusColor = (s?: string) =>
   : theme.colors.secondary;
 
 export default function OnboardingFlows({ navigation }: any) {
-  const [tab, setTab] = useState<Tab>('flows');
+  // Assignments is the everyday view (admin manages active contractors);
+  // Flows is where they go to design templates. Default to Assignments.
+  const [tab, setTab] = useState<Tab>('assignments');
   const [flows, setFlows] = useState<OnboardingFlowDto[]>([]);
   const [contractors, setContractors] = useState<ContractorDto[]>([]);
   const [assignments, setAssignments] = useState<OnboardingAssignmentDto[]>([]);
