@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, Logger, NotFoundException, OnApplicationBootstrap, Param, Post, Patch, Query, Req } from '@nestjs/common';
+import { Body, Controller, Delete, ForbiddenException, Get, HttpCode, Logger, NotFoundException, OnApplicationBootstrap, Param, Post, Patch, Query, Req } from '@nestjs/common';
 import { DataService } from './data.service';
 import { Roles, callerRole } from './roles';
 import { GraphFeedService, FeedItem, AppRole } from './graph-feed.service';
@@ -704,17 +704,320 @@ export class FinancialsController {
 }
 
 // ---- Time Keeping ---------------------------------------------------------
+//
+// Bi-weekly pay-period timesheets backed by Postgres (Timesheet +
+// TimesheetEntry models). See docs/features/timesheets.md for the
+// design — pay periods themselves are computed from
+// api/src/skintyee-pay-periods.ts (no DB rows for periods).
+//
+// Lifecycle: draft → submitted → approved | rejected
+// OT rule: hours > 40 in either week of the 14-day period bumps
+//   requiresAdminApproval=true; band-manager approvals are blocked
+//   and only admin appRole can sign off.
+//
+// Legacy /v1/timekeeping/entries endpoints kept (DataService-backed)
+// until the old TimeKeeping page is rewritten against the new model.
+
+import {
+  PAY_PERIOD_CONFIG,
+  PayPeriod,
+  payPeriodFor,
+  recentPayPeriods,
+} from './skintyee-pay-periods';
+import dayjs from 'dayjs';
+
+type SubmitBody = {
+  entries: Array<{
+    date: string;
+    hours: number;
+    task: string;
+    timeIn?: string;     // "HH:mm" optional clock-in (audit field)
+    timeOut?: string;    // "HH:mm" optional clock-out
+  }>;
+  notes?: string;
+};
+
+function callerUpn(req: any): string {
+  const upn = (req?.headers?.['x-upn'] as string) || '';
+  if (!upn) throw new Error('x-upn header required (or Bearer when delegated auth lands)');
+  return upn.toLowerCase();
+}
+
+// Decimal hours between two HH:mm strings. Returns 0 for invalid /
+// missing input, rounds to 2dp. Treats out < in as 0 (no midnight-
+// wrap handling — workers should split into two entries instead).
+function hoursBetween(timeIn?: string | null, timeOut?: string | null): number {
+  if (!timeIn || !timeOut) return 0;
+  const m = (s: string) => {
+    const parts = s.split(':');
+    if (parts.length !== 2) return NaN;
+    const h = parseInt(parts[0], 10);
+    const mi = parseInt(parts[1], 10);
+    if (isNaN(h) || isNaN(mi)) return NaN;
+    return h * 60 + mi;
+  };
+  const a = m(timeIn), b = m(timeOut);
+  if (isNaN(a) || isNaN(b) || b <= a) return 0;
+  return Math.round(((b - a) / 60) * 100) / 100;
+}
+
+// Apply auto-compute: if an entry has both timeIn + timeOut, that
+// determines hours (overriding any client-sent value — server is the
+// authority). Frontend mirrors this for live tallies.
+function applyAutoHours(entries: SubmitBody['entries']): SubmitBody['entries'] {
+  return entries.map((e) => {
+    if (e.timeIn && e.timeOut) {
+      return { ...e, hours: hoursBetween(e.timeIn, e.timeOut) };
+    }
+    return e;
+  });
+}
+
+// Compute week1/week2/total/OT given a set of entries + the period.
+// week1 = first 7 days of the period (starting Saturday per
+// PAY_PERIOD_CONFIG.workweekStartsOnIsoDay), week2 = the next 7.
+function summarize(entries: SubmitBody['entries'], period: PayPeriod) {
+  const split = dayjs(period.startISO).add(7, 'day').format('YYYY-MM-DD');
+  let w1 = 0, w2 = 0;
+  for (const e of entries) {
+    if (e.date < split) w1 += Number(e.hours) || 0;
+    else                w2 += Number(e.hours) || 0;
+  }
+  const total = w1 + w2;
+  const ot = Math.max(0, w1 - PAY_PERIOD_CONFIG.overtimeWeeklyHoursThreshold) +
+             Math.max(0, w2 - PAY_PERIOD_CONFIG.overtimeWeeklyHoursThreshold);
+  return { w1, w2, total, ot };
+}
+
 @Controller('timekeeping')
 export class TimeKeepingController {
-  constructor(private data: DataService) {}
-  // Staff/admin. Production filters to the authenticated worker for non-admins.
+  private readonly log = new Logger(TimeKeepingController.name);
+
+  constructor(private data: DataService, private prisma: PrismaService) {}
+
+  // ---- Pay periods (computed) -------------------------------------------
+
+  // GET /v1/timekeeping/pay-periods — current + recent. Drives the
+  // history dropdown AND the Dashboard's cut-off countdown so the UI
+  // and the engine don't disagree.
+  @Get('pay-periods') @Roles('member', 'staff', 'admin')
+  payPeriods(@Query('count') count?: string) {
+    const n = Math.max(1, Math.min(24, Number(count) || 12));
+    return {
+      current: payPeriodFor(),
+      recent: recentPayPeriods(n),
+      config: {
+        lengthDays: PAY_PERIOD_CONFIG.lengthDays,
+        overtimeWeeklyHoursThreshold: PAY_PERIOD_CONFIG.overtimeWeeklyHoursThreshold,
+        payDaysAfterCutoff: PAY_PERIOD_CONFIG.payDaysAfterCutoff,
+      },
+    };
+  }
+
+  @Get('pay-periods/:id') @Roles('member', 'staff', 'admin')
+  payPeriod(@Param('id') id: string): PayPeriod {
+    return payPeriodFor(id);
+  }
+
+  // ---- Worker view -------------------------------------------------------
+
+  // GET /v1/timekeeping/timesheets?period=<YYYY-MM-DD>
+  // My timesheets. Period optional — when present, returns just that one
+  // (or null); when absent, returns the current period's draft + the
+  // last 6 historical sheets.
+  @Get('timesheets') @Roles('staff', 'admin')
+  async myTimesheets(@Req() req: any, @Query('period') period?: string) {
+    if (!this.prisma.isAvailable) throw new NotFoundException('Prisma not connected');
+    const upn = callerUpn(req);
+    const periodId = period ?? payPeriodFor().id;
+
+    const current = await this.prisma.timesheet.findUnique({
+      where:   { workerUpn_payPeriodId: { workerUpn: upn, payPeriodId: periodId } },
+      include: { entries: true },
+    });
+
+    const history = await this.prisma.timesheet.findMany({
+      where:   { workerUpn: upn, payPeriodId: { not: periodId } },
+      orderBy: { payPeriodId: 'desc' },
+      take:    6,
+      include: { entries: true },
+    });
+
+    return {
+      period: payPeriodFor(periodId),
+      current,
+      history,
+    };
+  }
+
+  // PATCH /v1/timekeeping/timesheets/:periodId/draft
+  // Save WITHOUT submitting. Idempotent — replaces entries. Status
+  // stays 'draft' (or 'rejected' if the approver bounced it).
+  @Patch('timesheets/:periodId/draft') @Roles('staff', 'admin')
+  async saveDraft(@Param('periodId') periodId: string, @Body() b: SubmitBody, @Req() req: any) {
+    if (!this.prisma.isAvailable) throw new NotFoundException('Prisma not connected');
+    const upn = callerUpn(req);
+    const period = payPeriodFor(periodId);
+    if (period.id !== periodId) throw new Error(`Unknown period: ${periodId}`);
+
+    const me = await this.prisma.bandMember.findUnique({ where: { upn } });
+    const workerName = me?.name ?? upn;
+
+    // Hours are recomputed from time-in/time-out whenever both are
+    // present — the server is the authority. This runs before
+    // summarize() so OT math reflects the canonical values.
+    const entries = applyAutoHours(b.entries ?? []);
+    const stats = summarize(entries, period);
+
+    const sheet = await this.prisma.timesheet.upsert({
+      where:  { workerUpn_payPeriodId: { workerUpn: upn, payPeriodId: period.id } },
+      create: {
+        id:         `${upn}:${period.id}`,
+        workerUpn:  upn,
+        workerName,
+        payPeriodId: period.id,
+        status:     'draft',
+        notes:      b.notes ?? null,
+        week1Hours: stats.w1, week2Hours: stats.w2,
+        totalHours: stats.total, overtimeHours: stats.ot,
+        requiresAdminApproval: stats.ot > 0,
+        entries: {
+          create: entries.map((e) => ({
+            date: e.date, hours: e.hours, task: e.task,
+            timeIn: e.timeIn ?? null, timeOut: e.timeOut ?? null,
+          })),
+        },
+      },
+      update: {
+        notes:      b.notes ?? null,
+        status:     { set: 'draft' },
+        week1Hours: stats.w1, week2Hours: stats.w2,
+        totalHours: stats.total, overtimeHours: stats.ot,
+        requiresAdminApproval: stats.ot > 0,
+        entries: {
+          deleteMany: {},
+          create: entries.map((e) => ({
+            date: e.date, hours: e.hours, task: e.task,
+            timeIn: e.timeIn ?? null, timeOut: e.timeOut ?? null,
+          })),
+        },
+      },
+      include: { entries: true },
+    });
+
+    return sheet;
+  }
+
+  // POST /v1/timekeeping/timesheets/:periodId
+  // Submit. Computes OT + persists the snapshot. status → submitted.
+  @Post('timesheets/:periodId') @Roles('staff', 'admin')
+  async submit(@Param('periodId') periodId: string, @Body() b: SubmitBody, @Req() req: any) {
+    // Reuse the draft path to materialize/refresh, then flip status.
+    const sheet = await this.saveDraft(periodId, b, req);
+    return this.prisma.timesheet.update({
+      where: { id: sheet.id },
+      data:  { status: 'submitted', submittedAt: new Date() },
+      include: { entries: true },
+    });
+  }
+
+  // ---- Approver view -----------------------------------------------------
+
+  // GET /v1/timekeeping/timesheets/all?period=<id>&status=submitted
+  // Pulls every worker's timesheet for a period — the approval queue.
+  // Approver gate enforced in code below (admin OR band-manager
+  // bandGroup; OT requires admin).
+  @Get('timesheets/all') @Roles('staff', 'admin')
+  async allTimesheets(
+    @Req() req: any,
+    @Query('period') period?: string,
+    @Query('status') status?: string,
+  ) {
+    if (!this.prisma.isAvailable) throw new NotFoundException('Prisma not connected');
+    await this.assertCanApprove(req);
+    const periodId = period ?? payPeriodFor().id;
+    return this.prisma.timesheet.findMany({
+      where:  {
+        payPeriodId: periodId,
+        ...(status ? { status } : {}),
+      },
+      orderBy: [{ status: 'asc' }, { workerName: 'asc' }],
+      include: { entries: true },
+    });
+  }
+
+  // POST /v1/timekeeping/timesheets/:id/approve
+  @Post('timesheets/:id/approve') @Roles('staff', 'admin')
+  async approve(@Param('id') id: string, @Req() req: any) {
+    if (!this.prisma.isAvailable) throw new NotFoundException('Prisma not connected');
+    const approverUpn = callerUpn(req);
+    const sheet = await this.prisma.timesheet.findUnique({ where: { id } });
+    if (!sheet) throw new NotFoundException('Timesheet not found');
+    if (sheet.status !== 'submitted') {
+      throw new Error(`Can only approve submitted timesheets (current: ${sheet.status})`);
+    }
+    await this.assertCanApprove(req, { requiresAdmin: sheet.requiresAdminApproval });
+
+    return this.prisma.timesheet.update({
+      where: { id },
+      data:  { status: 'approved', approvedBy: approverUpn, approvedAt: new Date() },
+      include: { entries: true },
+    });
+  }
+
+  // POST /v1/timekeeping/timesheets/:id/reject  body: { reason?: string }
+  @Post('timesheets/:id/reject') @Roles('staff', 'admin')
+  async reject(@Param('id') id: string, @Body() b: { reason?: string }, @Req() req: any) {
+    if (!this.prisma.isAvailable) throw new NotFoundException('Prisma not connected');
+    const approverUpn = callerUpn(req);
+    const sheet = await this.prisma.timesheet.findUnique({ where: { id } });
+    if (!sheet) throw new NotFoundException('Timesheet not found');
+    await this.assertCanApprove(req, { requiresAdmin: sheet.requiresAdminApproval });
+
+    return this.prisma.timesheet.update({
+      where: { id },
+      data:  {
+        status: 'rejected',
+        rejectedReason: b?.reason ?? null,
+        approvedBy:     approverUpn,
+        approvedAt:     new Date(),
+      },
+      include: { entries: true },
+    });
+  }
+
+  // ---- Approver check ---------------------------------------------------
+  // Admin appRole → always.
+  // Otherwise: staff appRole + bandGroups.includes('band-manager') →
+  //   yes, UNLESS requiresAdmin (then admin only).
+  private async assertCanApprove(req: any, opts?: { requiresAdmin?: boolean }) {
+    const role = callerRole(req) as AppRole;
+    if (role === 'admin') return;
+    if (opts?.requiresAdmin) {
+      throw new ForbiddenException('This timesheet has overtime hours and requires admin approval.');
+    }
+    if (role !== 'staff') {
+      throw new ForbiddenException('Approval requires the staff appRole + Band Manager group, or admin.');
+    }
+    const upn = callerUpn(req);
+    const me = await this.prisma.bandMember.findUnique({
+      where: { upn }, select: { bandGroups: true },
+    });
+    const groups = me?.bandGroups ? me.bandGroups.split(',').filter(Boolean) : [];
+    if (!groups.includes('band-manager')) {
+      throw new ForbiddenException('Approval requires Band Manager group membership (or admin).');
+    }
+  }
+
+  // ---- Legacy entries (kept until the old UI is rewritten) ---------------
+
   @Get('entries') @Roles('staff', 'admin') list() { return this.data.timeEntries; }
   @Post('entries') @Roles('staff', 'admin') create(@Req() req: any, @Body() b: any) {
     const t = { _id: this.data.id('t'), workerName: (req.headers['x-worker'] as string) || 'Me', approved: false, ...b };
     this.data.timeEntries.unshift(t);
     return t;
   }
-  @Post('entries/:id/approve') @Roles('admin') approve(@Param('id') id: string) {
+  @Post('entries/:id/approve') @Roles('admin') approveLegacy(@Param('id') id: string) {
     const t = found(this.data.timeEntries.find((x) => x._id === id));
     t.approved = true;
     return t;

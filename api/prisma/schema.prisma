@@ -92,3 +92,68 @@ model BandMember {
   @@index([enabled])
   @@index([accountType])
 }
+
+// ---- Timesheets ----------------------------------------------------------
+// Bi-weekly timesheets per worker per pay-period. See
+// docs/features/timesheets.md for the full design — pay periods are
+// derived from api/src/skintyee-pay-periods.ts (no DB rows for periods
+// themselves, they're a function of the anchor cutoff + length).
+//
+// Lifecycle: draft → submitted → approved | rejected. Rejected returns
+// to draft for the worker to edit + resubmit.
+//
+// OT rule: hours > 40 in either week of the 14-day period bumps
+// requiresAdminApproval=true; band-manager approvals are then blocked
+// and only an admin can sign off.
+
+model Timesheet {
+  id            String   @id              // <workerUpn>:<payPeriodId>
+  workerUpn     String
+  workerName    String
+  payPeriodId   String                    // YYYY-MM-DD of the cutoff Friday
+  status        String   @default("draft")  // draft | submitted | approved | rejected
+  notes         String?
+
+  // Computed at submit-time + persisted so the approval queue can
+  // sort/filter without re-summing the entries. Updated again on
+  // any edit while still in draft.
+  week1Hours    Float    @default(0)
+  week2Hours    Float    @default(0)
+  totalHours    Float    @default(0)
+  overtimeHours Float    @default(0)
+  requiresAdminApproval Boolean @default(false)
+
+  submittedAt    DateTime?
+  approvedBy     String?              // approver's UPN
+  approvedAt     DateTime?
+  rejectedReason String?
+
+  entries       TimesheetEntry[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([workerUpn, payPeriodId])
+  @@index([payPeriodId, status])
+  @@index([workerUpn])
+}
+
+// Named TimesheetEntry (not TimeEntry) so it doesn't collide with the
+// in-memory legacy TimeEntry type the existing TimeKeeping page uses
+// until that UI is rewritten.
+model TimesheetEntry {
+  id          String   @id @default(cuid())
+  timesheetId String
+  timesheet   Timesheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
+  date        String   // YYYY-MM-DD within the period
+
+  // Workers can enter hours either as raw decimal (`8.5`) OR as
+  // clock-in/clock-out ("08:00" → "16:30"). The UI fills in `hours`
+  // from the times client-side; `timeIn` + `timeOut` are persisted
+  // so the original clock-time is auditable / re-editable.
+  hours       Float
+  timeIn      String?      // "HH:mm" 24h, e.g. "08:00"
+  timeOut     String?      // "HH:mm" 24h, e.g. "16:30"
+  task        String
+
+  @@index([timesheetId, date])
+}

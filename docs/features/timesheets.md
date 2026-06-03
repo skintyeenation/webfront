@@ -73,9 +73,25 @@ else (next cutoff, history, OT) recomputes from that one Friday.
   id:      string,
   date:    string,                 // ISO YYYY-MM-DD within the period
   hours:   number,                 // decimal hours, e.g. 7.5
+  timeIn?: string,                 // "HH:mm" 24h optional clock-in
+  timeOut?: string,                // "HH:mm" 24h optional clock-out
   task:    string,                 // free-text or category
 }
 ```
+
+**Hours auto-compute:** when `timeIn` AND `timeOut` are present, `hours`
+is recomputed from them (server-side authority; UI mirrors this for
+live tallies). Examples:
+
+```
+08:00 → 16:30   ⇒  8.5h
+07:00 → 15:45   ⇒  8.75h
+09:00 → 09:00   ⇒  0h (no negative spans, no midnight wrap; split into two entries instead)
+```
+
+If only `hours` is set (no times), workers entered a flat number — e.g.
+contractor billing or a remembered total. Both modes persist; the UI
+will default to time-in/out with a per-row "just enter hours" toggle.
 
 ## Submission flow (worker)
 
