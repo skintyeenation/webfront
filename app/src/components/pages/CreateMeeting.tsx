@@ -254,7 +254,7 @@ export default function CreateMeeting({ navigation }: any) {
         <TextInput label="Agenda" value={agenda} onChangeText={setAgenda} mode="outlined" multiline numberOfLines={4} style={{ marginBottom: 10 }} />
 
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-          <Switch value={isOnlineMeeting} onValueChange={setIsOnlineMeeting} />
+          <Switch value={isOnlineMeeting} onValueChange={setIsOnlineMeeting} color={theme.colors.primary} />
           <Text style={{ color: theme.colors.text, marginLeft: 8 }}>Create a Teams join link</Text>
         </View>
 
