@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { Button, Card, Chip, HelperText, IconButton, Text, TextInput } from 'react-native-paper';
 import dayjs from 'dayjs';
-import { PageContainer, PageContent } from 'skintyee/components/layout';
+import { PageContainer, PageContent, TimeField } from 'skintyee/components/layout';
 import { useAppSelector } from 'skintyee/store';
 import { apiFactory } from 'skintyee/store/apis';
 import { PayPeriod, PayPeriodConfig, Timesheet } from 'skintyee/models';
@@ -66,6 +66,14 @@ function rowsFromTimesheet(existing: Timesheet | null): DraftEntry[] {
 export default function AddTimesheet({ navigation, route }: any) {
   const isSignedIn = useAppSelector((s) => s.auth.signedIn);
   const targetPeriodId: string | undefined = route?.params?.periodId;
+
+  // Set the header title dynamically — "Current timesheet" when editing
+  // the live period, or "Timesheet · <period label>" when reviewing a
+  // historical one. Falls back to a plain "Timesheet" while we resolve
+  // the period asynchronously.
+  useEffect(() => {
+    navigation?.setOptions?.({ title: targetPeriodId ? 'Timesheet' : 'Current timesheet' });
+  }, [navigation, targetPeriodId]);
 
   const [payPeriod, setPayPeriod] = useState<PayPeriod | undefined>();
   const [config, setConfig] = useState<PayPeriodConfig | undefined>();
@@ -291,19 +299,19 @@ export default function AddTimesheet({ navigation, route }: any) {
                             />
                           </View>
                           <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                            <TextInput
-                              dense mode="outlined" label="In" placeholder="08:00"
+                            <TimeField
                               value={r.timeIn ?? ''}
-                              onChangeText={(v) => updateRow(r.id, { timeIn: v.trim() || undefined })}
+                              onChange={(v) => updateRow(r.id, { timeIn: v.trim() || undefined })}
                               style={{ flex: 1, marginRight: 6 }}
                               error={!isValidTime(r.timeIn)}
+                              placeholder="08:00"
                             />
-                            <TextInput
-                              dense mode="outlined" label="Out" placeholder="16:30"
+                            <TimeField
                               value={r.timeOut ?? ''}
-                              onChangeText={(v) => updateRow(r.id, { timeOut: v.trim() || undefined })}
+                              onChange={(v) => updateRow(r.id, { timeOut: v.trim() || undefined })}
                               style={{ flex: 1, marginRight: 6 }}
                               error={!isValidTime(r.timeOut)}
+                              placeholder="16:30"
                             />
                             {/* Hours — read-only, derived from In/Out. Styled
                                 as a plain label so it's obviously not an

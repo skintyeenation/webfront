@@ -29,7 +29,7 @@ export const routeConfig = {
   notificationEdit: { name: 'notificationEdit', options: { title: 'Edit', header: header('Edit Notification') } },
   memberCreate: { name: 'memberCreate', options: { title: 'Add member', header: header('Add Member') } },
   memberEdit: { name: 'memberEdit', options: { title: 'Edit member', header: header('Edit Member') } },
-  timesheetCreate: { name: 'timesheetCreate', options: { title: 'Timesheet', header: header('Add Timesheet') } },
+  timesheetCreate: { name: 'timesheetCreate', options: { title: 'Timesheet', header: header('Timesheet') } },
   meetingCreate: { name: 'meetingCreate', options: { title: 'New meeting', header: header('Schedule Meeting') } },
   meetingEdit: { name: 'meetingEdit', options: { title: 'Edit meeting', header: header('Edit Meeting') } },
   // Account / role switcher
