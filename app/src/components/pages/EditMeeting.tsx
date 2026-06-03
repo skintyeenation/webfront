@@ -80,6 +80,9 @@ export default function EditMeeting({ route, navigation }: any) {
   const [catalog, setCatalog] = useState<{ types: MeetingType[]; sources: MeetingSource[] }>({ types: [], sources: [] });
   const [catalogError, setCatalogError] = useState<string | undefined>();
   const [typeMenuOpen, setTypeMenuOpen] = useState(false);
+  // Anchor width captured via onLayout so the dropdown's content
+  // matches the field's width instead of sizing to its widest item.
+  const [typeAnchorWidth, setTypeAnchorWidth] = useState<number | undefined>();
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | undefined>();
 
@@ -205,7 +208,11 @@ export default function EditMeeting({ route, navigation }: any) {
                 visible={typeMenuOpen}
                 onDismiss={() => setTypeMenuOpen(false)}
                 anchor={
-                  <TouchableOpacity onPress={() => setTypeMenuOpen(true)} activeOpacity={0.7}>
+                  <TouchableOpacity
+                    onPress={() => setTypeMenuOpen(true)}
+                    activeOpacity={0.7}
+                    onLayout={(e) => setTypeAnchorWidth(e.nativeEvent.layout.width)}
+                  >
                     <View
                       style={{
                         flexDirection: 'row',
@@ -232,7 +239,13 @@ export default function EditMeeting({ route, navigation }: any) {
                     </View>
                   </TouchableOpacity>
                 }
-                contentStyle={{ backgroundColor: theme.colors.darkDefault }}
+                contentStyle={{
+                  backgroundColor: theme.colors.darkDefault,
+                  // Pin the dropdown to the anchor's measured width so the
+                  // menu flush-aligns with the field instead of sizing to
+                  // its widest title.
+                  width: typeAnchorWidth,
+                }}
               >
                 {types.map((t) => {
                   const selected = t.slug === typeSlug;
