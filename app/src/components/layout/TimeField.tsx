@@ -85,17 +85,15 @@ export function TimeField({ label, value, onChange, placeholder = '—:—', err
       alignItems: 'center',
     };
 
+    const SANS = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif';
     const segmentText = (val?: string, fallback = '--') => (
       <NativeText
         style={{
           color: val ? theme.colors.text : theme.colors.textDarker,
-          fontSize: 18,
-          fontWeight: 600,
-          letterSpacing: 1,
-          // Defeat the browser's Times New Roman fallback that a bare
-          // <span> inherits on Chrome web roots that don't set a
-          // root font. Matches what Paper's typography uses.
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif',
+          fontSize: 22,
+          fontWeight: 700,
+          fontFamily: SANS,
+          fontVariantNumeric: 'tabular-nums', // 0/8 same width — keeps colons aligned across rows
         }}
       >
         {val ?? fallback}
@@ -131,7 +129,8 @@ export function TimeField({ label, value, onChange, placeholder = '—:—', err
                     onPress={() => pickHour(hh)}
                     titleStyle={{
                       color: selected ? theme.colors.primary : theme.colors.text,
-                      fontWeight: selected ? '700' : '400',
+                      fontWeight: selected ? '700' : '500',
+                      fontSize: 16,
                     }}
                     leadingIcon={selected ? 'check' : undefined}
                   />
@@ -144,9 +143,9 @@ export function TimeField({ label, value, onChange, placeholder = '—:—', err
           <NativeText
             style={{
               color: theme.colors.textDarker,
-              fontSize: 18,
-              fontWeight: 600,
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif',
+              fontSize: 22,
+              fontWeight: 700,
+              fontFamily: SANS,
             }}
           >
             :
