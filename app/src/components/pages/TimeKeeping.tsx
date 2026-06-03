@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, TouchableOpacity, View } from 'react-native';
 import { Badge, Button, Card, Chip, Divider, HelperText, IconButton, Menu, Modal, Portal, SegmentedButtons, Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useFocusEffect } from '@react-navigation/native';
 import dayjs from 'dayjs';
 import { PageContainer, PageContent, NoContent } from 'skintyee/components/layout';
 import { useAppSelector } from 'skintyee/store';
@@ -74,30 +75,39 @@ export default function TimeKeeping({ navigation }: any) {
     return () => { cancelled = true; };
   }, []);
 
-  // Whenever the period or tab changes, reload the appropriate dataset.
-  useEffect(() => {
-    if (!selectedPeriodId) return;
-    let cancelled = false;
-    (async () => {
-      setError(undefined);
-      try {
-        const api = apiFactory();
-        if (tab === 'mine') {
-          const my = await api.timekeeping.myTimesheets(selectedPeriodId);
-          if (cancelled) return;
-          setMyCurrent(my.current);
-          setMyHistory(my.history);
-        } else {
-          const all = await api.timekeeping.allTimesheets(selectedPeriodId);
-          if (cancelled) return;
-          setAllTimesheets(all);
+  // Reload the active dataset whenever:
+  //   - the screen regains focus (returning from AddTimesheet after a
+  //     save would otherwise leave the summary card showing stale hours)
+  //   - the tab or selected period changes
+  //
+  // useFocusEffect re-runs both when the focus event fires AND when
+  // the memoised callback's deps change, so it cleanly replaces the
+  // earlier plain useEffect.
+  useFocusEffect(
+    useCallback(() => {
+      if (!selectedPeriodId) return;
+      let cancelled = false;
+      (async () => {
+        setError(undefined);
+        try {
+          const api = apiFactory();
+          if (tab === 'mine') {
+            const my = await api.timekeeping.myTimesheets(selectedPeriodId);
+            if (cancelled) return;
+            setMyCurrent(my.current);
+            setMyHistory(my.history);
+          } else {
+            const all = await api.timekeeping.allTimesheets(selectedPeriodId);
+            if (cancelled) return;
+            setAllTimesheets(all);
+          }
+        } catch (e: any) {
+          if (!cancelled) setError(e?.message ?? String(e));
         }
-      } catch (e: any) {
-        if (!cancelled) setError(e?.message ?? String(e));
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [tab, selectedPeriodId]);
+      })();
+      return () => { cancelled = true; };
+    }, [tab, selectedPeriodId])
+  );
 
   const selectedPeriod = useMemo(
     () => recent.find((p) => p.id === selectedPeriodId) ?? currentPeriod,
