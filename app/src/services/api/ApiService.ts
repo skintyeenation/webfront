@@ -176,4 +176,71 @@ export interface ApiService {
   feed: {
     get(opts: { role: Role; from?: string; to?: string }): Promise<FeedItem[]>;
   };
+  // Documents library + tag catalog. Admin uploads / edits; anyone signed
+  // in lists/reads subject to per-doc audience gating.
+  // See docs/features/documents-and-onboarding.md.
+  documents: {
+    list(opts?: { tag?: string; search?: string }): Promise<DocumentDto[]>;
+    get(id: string): Promise<DocumentDto>;
+    create(input: {
+      title: string;
+      description?: string;
+      linkUrl?: string;
+      audience: DocumentAudience;
+      companyId?: string;
+      tagIds: string[];
+      file?: { uri: string; name: string; mimeType: string };
+    }): Promise<DocumentDto>;
+    update(id: string, patch: Partial<{
+      title: string;
+      description: string | null;
+      linkUrl: string | null;
+      audience: DocumentAudience;
+      companyId: string | null;
+      tagIds: string[];
+    }>): Promise<DocumentDto>;
+    delete(id: string): Promise<void>;
+  };
+  documentTags: {
+    list(): Promise<{
+      categories: Array<{ slug: 'gov' | 'gov_sector' | 'department'; displayName: string; description: string }>;
+      tags: DocumentTagDto[];
+    }>;
+    create(input: { category: 'gov' | 'gov_sector' | 'department'; slug: string; displayName: string }): Promise<DocumentTagDto>;
+    update(id: string, patch: { slug?: string; displayName?: string }): Promise<DocumentTagDto>;
+    delete(id: string): Promise<void>; // 409 if inUseCount > 0 on the server.
+  };
+}
+
+// ---- Documents DTOs --------------------------------------------------------
+
+export type DocumentAudience = 'admin' | 'staff' | 'band_member' | 'public';
+
+export interface DocumentDto {
+  id: string;
+  title: string;
+  description: string | null;
+  storage: 'blob' | 'sharepoint' | null;
+  fileKey: string | null;
+  fileUrl: string | null;
+  fileName: string | null;
+  mimeType: string | null;
+  sizeBytes: number | null;
+  linkUrl: string | null;
+  audience: DocumentAudience;
+  companyId: string | null;
+  tagIds: string[];
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+}
+
+export interface DocumentTagDto {
+  id: string;
+  category: 'gov' | 'gov_sector' | 'department';
+  slug: string;
+  displayName: string;
+  /** Server-side count of documents using this tag. UI uses it to show
+   *  an "in use (N)" badge and disable Delete when > 0. */
+  inUseCount: number;
 }

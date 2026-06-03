@@ -155,4 +155,21 @@ export const mockApiService: ApiService = {
       return delay(filtered);
     },
   },
+  // Documents library — mock returns empty until the real api/ surfaces
+  // seeded values. Admin-only screens behind these never render against
+  // the mock in practice; included so MockApiService still satisfies
+  // ApiService.
+  documents: {
+    list:   () => delay([]),
+    get:    (id: string) => delay({} as any),
+    create: () => delay({} as any),
+    update: () => delay({} as any),
+    delete: () => delay(undefined as any),
+  },
+  documentTags: {
+    list:   () => delay({ categories: [], tags: [] }),
+    create: () => delay({} as any),
+    update: () => delay({} as any),
+    delete: () => delay(undefined as any),
+  },
 };

@@ -16,6 +16,123 @@ own as soon as it's built.
 - **Phase 2 — Onboarding flows:** planned (this doc)
 - Each phase will land as its own PR / branch off `master`.
 
+## System overview
+
+```mermaid
+flowchart LR
+    subgraph App["app/ (React Native)"]
+        AdminDocs["Admin → Documents"]
+        AdminTags["Admin → Tag Manager"]
+        AdminOnb["Admin → Onboarding"]
+        MemberBrowse["More → Forms (member browse)"]
+        ContractorLink["/onboard/:assignmentId/:token (public)"]
+    end
+
+    subgraph Api["api/ (NestJS)"]
+        DocCtrl["/v1/documents"]
+        TagCtrl["/v1/document-tags"]
+        OnbCtrl["/v1/onboarding/*"]
+        StorageIface{{"DocumentStorageAdapter"}}
+        BlobAdp["AzureBlobStorageAdapter"]
+        SpAdp["SharePointStorageAdapter"]
+        StorageIface -.->|"STORAGE_DRIVER=blob (default)"| BlobAdp
+        StorageIface -.->|"STORAGE_DRIVER=sharepoint"| SpAdp
+        DocCtrl --> StorageIface
+        OnbCtrl --> StorageIface
+        DocCtrl --> Prisma["Prisma (Postgres)"]
+        TagCtrl --> Prisma
+        OnbCtrl --> Prisma
+    end
+
+    subgraph Storage["Storage backends"]
+        Blob["Azure Blob<br/>skintyee-app-documents"]
+        SP["SharePoint<br/>skintyee-app-forms<br/>(M365 group + drive)"]
+        BlobAdp --> Blob
+        SpAdp -->|"Graph<br/>Sites.Selected"| SP
+    end
+
+    AdminDocs --> DocCtrl
+    AdminTags --> TagCtrl
+    AdminOnb --> OnbCtrl
+    MemberBrowse --> DocCtrl
+    ContractorLink --> OnbCtrl
+```
+
+### Data model (Phase 1 + Phase 2 combined)
+
+```mermaid
+erDiagram
+    Document ||--o{ DocumentTag : "tagged with"
+    Document }o--|| Company : "(optional)"
+    DocumentTag {
+        string id PK
+        string category "gov | gov_sector | department"
+        string slug
+        string displayName
+    }
+    Document {
+        string id PK
+        string title
+        string fileUrl "presigned (blob) or web URL (sharepoint)"
+        string fileKey "adapter-internal handle"
+        string linkUrl "optional external URL"
+        string storage "blob | sharepoint"
+        string audience "admin | staff | band_member | public"
+        string companyId FK
+    }
+    Company {
+        string id PK
+        string displayName
+        string parentSlug
+        bool active
+    }
+
+    OnboardingFlow ||--o{ OnboardingStep : "ordered by step.order"
+    OnboardingStep ||--o{ OnboardingStepDocument : "attaches"
+    OnboardingStep ||--o{ OnboardingStepLink : "attaches"
+    OnboardingStepDocument }o--|| Document : "references template doc"
+    OnboardingFlow ||--o{ OnboardingAssignment : "assigned to"
+    Contractor ||--o{ OnboardingAssignment : "has"
+    OnboardingAssignment ||--o{ OnboardingStepState : "tracks"
+    OnboardingFlow }o--|| Company : "(optional)"
+    Contractor }o--|| Company : "(optional)"
+
+    OnboardingFlow {
+        string id PK
+        string title
+        string companyId FK
+        bool active
+    }
+    OnboardingStep {
+        string id PK
+        string flowId FK
+        int order
+        string title
+        string instructions
+        string completion "admin_marks | contractor_uploads | both"
+    }
+    OnboardingAssignment {
+        string id PK
+        string flowId FK
+        string contractorId FK
+        datetime startedAt
+        datetime completedAt
+    }
+    OnboardingStepState {
+        string id PK
+        string assignmentId FK
+        string stepId
+        string status "pending | in_progress | completed"
+        string contractorFileKey "set when contractor uploaded"
+    }
+    Contractor {
+        string id PK
+        string displayName
+        string email
+        string companyId FK
+    }
+```
+
 ## Decisions
 
 Locked in before kickoff (from the planning Q&A):
@@ -188,6 +305,22 @@ Seeded values (idempotent seed script — re-running won't dupe):
 Tag Manager UI lets admins add / edit / delete entries in any
 category. Deleting a tag with attached documents is blocked
 (`409 Conflict` with a list of affected document titles).
+
+**In-use signalling.** `GET /v1/document-tags` returns
+`inUseCount: number` on every tag — the live count of documents
+referencing it. The Tag Manager UI renders this two ways:
+
+  - **Badge** next to the tag name: `Housing · 3 docs` when
+    `inUseCount > 0`; nothing when zero (avoids visual noise).
+  - **Delete button disabled** when `inUseCount > 0`, with a
+    tooltip / HelperText explaining "remove from N document(s)
+    first". Tapping the badge filters the Documents list to docs
+    carrying this tag, so the admin can clean them up in one
+    place before retrying delete.
+
+This is purely a UX courtesy — the server-side `409` guard stays
+in place as the authoritative gate. The UI just surfaces the
+state up-front so admins don't have to click-discover it.
 
 ### API surface
 

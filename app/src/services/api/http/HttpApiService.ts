@@ -20,7 +20,7 @@ import {
   PlannerPlanSummary, PlannerRollup, PlannerTask, Poll,
   PublicRecord, Role, TimeEntry,
 } from 'skintyee/models';
-import { ApiService, SecurityGroup, SharedMailbox, MailboxAccess } from 'skintyee/services/api/ApiService';
+import { ApiService, SecurityGroup, SharedMailbox, MailboxAccess, DocumentDto, DocumentTagDto } from 'skintyee/services/api/ApiService';
 
 // The auth header context — pulled lazily so the same HttpApiService
 // instance survives sign-in / sign-out / role switches without rebuild.
@@ -175,6 +175,63 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
       //                                                       via x-role header. Kept on
       //                                                       the object for parity with
       //                                                       the mock signature.
+    },
+    documents: {
+      list: (opts?: { tag?: string; search?: string }) =>
+        get<DocumentDto[]>('/documents', { tag: opts?.tag, search: opts?.search }),
+      get: (id: string) => get<DocumentDto>(`/documents/${encodeURIComponent(id)}`),
+      // Multipart POST — file (optional) goes as a `file` part; the
+      // metadata (title / description / audience / tagIds / linkUrl
+      // / companyId) goes as a JSON-encoded `payload` part. The api/'s
+      // FileInterceptor + Body parser pull them apart.
+      create: async (input: any) => {
+        const fd = new FormData();
+        if (input.file) {
+          // Expo DocumentPicker hands us { uri, name, mimeType } — on web
+          // we fetch the blob; on native it's the file URI directly.
+          if (typeof window !== 'undefined' && input.file.uri.startsWith('data:')) {
+            const blob = await (await fetch(input.file.uri)).blob();
+            fd.append('file', blob, input.file.name);
+          } else if (typeof window !== 'undefined') {
+            const blob = await (await fetch(input.file.uri)).blob();
+            fd.append('file', blob, input.file.name);
+          } else {
+            // React Native FormData accepts the {uri,name,type} shim.
+            fd.append('file', { uri: input.file.uri, name: input.file.name, type: input.file.mimeType } as any);
+          }
+        }
+        const { file: _file, ...payload } = input;
+        fd.append('payload', JSON.stringify(payload));
+        const res = await fetch(api('/documents'), {
+          method: 'POST',
+          // Don't set Content-Type — the browser / RN sets the multipart
+          // boundary for us. We still want x-role / x-upn / Bearer though.
+          headers: (() => { const h = headers(); delete (h as any)['Accept']; return h; })(),
+          body: fd as any,
+        });
+        if (!res.ok) throw new Error(`POST /documents → ${res.status}: ${await res.text()}`);
+        return res.json();
+      },
+      update: (id: string, body: any) => patch<DocumentDto>(`/documents/${encodeURIComponent(id)}`, body),
+      delete: async (id: string) => {
+        const res = await fetch(api(`/documents/${encodeURIComponent(id)}`), {
+          method: 'DELETE',
+          headers: headers(),
+        });
+        if (!res.ok && res.status !== 204) throw new Error(`DELETE /documents/${id} → ${res.status}: ${await res.text()}`);
+      },
+    },
+    documentTags: {
+      list: () => get<any>('/document-tags'),
+      create: (input: any) => post<DocumentTagDto>('/document-tags', input),
+      update: (id: string, body: any) => patch<DocumentTagDto>(`/document-tags/${encodeURIComponent(id)}`, body),
+      delete: async (id: string) => {
+        const res = await fetch(api(`/document-tags/${encodeURIComponent(id)}`), {
+          method: 'DELETE',
+          headers: headers(),
+        });
+        if (!res.ok) throw new Error(`DELETE /document-tags/${id} → ${res.status}: ${await res.text()}`);
+      },
     },
   };
 }
