@@ -24,6 +24,7 @@ import { theme } from 'skintyee/styles';
 
 interface MeetingType { slug: string; displayName: string; category: string; description: string }
 interface MeetingSource { index: number; kind: 'me'|'user'|'group'; name: string; upn?: string; groupId?: string }
+interface InvitableGroup { slug: string; displayName: string; mail: string }
 
 const TYPE_ICONS: Record<string, string> = {
   'band-meeting':    'account-group',
@@ -77,7 +78,7 @@ export default function EditMeeting({ route, navigation }: any) {
   const removeLink = (i: number) =>
     setLinks((prev) => prev.filter((_, idx) => idx !== i));
 
-  const [catalog, setCatalog] = useState<{ types: MeetingType[]; sources: MeetingSource[] }>({ types: [], sources: [] });
+  const [catalog, setCatalog] = useState<{ types: MeetingType[]; sources: MeetingSource[]; invitableGroups: InvitableGroup[] }>({ types: [], sources: [], invitableGroups: [] });
   const [catalogError, setCatalogError] = useState<string | undefined>();
   const [typeMenuOpen, setTypeMenuOpen] = useState(false);
   // Invitees modal — opens a searchable directory + custom-email
@@ -93,29 +94,32 @@ export default function EditMeeting({ route, navigation }: any) {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | undefined>();
 
-  // Attendees prefilled from the existing event's attendees[]
+  // Attendees prefilled from the existing event's attendees[].
+  //
+  // We split the incoming list into two state buckets:
+  //   - attendees:     individual UPNs the admin picked one-by-one
+  //                    (plus custom-email adds — anything that isn't
+  //                    a known invitable group's mail).
+  //   - selectedGroups: slugs of M365 groups invited as a whole (their
+  //                    mail address was in the event's attendees list).
+  //
+  // The split is delayed until the catalog of invitable groups arrives,
+  // because that's how we tell the two apart.
   const directory = useAppSelector((s) => s.directory.entities);
   const licensedUsers = useMemo(
     () => directory.filter((m: any) => m.accountType === 'licensed-user' && m.upn),
     [directory]
   );
   const initialAttendeesKey = JSON.stringify((meeting as any)?.attendees ?? []);
-  const [attendees, setAttendees] = useState<Set<string>>(
-    new Set(((meeting as any)?.attendees ?? []).map((a: any) => (a.upn ?? '').toLowerCase()).filter(Boolean))
-  );
-  useEffect(() => {
-    setAttendees(new Set(
-      ((meeting as any)?.attendees ?? []).map((a: any) => (a.upn ?? '').toLowerCase()).filter(Boolean)
-    ));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialAttendeesKey]);
+  const [attendees, setAttendees] = useState<Set<string>>(new Set());
+  const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const r = await (apiFactory() as any).meetings.types();
-        if (!cancelled) setCatalog(r);
+        if (!cancelled) setCatalog({ types: r.types ?? [], sources: r.sources ?? [], invitableGroups: r.invitableGroups ?? [] });
       } catch (e: any) {
         if (!cancelled) setCatalogError(e?.message ?? String(e));
       }
@@ -123,6 +127,25 @@ export default function EditMeeting({ route, navigation }: any) {
     dispatch(loadDirectory());
     return () => { cancelled = true; };
   }, [dispatch]);
+
+  // Split the meeting's attendees into individual + group buckets once
+  // the catalog has resolved (we need it to recognise group mails).
+  useEffect(() => {
+    if (!catalog.invitableGroups.length) return;
+    const groupMails = new Map(catalog.invitableGroups.map((g) => [g.mail.toLowerCase(), g.slug]));
+    const individuals = new Set<string>();
+    const groups = new Set<string>();
+    for (const a of ((meeting as any)?.attendees ?? [])) {
+      const upn = (a.upn ?? '').toLowerCase();
+      if (!upn) continue;
+      const slug = groupMails.get(upn);
+      if (slug) groups.add(slug);
+      else individuals.add(upn);
+    }
+    setAttendees(individuals);
+    setSelectedGroups(groups);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialAttendeesKey, catalog.invitableGroups]);
 
   if (!meeting) {
     return (
@@ -143,13 +166,65 @@ export default function EditMeeting({ route, navigation }: any) {
     });
   };
 
-  // Look up a friendly display name for a UPN we've added — falls back
-  // to the email when the entry isn't in the directory (i.e. it was a
-  // custom-email add).
+  const toggleGroup = (slug: string) => {
+    setSelectedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(slug)) next.delete(slug);
+      else next.add(slug);
+      return next;
+    });
+  };
+
+  // UPNs implicitly covered by the currently-selected groups. Drives:
+  //   - hiding individual chips that would otherwise dupe a group chip
+  //   - rendering group-covered members as "via <group>" in the modal
+  //   - de-duping the submit payload
+  // A member counts as covered if their bandGroups list includes the
+  // group's slug (directory mirrors Entra membership).
+  const coveredUpns = useMemo(() => {
+    if (!selectedGroups.size) return new Set<string>();
+    const covered = new Set<string>();
+    for (const m of licensedUsers) {
+      const bg: string[] = (m as any).bandGroups ?? [];
+      if (bg.some((slug) => selectedGroups.has(slug))) {
+        covered.add(((m as any).upn ?? '').toLowerCase());
+      }
+    }
+    return covered;
+  }, [selectedGroups, licensedUsers]);
+
+  // For each covered UPN, which group name should we tag it with in the
+  // modal? Picks the first selected group that contains it.
+  const coveredByGroupName = useMemo(() => {
+    const out = new Map<string, string>();
+    if (!selectedGroups.size) return out;
+    for (const m of licensedUsers) {
+      const upn = ((m as any).upn ?? '').toLowerCase();
+      const bg: string[] = (m as any).bandGroups ?? [];
+      const hit = bg.find((slug) => selectedGroups.has(slug));
+      if (hit) {
+        const g = catalog.invitableGroups.find((g) => g.slug === hit);
+        if (g) out.set(upn, g.displayName);
+      }
+    }
+    return out;
+  }, [selectedGroups, licensedUsers, catalog.invitableGroups]);
+
+  // Look up a friendly display name for a UPN we've added — checks the
+  // directory first, then the invitable-groups catalog, then falls back
+  // to the address itself (custom-email add).
   const inviteeName = (upn: string): string => {
     const m = directory.find((m: any) => (m.upn ?? '').toLowerCase() === upn);
-    return (m as any)?.name ?? upn;
+    if (m) return (m as any).name;
+    const g = catalog.invitableGroups.find((g) => g.mail.toLowerCase() === upn);
+    if (g) return g.displayName;
+    return upn;
   };
+
+  // Is this attendee a known M365 group? Drives the group-icon chip
+  // rendering and exclusion from the modal's "Custom" section.
+  const isGroupAttendee = (upn: string): boolean =>
+    catalog.invitableGroups.some((g) => g.mail.toLowerCase() === upn);
 
   // ASCII email-ish check — Graph itself rejects bad addresses on PATCH,
   // but a quick gate keeps the picker from accumulating obvious typos.
@@ -177,13 +252,24 @@ export default function EditMeeting({ route, navigation }: any) {
     );
   }, [licensedUsers, inviteeSearch]);
 
-  // UPNs in the attendees set that don't match any directory entry —
-  // these are the custom-emails added by the admin. Surface them at the
-  // top of the modal list so they're easy to remove.
+  // Groups matching the search — same query as members. Empty → all.
+  const filteredGroups = useMemo(() => {
+    const q = inviteeSearch.trim().toLowerCase();
+    const sorted = catalog.invitableGroups.slice().sort((a, b) => a.displayName.localeCompare(b.displayName));
+    if (!q) return sorted;
+    return sorted.filter((g) =>
+      g.displayName.toLowerCase().includes(q) || g.mail.toLowerCase().includes(q)
+    );
+  }, [catalog.invitableGroups, inviteeSearch]);
+
+  // UPNs in the attendees set that don't match a directory entry OR
+  // a known M365 group — the admin's custom-email adds. Surface them
+  // at the top of the modal list so they're easy to remove.
   const customAttendees = useMemo(() => {
     const directoryUpns = new Set(licensedUsers.map((m: any) => (m.upn ?? '').toLowerCase()));
-    return Array.from(attendees).filter((upn) => !directoryUpns.has(upn));
-  }, [attendees, licensedUsers]);
+    const groupUpns = new Set(catalog.invitableGroups.map((g) => g.mail.toLowerCase()));
+    return Array.from(attendees).filter((upn) => !directoryUpns.has(upn) && !groupUpns.has(upn));
+  }, [attendees, licensedUsers, catalog.invitableGroups]);
 
   const save = async () => {
     if (!title.trim()) return;
@@ -195,6 +281,17 @@ export default function EditMeeting({ route, navigation }: any) {
       const cleanLinks = links
         .map((l) => ({ label: l.label.trim(), url: l.url.trim() }))
         .filter((l) => l.url);
+      // Build the final attendees list: group mails (Graph expands them
+      // to membership at delivery) + individual UPNs that aren't already
+      // covered by a selected group, so no one's invited twice.
+      const finalAttendees: string[] = [];
+      for (const slug of selectedGroups) {
+        const g = catalog.invitableGroups.find((g) => g.slug === slug);
+        if (g) finalAttendees.push(g.mail);
+      }
+      for (const upn of attendees) {
+        if (!coveredUpns.has(upn)) finalAttendees.push(upn);
+      }
       if (typeof sourceIndex === 'number') {
         await (apiFactory() as any).meetings.update(meeting._id, {
           sourceIndex,
@@ -204,7 +301,7 @@ export default function EditMeeting({ route, navigation }: any) {
           location: location.trim(),
           startsAt,
           isOnlineMeeting,
-          attendees: Array.from(attendees),
+          attendees: finalAttendees,
           links: cleanLinks,
         });
       }
@@ -459,27 +556,48 @@ export default function EditMeeting({ route, navigation }: any) {
           </Button>
         </View>
         {/* Compact summary of currently-selected invitees. Tap × on a
-            chip to remove inline, or tap "Manage" to open the modal. */}
-        {attendees.size === 0 ? (
-          <HelperText type="info" visible style={{ marginLeft: -8, marginBottom: 6 }}>
-            No invitees yet.
-          </HelperText>
-        ) : (
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 6 }}>
-            {Array.from(attendees).map((upn) => (
-              <Chip
-                key={upn}
-                compact
-                closeIcon="close"
-                onClose={() => toggleAttendee(upn)}
-                style={{ marginRight: 6, marginBottom: 6, backgroundColor: theme.colors.primary }}
-                textStyle={{ color: '#000', fontSize: 11 }}
-              >
-                {inviteeName(upn)}
-              </Chip>
-            ))}
-          </View>
-        )}
+            chip to remove inline. Groups render first with a group
+            icon; individual chips hide when their member is already
+            covered by a selected group, so no one gets two chips. */}
+        {(() => {
+          const groupChips = Array.from(selectedGroups).map((slug) => {
+            const g = catalog.invitableGroups.find((g) => g.slug === slug);
+            return { key: `g:${slug}`, label: g?.displayName ?? slug, isGroup: true, remove: () => toggleGroup(slug) };
+          });
+          const memberChips = Array.from(attendees)
+            .filter((upn) => !coveredUpns.has(upn))
+            .map((upn) => ({
+              key: `m:${upn}`,
+              label: inviteeName(upn),
+              isGroup: false,
+              remove: () => toggleAttendee(upn),
+            }));
+          const chips = [...groupChips, ...memberChips];
+          if (chips.length === 0) {
+            return (
+              <HelperText type="info" visible style={{ marginLeft: -8, marginBottom: 6 }}>
+                No invitees yet.
+              </HelperText>
+            );
+          }
+          return (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 6 }}>
+              {chips.map((c) => (
+                <Chip
+                  key={c.key}
+                  compact
+                  icon={c.isGroup ? 'account-group' : undefined}
+                  closeIcon="close"
+                  onClose={c.remove}
+                  style={{ marginRight: 6, marginBottom: 6, backgroundColor: theme.colors.primary }}
+                  textStyle={{ color: '#000', fontSize: 11 }}
+                >
+                  {c.label}
+                </Chip>
+              ))}
+            </View>
+          );
+        })()}
         <Button
           mode="outlined" icon="account-multiple-plus"
           textColor={theme.colors.text}
@@ -523,10 +641,11 @@ export default function EditMeeting({ route, navigation }: any) {
               maxWidth: 520,
             }}
           >
-            {/* Header */}
+            {/* Header — count shows groups + uncovered individuals so it
+                lines up with what the chip strip rendered. */}
             <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12, paddingBottom: 6 }}>
               <Text style={{ color: theme.colors.text, fontSize: 16, fontWeight: '700', flex: 1 }}>
-                Manage invitees ({attendees.size})
+                Manage invitees ({selectedGroups.size + Array.from(attendees).filter((u) => !coveredUpns.has(u)).length})
               </Text>
               <IconButton icon="close" size={20} iconColor={theme.colors.textDarker} onPress={() => setInviteesModalOpen(false)} />
             </View>
@@ -585,33 +704,78 @@ export default function EditMeeting({ route, navigation }: any) {
                 </>
               ) : null}
 
-              {/* Search + member list */}
-              <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginTop: 14 }}>
-                DIRECTORY
-              </Text>
+              {/* Unified search across members + groups */}
               <TextInput
                 dense mode="outlined"
-                label="Search members"
+                label="Search members or groups"
                 value={inviteeSearch}
                 onChangeText={setInviteeSearch}
-                style={{ marginTop: 6, marginBottom: 6 }}
+                style={{ marginTop: 14, marginBottom: 6 }}
                 autoCapitalize="none"
                 left={<TextInput.Icon icon="magnify" />}
                 right={inviteeSearch ? <TextInput.Icon icon="close" onPress={() => setInviteeSearch('')} /> : undefined}
               />
-              {filteredMembers.length === 0 ? (
+
+              {/* Groups — inviting a group expands to its membership at
+                  delivery time. Selecting a group also visually checks
+                  every member it covers in the list below. */}
+              {filteredGroups.length > 0 ? (
+                <>
+                  <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginTop: 8 }}>
+                    GROUPS
+                  </Text>
+                  {filteredGroups.map((g) => {
+                    const on = selectedGroups.has(g.slug);
+                    return (
+                      <TouchableOpacity
+                        key={g.slug}
+                        onPress={() => toggleGroup(g.slug)}
+                        style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8 }}
+                      >
+                        <MaterialCommunityIcons
+                          name={on ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                          size={20}
+                          color={on ? theme.colors.primary : theme.colors.textDarker}
+                          style={{ marginRight: 10 }}
+                        />
+                        <MaterialCommunityIcons
+                          name="account-group"
+                          size={18}
+                          color={theme.colors.accent}
+                          style={{ marginRight: 8 }}
+                        />
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: theme.colors.text, fontSize: 13 }}>{g.displayName}</Text>
+                          <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>{g.mail}</Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </>
+              ) : null}
+
+              {/* Directory members. A member covered by a selected group
+                  shows as auto-checked + faded with a "via <Group>"
+                  hint; tapping a covered row is a no-op (deselect the
+                  group to remove them). */}
+              <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginTop: 14 }}>
+                MEMBERS
+              </Text>
+              {filteredMembers.length === 0 && filteredGroups.length === 0 ? (
                 <HelperText type="info" visible style={{ marginLeft: -8 }}>
                   No matches.
                 </HelperText>
               ) : null}
               {filteredMembers.map((m: any) => {
                 const upn = (m.upn ?? '').toLowerCase();
-                const on = attendees.has(upn);
+                const coveredBy = coveredByGroupName.get(upn);
+                const on = attendees.has(upn) || !!coveredBy;
                 return (
                   <TouchableOpacity
                     key={m._id}
-                    onPress={() => toggleAttendee(upn)}
-                    style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8 }}
+                    onPress={() => { if (!coveredBy) toggleAttendee(upn); }}
+                    activeOpacity={coveredBy ? 1 : 0.6}
+                    style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, opacity: coveredBy ? 0.6 : 1 }}
                   >
                     <MaterialCommunityIcons
                       name={on ? 'checkbox-marked' : 'checkbox-blank-outline'}
@@ -621,7 +785,9 @@ export default function EditMeeting({ route, navigation }: any) {
                     />
                     <View style={{ flex: 1 }}>
                       <Text style={{ color: theme.colors.text, fontSize: 13 }}>{m.name}</Text>
-                      <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>{m.upn}</Text>
+                      <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>
+                        {m.upn}{coveredBy ? `  ·  via ${coveredBy}` : ''}
+                      </Text>
                     </View>
                   </TouchableOpacity>
                 );

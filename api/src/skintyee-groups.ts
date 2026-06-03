@@ -28,6 +28,9 @@ export interface SkintyeeGroup {
   displayName: string;
   description: string;
   kind: 'entra' | 'm365';
+  // Mail address — populated for m365 groups. Used to invite the
+  // entire group to a meeting (Outlook expands it to the membership).
+  mail?: string;
 }
 
 export const SKINTYEE_SECURITY_GROUPS: SkintyeeGroup[] = [
@@ -58,12 +61,29 @@ export const SKINTYEE_SECURITY_GROUPS: SkintyeeGroup[] = [
   // tenant (allcompany@…onmicrosoft.com). We deliberately DON'T include
   // it — it's a Microsoft-default, not a Skin Tyee group, and managing
   // membership there would be confusing.
-  { id: '425b9e3e-534a-4394-97fc-64b54c2eef10', slug: 'it-project-docs',  displayName: 'IT Project Docs',             kind: 'm365',  description: 'IT documentation team (it-project-docs@skintyee.ca)' },
-  { id: 'dabd4a8a-84a5-44bf-981d-d502862bf701', slug: 'band-members-m365',displayName: 'Skin Tyee Band Members (M365)', kind: 'm365', description: 'Band members mailbox + SharePoint (band@skintyee.ca) — also a Band Meetings source' },
-  { id: '67abaaf6-d7ba-4007-837d-4174822dbf3d', slug: 'council-m365',     displayName: 'Skin Tyee Council (M365)',     kind: 'm365', description: 'Council mailbox + SharePoint (council@skintyee.ca)' },
-  { id: 'dc776d31-3549-4c39-9781-34c1cad28c99', slug: 'management-m365',  displayName: 'Skin Tyee Management (M365)',  kind: 'm365', description: 'Management mailbox + SharePoint (management@skintyee.ca)' },
+  { id: '425b9e3e-534a-4394-97fc-64b54c2eef10', slug: 'it-project-docs',  displayName: 'IT Project Docs',             kind: 'm365',  description: 'IT documentation team (it-project-docs@skintyee.ca)', mail: 'it-project-docs@skintyee.ca' },
+  { id: 'dabd4a8a-84a5-44bf-981d-d502862bf701', slug: 'band-members-m365',displayName: 'Skin Tyee Band Members (M365)', kind: 'm365', description: 'Band members mailbox + SharePoint (band@skintyee.ca) — also a Band Meetings source', mail: 'band@skintyee.ca' },
+  { id: '67abaaf6-d7ba-4007-837d-4174822dbf3d', slug: 'council-m365',     displayName: 'Skin Tyee Council (M365)',     kind: 'm365', description: 'Council mailbox + SharePoint (council@skintyee.ca)', mail: 'council@skintyee.ca' },
+  { id: 'dc776d31-3549-4c39-9781-34c1cad28c99', slug: 'management-m365',  displayName: 'Skin Tyee Management (M365)',  kind: 'm365', description: 'Management mailbox + SharePoint (management@skintyee.ca)', mail: 'management@skintyee.ca' },
 ];
 
 // Lookup helpers
 export const groupById   = new Map(SKINTYEE_SECURITY_GROUPS.map((g) => [g.id, g]));
 export const groupBySlug = new Map(SKINTYEE_SECURITY_GROUPS.map((g) => [g.slug, g]));
+
+// Mail addresses to suppress from the "invitable groups" picker on the
+// EditMeeting / CreateMeeting screens. The groups still exist in Entra
+// and the catalog; they just don't show up as a one-tap "invite the
+// whole group" option. Useful for ops/admin groups that shouldn't be
+// invited to community meetings.
+//
+// Entries are lowercased on lookup. Add more as needed — quick config
+// knob until a real admin UI lands.
+export const INVITABLE_GROUP_MAIL_BLACKLIST: string[] = [
+  'it-project-docs@skintyee.ca',
+];
+export const isInvitableGroupBlacklisted = (mail?: string): boolean => {
+  if (!mail) return false;
+  const m = mail.toLowerCase();
+  return INVITABLE_GROUP_MAIL_BLACKLIST.some((b) => b.toLowerCase() === m);
+};

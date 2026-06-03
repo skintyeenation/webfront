@@ -5,7 +5,7 @@ import { GraphFeedService, FeedItem, AppRole } from './graph-feed.service';
 import { PrismaService } from './prisma.service';
 import { ExoService } from './exo.service';
 import { MailboxReconcileService } from './mailbox-reconcile.service';
-import { SKINTYEE_SECURITY_GROUPS, groupBySlug } from './skintyee-groups';
+import { SKINTYEE_SECURITY_GROUPS, groupBySlug, isInvitableGroupBlacklisted } from './skintyee-groups';
 
 // Map a Prisma BandMember row → the BandMember shape the app expects.
 // Shared between Directory list / get / PATCH so the mapping stays
@@ -583,8 +583,9 @@ export class MeetingsController {
     return this.data.meetings;
   }
 
-  // GET /v1/meetings/types — catalog of meeting types + source calendars.
-  // Drives the schedule-meeting screen's chip selector.
+  // GET /v1/meetings/types — catalog of meeting types + source calendars
+  // + invitable mail-enabled groups. Drives the schedule-meeting screen's
+  // chip selector AND the invitees modal's Groups section.
   @Get('types') @Roles('member', 'staff', 'admin') types() {
     return {
       types: SKINTYEE_MEETING_TYPES,
@@ -596,6 +597,20 @@ export class MeetingsController {
             s.kind === 'group' ? { groupId: s.groupId } :
                                    {}),
       })),
+      // M365 groups that have a mail address can be invited to a meeting
+      // as a single attendee — Outlook expands the group to its members
+      // when delivering. Only m365 'kind' groups qualify; Entra security
+      // groups don't have a routable mailbox. Blacklisted mails (see
+      // INVITABLE_GROUP_MAIL_BLACKLIST in skintyee-groups.ts) are
+      // suppressed — ops groups that exist in Entra but shouldn't be
+      // invitable to community meetings.
+      invitableGroups: SKINTYEE_SECURITY_GROUPS
+        .filter((g) => g.kind === 'm365' && g.mail && !isInvitableGroupBlacklisted(g.mail))
+        .map((g) => ({
+          slug: g.slug,
+          displayName: g.displayName,
+          mail: g.mail!,
+        })),
     };
   }
 
