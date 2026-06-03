@@ -422,6 +422,55 @@ export class OnboardingService implements OnApplicationBootstrap {
     return Array.from(this.memPeople.values()).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
+  async updatePerson(id: string, patch: Partial<{ displayName: string; email: string | null; phone: string | null; companyId: string | null; bandMemberId: string | null }>): Promise<PersonRecord | null> {
+    if (this.prisma.isAvailable) {
+      const data: any = {};
+      if (patch.displayName != null) data.displayName = patch.displayName;
+      if (patch.email !== undefined) data.email = patch.email;
+      if (patch.phone !== undefined) data.phone = patch.phone;
+      if (patch.companyId !== undefined) data.companyId = patch.companyId;
+      // Switching the band-member link → re-pull name/email/phone from
+      // the new linked member so it stays authoritative.
+      if (patch.bandMemberId !== undefined) {
+        data.bandMemberId = patch.bandMemberId;
+        if (patch.bandMemberId) {
+          const bm = await this.prisma.bandMember.findUnique({
+            where: { id: patch.bandMemberId },
+            select: { name: true, email: true, phone: true },
+          });
+          if (!bm) throw new Error('Linked band member not found.');
+          data.displayName = bm.name;
+          data.email = bm.email ?? data.email ?? null;
+          data.phone = bm.phone ?? data.phone ?? null;
+        }
+      }
+      const r = await this.prisma.person.update({
+        where: { id }, data,
+        include: { bandMember: { select: { id: true, name: true, upn: true } } },
+      });
+      return toPersonRecord(r);
+    }
+    const cur = this.memPeople.get(id);
+    if (!cur) return null;
+    const next: PersonRecord = { ...cur };
+    if (patch.displayName != null) next.displayName = patch.displayName;
+    if (patch.email !== undefined) next.email = patch.email;
+    if (patch.phone !== undefined) next.phone = patch.phone;
+    if (patch.companyId !== undefined) next.companyId = patch.companyId;
+    if (patch.bandMemberId !== undefined) next.bandMemberId = patch.bandMemberId;
+    this.memPeople.set(id, next);
+    return next;
+  }
+
+  async deletePerson(id: string): Promise<boolean> {
+    if (this.prisma.isAvailable) {
+      await this.prisma.person.delete({ where: { id } }).catch(() => null);
+    } else {
+      this.memPeople.delete(id);
+    }
+    return true;
+  }
+
   // If bandMemberId is supplied, pull name/email/phone from the linked
   // BandMember row so they stay authoritative; admin's overrides are only
   // used when there's no link.

@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
-import { ActivityIndicator, Button, Card, Chip, HelperText, Modal, Portal, Snackbar, Text, TextInput } from 'react-native-paper';
+import { ActivityIndicator, Button, Card, Chip, HelperText, IconButton, Modal, Portal, Snackbar, Text, TextInput } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useFocusEffect } from '@react-navigation/native';
 import dayjs from 'dayjs';
-import { PageContainer, PageContent, NoContent, AdminAddButton } from 'skintyee/components/layout';
+import { PageContainer, PageContent, NoContent, AdminAddButton, useConfirm } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { loadDirectory } from 'skintyee/store/modules/directory';
 import { apiFactory } from 'skintyee/store/apis';
@@ -29,8 +29,10 @@ export default function People({ navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>();
   const [toast, setToast] = useState<string | null>(null);
+  const { confirm, ConfirmHost } = useConfirm();
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | undefined>();
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -85,11 +87,56 @@ export default function People({ navigation }: any) {
 
   const selectedMember = bandMemberId ? linkableMembers.find((m) => m.id === bandMemberId) : undefined;
 
+  // Email-match fallback: for legacy People rows that predate the
+  // bandMemberId column (or weren't linked at create time), infer a
+  // band-member link by matching email / UPN. Returns the member's
+  // friendly name if matched, undefined otherwise.
+  const inferLinkedMember = useCallback((p: PersonDto): any | undefined => {
+    if (p.bandMemberId) return undefined; // already linked; no fallback
+    const e = (p.email ?? '').toLowerCase();
+    if (!e) return undefined;
+    return linkableMembers.find((m) => (m.email ?? '').toLowerCase() === e || (m.upn ?? '').toLowerCase() === e);
+  }, [linkableMembers]);
+
   const resetForm = () => {
+    setEditingId(undefined);
     setDisplayName(''); setEmail(''); setPhone('');
     setBandMemberId(undefined); setBandSearch('');
+    setBandPickerOpen(false);
     setFormError(undefined);
   };
+
+  const openCreate = () => {
+    resetForm();
+    setModalOpen(true);
+  };
+  const openEdit = (p: PersonDto) => {
+    setEditingId(p.id);
+    setDisplayName(p.displayName);
+    setEmail(p.email ?? '');
+    setPhone(p.phone ?? '');
+    setBandMemberId(p.bandMemberId ?? undefined);
+    setBandSearch('');
+    setBandPickerOpen(false);
+    setFormError(undefined);
+    setModalOpen(true);
+  };
+  const removePerson = (p: PersonDto) =>
+    confirm({
+      title: 'Remove person?',
+      message: `${p.displayName} will be removed. Any existing assignments stay (the person record stays attached).`,
+      confirmLabel: 'Remove',
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          await apiFactory().onboarding.deletePerson(p.id);
+          setToast('Removed');
+          await load();
+        } catch (e: any) {
+          setError(e?.message ?? String(e));
+        }
+      },
+    });
 
   const pickMember = (m: any) => {
     setBandMemberId(m.id);
@@ -114,15 +161,26 @@ export default function People({ navigation }: any) {
     setSaving(true);
     setFormError(undefined);
     try {
-      await apiFactory().onboarding.createPerson({
-        displayName: displayName.trim(),
-        email: email.trim() || undefined,
-        phone: phone.trim() || undefined,
-        bandMemberId,
-      });
+      const api = apiFactory().onboarding;
+      if (editingId) {
+        await api.updatePerson(editingId, {
+          displayName: displayName.trim(),
+          email: email.trim() || null,
+          phone: phone.trim() || null,
+          bandMemberId: bandMemberId ?? null,
+        });
+        setToast('Saved');
+      } else {
+        await api.createPerson({
+          displayName: displayName.trim(),
+          email: email.trim() || undefined,
+          phone: phone.trim() || undefined,
+          bandMemberId,
+        });
+        setToast('Person added');
+      }
       setModalOpen(false);
       resetForm();
-      setToast('Person added');
       await load();
     } catch (e: any) {
       setFormError(e?.message ?? String(e));
@@ -134,7 +192,7 @@ export default function People({ navigation }: any) {
   return (
     <PageContainer>
       <PageContent>
-        <AdminAddButton label="Add person" icon="account-plus" onPress={() => setModalOpen(true)} />
+        <AdminAddButton label="Add person" icon="account-plus" onPress={openCreate} />
 
         {error ? <HelperText type="error" visible>{error}</HelperText> : null}
         {loading ? <ActivityIndicator style={{ marginTop: 16 }} /> : null}
@@ -143,34 +201,46 @@ export default function People({ navigation }: any) {
           <NoContent message="No people yet. Add one to assign onboarding flows." />
         ) : null}
 
-        {people.map((p) => (
-          <Card key={p.id} style={{ marginTop: 8, backgroundColor: theme.colors.darkDefault }}>
-            <Card.Content>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={{ color: theme.colors.text, fontSize: 14, flex: 1 }}>{p.displayName}</Text>
-                {p.bandMemberId ? (
-                  <Chip compact icon="badge-account" style={{ backgroundColor: theme.colors.primary }} textStyle={{ color: '#000', fontSize: 10 }}>
-                    Band member
-                  </Chip>
-                ) : (
-                  <Chip compact icon="account-outline" style={{ backgroundColor: theme.colors.secondary }} textStyle={{ color: theme.colors.text, fontSize: 10 }}>
-                    External
-                  </Chip>
-                )}
-              </View>
-              {p.email ? <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginTop: 2 }}>{p.email}</Text> : null}
-              {p.phone ? <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>{p.phone}</Text> : null}
-              {p.bandMemberName && p.bandMemberUpn && p.bandMemberName !== p.displayName ? (
-                <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginTop: 2 }}>
-                  Linked to {p.bandMemberName} ({p.bandMemberUpn})
-                </Text>
-              ) : null}
-              <Text style={{ color: theme.colors.textDarker, fontSize: 10, marginTop: 4 }}>
-                Added {dayjs(p.createdAt).format('MMM D, YYYY')}
-              </Text>
-            </Card.Content>
-          </Card>
-        ))}
+        {people.map((p) => {
+          const inferred = inferLinkedMember(p);
+          const isBandMember = !!p.bandMemberId || !!inferred;
+          return (
+            <Card key={p.id} style={{ marginTop: 8, backgroundColor: theme.colors.darkDefault }}>
+              <Card.Content>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={{ color: theme.colors.text, fontSize: 14, flex: 1 }}>{p.displayName}</Text>
+                  {isBandMember ? (
+                    <Chip compact icon="badge-account" style={{ backgroundColor: theme.colors.primary }} textStyle={{ color: '#000', fontSize: 10 }}>
+                      Band member
+                    </Chip>
+                  ) : (
+                    <Chip compact icon="account-outline" style={{ backgroundColor: theme.colors.secondary }} textStyle={{ color: theme.colors.text, fontSize: 10 }}>
+                      External
+                    </Chip>
+                  )}
+                </View>
+                {p.email ? <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginTop: 2 }}>{p.email}</Text> : null}
+                {p.phone ? <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>{p.phone}</Text> : null}
+                {p.bandMemberName && p.bandMemberUpn && p.bandMemberName !== p.displayName ? (
+                  <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginTop: 2 }}>
+                    Linked to {p.bandMemberName} ({p.bandMemberUpn})
+                  </Text>
+                ) : inferred ? (
+                  <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginTop: 2 }}>
+                    Matches {inferred.name} ({inferred.upn}) — open to link.
+                  </Text>
+                ) : null}
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                  <Text style={{ color: theme.colors.textDarker, fontSize: 10, flex: 1 }}>
+                    Added {dayjs(p.createdAt).format('MMM D, YYYY')}
+                  </Text>
+                  <IconButton icon="pencil" size={18} iconColor={theme.colors.textDarker} onPress={() => openEdit(p)} />
+                  <IconButton icon="delete" size={18} iconColor={theme.colors.textDarker} onPress={() => removePerson(p)} />
+                </View>
+              </Card.Content>
+            </Card>
+          );
+        })}
 
         {/* Add Person modal */}
         <Portal>
@@ -179,7 +249,9 @@ export default function People({ navigation }: any) {
             onDismiss={() => setModalOpen(false)}
             contentContainerStyle={{ backgroundColor: theme.colors.darkDefault, padding: 16, borderRadius: 8, marginHorizontal: 20, alignSelf: 'center', width: '90%', maxWidth: 460, maxHeight: '85%' }}
           >
-            <Text style={{ color: theme.colors.text, fontSize: 16, fontWeight: '700' }}>Add person</Text>
+            <Text style={{ color: theme.colors.text, fontSize: 16, fontWeight: '700' }}>
+              {editingId ? 'Edit person' : 'Add person'}
+            </Text>
 
             {/* Band-member autocomplete — collapsed when nothing picked,
                 expands to a searchable list of directory entries. */}
@@ -277,11 +349,13 @@ export default function People({ navigation }: any) {
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12 }}>
               <Button mode="text" textColor={theme.colors.textDarker} onPress={() => { setModalOpen(false); resetForm(); }}>Cancel</Button>
               <Button mode="contained" buttonColor={theme.colors.primary} textColor="#fff" onPress={submit} loading={saving} disabled={saving || (!bandMemberId && !displayName.trim())}>
-                Add
+                {editingId ? 'Save' : 'Add'}
               </Button>
             </View>
           </Modal>
         </Portal>
+
+        <ConfirmHost />
 
         <Snackbar
           visible={toast !== null}

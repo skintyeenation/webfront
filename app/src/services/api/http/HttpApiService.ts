@@ -282,6 +282,11 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
         },
         listPeople:   () => get<PersonDto[]>('/onboarding/people'),
         createPerson:  (input: any) => post<PersonDto>('/onboarding/people', input),
+        updatePerson:  (id: string, body: any) => patch<PersonDto>(`/onboarding/people/${encodeURIComponent(id)}`, body),
+        deletePerson: async (id: string) => {
+          const res = await fetch(api(`/onboarding/people/${encodeURIComponent(id)}`), { method: 'DELETE', headers: headers() });
+          if (!res.ok && res.status !== 204) throw new Error(`DELETE /onboarding/people/${id} → ${res.status}: ${await res.text()}`);
+        },
         listAssignments:   (opts?: any) => get<OnboardingAssignmentDto[]>('/onboarding/assignments', opts ? { flowId: opts.flowId, personId: opts.personId } : undefined),
         getAssignment:     (id: string) => get<OnboardingAssignmentDto>(`/onboarding/assignments/${encodeURIComponent(id)}`),
         createAssignment:  (input: any) => post<OnboardingAssignmentDto>('/onboarding/assignments', input),

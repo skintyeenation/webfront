@@ -109,6 +109,21 @@ export class OnboardingController {
 
   @Get('people') @Roles('admin') async listPeople() { return this.svc.listPeople(); }
 
+  @Patch('people/:id') @Roles('admin') async updatePerson(@Param('id') id: string, @Body() b: any) {
+    const r = await this.svc.updatePerson(id, {
+      displayName: b.displayName,
+      email: b.email,
+      phone: b.phone,
+      companyId: b.companyId,
+      bandMemberId: b.bandMemberId,
+    });
+    if (!r) throw new NotFoundException();
+    return r;
+  }
+  @Delete('people/:id') @Roles('admin') @HttpCode(204) async deletePerson(@Param('id') id: string) {
+    await this.svc.deletePerson(id);
+  }
+
   @Post('people') @Roles('admin') async createPerson(@Body() b: any) {
     // displayName is required when there's no band-member link; the
     // linked path pulls displayName from the BandMember row, so a

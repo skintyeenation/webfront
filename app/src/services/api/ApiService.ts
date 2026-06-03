@@ -227,6 +227,8 @@ export interface ApiService {
     removeLink(rowId: string): Promise<void>;
     listPeople(): Promise<PersonDto[]>;
     createPerson(input: { displayName?: string; email?: string; phone?: string; companyId?: string; bandMemberId?: string }): Promise<PersonDto>;
+    updatePerson(id: string, patch: Partial<{ displayName: string; email: string | null; phone: string | null; companyId: string | null; bandMemberId: string | null }>): Promise<PersonDto>;
+    deletePerson(id: string): Promise<void>;
     listAssignments(opts?: { flowId?: string; personId?: string }): Promise<OnboardingAssignmentDto[]>;
     getAssignment(id: string): Promise<OnboardingAssignmentDto>;
     createAssignment(input: { flowId: string; personId: string }): Promise<OnboardingAssignmentDto>;

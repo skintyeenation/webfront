@@ -24,12 +24,14 @@ const ACCOUNT_ITEMS: MoreItem[] = [
 //   - "Public Records" opens the bylaws/notices/reports/forms screen
 //     that used to be its own bottom tab (promoted Meetings → tab,
 //     PublicRecords landed here).
+// Order requested by Lucas: Onboarding → Time Keeping → Staff Management
+// → Documents → Financial Summary.
 const ADMIN_ITEMS: MoreItem[] = [
-  { route: 'timekeeping',     label: 'Time Keeping',       description: 'Worker hours & approvals',                                 icon: 'clock-outline',           roles: ['admin'] },
-  { route: 'publicRecords',   label: 'Financial Summary',  description: 'Where the money goes — budgets, expenditures & projects', icon: 'chart-pie',               roles: ['admin'] },
-  { route: 'documents',       label: 'Documents',          description: 'Forms, filings & PDFs by tag',                             icon: 'file-document-multiple',  roles: ['admin'] },
-  { route: 'onboardingFlows', label: 'Onboarding',         description: 'Design onboarding flows & track progress for new people', icon: 'clipboard-check-multiple', roles: ['admin'] },
-  { route: 'onboardingPeople', label: 'Staff Management',  description: 'People on file — band members + external contractors',    icon: 'account-supervisor',      roles: ['admin'] },
+  { route: 'onboardingFlows',  label: 'Onboarding',        description: 'Design onboarding flows & track progress for new people', icon: 'clipboard-check-multiple', roles: ['admin'] },
+  { route: 'timekeeping',      label: 'Time Keeping',      description: 'Worker hours & approvals',                                 icon: 'clock-outline',            roles: ['admin'] },
+  { route: 'onboardingPeople', label: 'Staff Management',  description: 'People on file — band members + external contractors',    icon: 'account-supervisor',       roles: ['admin'] },
+  { route: 'documents',        label: 'Documents',         description: 'Forms, filings & PDFs by tag',                             icon: 'file-document-multiple',   roles: ['admin'] },
+  { route: 'publicRecords',    label: 'Financial Summary', description: 'Where the money goes — budgets, expenditures & projects', icon: 'chart-pie',                roles: ['admin'] },
 ];
 
 // General community items.
