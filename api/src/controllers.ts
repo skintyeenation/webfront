@@ -841,6 +841,24 @@ export class TimeKeepingController {
     return this.reports.generate(periodId, upn);
   }
 
+  // Stream the report PDF for a period through the api/ rather than
+  // returning the storage-adapter URL. Reasons:
+  //   - The in-memory storage fallback (no AZURE_STORAGE_DOCUMENTS_*
+  //     env set) returns a `mem://` URL that browsers can't open.
+  //   - Keeps the role guard usable; the client fetches via the same
+  //     HTTP layer that already sends x-role.
+  // `?download=1` flips Content-Disposition to attachment so the
+  // browser saves the file instead of inlining it.
+  @Get('reports/:periodId/pdf') @Roles('admin')
+  async reportPdf(@Param('periodId') periodId: string, @Query('download') download: string | undefined, @Req() req: any, @Res() res: any) {
+    const upn = (req.headers['x-upn'] as string | undefined) || 'unknown';
+    const { bytes, fileName } = await this.reports.getPdfBytes(periodId, upn);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `${download === '1' ? 'attachment' : 'inline'}; filename="${fileName}"`);
+    res.setHeader('Content-Length', String(bytes.length));
+    res.send(bytes);
+  }
+
   // Download a CSV export — same shape as the PDF data but flat.
   // Streams text/csv with a Content-Disposition attachment so the
   // browser auto-downloads.

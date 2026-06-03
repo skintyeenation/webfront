@@ -55,7 +55,8 @@ export const mockApiService: ApiService = {
     reports: {
       list:     () => delay([]),
       generate: () => { throw new Error('timekeeping.reports.generate requires the real api/'); },
-      csvUrl:   () => '',
+      fetchPdf: () => { throw new Error('timekeeping.reports.fetchPdf requires the real api/'); },
+      fetchCsv: () => { throw new Error('timekeeping.reports.fetchCsv requires the real api/'); },
     },
   },
   polls: {

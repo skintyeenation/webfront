@@ -1,13 +1,39 @@
 import React, { useCallback, useState } from 'react';
 import { Linking, Platform, View } from 'react-native';
-import { ActivityIndicator, Button, Card, Chip, HelperText, Text } from 'react-native-paper';
+import { ActivityIndicator, Button, Card, Chip, HelperText, Snackbar, Text } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import dayjs from 'dayjs';
 import { PageContainer, PageContent } from 'skintyee/components/layout';
-import Config from 'skintyee/config';
 import { apiFactory } from 'skintyee/store/apis';
 import { TimesheetReportSummary } from 'skintyee/services/api/ApiService';
 import { theme } from 'skintyee/styles';
+
+// Open a Blob in a new tab on web (object URL). On native, hand off to
+// platform sharing. Pure web for now per Lucas; native path is a TODO.
+function openBlob(blob: Blob, _filename: string) {
+  if (Platform.OS === 'web' && typeof URL !== 'undefined') {
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    // Don't revoke immediately — the new tab still needs the URL alive
+    // to render the PDF. Revoke after a generous delay so tab keeps it.
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  }
+}
+
+// Save a Blob via the platform's native save flow. Web: anchor with
+// the `download` attribute → goes to the Downloads folder.
+function saveBlob(blob: Blob, filename: string) {
+  if (Platform.OS === 'web' && typeof URL !== 'undefined') {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 5_000);
+  }
+}
 
 // ----------------------------------------------------------------------------
 // TimekeepingReports — admin landing for the per-period PDFs + CSVs.
@@ -25,7 +51,9 @@ export default function TimekeepingReports({ navigation }: any) {
   const [reports, setReports] = useState<TimesheetReportSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | undefined>();
+  const [busyAction, setBusyAction] = useState<'open' | 'save' | 'csv' | 'regen' | undefined>();
   const [error, setError] = useState<string | undefined>();
+  const [toast, setToast] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setError(undefined);
@@ -41,43 +69,59 @@ export default function TimekeepingReports({ navigation }: any) {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
+  const ensureGenerated = async (r: TimesheetReportSummary): Promise<TimesheetReportSummary> => {
+    if (r.reportUrl) return r;
+    const fresh = await apiFactory().timekeeping.reports.generate(r.payPeriodId);
+    setReports((prev) => prev.map((x) => (x.payPeriodId === r.payPeriodId ? fresh : x)));
+    return fresh;
+  };
+
   const openPdf = async (r: TimesheetReportSummary) => {
     if (!r.hasData) return;
-    if (r.reportUrl) {
-      Linking.openURL(r.reportUrl);
-      return;
-    }
-    setBusy(r.payPeriodId);
+    setBusy(r.payPeriodId); setBusyAction('open'); setError(undefined);
     try {
-      const fresh = await apiFactory().timekeeping.reports.generate(r.payPeriodId);
-      setReports((prev) => prev.map((x) => (x.payPeriodId === r.payPeriodId ? fresh : x)));
-      if (fresh.reportUrl) Linking.openURL(fresh.reportUrl);
+      await ensureGenerated(r);
+      const { blob, filename } = await apiFactory().timekeeping.reports.fetchPdf(r.payPeriodId);
+      openBlob(blob, filename);
     } catch (e: any) {
       setError(e?.message ?? String(e));
-    } finally {
-      setBusy(undefined);
-    }
+    } finally { setBusy(undefined); setBusyAction(undefined); }
+  };
+
+  const savePdf = async (r: TimesheetReportSummary) => {
+    if (!r.hasData) return;
+    setBusy(r.payPeriodId); setBusyAction('save'); setError(undefined);
+    try {
+      await ensureGenerated(r);
+      const { blob, filename } = await apiFactory().timekeeping.reports.fetchPdf(r.payPeriodId, { download: true });
+      saveBlob(blob, filename);
+      setToast('PDF saved to Downloads');
+    } catch (e: any) {
+      setError(e?.message ?? String(e));
+    } finally { setBusy(undefined); setBusyAction(undefined); }
   };
 
   const regenerate = async (r: TimesheetReportSummary) => {
-    setBusy(r.payPeriodId);
+    setBusy(r.payPeriodId); setBusyAction('regen'); setError(undefined);
     try {
       const fresh = await apiFactory().timekeeping.reports.generate(r.payPeriodId);
       setReports((prev) => prev.map((x) => (x.payPeriodId === r.payPeriodId ? fresh : x)));
+      setToast('Regenerated');
     } catch (e: any) {
       setError(e?.message ?? String(e));
-    } finally {
-      setBusy(undefined);
-    }
+    } finally { setBusy(undefined); setBusyAction(undefined); }
   };
 
-  const downloadCsv = (r: TimesheetReportSummary) => {
+  const downloadCsv = async (r: TimesheetReportSummary) => {
     if (!r.hasData) return;
-    // Direct browser download. Server sets Content-Disposition so the
-    // file lands in the user's Downloads folder.
-    const path = `/v1/timekeeping/reports/${encodeURIComponent(r.payPeriodId)}/csv`;
-    const base = Config.apiServer === 'mock' ? '' : Config.apiServer.replace(/\/+$/, '');
-    Linking.openURL(base + path);
+    setBusy(r.payPeriodId); setBusyAction('csv'); setError(undefined);
+    try {
+      const { blob, filename } = await apiFactory().timekeeping.reports.fetchCsv(r.payPeriodId);
+      saveBlob(blob, filename);
+      setToast('CSV saved to Downloads');
+    } catch (e: any) {
+      setError(e?.message ?? String(e));
+    } finally { setBusy(undefined); setBusyAction(undefined); }
   };
 
   return (
@@ -134,19 +178,30 @@ export default function TimekeepingReports({ navigation }: any) {
                       compact mode="contained" icon="file-pdf-box"
                       buttonColor={theme.colors.primary} textColor="#fff"
                       onPress={() => openPdf(r)}
-                      loading={isBusy && !r.reportUrl}
+                      loading={isBusy && busyAction === 'open'}
                       disabled={isBusy}
                     >
                       {r.reportUrl ? 'Open PDF' : 'Generate PDF'}
                     </Button>
                     <Button
+                      compact mode="outlined" icon="download"
+                      textColor={theme.colors.text}
+                      onPress={() => savePdf(r)}
+                      loading={isBusy && busyAction === 'save'}
+                      disabled={isBusy}
+                      style={{ marginLeft: 6 }}
+                    >
+                      Save PDF
+                    </Button>
+                    <Button
                       compact mode="outlined" icon="file-delimited"
                       textColor={theme.colors.text}
                       onPress={() => downloadCsv(r)}
-                      style={{ marginLeft: 6 }}
+                      loading={isBusy && busyAction === 'csv'}
                       disabled={isBusy}
+                      style={{ marginLeft: 6 }}
                     >
-                      Download CSV
+                      CSV
                     </Button>
                     <View style={{ flex: 1 }} />
                     {r.reportUrl ? (
@@ -154,7 +209,7 @@ export default function TimekeepingReports({ navigation }: any) {
                         compact mode="text" icon="refresh"
                         textColor={theme.colors.textDarker}
                         onPress={() => regenerate(r)}
-                        loading={isBusy}
+                        loading={isBusy && busyAction === 'regen'}
                         disabled={isBusy}
                       >
                         Regenerate
@@ -166,6 +221,16 @@ export default function TimekeepingReports({ navigation }: any) {
             </Card>
           );
         })}
+
+        <Snackbar
+          visible={toast !== null}
+          onDismiss={() => setToast(null)}
+          duration={1800}
+          wrapperStyle={{ alignItems: 'center' }}
+          style={{ backgroundColor: theme.colors.success, alignSelf: 'center', width: '100%', maxWidth: 420 }}
+        >
+          <Text style={{ color: '#000', textAlign: 'center', width: '100%' }}>{toast ?? ''}</Text>
+        </Snackbar>
       </PageContent>
     </PageContainer>
   );

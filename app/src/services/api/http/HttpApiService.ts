@@ -163,8 +163,29 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
       reports: {
         list: (count?: number) => get<any[]>('/timekeeping/reports', count ? { count: String(count) } : undefined),
         generate: (periodId: string) => post<any>(`/timekeeping/reports/${encodeURIComponent(periodId)}/generate`, {}),
-        // CSV is a direct GET so the browser/native downloader can stream it.
-        csvUrl: (periodId: string) => api(`/timekeeping/reports/${encodeURIComponent(periodId)}/csv`),
+        // Fetch the PDF / CSV bytes through the authenticated HTTP
+        // layer (auth headers + bypasses the `mem://` issue when the
+        // api/ runs in in-memory storage mode). Caller decides what to
+        // do with the Blob (open / save / share).
+        fetchPdf: async (periodId: string, opts?: { download?: boolean }) => {
+          const path = `/timekeeping/reports/${encodeURIComponent(periodId)}/pdf${opts?.download ? '?download=1' : ''}`;
+          const res = await fetch(api(path), { headers: headers() });
+          if (!res.ok) throw new Error(`GET ${path} → ${res.status}: ${await res.text()}`);
+          const blob = await res.blob();
+          // Best-effort filename from Content-Disposition.
+          const cd = res.headers.get('content-disposition') ?? '';
+          const fnMatch = cd.match(/filename="([^"]+)"/);
+          return { blob, filename: fnMatch?.[1] ?? `timesheets-${periodId}.pdf` };
+        },
+        fetchCsv: async (periodId: string) => {
+          const path = `/timekeeping/reports/${encodeURIComponent(periodId)}/csv`;
+          const res = await fetch(api(path), { headers: headers() });
+          if (!res.ok) throw new Error(`GET ${path} → ${res.status}: ${await res.text()}`);
+          const blob = await res.blob();
+          const cd = res.headers.get('content-disposition') ?? '';
+          const fnMatch = cd.match(/filename="([^"]+)"/);
+          return { blob, filename: fnMatch?.[1] ?? `timesheets-${periodId}.csv` };
+        },
       },
     },
     polls: {

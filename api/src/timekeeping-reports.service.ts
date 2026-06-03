@@ -6,6 +6,10 @@ import { recentPayPeriods, payPeriodFor, PayPeriod } from './skintyee-pay-period
 import { buildPdf, PdfLine, PDF_CONST } from './pdf-builder';
 import dayjs from 'dayjs';
 
+// In-memory cache of the last PDF bytes per period so a quick re-open
+// after generation doesn't go back to storage. Refreshed by generate().
+const pdfCache = new Map<string, { bytes: Buffer; fileName: string; generatedAt: number }>();
+
 // Reports surface for the Time Keeping screen's Approvals tab. Two
 // outputs per pay period:
 //   - PDF (printable) — built by api/src/pdf-builder.ts and stored
@@ -125,6 +129,7 @@ export class TimekeepingReportsService {
     }
     const fileName = `timesheets-${payPeriodId}.pdf`;
     const up = await this.storage.upload({ fileName, mimeType: 'application/pdf', bytes: pdf });
+    pdfCache.set(payPeriodId, { bytes: pdf, fileName, generatedAt: Date.now() });
     const totalHours = timesheets.reduce((s, t) => s + (t.totalHours ?? 0), 0);
     const data = {
       payPeriodId,
@@ -157,6 +162,41 @@ export class TimekeepingReportsService {
       reportGeneratedAt: r.generatedAt.toISOString(),
       reportSizeBytes: r.sizeBytes,
     };
+  }
+
+  // Read the PDF bytes for a period. Tries (in order): hot in-memory
+  // cache from a recent generate(); the storage adapter via fileKey;
+  // a fresh on-the-fly regenerate. Used by the streaming endpoint so
+  // the client doesn't need direct access to the storage URL (avoids
+  // the in-memory `mem://` URL issue + lets us keep the role guard on
+  // the route).
+  async getPdfBytes(payPeriodId: string, adminUpn: string): Promise<{ bytes: Buffer; fileName: string }> {
+    const cached = pdfCache.get(payPeriodId);
+    if (cached) return { bytes: cached.bytes, fileName: cached.fileName };
+    if (this.prisma.isAvailable) {
+      const r = await this.prisma.timesheetReport.findUnique({ where: { payPeriodId } });
+      if (r) {
+        try {
+          const url = await this.storage.urlFor(r.fileKey);
+          // The adapter's URL can be `mem://...` (in-memory degraded
+          // mode) or a real https URL. For mem://, regenerate inline.
+          if (url && url.startsWith('http')) {
+            const res = await fetch(url);
+            if (res.ok) {
+              const buf = Buffer.from(await res.arrayBuffer());
+              pdfCache.set(payPeriodId, { bytes: buf, fileName: r.fileName, generatedAt: Date.now() });
+              return { bytes: buf, fileName: r.fileName };
+            }
+          }
+        } catch (e: any) {
+          this.log.warn(`getPdfBytes: storage read failed, regenerating: ${e?.message ?? e}`);
+        }
+      }
+    }
+    // Fall through — regenerate fresh.
+    const fresh = await this.generate(payPeriodId, adminUpn);
+    const cachedNow = pdfCache.get(payPeriodId);
+    return { bytes: cachedNow?.bytes ?? Buffer.alloc(0), fileName: cachedNow?.fileName ?? `timesheets-${payPeriodId}.pdf` };
   }
 
   // CSV export — flat per-entry rows, no persistence. Same column shape

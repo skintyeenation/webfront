@@ -154,8 +154,12 @@ export interface ApiService {
     reports: {
       list(count?: number): Promise<TimesheetReportSummary[]>;
       generate(periodId: string): Promise<TimesheetReportSummary>;
-      /** Returns an URL the UI can navigate to / open as a download. */
-      csvUrl(periodId: string): string;
+      /** Streams the PDF through the authenticated api/ endpoint and
+       *  returns a Blob. `opts.download` flips the server's
+       *  Content-Disposition to attachment (irrelevant when the caller
+       *  is going to save it themselves but useful for headers). */
+      fetchPdf(periodId: string, opts?: { download?: boolean }): Promise<{ blob: Blob; filename: string }>;
+      fetchCsv(periodId: string): Promise<{ blob: Blob; filename: string }>;
     };
   };
   polls: {
