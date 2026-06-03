@@ -27,12 +27,14 @@ const ACCOUNT_ITEMS: MoreItem[] = [
 const ADMIN_ITEMS: MoreItem[] = [
   { route: 'timekeeping',   label: 'Time Keeping',   description: 'Worker hours & approvals',          icon: 'clock-outline',          roles: ['admin'] },
   { route: 'publicRecords', label: 'Financial Summary',  description: 'Where the money goes — budgets, expenditures & projects', icon: 'chart-pie',  roles: ['admin'] },
+  { route: 'documents',     label: 'Documents',      description: 'Forms, filings & PDFs by tag',      icon: 'file-document-multiple',  roles: ['admin'] },
 ];
 
 // General community items.
 const COMMUNITY_ITEMS: MoreItem[] = [
   { route: 'directory', label: 'Band Member Directory', description: 'Members, council & staff', icon: 'account-group', roles: ['public', 'member', 'staff', 'admin'] },
   { route: 'polls', label: 'Polling + Surveys', description: 'Surveys & vote on issues', icon: 'vote-outline', roles: ['public', 'member', 'staff', 'admin'] },
+  { route: 'documents', label: 'Forms & Documents', description: 'Forms, filings & PDFs by category', icon: 'file-document-outline', roles: ['member', 'staff'] },
   // Staff submit their own timesheets here; admins use the Time Keeping tool above.
   { route: 'timekeeping', label: 'My Timesheets', description: 'Submit & view your hours', icon: 'clock-outline', roles: ['staff'] },
 ];

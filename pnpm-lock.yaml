@@ -95,6 +95,9 @@ importers:
       expo-crypto:
         specifier: ~12.2.1
         version: 12.2.2(expo@48.0.21(@babel/core@7.29.0))
+      expo-document-picker:
+        specifier: ^56.0.4
+        version: 56.0.4(expo@48.0.21(@babel/core@7.29.0))
       expo-font:
         specifier: ~11.1.1
         version: 11.1.1(expo@48.0.21(@babel/core@7.29.0))
@@ -3104,6 +3107,11 @@ packages:
 
   expo-crypto@12.2.2:
     resolution: {integrity: sha512-83SZju/l0UL4n+Dgt+T1csiySa0gwCeE6BKKHzlO+4lJ6B8xXZ5ypu97ttWATBsqcpF/bj1RmYPbfbKsZ+4ixA==}
+    peerDependencies:
+      expo: '*'
+
+  expo-document-picker@56.0.4:
+    resolution: {integrity: sha512-75Apf74XNkYYohObIH19VZw42xpe0gmEnPccuzGXKVAzlvTYCfibSgW17F+6vt4paOfZEnAoZ1QFZM6dmaujRA==}
     peerDependencies:
       expo: '*'
 
@@ -10143,6 +10151,10 @@ snapshots:
   expo-crypto@12.2.2(expo@48.0.21(@babel/core@7.29.0)):
     dependencies:
       base64-js: 1.5.1
+      expo: 48.0.21(@babel/core@7.29.0)
+
+  expo-document-picker@56.0.4(expo@48.0.21(@babel/core@7.29.0)):
+    dependencies:
       expo: 48.0.21(@babel/core@7.29.0)
 
   expo-file-system@15.2.2(expo@48.0.21(@babel/core@7.29.0)):

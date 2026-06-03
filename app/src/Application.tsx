@@ -37,6 +37,9 @@ import EditMember from 'skintyee/components/pages/EditMember';
 import AddTimesheet from 'skintyee/components/pages/AddTimesheet';
 import CreateMeeting from 'skintyee/components/pages/CreateMeeting';
 import EditMeeting from 'skintyee/components/pages/EditMeeting';
+import Documents from 'skintyee/components/pages/Documents';
+import EditDocument from 'skintyee/components/pages/EditDocument';
+import TagManager from 'skintyee/components/pages/TagManager';
 
 // Five fixed tabs keep the bottom bar clean. Overflow features live under the
 // 5th tab — "More" for public/members, "Admin" for admins (admin tools grouped
@@ -115,6 +118,10 @@ const MoreNavigation = () => {
           item (and any deep nav). The screen itself is untouched. */}
       <MoreStack.Screen {...routeConfig.publicRecords} component={PublicRecords} />
       <MoreStack.Screen {...routeConfig.expenditureDetail} component={ExpenditureDetail} />
+      <MoreStack.Screen {...routeConfig.documents} component={Documents} />
+      <MoreStack.Screen {...routeConfig.documentCreate} component={EditDocument} />
+      <MoreStack.Screen {...routeConfig.documentEdit} component={EditDocument} />
+      <MoreStack.Screen {...routeConfig.tagManager} component={TagManager} />
     </MoreStack.Navigator>
   );
 };
