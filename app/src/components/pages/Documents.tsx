@@ -80,14 +80,17 @@ export default function Documents({ navigation }: any) {
     <PageContainer>
       <PageContent>
         {isAdmin ? (
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+          // Same alignment trick as Onboarding — drop `compact` so the
+          // outlined button matches AdminAddButton (non-compact contained)
+          // in height; alignItems:center keeps them on a baseline on
+          // reflow.
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' }}>
             <AdminAddButton label="Add document" icon="file-plus" onPress={() => navigation.navigate('documentCreate')} />
-            <View style={{ width: 6 }} />
             <Button
-              compact mode="outlined" icon="tag-multiple"
+              mode="outlined" icon="tag-multiple"
               textColor={theme.colors.text}
               onPress={() => navigation.navigate('tagManager')}
-              style={{ marginLeft: 6 }}
+              style={{ marginLeft: 6, marginBottom: 12 }}
             >
               Tag Manager
             </Button>
