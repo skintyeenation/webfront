@@ -1,11 +1,183 @@
-import React, { useEffect } from 'react';
-import { View } from 'react-native';
-import { Button, Card, Chip, Text } from 'react-native-paper';
+import React, { useEffect, useState } from 'react';
+import { Linking, Platform, View } from 'react-native';
+import { Button, Card, Chip, IconButton, Text } from 'react-native-paper';
 import moment from 'moment';
 import { PageContainer, PageContent, NoContent, AdminAddButton, useConfirm } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { loadMeetings, cancelMeeting, removeMeeting } from 'skintyee/store/modules/meetings';
 import { theme } from 'skintyee/styles';
+
+// ----------------------------------------------------------------------------
+// Teams meeting block parsing.
+//
+// Graph returns the meeting body as a long string blending the user's own
+// agenda copy with a stock "Microsoft Teams meeting" block (Join URL,
+// Meeting ID, Passcode, Help link). Rendering it raw is ugly and the join
+// URL is ~200 chars so it wraps awkwardly.
+//
+// parseAgenda() splits the two: the user's prose stays at the top of the
+// card; the Teams details get rendered as a structured, emoji-prefixed
+// strip with copy-to-clipboard affordances and shortened display links.
+// ----------------------------------------------------------------------------
+
+type TeamsBlock = {
+  joinUrl?: string;
+  meetingId?: string;
+  passcode?: string;
+  helpUrl?: string;
+};
+
+function stripHtml(s: string): string {
+  return s
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function parseAgenda(agenda?: string): { teams?: TeamsBlock; otherText: string } {
+  if (!agenda) return { otherText: '' };
+  const flat = stripHtml(agenda);
+  if (!/Microsoft Teams meeting/i.test(flat)) return { otherText: flat };
+
+  const joinMatch    = flat.match(/https?:\/\/teams\.microsoft\.com\/(?:meet|l\/meetup-join)\/\S+/i);
+  const idMatch      = flat.match(/Meeting ID:\s*([\d\s]+?)(?:\n|Passcode|Help|$)/i);
+  const passMatch    = flat.match(/Passcode:\s*(\S+)/i);
+  const helpMatch    = flat.match(/https?:\/\/aka\.ms\/\S+/i);
+
+  // Cut everything from "Microsoft Teams meeting" (and the leading
+  // underscore divider, if any) onward — that's the chunk we re-render
+  // ourselves below.
+  const otherText = flat
+    .replace(/_{5,}[\s\S]*?Microsoft Teams meeting[\s\S]*$/i, '')
+    .replace(/Microsoft Teams meeting[\s\S]*$/i, '')
+    .trim();
+
+  return {
+    teams: {
+      joinUrl:   joinMatch?.[0]?.replace(/[.,)]+$/, ''),
+      meetingId: idMatch?.[1]?.trim().replace(/\s+/g, ' '),
+      passcode:  passMatch?.[1]?.replace(/[.,)]+$/, ''),
+      helpUrl:   helpMatch?.[0]?.replace(/[.,)]+$/, ''),
+    },
+    otherText,
+  };
+}
+
+// Display-shorten a URL — keeps the host + a trimmed path so the user
+// can tell where it goes, while the copy/open uses the full URL.
+function shortenUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    const path = u.pathname.length > 22 ? u.pathname.slice(0, 22) + '…' : u.pathname;
+    return u.host + path;
+  } catch {
+    return url.length > 36 ? url.slice(0, 35) + '…' : url;
+  }
+}
+
+async function copyText(text: string): Promise<boolean> {
+  if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
+    try { await navigator.clipboard.writeText(text); return true; } catch { /* fall through */ }
+  }
+  // Native fallback: no clipboard package installed yet — log so the
+  // dev console shows the value the user wanted.
+  // eslint-disable-next-line no-console
+  console.warn('[copy] no clipboard on this platform; value:', text);
+  return false;
+}
+
+function MeetingAgenda({ agenda }: { agenda?: string }) {
+  const { teams, otherText } = parseAgenda(agenda);
+  const [copiedKey, setCopiedKey] = useState<string | undefined>();
+  const doCopy = async (key: string, value: string) => {
+    const ok = await copyText(value);
+    if (ok) {
+      setCopiedKey(key);
+      setTimeout(() => setCopiedKey(undefined), 1500);
+    }
+  };
+
+  // One row in the Teams block: emoji + LABEL + value + copy IconButton.
+  const TeamsRow = ({
+    icon, label, value, display, link,
+  }: { icon: string; label: string; value: string; display?: string; link?: boolean }) => (
+    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+      <Text style={{ width: 22, fontSize: 14 }}>{icon}</Text>
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: theme.colors.textDarker, fontSize: 9, letterSpacing: 1 }}>{label.toUpperCase()}</Text>
+        {link ? (
+          <Text
+            onPress={() => Linking.openURL(value)}
+            style={{ color: theme.colors.primary, fontSize: 13, textDecorationLine: 'underline' }}
+            numberOfLines={1}
+          >
+            {display ?? value}
+          </Text>
+        ) : (
+          <Text style={{ color: theme.colors.text, fontSize: 14, fontWeight: '600', letterSpacing: 0.5 }} numberOfLines={1}>
+            {display ?? value}
+          </Text>
+        )}
+      </View>
+      <IconButton
+        icon={copiedKey === label ? 'check' : 'content-copy'}
+        size={18}
+        iconColor={copiedKey === label ? theme.colors.success : theme.colors.textDarker}
+        onPress={() => doCopy(label, value)}
+        accessibilityLabel={`Copy ${label}`}
+      />
+    </View>
+  );
+
+  return (
+    <View>
+      {otherText ? (
+        <Text style={{ color: theme.colors.text, marginTop: 8 }}>{otherText}</Text>
+      ) : null}
+      {teams ? (
+        <View
+          style={{
+            marginTop: 10,
+            paddingHorizontal: 12,
+            paddingVertical: 10,
+            backgroundColor: 'rgba(255,255,255,0.04)',
+            borderRadius: 6,
+            borderLeftWidth: 3,
+            borderLeftColor: '#6264A7', // Teams purple
+          }}
+        >
+          <Text style={{ color: theme.colors.text, fontSize: 13, fontWeight: '700' }}>
+            📹  Microsoft Teams meeting
+          </Text>
+          {teams.joinUrl ? (
+            <>
+              <TeamsRow icon="🔗" label="Join" value={teams.joinUrl} display={shortenUrl(teams.joinUrl)} link />
+              <Button
+                compact mode="contained" icon="video"
+                buttonColor="#6264A7" textColor="#fff"
+                onPress={() => Linking.openURL(teams.joinUrl!)}
+                style={{ alignSelf: 'flex-start', marginTop: 8 }}
+              >
+                Join Teams
+              </Button>
+            </>
+          ) : null}
+          {teams.meetingId ? <TeamsRow icon="🆔" label="Meeting ID" value={teams.meetingId} /> : null}
+          {teams.passcode ? <TeamsRow icon="🔒" label="Passcode" value={teams.passcode} /> : null}
+          {teams.helpUrl ? <TeamsRow icon="❓" label="Help" value={teams.helpUrl} display={shortenUrl(teams.helpUrl)} link /> : null}
+        </View>
+      ) : null}
+    </View>
+  );
+}
 
 // Display labels + icons for the 5 meeting types. Catalog lives in
 // api/src/skintyee-meeting-types.ts; this mirror keeps the chip render
@@ -83,7 +255,7 @@ export default function Meetings({ navigation }: any) {
 
                 <Text style={{ color: theme.colors.accent, marginTop: 4 }}>{moment(item.startsAt).format('ddd, MMM D · h:mm A')}</Text>
                 <Text style={{ color: theme.colors.textDarker, marginTop: 2 }}>{item.location}</Text>
-                <Text style={{ color: theme.colors.text, marginTop: 8 }}>{item.agenda}</Text>
+                <MeetingAgenda agenda={item.agenda} />
 
                 {isAdmin ? (
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 10 }}>
