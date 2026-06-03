@@ -102,7 +102,11 @@ Every stub is catalogued in **`app/STUBS.md`**.
 
 **Docs** (`docs/`): `app-plan.md` (build plan), `architecture-decisions.md`
 (service ADRs), `roadmap.md` (3-month timeline), `testing-strategy.md`,
-`Skintyee-App-Proposal.pptx` (proposal deck).
+`Skintyee-App-Proposal.pptx` (proposal deck), `features/` (per-feature
+design docs — timesheets, planner-dashboard, meeting-types,
+shared-mailbox-management, **documents-and-onboarding** (planned —
+admin document library w/ pluggable Blob/SharePoint storage +
+contractor onboarding flows reusing the timesheets approval pattern)).
 
 Run: `pnpm --filter @skintyee/app start` (Expo). Work on branch `feature/app`.
 
