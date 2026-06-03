@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Platform, ScrollView, StyleProp, View, ViewStyle } from 'react-native';
 import { Menu, TextInput, TouchableRipple } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -38,13 +38,31 @@ function parse(value: string): { h?: string; m?: string } {
 //     to RN, but the on-screen keyboard story is cleaner with manual
 //     entry for now.
 export function TimeField({ label, value, onChange, placeholder = '—:—', error, style }: TimeFieldProps) {
-  const { h, m } = parse(value);
+  // Local in-flight segments so a hour pick (without minute yet) doesn't
+  // get wiped by the immediate onChange('') and prevent the next minute
+  // pick from re-reading its hour. Sync from the value prop when it
+  // changes externally (parent reset, draft hydration, etc.).
+  const initial = parse(value);
+  const [h, setH] = useState<string | undefined>(initial.h);
+  const [m, setM] = useState<string | undefined>(initial.m);
+  useEffect(() => {
+    const p = parse(value);
+    setH(p.h);
+    setM(p.m);
+  }, [value]);
+
   const [openH, setOpenH] = useState(false);
   const [openM, setOpenM] = useState(false);
 
-  const update = (nextH?: string, nextM?: string) => {
-    if (nextH && nextM) onChange(`${nextH}:${nextM}`);
-    else                onChange('');
+  const pickHour = (nextH: string) => {
+    setH(nextH);
+    onChange(m ? `${nextH}:${m}` : '');
+    setOpenH(false);
+  };
+  const pickMinute = (nextM: string) => {
+    setM(nextM);
+    onChange(h ? `${h}:${nextM}` : '');
+    setOpenM(false);
   };
 
   if (Platform.OS === 'web') {
@@ -103,7 +121,7 @@ export function TimeField({ label, value, onChange, placeholder = '—:—', err
                   <Menu.Item
                     key={hh}
                     title={hh}
-                    onPress={() => { update(hh, m); setOpenH(false); }}
+                    onPress={() => pickHour(hh)}
                     titleStyle={{
                       color: selected ? theme.colors.primary : theme.colors.text,
                       fontWeight: selected ? '700' : '400',
@@ -135,7 +153,7 @@ export function TimeField({ label, value, onChange, placeholder = '—:—', err
                 <Menu.Item
                   key={mm}
                   title={mm}
-                  onPress={() => { update(h, mm); setOpenM(false); }}
+                  onPress={() => pickMinute(mm)}
                   titleStyle={{
                     color: selected ? theme.colors.primary : theme.colors.text,
                     fontWeight: selected ? '700' : '400',
