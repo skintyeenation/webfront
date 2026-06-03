@@ -160,6 +160,12 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
         }),
       approve: (id: string)                  => post<any>(`/timekeeping/timesheets/${encodeURIComponent(id)}/approve`, {}),
       reject:  (id: string, reason?: string) => post<any>(`/timekeeping/timesheets/${encodeURIComponent(id)}/reject`,  { reason }),
+      reports: {
+        list: (count?: number) => get<any[]>('/timekeeping/reports', count ? { count: String(count) } : undefined),
+        generate: (periodId: string) => post<any>(`/timekeeping/reports/${encodeURIComponent(periodId)}/generate`, {}),
+        // CSV is a direct GET so the browser/native downloader can stream it.
+        csvUrl: (periodId: string) => api(`/timekeeping/reports/${encodeURIComponent(periodId)}/csv`),
+      },
     },
     polls: {
       list: () => get<Poll[]>('/polls'),

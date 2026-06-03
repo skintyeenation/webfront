@@ -180,36 +180,52 @@ export default function TimeKeeping({ navigation }: any) {
           />
         ) : null}
 
-        {/* Pay period dropdown */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-          <Menu
-            visible={periodMenuOpen}
-            onDismiss={() => setPeriodMenuOpen(false)}
-            anchor={
+        {/* Pay period dropdown — Cutoff / Pay date text now sits BELOW
+            the dropdown row instead of inline, so the right column is
+            free for the Approvals tab's "Open Reports" CTA. */}
+        <View style={{ marginBottom: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Menu
+              visible={periodMenuOpen}
+              onDismiss={() => setPeriodMenuOpen(false)}
+              anchor={
+                <Button
+                  mode="outlined"
+                  icon="calendar-range"
+                  textColor={theme.colors.text}
+                  onPress={() => setPeriodMenuOpen(true)}
+                  style={{ borderColor: theme.colors.secondary }}
+                >
+                  {selectedPeriod?.label ?? 'Choose period'}
+                </Button>
+              }
+            >
+              {recent.map((p) => (
+                <Menu.Item
+                  key={p.id}
+                  title={p.label + (p.id === currentPeriod?.id ? ' · current' : '')}
+                  onPress={() => {
+                    setSelectedPeriodId(p.id);
+                    setPeriodMenuOpen(false);
+                  }}
+                />
+              ))}
+            </Menu>
+            <View style={{ flex: 1 }} />
+            {tab === 'approvals' ? (
               <Button
-                mode="outlined"
-                icon="calendar-range"
-                textColor={theme.colors.text}
-                onPress={() => setPeriodMenuOpen(true)}
-                style={{ borderColor: theme.colors.secondary }}
+                mode="contained"
+                icon="file-chart"
+                buttonColor={theme.colors.primary}
+                textColor="#fff"
+                onPress={() => navigation.navigate('timekeepingReports')}
               >
-                {selectedPeriod?.label ?? 'Choose period'}
+                Open Reports
               </Button>
-            }
-          >
-            {recent.map((p) => (
-              <Menu.Item
-                key={p.id}
-                title={p.label + (p.id === currentPeriod?.id ? ' · current' : '')}
-                onPress={() => {
-                  setSelectedPeriodId(p.id);
-                  setPeriodMenuOpen(false);
-                }}
-              />
-            ))}
-          </Menu>
+            ) : null}
+          </View>
           {selectedPeriod ? (
-            <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginLeft: 10 }}>
+            <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginTop: 6 }}>
               Cutoff Fri {dayjs(selectedPeriod.endISO).format('MMM D')} · Pay Fri {dayjs(selectedPeriod.payDateISO).format('MMM D')}
             </Text>
           ) : null}

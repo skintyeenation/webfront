@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, ForbiddenException, Get, HttpCode, Logger, NotFoundException, OnApplicationBootstrap, Param, Post, Patch, Query, Req } from '@nestjs/common';
+import { Body, Controller, Delete, ForbiddenException, Get, HttpCode, Logger, NotFoundException, OnApplicationBootstrap, Param, Post, Patch, Query, Req, Res } from '@nestjs/common';
+import { TimekeepingReportsService } from './timekeeping-reports.service';
 import { DataService } from './data.service';
 import { Roles, callerRole } from './roles';
 import { GraphFeedService, FeedItem, AppRole } from './graph-feed.service';
@@ -816,7 +817,40 @@ function summarize(entries: SubmitBody['entries'], period: PayPeriod) {
 export class TimeKeepingController {
   private readonly log = new Logger(TimeKeepingController.name);
 
-  constructor(private data: DataService, private prisma: PrismaService) {}
+  constructor(
+    private data: DataService,
+    private prisma: PrismaService,
+    private reports: TimekeepingReportsService,
+  ) {}
+
+  // ---- Reports ---------------------------------------------------------
+  //
+  // Catalog of recent pay periods + each one's PDF report status.
+  // Drives the Time Keeping > Approvals > Open Reports screen.
+  @Get('reports') @Roles('admin')
+  async listReports(@Query('count') count?: string) {
+    const n = Math.max(1, Math.min(24, Number(count) || 12));
+    return this.reports.list(n);
+  }
+
+  // Generate (or regenerate) a PDF for a period. Returns the persisted
+  // report metadata + a freshly-issued URL.
+  @Post('reports/:periodId/generate') @Roles('admin')
+  async generateReport(@Param('periodId') periodId: string, @Req() req: any) {
+    const upn = (req.headers['x-upn'] as string | undefined) || 'unknown';
+    return this.reports.generate(periodId, upn);
+  }
+
+  // Download a CSV export — same shape as the PDF data but flat.
+  // Streams text/csv with a Content-Disposition attachment so the
+  // browser auto-downloads.
+  @Get('reports/:periodId/csv') @Roles('admin')
+  async reportCsv(@Param('periodId') periodId: string, @Res() res: any) {
+    const { filename, csv } = await this.reports.csv(periodId);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csv);
+  }
 
   // ---- Pay periods (computed) -------------------------------------------
 

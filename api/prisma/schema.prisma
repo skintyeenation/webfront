@@ -140,6 +140,29 @@ model Timesheet {
   @@index([workerUpn])
 }
 
+// Generated PDF report for a single pay period — admin clicks Generate
+// on the Reports screen and the api/ builds a printable PDF of every
+// worker's timesheet in that period + uploads it via the active storage
+// adapter (Blob today, SharePoint when wired). Idempotent on regenerate:
+// re-running drops the old blob and replaces with a fresh one.
+model TimesheetReport {
+  id          String   @id @default(cuid())
+  payPeriodId String   @unique // YYYY-MM-DD of cutoff Friday
+  // Storage adapter that owns fileKey (same shape as Document).
+  storage     String // 'blob' | 'sharepoint'
+  fileKey     String
+  fileUrl     String?
+  fileName    String
+  mimeType    String   @default("application/pdf")
+  sizeBytes   Int
+  // Snapshot of the underlying data at generation time — cheap totals
+  // the Reports list can sort / preview by.
+  workerCount Int      @default(0)
+  totalHours  Float    @default(0)
+  generatedAt DateTime @default(now())
+  generatedBy String // admin's UPN
+}
+
 // Named TimesheetEntry (not TimeEntry) so it doesn't collide with the
 // in-memory legacy TimeEntry type the existing TimeKeeping page uses
 // until that UI is rewritten.

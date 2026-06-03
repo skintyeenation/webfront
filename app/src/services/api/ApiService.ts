@@ -150,6 +150,13 @@ export interface ApiService {
     allTimesheets(period?: string, status?: string): Promise<Timesheet[]>;
     approve(id: string): Promise<Timesheet>;
     reject(id: string, reason?: string): Promise<Timesheet>;
+    // Reports — admin-only. PDF + CSV per pay period.
+    reports: {
+      list(count?: number): Promise<TimesheetReportSummary[]>;
+      generate(periodId: string): Promise<TimesheetReportSummary>;
+      /** Returns an URL the UI can navigate to / open as a download. */
+      csvUrl(periodId: string): string;
+    };
   };
   polls: {
     list(): Promise<Poll[]>;
@@ -331,6 +338,24 @@ export interface DocumentDto {
   createdAt: string;
   createdBy: string;
   updatedAt: string;
+}
+
+// ---- TimesheetReport DTO --------------------------------------------------
+
+export interface TimesheetReportSummary {
+  payPeriodId: string;
+  periodLabel: string;
+  startISO: string;
+  endISO: string;
+  payDateISO: string;
+  hasData: boolean;
+  workerCount: number;
+  totalHours: number;
+  // When a PDF report has been generated.
+  reportId?: string;
+  reportUrl?: string;
+  reportGeneratedAt?: string;
+  reportSizeBytes?: number;
 }
 
 export interface DocumentTagDto {

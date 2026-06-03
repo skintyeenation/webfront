@@ -12,6 +12,7 @@ import { DocumentsService } from './documents.service';
 import { DocumentsController, DocumentTagsController } from './documents.controller';
 import { OnboardingService } from './onboarding.service';
 import { OnboardingController, OnboardingPublicController } from './onboarding.controller';
+import { TimekeepingReportsService } from './timekeeping-reports.service';
 
 @Module({
   imports: [StorageModule],
@@ -28,6 +29,7 @@ import { OnboardingController, OnboardingPublicController } from './onboarding.c
     MailboxReconcileService,  // Pulls EXO truth → mailboxMemberships column on seed + admin sync
     DocumentsService,  // Phase 1 Documents library w/ pluggable storage adapter
     OnboardingService, // Phase 2 Onboarding flows (uses the same storage adapter)
+    TimekeepingReportsService, // Time Keeping > Reports — PDF + CSV per pay period
     // Role guard runs on every route; handlers without @Roles are public.
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
