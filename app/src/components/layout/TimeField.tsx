@@ -89,8 +89,13 @@ export function TimeField({ label, value, onChange, placeholder = '—:—', err
       <NativeText
         style={{
           color: val ? theme.colors.text : theme.colors.textDarker,
-          fontSize: 14,
+          fontSize: 18,
+          fontWeight: 600,
           letterSpacing: 1,
+          // Defeat the browser's Times New Roman fallback that a bare
+          // <span> inherits on Chrome web roots that don't set a
+          // root font. Matches what Paper's typography uses.
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif',
         }}
       >
         {val ?? fallback}
@@ -136,7 +141,16 @@ export function TimeField({ label, value, onChange, placeholder = '—:—', err
           </Menu>
 
           {/* Separator */}
-          <NativeText style={{ color: theme.colors.textDarker, fontSize: 14 }}>:</NativeText>
+          <NativeText
+            style={{
+              color: theme.colors.textDarker,
+              fontSize: 18,
+              fontWeight: 600,
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif',
+            }}
+          >
+            :
+          </NativeText>
 
           {/* Minute selector */}
           <Menu
