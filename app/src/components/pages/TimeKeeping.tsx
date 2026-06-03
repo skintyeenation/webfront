@@ -373,6 +373,7 @@ function ApprovalCard({
 }) {
   const busy = actingOn === t.id;
   const [open, setOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   // Group entries by day for the expanded detail view.
   const byDay = useMemo(() => {

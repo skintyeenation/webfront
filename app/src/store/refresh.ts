@@ -14,7 +14,10 @@ import { loadEvents } from 'skintyee/store/modules/events';
 import { loadMeetings } from 'skintyee/store/modules/meetings';
 import { loadNotifications } from 'skintyee/store/modules/notifications';
 import { loadPolls } from 'skintyee/store/modules/polls';
-import { loadPublicRecords } from 'skintyee/store/modules/publicRecords';
+// loadPublicRecords removed — the only caller was this refresh fn and
+// the underlying /v1/transparency/public-records endpoint isn't a thing
+// on the api/. The PublicRecords screen reads loadExpenditures +
+// loadMajorProjects directly, both still wired below.
 import { loadFeed } from 'skintyee/store/modules/feed';
 import { loadRollup } from 'skintyee/store/modules/planner';
 import { loadTimeEntries } from 'skintyee/store/modules/timekeeping';
@@ -46,7 +49,6 @@ export function refreshStoreForSignedInUser(dispatch: AppDispatch, role: Role): 
   }));
 
   // Records (Financial Summary) data
-  tryDispatch(loadPublicRecords());
   tryDispatch(loadExpenditures());
   tryDispatch(loadMajorProjects());
 
