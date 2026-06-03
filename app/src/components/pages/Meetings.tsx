@@ -172,7 +172,7 @@ function MeetingAgenda({ meeting }: { meeting: BandMeeting }) {
               <TeamsRow icon="🔗" label="Join" value={teams.joinUrl} display={shortenUrl(teams.joinUrl)} link />
               <Button
                 compact mode="contained" icon="video"
-                buttonColor={theme.colors.accent} textColor="#000"
+                buttonColor={theme.colors.primary} textColor="#000"
                 onPress={() => Linking.openURL(teams.joinUrl!)}
                 style={{ alignSelf: 'flex-start', marginTop: 8 }}
               >
