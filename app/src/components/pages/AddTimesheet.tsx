@@ -54,6 +54,33 @@ function isValidTime(s?: string): boolean {
   return /^\d{1,2}:\d{2}$/.test(s);
 }
 
+// Per-row validation that produces a human-readable reason for the
+// inline error message. Returns undefined when the row is fine.
+// Cases:
+//   - Bad HH:mm format on either field
+//   - Only one of in/out filled (incomplete span)
+//   - timeOut <= timeIn (reversed/zero span)
+// Overlaps are detected separately because they need the whole day's
+// row set; this function only inspects a single row.
+function validateRow(r: DraftEntry): string | undefined {
+  if (!isValidTime(r.timeIn) || !isValidTime(r.timeOut)) {
+    return 'Use HH:mm (e.g. 08:00).';
+  }
+  const hasIn = !!r.timeIn;
+  const hasOut = !!r.timeOut;
+  if (hasIn !== hasOut) {
+    return hasIn ? 'Missing time out.' : 'Missing time in.';
+  }
+  if (hasIn && hasOut) {
+    const a = toMinutes(r.timeIn);
+    const b = toMinutes(r.timeOut);
+    if (!isNaN(a) && !isNaN(b) && b <= a) {
+      return 'Time out must be after time in.';
+    }
+  }
+  return undefined;
+}
+
 // For each row on the same date that has a valid timeIn/timeOut span,
 // flag every row whose interval intersects another row's interval.
 // Returns a Set of offending row IDs so the UI can highlight them and
@@ -196,6 +223,16 @@ export default function AddTimesheet({ navigation, route }: any) {
     return out;
   }, [rows, overlapIds]);
 
+  // Any touched row that fails its own validation (bad format, partial
+  // fill, reversed span). Used to disable Submit and trip the inline
+  // row errors. Untouched rows (empty across the board) are ignored.
+  const hasRowErrors = useMemo(() => {
+    return rows.some((r) => {
+      if (!r.timeIn && !r.timeOut && !(r.hours > 0)) return false;
+      return !!validateRow(r);
+    });
+  }, [rows]);
+
   const dayBlocks = useMemo(() => {
     if (!payPeriod) return [] as Array<{ date: string; rows: DraftEntry[]; weekIdx: 1 | 2 }>;
     const start = dayjs(payPeriod.startISO);
@@ -218,10 +255,13 @@ export default function AddTimesheet({ navigation, route }: any) {
     setError(undefined);
     setSubmittedMode(mode);
     try {
+      // Row-level validation — format, partial fill, reversed spans.
+      // Skip rows that are empty across the board (a freshly added
+      // row the user hasn't touched should not block save).
       for (const r of rows) {
-        if (!isValidTime(r.timeIn) || !isValidTime(r.timeOut)) {
-          throw new Error(`Invalid time on ${r.date}. Use HH:mm (e.g. 08:00).`);
-        }
+        if (!r.timeIn && !r.timeOut && !(r.hours > 0)) continue;
+        const why = validateRow(r);
+        if (why) throw new Error(`${dayjs(r.date).format('ddd MMM D')}: ${why}`);
       }
       // Hard gate on overlapping intervals — two tasks can't run at the
       // same clock minute. Surface the first offending day so the user
@@ -363,7 +403,21 @@ export default function AddTimesheet({ navigation, route }: any) {
                         No entries
                       </Text>
                     ) : (
-                      d.rows.map((r) => (
+                      d.rows.map((r) => {
+                        const rowError = validateRow(r);
+                        const inOverlap = overlapIds.has(r.id);
+                        // Combine row-level errors + the day-level
+                        // overlap signal so the worker sees one
+                        // sentence per row instead of two stacked.
+                        const rowMessage = rowError
+                          ?? (inOverlap ? 'Overlaps another entry on this day.' : undefined);
+                        const inIsBad = !isValidTime(r.timeIn) || inOverlap
+                          || (!!r.timeIn && !r.timeOut)
+                          || (!!r.timeIn && !!r.timeOut && toMinutes(r.timeOut) <= toMinutes(r.timeIn));
+                        const outIsBad = !isValidTime(r.timeOut) || inOverlap
+                          || (!r.timeIn && !!r.timeOut)
+                          || (!!r.timeIn && !!r.timeOut && toMinutes(r.timeOut) <= toMinutes(r.timeIn));
+                        return (
                         <View key={r.id} style={{ marginBottom: 8 }}>
                           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                             <TextInput
@@ -382,14 +436,14 @@ export default function AddTimesheet({ navigation, route }: any) {
                               value={r.timeIn ?? ''}
                               onChange={(v) => updateRow(r.id, { timeIn: v.trim() || undefined })}
                               style={{ flex: 1, marginRight: 6 }}
-                              error={!isValidTime(r.timeIn) || overlapIds.has(r.id)}
+                              error={inIsBad}
                               placeholder="08:00"
                             />
                             <TimeField
                               value={r.timeOut ?? ''}
                               onChange={(v) => updateRow(r.id, { timeOut: v.trim() || undefined })}
                               style={{ flex: 1, marginRight: 6 }}
-                              error={!isValidTime(r.timeOut) || overlapIds.has(r.id)}
+                              error={outIsBad}
                               placeholder="16:30"
                             />
                             {/* Hours — read-only, derived from In/Out. Styled
@@ -402,15 +456,15 @@ export default function AddTimesheet({ navigation, route }: any) {
                               </Text>
                             </View>
                           </View>
+                          {rowMessage ? (
+                            <HelperText type="error" visible style={{ marginLeft: -8, marginTop: -2 }}>
+                              {rowMessage}
+                            </HelperText>
+                          ) : null}
                         </View>
-                      ))
+                        );
+                      })
                     )}
-
-                    {dayHasOverlap ? (
-                      <HelperText type="error" visible style={{ marginLeft: -8 }}>
-                        Entries on this day overlap. Adjust the times so the periods don't intersect.
-                      </HelperText>
-                    ) : null}
 
                     <Button
                       compact mode="text" icon="plus"
@@ -487,7 +541,7 @@ export default function AddTimesheet({ navigation, route }: any) {
                   mode="contained" icon="send"
                   buttonColor={theme.colors.primary} textColor="#000"
                   onPress={() => persist('submit')}
-                  disabled={saving || rows.length === 0 || !submitOpen || daysWithOverlaps.size > 0}
+                  disabled={saving || rows.length === 0 || !submitOpen || daysWithOverlaps.size > 0 || hasRowErrors}
                   loading={saving && submittedMode === 'submit'}
                   style={{ marginBottom: 6 }}
                 >

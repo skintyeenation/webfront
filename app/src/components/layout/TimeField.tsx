@@ -82,9 +82,12 @@ export function TimeField({ label, value, onChange, placeholder = '—:—', err
       flexDirection: 'row',
       alignItems: 'center',
     };
+    // Error state gets a 2px outline (vs 1px idle) so it reads at a
+    // glance against the dark form rows — matches Paper's outlined
+    // TextInput error state.
     const containerStyle: ViewStyle = {
       backgroundColor: theme.colors.darkDefault,
-      borderWidth: 1,
+      borderWidth: error ? 2 : 1,
       borderColor: error ? theme.colors.error : 'rgba(255,255,255,0.29)',
       borderRadius: 4,
       flexDirection: 'row',
