@@ -75,6 +75,7 @@ COPY --chown=node:node --from=builder /app/dist ./dist
 COPY --chown=node:node --from=builder /app/openapi.yaml ./openapi.yaml
 COPY --chown=node:node --from=builder /app/package.json ./package.json
 COPY --chown=node:node --from=builder /app/prisma ./prisma
+COPY --chown=node:node docker-entrypoint.sh ./docker-entrypoint.sh
 
 ENV NODE_ENV=production \
     PORT=4000 \
@@ -83,8 +84,12 @@ ENV NODE_ENV=production \
 
 EXPOSE 4000
 
-# Container Apps treats this as the readiness signal.
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+# Container Apps treats this as the readiness signal. start-period bumped
+# from 10s → 30s so the entrypoint's `prisma db push` has time to run on
+# cold start without the orchestrator marking the container unhealthy.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD wget -qO- "http://127.0.0.1:${PORT}/v1/health" >/dev/null 2>&1 || exit 1
 
-CMD ["node", "dist/main.js"]
+# Entrypoint syncs the Prisma schema (non-destructive) then execs node.
+# See docker-entrypoint.sh for safety + fallback rules.
+CMD ["./docker-entrypoint.sh"]
