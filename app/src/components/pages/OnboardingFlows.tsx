@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { View } from 'react-native';
-import { ActivityIndicator, Button, Card, Chip, HelperText, IconButton, SegmentedButtons, Text } from 'react-native-paper';
+import { ActivityIndicator, Button, Card, Chip, Divider, HelperText, IconButton, Modal, Portal, SegmentedButtons, Snackbar, Text } from 'react-native-paper';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useFocusEffect } from '@react-navigation/native';
 import dayjs from 'dayjs';
 import { PageContainer, PageContent, NoContent, AdminAddButton, useConfirm } from 'skintyee/components/layout';
@@ -37,6 +38,14 @@ export default function OnboardingFlows({ navigation }: any) {
   const [error, setError] = useState<string | undefined>();
   const { confirm, ConfirmHost } = useConfirm();
 
+  // Assign-flow modal state — single home for picking flow + contractor.
+  // Two-step: pick flow (only active ones with steps) → pick contractor.
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [assignFlowId, setAssignFlowId] = useState<string | undefined>();
+  const [assignSaving, setAssignSaving] = useState(false);
+  const [assignError, setAssignError] = useState<string | undefined>();
+  const [toast, setToast] = useState<string | null>(null);
+
   const load = useCallback(async () => {
     setError(undefined);
     setLoading(true);
@@ -61,6 +70,29 @@ export default function OnboardingFlows({ navigation }: any) {
 
   const contractorById = new Map(contractors.map((c) => [c.id, c]));
   const flowById = new Map(flows.map((f) => [f.id, f]));
+  const assignableFlows = flows.filter((f) => f.active && f.steps.length > 0);
+
+  const openAssignModal = () => {
+    setAssignFlowId(undefined);
+    setAssignError(undefined);
+    setAssignModalOpen(true);
+  };
+  const assignToContractor = async (contractorId: string) => {
+    if (!assignFlowId) { setAssignError('Pick a flow first.'); return; }
+    setAssignSaving(true);
+    setAssignError(undefined);
+    try {
+      const r = await apiFactory().onboarding.createAssignment({ flowId: assignFlowId, contractorId });
+      setAssignModalOpen(false);
+      setAssignments((prev) => [r, ...prev]);
+      setToast('Assignment created');
+      navigation.navigate('onboardingAssignment', { id: r.id });
+    } catch (e: any) {
+      setAssignError(e?.message ?? String(e));
+    } finally {
+      setAssignSaving(false);
+    }
+  };
 
   return (
     <PageContainer>
@@ -143,10 +175,32 @@ export default function OnboardingFlows({ navigation }: any) {
         ) : null}
 
         {tab === 'assignments' && !loading ? (
-          assignments.length === 0 ? (
-            <NoContent message="No assignments yet. Assign a flow from a flow's Edit screen." />
-          ) : (
-            assignments.map((a) => {
+          <>
+            {/* Assign-flow CTA lives here now (was on EditOnboardingFlow).
+                Single home: pick a flow + a contractor in one modal. */}
+            <View style={{ marginTop: 10 }}>
+              <Button
+                mode="contained" icon="account-plus"
+                buttonColor={theme.colors.primary} textColor="#fff"
+                onPress={openAssignModal}
+                disabled={assignableFlows.length === 0 || contractors.length === 0}
+              >
+                Assign flow to contractor
+              </Button>
+              {assignableFlows.length === 0 ? (
+                <HelperText type="info" visible style={{ marginLeft: -8 }}>
+                  Create an active flow with at least one step first.
+                </HelperText>
+              ) : contractors.length === 0 ? (
+                <HelperText type="info" visible style={{ marginLeft: -8 }}>
+                  Add a contractor first (Contractors button above).
+                </HelperText>
+              ) : null}
+            </View>
+            {assignments.length === 0 ? (
+              <NoContent message="No assignments yet." />
+            ) : (
+              assignments.map((a) => {
               const flow = flowById.get(a.flowId);
               const contractor = contractorById.get(a.contractorId);
               const completed = a.stepStates.filter((s) => s.status === 'completed').length;
@@ -193,8 +247,93 @@ export default function OnboardingFlows({ navigation }: any) {
                 </Card>
               );
             })
-          )
+            )}
+          </>
         ) : null}
+
+        {/* Assign-flow modal — pick flow (top section), then contractor
+            (bottom section). Two-step on a single surface so the admin
+            can see both choices without paging. */}
+        <Portal>
+          <Modal
+            visible={assignModalOpen}
+            onDismiss={() => setAssignModalOpen(false)}
+            contentContainerStyle={{
+              backgroundColor: theme.colors.darkDefault,
+              padding: 16, borderRadius: 8,
+              marginHorizontal: 20, maxHeight: '85%',
+              alignSelf: 'center', width: '90%', maxWidth: 480,
+            }}
+          >
+            <Text style={{ color: theme.colors.text, fontSize: 16, fontWeight: '700' }}>
+              Assign onboarding flow
+            </Text>
+
+            <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginTop: 12 }}>
+              1. FLOW
+            </Text>
+            <Divider style={{ marginVertical: 6, backgroundColor: 'rgba(255,255,255,0.08)' }} />
+            {assignableFlows.map((f) => {
+              const on = assignFlowId === f.id;
+              return (
+                <View key={f.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6 }}>
+                  <MaterialCommunityIcons
+                    name={on ? 'radiobox-marked' : 'radiobox-blank'}
+                    size={18}
+                    color={on ? theme.colors.primary : theme.colors.textDarker}
+                    style={{ marginRight: 8 }}
+                    onPress={() => setAssignFlowId(f.id)}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: theme.colors.text, fontSize: 13 }} onPress={() => setAssignFlowId(f.id)}>{f.title}</Text>
+                    <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>
+                      {f.steps.length} step{f.steps.length === 1 ? '' : 's'}
+                    </Text>
+                  </View>
+                </View>
+              );
+            })}
+
+            <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginTop: 14 }}>
+              2. CONTRACTOR
+            </Text>
+            <Divider style={{ marginVertical: 6, backgroundColor: 'rgba(255,255,255,0.08)' }} />
+            {contractors.map((c) => (
+              <View key={c.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: theme.colors.text, fontSize: 13 }}>{c.displayName}</Text>
+                  {c.email ? <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>{c.email}</Text> : null}
+                </View>
+                <Button
+                  compact mode="contained" icon="check"
+                  buttonColor={theme.colors.primary} textColor="#fff"
+                  onPress={() => assignToContractor(c.id)}
+                  disabled={!assignFlowId || assignSaving}
+                >
+                  Assign
+                </Button>
+              </View>
+            ))}
+
+            {assignError ? <HelperText type="error" visible>{assignError}</HelperText> : null}
+
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 10 }}>
+              <Button mode="text" textColor={theme.colors.textDarker} onPress={() => setAssignModalOpen(false)}>
+                Cancel
+              </Button>
+            </View>
+          </Modal>
+        </Portal>
+
+        <Snackbar
+          visible={toast !== null}
+          onDismiss={() => setToast(null)}
+          duration={1800}
+          wrapperStyle={{ alignItems: 'center' }}
+          style={{ backgroundColor: theme.colors.success, alignSelf: 'center', width: '100%', maxWidth: 420 }}
+        >
+          <Text style={{ color: '#000', textAlign: 'center', width: '100%' }}>{toast ?? ''}</Text>
+        </Snackbar>
 
         <ConfirmHost />
       </PageContent>

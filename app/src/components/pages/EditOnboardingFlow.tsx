@@ -4,7 +4,7 @@ import { ActivityIndicator, Button, Card, Chip, Divider, HelperText, IconButton,
 import { PageContainer, PageContent, NoContent } from 'skintyee/components/layout';
 import { apiFactory } from 'skintyee/store/apis';
 import {
-  OnboardingFlowDto, OnboardingStepDto, ContractorDto, OnboardingAssignmentDto,
+  OnboardingFlowDto, ContractorDto, OnboardingAssignmentDto,
   DocumentDto, StepCompletion,
 } from 'skintyee/services/api/ApiService';
 import { theme } from 'skintyee/styles';
@@ -48,12 +48,13 @@ export default function EditOnboardingFlow({ navigation, route }: any) {
   const [error, setError] = useState<string | undefined>();
   const [toast, setToast] = useState<string | null>(null);
 
-  // Per-step menus, attach modal etc.
+  // Per-step menus, attach modal etc. (Assigning a flow to a contractor
+  // lives on the Onboarding screen's Assignments tab now — single home
+  // for picking flow + contractor instead of two entry points.)
   const [attachOpenForStep, setAttachOpenForStep] = useState<string | null>(null);
   const [linkModalForStep, setLinkModalForStep] = useState<string | null>(null);
   const [linkLabel, setLinkLabel] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
-  const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [completionMenuFor, setCompletionMenuFor] = useState<string | null>(null);
 
   const loadAll = async (existingFlow?: OnboardingFlowDto) => {
@@ -173,19 +174,6 @@ export default function EditOnboardingFlow({ navigation, route }: any) {
   const removeLinkRow = async (rowId: string) => {
     await apiFactory().onboarding.removeLink(rowId);
     await reloadFlow();
-  };
-
-  const assignToContractor = async (contractorId: string) => {
-    if (!flow) return;
-    try {
-      const r = await apiFactory().onboarding.createAssignment({ flowId: flow.id, contractorId });
-      setAssignModalOpen(false);
-      setAssignments((prev) => [r, ...prev]);
-      setToast('Assigned — link copied via Edit screen');
-      navigation.navigate('onboardingAssignment', { id: r.id });
-    } catch (e: any) {
-      setError(e?.message ?? String(e));
-    }
   };
 
   const documentById = new Map(documents.map((d) => [d.id, d]));
@@ -326,43 +314,37 @@ export default function EditOnboardingFlow({ navigation, route }: any) {
           </Button>
         ) : null}
 
-        {/* Assignments + Assign button */}
-        {flow ? (
+        {/* Existing assignments — read-only summary so the admin can see
+            who's already on this flow. Adding new ones happens from the
+            Onboarding screen's Assignments tab. */}
+        {flow && assignments.length > 0 ? (
           <Card style={{ backgroundColor: theme.colors.darkDefault, marginTop: 12 }}>
             <Card.Content>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={{ color: theme.colors.text, fontSize: 14, fontWeight: '600', flex: 1 }}>
-                  Assignments ({assignments.length})
-                </Text>
-                <Button compact mode="contained" icon="account-plus" buttonColor={theme.colors.primary} textColor="#fff" onPress={() => setAssignModalOpen(true)}>
-                  Assign to contractor
-                </Button>
-              </View>
+              <Text style={{ color: theme.colors.text, fontSize: 14, fontWeight: '600' }}>
+                Assignments ({assignments.length})
+              </Text>
+              <HelperText type="info" visible style={{ marginLeft: -8 }}>
+                Assign this flow to a contractor from Onboarding → Assignments.
+              </HelperText>
               <Divider style={{ marginVertical: 6, backgroundColor: 'rgba(255,255,255,0.08)' }} />
-              {assignments.length === 0 ? (
-                <Text style={{ color: theme.colors.textDarker, fontSize: 12, fontStyle: 'italic' }}>
-                  Not assigned yet.
-                </Text>
-              ) : (
-                assignments.map((a) => {
-                  const c = contractors.find((x) => x.id === a.contractorId);
-                  const completed = a.stepStates.filter((s) => s.status === 'completed').length;
-                  return (
-                    <View key={a.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6 }}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ color: theme.colors.text, fontSize: 13 }}>{c?.displayName ?? a.contractorId}</Text>
-                        <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>
-                          {completed}/{a.stepStates.length} steps done
-                        </Text>
-                      </View>
-                      <Button compact mode="text" icon="arrow-right" textColor={theme.colors.primary}
-                        onPress={() => navigation.navigate('onboardingAssignment', { id: a.id })}>
-                        Open
-                      </Button>
+              {assignments.map((a) => {
+                const c = contractors.find((x) => x.id === a.contractorId);
+                const completed = a.stepStates.filter((s) => s.status === 'completed').length;
+                return (
+                  <View key={a.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: theme.colors.text, fontSize: 13 }}>{c?.displayName ?? a.contractorId}</Text>
+                      <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>
+                        {completed}/{a.stepStates.length} steps done
+                      </Text>
                     </View>
-                  );
-                })
-              )}
+                    <Button compact mode="text" icon="arrow-right" textColor={theme.colors.primary}
+                      onPress={() => navigation.navigate('onboardingAssignment', { id: a.id })}>
+                      Open
+                    </Button>
+                  </View>
+                );
+              })}
             </Card.Content>
           </Card>
         ) : null}
@@ -415,42 +397,6 @@ export default function EditOnboardingFlow({ navigation, route }: any) {
                 Add
               </Button>
             </View>
-          </Modal>
-        </Portal>
-
-        {/* Assign-to-contractor modal */}
-        <Portal>
-          <Modal
-            visible={assignModalOpen}
-            onDismiss={() => setAssignModalOpen(false)}
-            contentContainerStyle={{ backgroundColor: theme.colors.darkDefault, padding: 16, borderRadius: 8, marginHorizontal: 20, maxHeight: '80%', alignSelf: 'center', width: '90%', maxWidth: 460 }}
-          >
-            <Text style={{ color: theme.colors.text, fontSize: 16, fontWeight: '700' }}>Assign flow</Text>
-            <Divider style={{ marginVertical: 8, backgroundColor: 'rgba(255,255,255,0.08)' }} />
-            {contractors.length === 0 ? (
-              <View>
-                <Text style={{ color: theme.colors.textDarker, marginBottom: 8 }}>No contractors yet.</Text>
-                <Button mode="outlined" icon="account-plus" textColor={theme.colors.text}
-                  onPress={() => { setAssignModalOpen(false); navigation.navigate('onboardingContractors'); }}>
-                  Add a contractor
-                </Button>
-              </View>
-            ) : (
-              contractors.map((c) => (
-                <View key={c.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6 }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: theme.colors.text, fontSize: 13 }}>{c.displayName}</Text>
-                    {c.email ? <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>{c.email}</Text> : null}
-                  </View>
-                  <Button compact mode="contained" icon="check" buttonColor={theme.colors.primary} textColor="#fff" onPress={() => assignToContractor(c.id)}>
-                    Assign
-                  </Button>
-                </View>
-              ))
-            )}
-            <Button mode="text" textColor={theme.colors.textDarker} onPress={() => setAssignModalOpen(false)} style={{ marginTop: 6 }}>
-              Cancel
-            </Button>
           </Modal>
         </Portal>
 
