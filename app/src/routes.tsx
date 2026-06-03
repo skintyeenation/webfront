@@ -9,7 +9,7 @@ const header = (title: string) => (props: any) => <AppHeader {...props} options=
 export const routeConfig = {
   // Tabs
   dashboard: { name: 'dashboard', options: { title: 'Home', header: header('Dashboard') } },
-  directory: { name: 'directory', options: { title: 'Directory', header: header('Band Member Directory') } },
+  directory: { name: 'directory', options: { title: 'Directory', header: header('Management Directory') } },
   events: { name: 'events', options: { title: 'Events', header: header('Community Events') } },
   meetings: { name: 'meetings', options: { title: 'Meetings', header: header('Band Meetings') } },
   publicRecords: { name: 'publicRecords', options: { title: 'Records', header: header('Records') } },
