@@ -387,7 +387,13 @@ export default function Dashboard({ navigation }: any) {
                 buttonColor={pendingApprovals > 0 ? theme.colors.accent : undefined}
                 textColor={pendingApprovals > 0 ? '#000' : theme.colors.primary}
                 style={{ marginTop: 12, alignSelf: 'flex-start' }}
-                onPress={() => navigation.navigate('timekeeping')}
+                // timekeeping lives in MoreStack (under the More/Admin tab),
+                // not DashboardStack — nested-navigate up to the tabs nav,
+                // jump to More/Admin (tab name depends on role), then drill
+                // into the timekeeping screen.
+                onPress={() =>
+                  navigation.navigate(role === 'admin' ? 'Admin' : 'More', { screen: 'timekeeping' })
+                }
               >
                 {pendingApprovals > 0 ? 'Review timesheets' : 'Open time keeping'}
               </Button>
