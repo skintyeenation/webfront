@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, TouchableOpacity, View } from 'react-native';
-import { Button, Chip, HelperText, IconButton, Menu, Switch, Text, TextInput } from 'react-native-paper';
+import { ActivityIndicator, ScrollView, TouchableOpacity, View } from 'react-native';
+import { Button, Chip, Divider, HelperText, IconButton, Menu, Modal, Portal, Switch, Text, TextInput } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import moment from 'moment';
 import { PageContainer, PageContent, NoContent, DateTimeField, LocationPicker, LatLng } from 'skintyee/components/layout';
@@ -80,6 +80,13 @@ export default function EditMeeting({ route, navigation }: any) {
   const [catalog, setCatalog] = useState<{ types: MeetingType[]; sources: MeetingSource[] }>({ types: [], sources: [] });
   const [catalogError, setCatalogError] = useState<string | undefined>();
   const [typeMenuOpen, setTypeMenuOpen] = useState(false);
+  // Invitees modal — opens a searchable directory + custom-email
+  // add field. The form below just shows a compact summary of the
+  // currently-selected invitees with inline remove.
+  const [inviteesModalOpen, setInviteesModalOpen] = useState(false);
+  const [inviteeSearch, setInviteeSearch] = useState('');
+  const [customEmail, setCustomEmail] = useState('');
+  const [customEmailError, setCustomEmailError] = useState<string | undefined>();
   // Anchor width captured via onLayout so the dropdown's content
   // matches the field's width instead of sizing to its widest item.
   const [typeAnchorWidth, setTypeAnchorWidth] = useState<number | undefined>();
@@ -135,6 +142,48 @@ export default function EditMeeting({ route, navigation }: any) {
       return next;
     });
   };
+
+  // Look up a friendly display name for a UPN we've added — falls back
+  // to the email when the entry isn't in the directory (i.e. it was a
+  // custom-email add).
+  const inviteeName = (upn: string): string => {
+    const m = directory.find((m: any) => (m.upn ?? '').toLowerCase() === upn);
+    return (m as any)?.name ?? upn;
+  };
+
+  // ASCII email-ish check — Graph itself rejects bad addresses on PATCH,
+  // but a quick gate keeps the picker from accumulating obvious typos.
+  const isValidEmail = (s: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+
+  const addCustomEmail = () => {
+    const e = customEmail.trim().toLowerCase();
+    if (!e) return;
+    if (!isValidEmail(e)) {
+      setCustomEmailError('Enter a valid email address.');
+      return;
+    }
+    setAttendees((prev) => new Set(prev).add(e));
+    setCustomEmail('');
+    setCustomEmailError(undefined);
+  };
+
+  // Members matching the search box. Empty query → full list.
+  const filteredMembers = useMemo(() => {
+    const q = inviteeSearch.trim().toLowerCase();
+    const sorted = licensedUsers.slice().sort((a: any, b: any) => (a.name ?? '').localeCompare(b.name ?? ''));
+    if (!q) return sorted;
+    return sorted.filter((m: any) =>
+      (m.name ?? '').toLowerCase().includes(q) || (m.upn ?? '').toLowerCase().includes(q)
+    );
+  }, [licensedUsers, inviteeSearch]);
+
+  // UPNs in the attendees set that don't match any directory entry —
+  // these are the custom-emails added by the admin. Surface them at the
+  // top of the modal list so they're easy to remove.
+  const customAttendees = useMemo(() => {
+    const directoryUpns = new Set(licensedUsers.map((m: any) => (m.upn ?? '').toLowerCase()));
+    return Array.from(attendees).filter((upn) => !directoryUpns.has(upn));
+  }, [attendees, licensedUsers]);
 
   const save = async () => {
     if (!title.trim()) return;
@@ -409,30 +458,36 @@ export default function EditMeeting({ route, navigation }: any) {
             Reset to type default
           </Button>
         </View>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }}>
-          {licensedUsers
-            .slice()
-            .sort((a: any, b: any) => (a.name ?? '').localeCompare(b.name ?? ''))
-            .map((m: any) => {
-              const on = attendees.has(m.upn.toLowerCase());
-              return (
-                <Chip
-                  key={m._id}
-                  selected={on}
-                  showSelectedCheck
-                  onPress={() => toggleAttendee(m.upn.toLowerCase())}
-                  style={{
-                    marginRight: 6,
-                    marginBottom: 6,
-                    backgroundColor: on ? theme.colors.primary : theme.colors.secondary,
-                  }}
-                  textStyle={{ color: on ? '#000' : theme.colors.text, fontSize: 11 }}
-                >
-                  {m.name}
-                </Chip>
-              );
-            })}
-        </View>
+        {/* Compact summary of currently-selected invitees. Tap × on a
+            chip to remove inline, or tap "Manage" to open the modal. */}
+        {attendees.size === 0 ? (
+          <HelperText type="info" visible style={{ marginLeft: -8, marginBottom: 6 }}>
+            No invitees yet.
+          </HelperText>
+        ) : (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 6 }}>
+            {Array.from(attendees).map((upn) => (
+              <Chip
+                key={upn}
+                compact
+                closeIcon="close"
+                onClose={() => toggleAttendee(upn)}
+                style={{ marginRight: 6, marginBottom: 6, backgroundColor: theme.colors.primary }}
+                textStyle={{ color: '#000', fontSize: 11 }}
+              >
+                {inviteeName(upn)}
+              </Chip>
+            ))}
+          </View>
+        )}
+        <Button
+          mode="outlined" icon="account-multiple-plus"
+          textColor={theme.colors.text}
+          onPress={() => setInviteesModalOpen(true)}
+          style={{ alignSelf: 'flex-start', marginBottom: 12 }}
+        >
+          Manage invitees
+        </Button>
 
         {saveError ? <HelperText type="error" visible>{saveError}</HelperText> : null}
 
@@ -449,6 +504,144 @@ export default function EditMeeting({ route, navigation }: any) {
         <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginTop: 8 }}>
           Changes to title, type, date/time, location, agenda, Teams link, and attendees are PATCHed to the underlying M365 calendar event.
         </Text>
+
+        {/* Invitees modal — search the directory or paste in a custom
+            email. The chip strip outside the modal is the persisted
+            summary; closing the modal doesn't reset anything (the
+            attendees Set is the canonical state). */}
+        <Portal>
+          <Modal
+            visible={inviteesModalOpen}
+            onDismiss={() => setInviteesModalOpen(false)}
+            contentContainerStyle={{
+              backgroundColor: theme.colors.darkDefault,
+              marginHorizontal: 20,
+              borderRadius: 8,
+              maxHeight: '85%',
+              alignSelf: 'center',
+              width: '90%',
+              maxWidth: 520,
+            }}
+          >
+            {/* Header */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12, paddingBottom: 6 }}>
+              <Text style={{ color: theme.colors.text, fontSize: 16, fontWeight: '700', flex: 1 }}>
+                Manage invitees ({attendees.size})
+              </Text>
+              <IconButton icon="close" size={20} iconColor={theme.colors.textDarker} onPress={() => setInviteesModalOpen(false)} />
+            </View>
+            <Divider style={{ backgroundColor: 'rgba(255,255,255,0.1)' }} />
+
+            <ScrollView style={{ paddingHorizontal: 12 }}>
+              {/* Add custom email */}
+              <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginTop: 12 }}>
+                ADD BY EMAIL
+              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+                <TextInput
+                  dense mode="outlined"
+                  label="email@example.com"
+                  value={customEmail}
+                  onChangeText={(v) => { setCustomEmail(v); setCustomEmailError(undefined); }}
+                  onSubmitEditing={addCustomEmail}
+                  returnKeyType="done"
+                  style={{ flex: 1, marginRight: 6 }}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  error={!!customEmailError}
+                />
+                <Button
+                  compact mode="contained" icon="plus"
+                  buttonColor={theme.colors.primary} textColor="#000"
+                  onPress={addCustomEmail}
+                  disabled={!customEmail.trim()}
+                >
+                  Add
+                </Button>
+              </View>
+              {customEmailError ? (
+                <HelperText type="error" visible style={{ marginLeft: -8 }}>{customEmailError}</HelperText>
+              ) : null}
+
+              {/* Custom emails currently in the attendees set */}
+              {customAttendees.length > 0 ? (
+                <>
+                  <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginTop: 14 }}>
+                    CUSTOM ({customAttendees.length})
+                  </Text>
+                  <View style={{ marginTop: 6 }}>
+                    {customAttendees.map((upn) => (
+                      <TouchableOpacity
+                        key={upn}
+                        onPress={() => toggleAttendee(upn)}
+                        style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8 }}
+                      >
+                        <MaterialCommunityIcons name="email" size={18} color={theme.colors.textDarker} style={{ marginRight: 10 }} />
+                        <Text style={{ color: theme.colors.text, flex: 1, fontSize: 13 }}>{upn}</Text>
+                        <MaterialCommunityIcons name="close" size={18} color={theme.colors.textDarker} />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </>
+              ) : null}
+
+              {/* Search + member list */}
+              <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginTop: 14 }}>
+                DIRECTORY
+              </Text>
+              <TextInput
+                dense mode="outlined"
+                label="Search members"
+                value={inviteeSearch}
+                onChangeText={setInviteeSearch}
+                style={{ marginTop: 6, marginBottom: 6 }}
+                autoCapitalize="none"
+                left={<TextInput.Icon icon="magnify" />}
+                right={inviteeSearch ? <TextInput.Icon icon="close" onPress={() => setInviteeSearch('')} /> : undefined}
+              />
+              {filteredMembers.length === 0 ? (
+                <HelperText type="info" visible style={{ marginLeft: -8 }}>
+                  No matches.
+                </HelperText>
+              ) : null}
+              {filteredMembers.map((m: any) => {
+                const upn = (m.upn ?? '').toLowerCase();
+                const on = attendees.has(upn);
+                return (
+                  <TouchableOpacity
+                    key={m._id}
+                    onPress={() => toggleAttendee(upn)}
+                    style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8 }}
+                  >
+                    <MaterialCommunityIcons
+                      name={on ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                      size={20}
+                      color={on ? theme.colors.primary : theme.colors.textDarker}
+                      style={{ marginRight: 10 }}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: theme.colors.text, fontSize: 13 }}>{m.name}</Text>
+                      <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>{m.upn}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+
+              <View style={{ height: 12 }} />
+            </ScrollView>
+
+            <Divider style={{ backgroundColor: 'rgba(255,255,255,0.1)' }} />
+            <View style={{ padding: 12, flexDirection: 'row', justifyContent: 'flex-end' }}>
+              <Button
+                mode="contained"
+                buttonColor={theme.colors.primary} textColor="#000"
+                onPress={() => setInviteesModalOpen(false)}
+              >
+                Done
+              </Button>
+            </View>
+          </Modal>
+        </Portal>
       </PageContent>
     </PageContainer>
   );

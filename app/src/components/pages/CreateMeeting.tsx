@@ -66,6 +66,9 @@ export default function CreateMeeting({ navigation }: any) {
   // as plain text through Graph and is parsed back into a structured
   // array on read.
   const [links, setLinks] = useState<MeetingLink[]>([]);
+  // Invitees truncation — see EditMeeting for the same pattern.
+  const INVITEE_PREVIEW = 12;
+  const [showAllInvitees, setShowAllInvitees] = useState(false);
   const addLink = () => setLinks((prev) => [...prev, { label: '', url: '' }]);
   const updateLink = (i: number, patch: Partial<MeetingLink>) =>
     setLinks((prev) => prev.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
@@ -319,30 +322,52 @@ export default function CreateMeeting({ navigation }: any) {
         <HelperText type="info" visible style={{ marginLeft: -8, marginBottom: 4 }}>
           Auto-filled by type; tap a name to add/remove.
         </HelperText>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }}>
-          {licensedUsers
-            .slice()
-            .sort((a: any, b: any) => (a.name ?? '').localeCompare(b.name ?? ''))
-            .map((m: any) => {
-              const on = attendees.has(m.upn.toLowerCase());
-              return (
-                <Chip
-                  key={m._id}
-                  selected={on}
-                  showSelectedCheck
-                  onPress={() => toggleAttendee(m.upn.toLowerCase())}
-                  style={{
-                    marginRight: 6,
-                    marginBottom: 6,
-                    backgroundColor: on ? theme.colors.primary : theme.colors.secondary,
-                  }}
-                  textStyle={{ color: on ? '#000' : theme.colors.text, fontSize: 11 }}
+        {(() => {
+          const sorted = licensedUsers.slice().sort((a: any, b: any) => {
+            const aOn = attendees.has((a.upn ?? '').toLowerCase()) ? 0 : 1;
+            const bOn = attendees.has((b.upn ?? '').toLowerCase()) ? 0 : 1;
+            if (aOn !== bOn) return aOn - bOn;
+            return (a.name ?? '').localeCompare(b.name ?? '');
+          });
+          const visible = showAllInvitees ? sorted : sorted.slice(0, INVITEE_PREVIEW);
+          const hiddenCount = sorted.length - visible.length;
+          return (
+            <>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 6 }}>
+                {visible.map((m: any) => {
+                  const on = attendees.has(m.upn.toLowerCase());
+                  return (
+                    <Chip
+                      key={m._id}
+                      selected={on}
+                      showSelectedCheck
+                      onPress={() => toggleAttendee(m.upn.toLowerCase())}
+                      style={{
+                        marginRight: 6,
+                        marginBottom: 6,
+                        backgroundColor: on ? theme.colors.primary : theme.colors.secondary,
+                      }}
+                      textStyle={{ color: on ? '#000' : theme.colors.text, fontSize: 11 }}
+                    >
+                      {m.name}
+                    </Chip>
+                  );
+                })}
+              </View>
+              {sorted.length > INVITEE_PREVIEW ? (
+                <Button
+                  compact mode="text"
+                  icon={showAllInvitees ? 'chevron-up' : 'chevron-down'}
+                  textColor={theme.colors.primary}
+                  onPress={() => setShowAllInvitees((v) => !v)}
+                  style={{ alignSelf: 'flex-start', marginBottom: 12 }}
                 >
-                  {m.name}
-                </Chip>
-              );
-            })}
-        </View>
+                  {showAllInvitees ? 'Show less' : `Show all (${sorted.length})`}{hiddenCount > 0 && !showAllInvitees ? ` · ${hiddenCount} more` : ''}
+                </Button>
+              ) : <View style={{ marginBottom: 6 }} />}
+            </>
+          );
+        })()}
 
         {saveError ? <HelperText type="error" visible>{saveError}</HelperText> : null}
 
