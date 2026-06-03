@@ -161,7 +161,7 @@ function MeetingAgenda({ meeting }: { meeting: BandMeeting }) {
             backgroundColor: 'rgba(255,255,255,0.04)',
             borderRadius: 6,
             borderLeftWidth: 3,
-            borderLeftColor: '#6264A7', // Teams purple
+            borderLeftColor: theme.colors.accent, // app's orange accent
           }}
         >
           <Text style={{ color: theme.colors.text, fontSize: 13, fontWeight: '700' }}>
@@ -172,7 +172,7 @@ function MeetingAgenda({ meeting }: { meeting: BandMeeting }) {
               <TeamsRow icon="🔗" label="Join" value={teams.joinUrl} display={shortenUrl(teams.joinUrl)} link />
               <Button
                 compact mode="contained" icon="video"
-                buttonColor="#6264A7" textColor="#fff"
+                buttonColor={theme.colors.accent} textColor="#000"
                 onPress={() => Linking.openURL(teams.joinUrl!)}
                 style={{ alignSelf: 'flex-start', marginTop: 8 }}
               >

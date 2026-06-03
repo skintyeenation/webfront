@@ -327,7 +327,7 @@ export default function EditMeeting({ route, navigation }: any) {
               backgroundColor: 'rgba(255,255,255,0.04)',
               borderRadius: 6,
               borderLeftWidth: 3,
-              borderLeftColor: '#6264A7',
+              borderLeftColor: theme.colors.accent,
             }}
           >
             <Text style={{ color: theme.colors.text, fontSize: 13, fontWeight: '700' }}>
