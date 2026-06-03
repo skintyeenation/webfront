@@ -24,7 +24,16 @@ export interface TimeFieldProps {
 //     on phones too.
 export function TimeField({ label, value, onChange, placeholder = 'HH:mm', error, style }: TimeFieldProps) {
   if (Platform.OS === 'web') {
-    const inputStyle: any = {
+    // 15-min slot list: 00:00, 00:15, 00:30, …, 23:45.
+    // Rendered as a native <select> so the dropdown shows ONLY these
+    // options instead of an open time picker with every minute.
+    const slots: string[] = [];
+    for (let h = 0; h < 24; h++) {
+      for (let m = 0; m < 60; m += 15) {
+        slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+      }
+    }
+    const selectStyle: any = {
       colorScheme: 'dark',
       backgroundColor: theme.colors.darkDefault,
       color: theme.colors.text,
@@ -35,20 +44,20 @@ export function TimeField({ label, value, onChange, placeholder = 'HH:mm', error
       fontFamily: 'inherit',
       width: '100%',
       boxSizing: 'border-box',
+      appearance: 'none',
+      WebkitAppearance: 'none',
     };
     return (
       <View style={style}>
-        {React.createElement('input', {
-          type: 'time',
+        {React.createElement('select', {
           value: value || '',
-          // step in seconds — 900 = 15-min intervals on the time picker's
-          // up/down spinner. Workers can still type any HH:mm freely;
-          // step only constrains the stepper buttons.
-          step: 900,
-          placeholder,
-          style: inputStyle,
+          style: selectStyle,
           onChange: (e: any) => onChange(e.target.value || ''),
-        })}
+        }, [
+          // Blank option so empty value is selectable + acts as placeholder
+          React.createElement('option', { key: '__blank', value: '' }, placeholder ?? '—'),
+          ...slots.map((s) => React.createElement('option', { key: s, value: s }, s)),
+        ])}
       </View>
     );
   }
