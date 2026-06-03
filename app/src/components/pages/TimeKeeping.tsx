@@ -268,7 +268,7 @@ function MyTimesheetView({
             </View>
             {current?.overtimeHours ? (
               <View style={{ flex: 1 }}>
-                <Text style={{ color: theme.colors.error, fontSize: 22 }}>{current.overtimeHours}h</Text>
+                <Text style={{ color: theme.colors.accent, fontSize: 22 }}>{current.overtimeHours}h</Text>
                 <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Overtime</Text>
               </View>
             ) : null}
@@ -405,7 +405,7 @@ function ApprovalCard({
   }, [t.entries]);
 
   return (
-    <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 8, borderLeftWidth: 3, borderLeftColor: t.requiresAdminApproval ? theme.colors.error : theme.colors.accent }}>
+    <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 8, borderLeftWidth: 3, borderLeftColor: theme.colors.accent }}>
       <Card.Content>
         {/* Tappable summary row — toggles details */}
         <TouchableOpacity onPress={() => setOpen((v) => !v)}>
@@ -418,7 +418,7 @@ function ApprovalCard({
             />
             <Text style={{ color: theme.colors.text, fontSize: 15, flex: 1 }}>{t.workerName}</Text>
             {t.requiresAdminApproval ? (
-              <Chip compact icon="fire" style={{ backgroundColor: theme.colors.error, marginRight: 6 }} textStyle={{ color: '#fff', fontSize: 10 }}>
+              <Chip compact icon="fire" style={{ backgroundColor: theme.colors.accent, marginRight: 6 }} textStyle={{ color: '#000', fontSize: 10 }}>
                 {t.overtimeHours}h OT
               </Chip>
             ) : null}

@@ -254,7 +254,7 @@ export default function AddTimesheet({ navigation, route }: any) {
                 </Text>
                 <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginLeft: 8 }}>· {wkHours}h</Text>
                 {overOT ? (
-                  <Chip compact icon="alert" style={{ marginLeft: 8, backgroundColor: theme.colors.error }} textStyle={{ color: '#fff', fontSize: 10 }}>
+                  <Chip compact icon="alert" style={{ marginLeft: 8, backgroundColor: theme.colors.accent }} textStyle={{ color: '#000', fontSize: 10 }}>
                     {Math.round((wkHours - (tallies?.overtimeThreshold ?? 40)) * 100) / 100}h OT
                   </Chip>
                 ) : null}
@@ -353,7 +353,7 @@ export default function AddTimesheet({ navigation, route }: any) {
               </View>
               {tallies?.ot ? (
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: theme.colors.error, fontSize: 22 }}>{tallies.ot}h</Text>
+                  <Text style={{ color: theme.colors.accent, fontSize: 22 }}>{tallies.ot}h</Text>
                   <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Overtime · admin approval required</Text>
                 </View>
               ) : null}
