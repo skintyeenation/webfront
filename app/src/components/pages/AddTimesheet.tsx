@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { Button, Card, Chip, HelperText, IconButton, Text, TextInput } from 'react-native-paper';
+import { Button, Card, Chip, HelperText, IconButton, Snackbar, Text, TextInput } from 'react-native-paper';
 import dayjs from 'dayjs';
 import { PageContainer, PageContent, TimeField } from 'skintyee/components/layout';
 import { useAppSelector } from 'skintyee/store';
@@ -84,6 +84,7 @@ export default function AddTimesheet({ navigation, route }: any) {
   const [saving, setSaving] = useState(false);
   const [submittedMode, setSubmittedMode] = useState<'draft' | 'submit' | null>(null);
   const [error, setError] = useState<string | undefined>();
+  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -192,8 +193,9 @@ export default function AddTimesheet({ navigation, route }: any) {
         ? await api.timekeeping.submit(payPeriod.id, body)
         : await api.timekeeping.saveDraft(payPeriod.id, body);
       setExisting(saved);
+      setToast(mode === 'submit' ? 'Submitted for approval' : 'Draft saved');
       if (mode === 'submit') {
-        setTimeout(() => navigation?.goBack?.(), 600);
+        setTimeout(() => navigation?.goBack?.(), 900);
       }
     } catch (e: any) {
       setError(e?.message ?? String(e));
@@ -372,28 +374,55 @@ export default function AddTimesheet({ navigation, route }: any) {
 
         {error ? <HelperText type="error" visible>{error}</HelperText> : null}
 
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, flexWrap: 'wrap' }}>
-          <Button
-            mode="outlined" icon="content-save-outline"
-            onPress={() => persist('draft')}
-            disabled={saving}
-            loading={saving && submittedMode === 'draft'}
-            textColor={theme.colors.text}
-            style={{ marginBottom: 6 }}
-          >
-            Save draft
-          </Button>
-          <Button
-            mode="contained" icon="send"
-            buttonColor={theme.colors.primary} textColor="#000"
-            onPress={() => persist('submit')}
-            disabled={saving || rows.length === 0}
-            loading={saving && submittedMode === 'submit'}
-            style={{ marginBottom: 6 }}
-          >
-            Submit
-          </Button>
-        </View>
+        {/* Submit gate — only allowed on cutoff Friday or after. Draft can
+            be saved any time the worker wants to. */}
+        {(() => {
+          const today = dayjs().startOf('day');
+          const cutoff = dayjs(payPeriod.endISO).startOf('day');
+          const submitOpen = today.isSame(cutoff) || today.isAfter(cutoff);
+          return (
+            <>
+              {!submitOpen ? (
+                <HelperText type="info" visible style={{ marginLeft: -8 }}>
+                  Submit opens on cutoff day · Fri {cutoff.format('MMM D')} ({cutoff.diff(today, 'day')} days away). Save your draft any time.
+                </HelperText>
+              ) : null}
+
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, flexWrap: 'wrap' }}>
+                <Button
+                  mode="outlined" icon="content-save-outline"
+                  onPress={() => persist('draft')}
+                  disabled={saving}
+                  loading={saving && submittedMode === 'draft'}
+                  textColor={theme.colors.text}
+                  style={{ marginBottom: 6 }}
+                >
+                  Save draft
+                </Button>
+                <Button
+                  mode="contained" icon="send"
+                  buttonColor={theme.colors.primary} textColor="#000"
+                  onPress={() => persist('submit')}
+                  disabled={saving || rows.length === 0 || !submitOpen}
+                  loading={saving && submittedMode === 'submit'}
+                  style={{ marginBottom: 6 }}
+                >
+                  Submit
+                </Button>
+              </View>
+            </>
+          );
+        })()}
+
+        {/* Save-success toast. Auto-dismisses; tap to dismiss early. */}
+        <Snackbar
+          visible={toast !== null}
+          onDismiss={() => setToast(null)}
+          duration={2200}
+          style={{ backgroundColor: theme.colors.success }}
+        >
+          {toast ?? ''}
+        </Snackbar>
       </PageContent>
     </PageContainer>
   );
