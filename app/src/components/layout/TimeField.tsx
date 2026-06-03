@@ -41,7 +41,10 @@ export function TimeField({ label, value, onChange, placeholder = 'HH:mm', error
         {React.createElement('input', {
           type: 'time',
           value: value || '',
-          step: 60,
+          // step in seconds — 900 = 15-min intervals on the time picker's
+          // up/down spinner. Workers can still type any HH:mm freely;
+          // step only constrains the stepper buttons.
+          step: 900,
           placeholder,
           style: inputStyle,
           onChange: (e: any) => onChange(e.target.value || ''),
