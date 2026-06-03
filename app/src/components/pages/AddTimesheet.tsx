@@ -112,11 +112,10 @@ export default function AddTimesheet({ navigation, route }: any) {
       prev.map((r) => {
         if (r.id !== id) return r;
         const next = { ...r, ...patch };
-        if (next.timeIn && next.timeOut && isValidTime(next.timeIn) && isValidTime(next.timeOut)) {
-          next.hours = hoursBetween(next.timeIn, next.timeOut);
-        } else if (patch.hours !== undefined) {
-          next.hours = patch.hours;
-        }
+        // Hours is read-only and always derived from timeIn/timeOut.
+        next.hours = (next.timeIn && next.timeOut && isValidTime(next.timeIn) && isValidTime(next.timeOut))
+          ? hoursBetween(next.timeIn, next.timeOut)
+          : 0;
         return next;
       })
     );
@@ -306,13 +305,15 @@ export default function AddTimesheet({ navigation, route }: any) {
                               style={{ flex: 1, marginRight: 6 }}
                               error={!isValidTime(r.timeOut)}
                             />
-                            <TextInput
-                              dense mode="outlined" label="Hours" keyboardType="decimal-pad"
-                              value={String(r.hours || '')}
-                              onChangeText={(v) => updateRow(r.id, { hours: Number(v) || 0 })}
-                              style={{ width: 80 }}
-                              disabled={!!(r.timeIn && r.timeOut && isValidTime(r.timeIn) && isValidTime(r.timeOut))}
-                            />
+                            {/* Hours — read-only, derived from In/Out. Styled
+                                as a plain label so it's obviously not an
+                                input. Shows '–' until both times are set. */}
+                            <View style={{ width: 70, alignItems: 'center' }}>
+                              <Text style={{ color: theme.colors.textDarker, fontSize: 10, letterSpacing: 1 }}>HOURS</Text>
+                              <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '600' }}>
+                                {r.hours > 0 ? r.hours : '–'}
+                              </Text>
+                            </View>
                           </View>
                         </View>
                       ))
