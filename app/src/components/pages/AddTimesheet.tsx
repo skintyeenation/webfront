@@ -414,14 +414,25 @@ export default function AddTimesheet({ navigation, route }: any) {
           );
         })()}
 
-        {/* Save-success toast. Auto-dismisses; tap to dismiss early. */}
+        {/* Save-success toast. Auto-dismisses; tap to dismiss early.
+            wrapperStyle aligns the inner card to the centre of the
+            PageContent column (which can be up to 1200px wide on web,
+            so a default left-pinned Snackbar reads as off-centre).
+            Inner card is width-bounded + alignSelf:center, and the
+            message text is centred horizontally inside it. */}
         <Snackbar
           visible={toast !== null}
           onDismiss={() => setToast(null)}
           duration={2200}
-          style={{ backgroundColor: theme.colors.success }}
+          wrapperStyle={{ alignItems: 'center' }}
+          style={{
+            backgroundColor: theme.colors.success,
+            alignSelf: 'center',
+            width: '100%',
+            maxWidth: 420,
+          }}
         >
-          {toast ?? ''}
+          <Text style={{ color: '#000', textAlign: 'center', width: '100%' }}>{toast ?? ''}</Text>
         </Snackbar>
       </PageContent>
     </PageContainer>
