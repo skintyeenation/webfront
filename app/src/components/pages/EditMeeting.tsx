@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
-import { Button, Chip, HelperText, IconButton, Switch, Text, TextInput } from 'react-native-paper';
+import { ActivityIndicator, TouchableOpacity, View } from 'react-native';
+import { Button, Chip, HelperText, IconButton, Menu, Switch, Text, TextInput } from 'react-native-paper';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import moment from 'moment';
 import { PageContainer, PageContent, NoContent, DateTimeField, LocationPicker, LatLng } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
@@ -78,6 +79,7 @@ export default function EditMeeting({ route, navigation }: any) {
 
   const [catalog, setCatalog] = useState<{ types: MeetingType[]; sources: MeetingSource[] }>({ types: [], sources: [] });
   const [catalogError, setCatalogError] = useState<string | undefined>();
+  const [typeMenuOpen, setTypeMenuOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | undefined>();
 
@@ -184,36 +186,77 @@ export default function EditMeeting({ route, navigation }: any) {
       <PageContent>
         <TextInput label="Title" value={title} onChangeText={setTitle} mode="outlined" style={{ marginBottom: 10 }} />
 
-        {/* Type — editable; updating changes the event's Outlook category */}
+        {/* Type — editable; updating changes the event's Outlook category.
+            Dropdown rather than chips so it reads as a form field (Edit
+            screen has more state to scan than Create, where chips work). */}
         <Text style={{ color: theme.colors.text, fontSize: 14, fontWeight: '600', marginBottom: 6 }}>
           Meeting type
         </Text>
         {catalogError ? (
           <HelperText type="error" visible>Couldn't load meeting types: {catalogError}</HelperText>
         ) : null}
-        {types.length === 0 && !catalogError ? <ActivityIndicator style={{ marginVertical: 8 }} /> : null}
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }}>
-          {types.map((t) => {
-            const on = typeSlug === t.slug;
+        {types.length === 0 && !catalogError ? (
+          <ActivityIndicator style={{ marginVertical: 8 }} />
+        ) : (
+          (() => {
+            const selectedType = types.find((t) => t.slug === typeSlug);
             return (
-              <Chip
-                key={t.slug}
-                selected={on}
-                showSelectedCheck
-                icon={TYPE_ICONS[t.slug] ?? 'calendar'}
-                onPress={() => setTypeSlug(t.slug)}
-                style={{
-                  marginRight: 8,
-                  marginBottom: 8,
-                  backgroundColor: on ? theme.colors.primary : theme.colors.secondary,
-                }}
-                textStyle={{ color: on ? '#000' : theme.colors.text, fontSize: 12 }}
+              <Menu
+                visible={typeMenuOpen}
+                onDismiss={() => setTypeMenuOpen(false)}
+                anchor={
+                  <TouchableOpacity onPress={() => setTypeMenuOpen(true)} activeOpacity={0.7}>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        backgroundColor: theme.colors.darkDefault,
+                        borderWidth: 1,
+                        borderColor: 'rgba(255,255,255,0.29)',
+                        borderRadius: 4,
+                        paddingHorizontal: 12,
+                        paddingVertical: 10,
+                        marginBottom: 12,
+                      }}
+                    >
+                      <MaterialCommunityIcons
+                        name={selectedType ? (TYPE_ICONS[selectedType.slug] ?? 'calendar') : 'calendar'}
+                        size={18}
+                        color={theme.colors.textDarker}
+                        style={{ marginRight: 8 }}
+                      />
+                      <Text style={{ color: theme.colors.text, flex: 1 }}>
+                        {selectedType?.displayName ?? 'Select type'}
+                      </Text>
+                      <MaterialCommunityIcons name="chevron-down" size={18} color={theme.colors.textDarker} />
+                    </View>
+                  </TouchableOpacity>
+                }
+                contentStyle={{ backgroundColor: theme.colors.darkDefault }}
               >
-                {t.displayName}
-              </Chip>
+                {types.map((t) => {
+                  const selected = t.slug === typeSlug;
+                  return (
+                    <Menu.Item
+                      key={t.slug}
+                      title={t.displayName}
+                      leadingIcon={TYPE_ICONS[t.slug] ?? 'calendar'}
+                      trailingIcon={selected ? 'check' : undefined}
+                      onPress={() => {
+                        setTypeSlug(t.slug);
+                        setTypeMenuOpen(false);
+                      }}
+                      titleStyle={{
+                        color: selected ? theme.colors.primary : theme.colors.text,
+                        fontWeight: selected ? '700' : '400',
+                      }}
+                    />
+                  );
+                })}
+              </Menu>
             );
-          })}
-        </View>
+          })()
+        )}
 
         {/* Source — read-only on edit. Graph can't move events between
             calendars in a single PATCH. To change source, delete +
