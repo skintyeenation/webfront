@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { Platform, ScrollView, StyleProp, View, ViewStyle } from 'react-native';
 import { Menu, TextInput, TouchableRipple } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -14,96 +14,128 @@ export interface TimeFieldProps {
   style?: StyleProp<ViewStyle>;
 }
 
-// Build the 15-minute slot list once at module load.
-// 00:00, 00:15, 00:30, …, 23:45 = 96 values.
-const SLOTS_15MIN: string[] = (() => {
-  const out: string[] = [];
-  for (let h = 0; h < 24; h++) {
-    for (let m = 0; m < 60; m += 15) {
-      out.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
-    }
-  }
-  return out;
-})();
+const HOURS: string[]   = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+const MINUTES: string[] = ['00', '15', '30', '45'];
 
-// Time-only picker constrained to 15-minute increments.
+// Parse "HH:mm" → { h, m }. Either field can be undefined when partial.
+function parse(value: string): { h?: string; m?: string } {
+  if (!value) return {};
+  const m = value.match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return {};
+  const hh = m[1].padStart(2, '0');
+  const mm = m[2];
+  return { h: HOURS.includes(hh) ? hh : undefined, m: MINUTES.includes(mm) ? mm : undefined };
+}
+
+// Two-selector time picker — hour menu + 15-min menu.
 //
-//   - Web: TouchableRipple anchor + Paper Menu with the slot list. All
-//     dark-themed, brand-coloured selected state. The native <select>
-//     and the OS-supplied <input type="time"> dropdown both looked
-//     out-of-style and (in select's case) gross, so this is a self-
-//     rendered dropdown that matches the rest of the form.
-//   - Native: TextInput fallback (manual HH:mm entry). Future swap
-//     point: same Paper Menu pattern works fine on RN; the native
-//     path can adopt it once the on-screen keyboard story is sorted.
-export function TimeField({ label, value, onChange, placeholder = '—', error, style }: TimeFieldProps) {
-  const [open, setOpen] = useState(false);
+//   - Web: TouchableRipple anchors styled like the other dark form
+//     fields. Tap the hour or the minute to open its own Paper Menu.
+//     Picking a value updates that segment; emits "HH:mm" only when
+//     both are set (otherwise empty string so downstream validation
+//     can show the row as incomplete).
+//   - Native: TextInput fallback. Same Paper Menu pattern would adopt
+//     to RN, but the on-screen keyboard story is cleaner with manual
+//     entry for now.
+export function TimeField({ label, value, onChange, placeholder = '—:—', error, style }: TimeFieldProps) {
+  const { h, m } = parse(value);
+  const [openH, setOpenH] = useState(false);
+  const [openM, setOpenM] = useState(false);
+
+  const update = (nextH?: string, nextM?: string) => {
+    if (nextH && nextM) onChange(`${nextH}:${nextM}`);
+    else                onChange('');
+  };
 
   if (Platform.OS === 'web') {
-    const anchorStyle: ViewStyle = {
-      backgroundColor: theme.colors.darkDefault,
-      borderWidth: 1,
-      borderColor: error ? theme.colors.error : 'rgba(255,255,255,0.29)',
-      borderRadius: 4,
+    const segmentStyle: ViewStyle = {
+      flex: 1,
       paddingHorizontal: 10,
       paddingVertical: 8,
       flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'center',
     };
+    const containerStyle: ViewStyle = {
+      backgroundColor: theme.colors.darkDefault,
+      borderWidth: 1,
+      borderColor: error ? theme.colors.error : 'rgba(255,255,255,0.29)',
+      borderRadius: 4,
+      flexDirection: 'row',
+      alignItems: 'center',
+    };
+
+    const segmentText = (val?: string, fallback = '--') => (
+      <NativeText
+        style={{
+          color: val ? theme.colors.text : theme.colors.textDarker,
+          fontSize: 14,
+          letterSpacing: 1,
+        }}
+      >
+        {val ?? fallback}
+      </NativeText>
+    );
 
     return (
       <View style={style}>
-        <Menu
-          visible={open}
-          onDismiss={() => setOpen(false)}
-          anchor={
-            <TouchableRipple onPress={() => setOpen(true)} style={anchorStyle}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%' }}>
-                <MaterialCommunityIcons
-                  name="clock-outline"
-                  size={16}
-                  color={theme.colors.textDarker}
-                  style={{ marginRight: 6 }}
-                />
-                <View style={{ flex: 1 }}>
-                  {/* Current value or placeholder */}
-                  {/* No <Text> wrapper styling tricks — keeps the row
-                      a fixed height matching the other Paper inputs. */}
-                  <View>
-                    <NativeText
-                      style={{
-                        color: value ? theme.colors.text : theme.colors.textDarker,
-                        fontSize: 14,
-                      }}
-                    >
-                      {value || placeholder}
-                    </NativeText>
-                  </View>
-                </View>
-                <MaterialCommunityIcons
-                  name="chevron-down"
-                  size={16}
-                  color={theme.colors.textDarker}
-                />
-              </View>
-            </TouchableRipple>
-          }
-          contentStyle={{ backgroundColor: theme.colors.darkDefault, maxHeight: 280 }}
-        >
-          <ScrollView style={{ maxHeight: 280 }}>
-            {/* Blank/clear option */}
-            <Menu.Item
-              title="—"
-              onPress={() => { onChange(''); setOpen(false); }}
-              titleStyle={{ color: theme.colors.textDarker }}
-            />
-            {SLOTS_15MIN.map((slot) => {
-              const selected = slot === value;
+        <View style={containerStyle}>
+          {/* Leading clock icon */}
+          <View style={{ paddingLeft: 8 }}>
+            <MaterialCommunityIcons name="clock-outline" size={16} color={theme.colors.textDarker} />
+          </View>
+
+          {/* Hour selector */}
+          <Menu
+            visible={openH}
+            onDismiss={() => setOpenH(false)}
+            anchor={
+              <TouchableRipple onPress={() => setOpenH(true)} style={segmentStyle}>
+                {segmentText(h, '--')}
+              </TouchableRipple>
+            }
+            contentStyle={{ backgroundColor: theme.colors.darkDefault, maxHeight: 280 }}
+          >
+            <ScrollView style={{ maxHeight: 280 }}>
+              {HOURS.map((hh) => {
+                const selected = hh === h;
+                return (
+                  <Menu.Item
+                    key={hh}
+                    title={hh}
+                    onPress={() => { update(hh, m); setOpenH(false); }}
+                    titleStyle={{
+                      color: selected ? theme.colors.primary : theme.colors.text,
+                      fontWeight: selected ? '700' : '400',
+                    }}
+                    leadingIcon={selected ? 'check' : undefined}
+                  />
+                );
+              })}
+            </ScrollView>
+          </Menu>
+
+          {/* Separator */}
+          <NativeText style={{ color: theme.colors.textDarker, fontSize: 14 }}>:</NativeText>
+
+          {/* Minute selector */}
+          <Menu
+            visible={openM}
+            onDismiss={() => setOpenM(false)}
+            anchor={
+              <TouchableRipple onPress={() => setOpenM(true)} style={segmentStyle}>
+                {segmentText(m, '--')}
+              </TouchableRipple>
+            }
+            contentStyle={{ backgroundColor: theme.colors.darkDefault }}
+          >
+            {MINUTES.map((mm) => {
+              const selected = mm === m;
               return (
                 <Menu.Item
-                  key={slot}
-                  title={slot}
-                  onPress={() => { onChange(slot); setOpen(false); }}
+                  key={mm}
+                  title={mm}
+                  onPress={() => { update(h, mm); setOpenM(false); }}
                   titleStyle={{
                     color: selected ? theme.colors.primary : theme.colors.text,
                     fontWeight: selected ? '700' : '400',
@@ -112,8 +144,13 @@ export function TimeField({ label, value, onChange, placeholder = '—', error, 
                 />
               );
             })}
-          </ScrollView>
-        </Menu>
+          </Menu>
+
+          {/* Trailing chevron */}
+          <View style={{ paddingRight: 8 }}>
+            <MaterialCommunityIcons name="chevron-down" size={16} color={theme.colors.textDarker} />
+          </View>
+        </View>
       </View>
     );
   }
@@ -133,8 +170,7 @@ export function TimeField({ label, value, onChange, placeholder = '—', error, 
   );
 }
 
-// Lightweight Text wrapper for web — avoids importing Paper's Text just for
-// one line inside the anchor (Paper's Text adds extra typography styles).
+// Lightweight Text wrapper for web (avoids Paper Text's extra typography).
 function NativeText({ children, style }: { children: React.ReactNode; style?: any }) {
   return React.createElement('span', { style }, children);
 }
