@@ -89,6 +89,20 @@ function parseMembership(raw: string): ParsedMembership {
   return { mail, rel: 'manual' };
 }
 
+// M365 group slug → group mail. Every M365 group IS a shared mailbox, so
+// membership shows up in BOTH bandGroups (as the catalog slug) AND
+// mailboxMemberships (as "<mail>|member"). Without dedup, Betty's
+// `management-m365` slug renders as "Management (M365)" in row 1 AND
+// `management@skintyee.ca|member` renders as "Management" in row 2 —
+// confusing because both refer to the same group. We hide the row-2
+// version when the equivalent row-1 chip is already showing.
+const M365_SLUG_TO_MAIL: Record<string, string> = {
+  'it-project-docs':    'it-project-docs@skintyee.ca',
+  'band-members-m365':  'band@skintyee.ca',
+  'council-m365':       'council@skintyee.ca',
+  'management-m365':    'management@skintyee.ca',
+};
+
 // Strip the "Member" role from the description — everyone in the directory
 // is a member, so it adds no information. Show the role ONLY if it's
 // something distinctive (Chief / Council / Staff).
@@ -263,7 +277,18 @@ export default function Directory({ navigation }: any) {
             ItemSeparatorComponent={() => <Divider />}
             renderItem={({ item }: { item: any }) => {
               const isShared = item.accountType === 'shared-inbox';
-              const memberships: string[] = Array.isArray(item.mailboxMemberships) ? item.mailboxMemberships : [];
+              const allMemberships: string[] = Array.isArray(item.mailboxMemberships) ? item.mailboxMemberships : [];
+              // Drop mailbox entries already represented by an M365 group
+              // chip — those are the same Entra object surfaced twice
+              // (catalog walk + all-groups walk in graph-feed.service.ts).
+              const bandGroupSlugs: string[] = Array.isArray(item.bandGroups) ? item.bandGroups : [];
+              const m365MailsAlreadyShown = new Set(
+                bandGroupSlugs.map((s) => M365_SLUG_TO_MAIL[s]).filter(Boolean)
+              );
+              const memberships = allMemberships.filter((raw) => {
+                const mail = raw.split('|')[0].toLowerCase();
+                return !m365MailsAlreadyShown.has(mail);
+              });
               return (
                 <TouchableOpacity onPress={() => navigation.navigate('memberDetail', { id: item._id })}>
                   <List.Item

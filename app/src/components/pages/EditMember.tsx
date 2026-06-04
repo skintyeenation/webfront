@@ -3,7 +3,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { Button, Card, Chip, HelperText, IconButton, Snackbar, Text, TextInput } from 'react-native-paper';
 import { PageContainer, PageContent, NoContent, useConfirm } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
-import { setMemberGroups, setMemberMailboxes, updateMember } from 'skintyee/store/modules/directory';
+import { loadDirectory, loadMember, setMemberGroups, setMemberMailboxes, updateMember } from 'skintyee/store/modules/directory';
 import { BandMember } from 'skintyee/models';
 import { SecurityGroup, SharedMailbox } from 'skintyee/services/api/ApiService';
 import { apiFactory } from 'skintyee/store/apis';
@@ -35,7 +35,23 @@ function fullAccessMailboxes(memberships?: string[]): string[] {
 export default function EditMember({ route, navigation }: any) {
   const dispatch = useAppDispatch();
   const id = route?.params?.id;
-  const member = useAppSelector((s) => s.directory.entities.find((m) => m._id === id));
+  // Prefer the entities row (full directory list — already merged with
+  // setGroups/setMailboxes writes). Fall back to `selected` so deep links
+  // and post-AddMember navigation still render when the list hasn't been
+  // fetched yet (or has a stale partial from the addMember in-memory
+  // mirror in AddMember.tsx).
+  const fromEntities = useAppSelector((s) => s.directory.entities.find((m) => m._id === id));
+  const fromSelected = useAppSelector((s) =>
+    s.directory.selected?._id === id ? s.directory.selected : undefined
+  );
+  const member = fromEntities ?? fromSelected;
+
+  // Always pull a fresh row for the screen — guarantees identity fields
+  // populate even if entities was loaded before the user's last sync.
+  useEffect(() => {
+    if (id) dispatch(loadMember(id));
+    dispatch(loadDirectory());
+  }, [dispatch, id]);
 
   const [name, setName] = useState(member?.name ?? '');
   const [title, setTitle] = useState(member?.title ?? '');
@@ -84,6 +100,30 @@ export default function EditMember({ route, navigation }: any) {
     setSelected(new Set(member?.bandGroups ?? []));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bandGroupsKey]);
+
+  // Sync the text fields when `member` arrives after mount. useState's
+  // initial value runs ONCE at first render — if entities was still
+  // loading then, name/title/department/email/phone freeze to '' and
+  // stay blank until the user edits them. Re-sync whenever any of the
+  // source fields change so the form populates as soon as data lands.
+  // (Keyed on string identity, not member identity, so re-renders with
+  // a fresh entities array reference don't clobber pending edits.)
+  useEffect(() => {
+    if (!member) return;
+    setName(member.name ?? '');
+    setTitle(member.title ?? '');
+    setDepartment((member as any).department ?? '');
+    setEmail(member.email ?? '');
+    setPhone(member.phone ?? '');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    member?._id,
+    member?.name,
+    member?.title,
+    (member as any)?.department,
+    member?.email,
+    member?.phone,
+  ]);
 
   // Same pattern for mailbox memberships.
   const mailboxesKey = (member?.mailboxMemberships ?? []).join(',');

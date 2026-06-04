@@ -27,6 +27,16 @@ function parseMembership(raw: string): ParsedMembership {
   if (rel === 'member') return { mail, rel: 'member' };
   return { mail, rel: 'manual' };
 }
+
+// M365 group slug → group mail. Every M365 group IS a shared mailbox so
+// membership surfaces twice (bandGroups + mailboxMemberships). Hide the
+// mailbox chip when the matching M365 group chip is already shown.
+const M365_SLUG_TO_MAIL: Record<string, string> = {
+  'it-project-docs':    'it-project-docs@skintyee.ca',
+  'band-members-m365':  'band@skintyee.ca',
+  'council-m365':       'council@skintyee.ca',
+  'management-m365':    'management@skintyee.ca',
+};
 const shortMailbox = (full: string) => {
   const local = full.split('@')[0];
   return local.charAt(0).toUpperCase() + local.slice(1);
@@ -167,7 +177,15 @@ export default function MemberDetail({ route, navigation }: any) {
 
   const m: any = selected;
   const isShared = m.accountType === 'shared-inbox';
-  const memberships: ParsedMembership[] = (m.mailboxMemberships ?? []).map(parseMembership);
+  // Filter mailbox entries that duplicate an M365 group chip already
+  // rendered from bandGroups (the Roles card below).
+  const bandGroupSlugs: string[] = Array.isArray(m.bandGroups) ? m.bandGroups : [];
+  const m365MailsAlreadyShown = new Set(
+    bandGroupSlugs.map((s) => M365_SLUG_TO_MAIL[s]).filter(Boolean)
+  );
+  const memberships: ParsedMembership[] = (m.mailboxMemberships ?? [])
+    .map(parseMembership)
+    .filter((p: ParsedMembership) => !m365MailsAlreadyShown.has(p.mail.toLowerCase()));
   const ownedGroups   = memberships.filter((x) => x.rel === 'owner');
   const memberGroups  = memberships.filter((x) => x.rel === 'member');
   const manualEntries = memberships.filter((x) => x.rel === 'manual');
@@ -255,36 +273,62 @@ export default function MemberDetail({ route, navigation }: any) {
         ) : null}
 
         {/* Skin Tyee security-group memberships — the app's role model.
-            Edited via the EditMember screen, which writes back to Entra. */}
+            Edited via the EditMember screen, which writes back to Entra.
+            Split into ENTRA GROUPS + MICROSOFT 365 GROUPS to match the
+            EditMember layout (and to make the distinction visible — M365
+            groups also surface in Shared mailbox access below). */}
         {(m.bandGroups?.length ?? 0) > 0 ? (
           <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
             <Card.Content>
               <Text style={{ color: theme.colors.text, fontSize: 14, marginBottom: 8 }}>
-                Roles
+                Group memberships
               </Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-                {(m.bandGroups ?? []).map((slug) => (
-                  <Chip
-                    key={slug}
-                    compact
-                    icon="shield-account"
-                    style={{ marginRight: 4, marginTop: 2, backgroundColor: theme.colors.secondary }}
-                    textStyle={{ fontSize: 11 }}
-                  >
-                    {bandGroupLabel(slug)}
-                  </Chip>
-                ))}
-              </View>
+              {(() => {
+                const slugs = (m.bandGroups ?? []) as string[];
+                // M365_SLUG_TO_MAIL's keys are the catalog's M365 group
+                // slugs; everything else is an Entra security group.
+                const m365  = slugs.filter((s) => s in M365_SLUG_TO_MAIL);
+                const entra = slugs.filter((s) => !(s in M365_SLUG_TO_MAIL));
+                const renderRow = (title: string, items: string[]) => items.length === 0 ? null : (
+                  <View style={{ marginBottom: 10 }} key={title}>
+                    <Text style={{ color: theme.colors.textDarker, fontSize: 11, textTransform: 'uppercase', marginBottom: 4 }}>
+                      {title}
+                    </Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                      {items.map((slug) => (
+                        <Chip
+                          key={slug}
+                          compact
+                          icon="shield-account"
+                          style={{ marginRight: 4, marginTop: 2, backgroundColor: theme.colors.secondary }}
+                          textStyle={{ fontSize: 11 }}
+                        >
+                          {bandGroupLabel(slug)}
+                        </Chip>
+                      ))}
+                    </View>
+                  </View>
+                );
+                return (
+                  <>
+                    {renderRow('Entra groups', entra)}
+                    {renderRow('Microsoft 365 groups', m365)}
+                  </>
+                );
+              })()}
             </Card.Content>
           </Card>
         ) : null}
 
-        {/* For licensed users: their group memberships + shared mailboxes */}
+        {/* For licensed users: their shared-mailbox FullAccess grants
+            (managed via EXO from the EditMember screen). M365 group
+            mailboxes are filtered upstream so they don't appear here AND
+            in the Group memberships card above. */}
         {!isShared && memberships.length > 0 ? (
           <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
             <Card.Content>
               <Text style={{ color: theme.colors.text, fontSize: 14, marginBottom: 8 }}>
-                Group memberships
+                Shared mailbox access
               </Text>
               {ownedGroups.length > 0 ? (
                 <>
