@@ -21,12 +21,19 @@ export interface RoleDerivationInput {
  *   1. Break-glass account → admin.
  *   2. Entra security-group membership:
  *        admins / system-admin / chief / council  → admin
- *        management / it / band-manager / finance → staff
+ *        staff (Skin Tyee Staff)                  → staff   ← explicit marker
+ *        management / it / band-manager / finance → staff   (inferred)
  *   3. Job-title heuristic:
  *        chief/council in title OR
  *        director|manager|admin (regex) → admin
  *        any other non-empty title       → staff
  *   4. No title and no matching group → member.
+ *
+ * The explicit `staff` slug (introduced with the staff-auth feature —
+ * see docs/features/staff-auth.md) is the highest-precedence STAFF
+ * signal, ahead of management/it/etc. inferences and the title
+ * heuristic. It does NOT outrank the admin branches above it — if you
+ * end up in both `admins` and `staff`, you're still admin.
  *
  * Note: the additional People-based "timesheetsEnabled bumps to staff"
  * layer documented in docs/365/app-roles.md happens INSIDE the
@@ -41,6 +48,7 @@ export function deriveAppRole(input: RoleDerivationInput): AppRole {
 
   if (inGroup('admins') || inGroup('system-admin')) return 'admin';
   if (inGroup('chief')  || inGroup('council'))      return 'admin';
+  if (inGroup('staff')) return 'staff';
   if (inGroup('management') || inGroup('it') || inGroup('band-manager') || inGroup('finance')) {
     return 'staff';
   }

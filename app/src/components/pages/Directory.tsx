@@ -38,6 +38,7 @@ const BAND_GROUP_LABELS: Record<string, string> = {
   'land-resources': 'Land Resources',
   'gis':            'GIS',
   'fire-chief':     'Fire Chief',
+  'staff':          'Staff',
   // M365 groups
   'it-project-docs':  'IT Project Docs',
   'council-m365':     'Council (M365)',

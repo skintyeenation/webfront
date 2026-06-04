@@ -51,6 +51,14 @@ export const SKINTYEE_SECURITY_GROUPS: SkintyeeGroup[] = [
   { id: '367839cd-e9a2-4a04-a2e7-15e02ae9c65c', slug: 'land-resources',   displayName: 'Skin Tyee Land Resources',  kind: 'entra', description: 'Land resources department' },
   { id: '88076d3d-b6a0-4c5f-abce-b140d063b911', slug: 'gis',              displayName: 'Skin Tyee GIS',             kind: 'entra', description: 'GIS / Mapping department' },
   { id: '1cd86f8f-c6c4-4213-bfaa-305abe9bae94', slug: 'fire-chief',       displayName: 'Skin Tyee Fire Chief',      kind: 'entra', description: 'Fire chief role' },
+  // The staff group — companion to the Person model in the app's data
+  // layer. Membership in this group marks "this band member is also
+  // staff" (drives appRole='staff' explicitly, beats the title
+  // heuristic). AddMember's "Also create staff record" switch
+  // auto-seats new users here so the role marker and the Person row
+  // land atomically. Eligible-for-M365 ≠ this group; see
+  // docs/features/staff-auth.md for the eligibility-vs-grant split.
+  { id: 'ba26d93f-c821-488f-8d03-6408d0794495', slug: 'staff',            displayName: 'Skin Tyee Staff',           kind: 'entra', description: 'Band members who are also staff/employees' },
 
   // ---- Microsoft 365 Groups (3) -------------------------------------------
   // Mail-enabled "Unified" groups; double as shared mailboxes + SharePoint

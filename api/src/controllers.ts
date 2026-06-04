@@ -577,6 +577,16 @@ export class AdminController implements OnApplicationBootstrap {
       throw new BadRequestException(`Unknown group slugs: ${unknown.join(', ')}`);
     }
 
+    // Auto-seat the Skin Tyee Staff group when the admin opted to
+    // create a Person row alongside this BandMember (locked decision
+    // #6 in docs/features/staff-auth.md). The group is the explicit
+    // role marker for staff; pairing it with createPerson keeps the
+    // role tag + Person record atomic. Idempotent — admin can also
+    // tick the staff chip manually without producing duplicates.
+    const effectiveGroupSlugs = b.createPerson && !groupSlugs.includes('staff')
+      ? [...groupSlugs, 'staff']
+      : groupSlugs;
+
     // 1. Entra user via Graph
     const created = await this.graph.createBandMemberUser({
       displayName: b.displayName,
@@ -593,17 +603,17 @@ export class AdminController implements OnApplicationBootstrap {
     // 2. Security-group adds (best-effort — collect per-slug failures
     //    so the admin can retry from EditMember).
     const failedGroups: string[] = [];
-    if (groupSlugs.length) {
+    if (effectiveGroupSlugs.length) {
       try {
-        await this.graph.setUserBandGroups(created.id, groupSlugs, []);
+        await this.graph.setUserBandGroups(created.id, effectiveGroupSlugs, []);
       } catch (e: any) {
         // setUserBandGroups throws on first failure today; surface
         // that as a list of all slugs so the admin retries the lot.
         this.log.warn(`createUser: group writes failed for ${created.id}: ${e?.message ?? e}`);
-        failedGroups.push(...groupSlugs);
+        failedGroups.push(...effectiveGroupSlugs);
       }
     }
-    const persistedSlugs = failedGroups.length ? [] : groupSlugs;
+    const persistedSlugs = failedGroups.length ? [] : effectiveGroupSlugs;
 
     // 3. Persistent BandMember row + appRole via shared derivation.
     const appRole = deriveAppRole({

@@ -32,6 +32,8 @@ the entry as a record so future searches still find the migration.
 
 **Drift symptom:** Add a new group in `api/src/skintyee-groups.ts` but forget to add the matching `BAND_GROUP_LABELS` entry — the chip renders the kebab-case slug as a fallback title (`'new-group' → "New Group"`) instead of its real display name.
 
+**Last drift caught:** 2026-06-04 — when adding the `staff` slug for the staff-auth feature (`docs/features/staff-auth.md`), both `BAND_GROUP_LABELS` maps had to be updated alongside the catalog. Confirmed by hand; once the consolidation in "Fix path" below lands this won't be necessary.
+
 **Fix path:** lift `BAND_GROUP_LABELS` into `app/src/services/api/groupCatalog.ts` that pulls from `apiFactory().admin.securityGroups()` once and caches it; remove both inline maps.
 
 ---
