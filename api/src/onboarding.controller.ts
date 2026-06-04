@@ -29,7 +29,11 @@ export class OnboardingController {
 
   @Get('flows') @Roles('admin') async listFlows() { return this.svc.listFlows(); }
 
-  @Get('flows/:id') @Roles('admin') async getFlow(@Param('id') id: string) {
+  // Flow templates aren't sensitive (titles, step instructions,
+  // attached document refs — admins design them for workers to follow).
+  // Open the read endpoint to everyone signed-in so MyOnboarding +
+  // AssignmentTimeline can resolve titles for non-admin viewers.
+  @Get('flows/:id') @Roles('member', 'staff', 'admin') async getFlow(@Param('id') id: string) {
     const r = await this.svc.getFlow(id);
     if (!r) throw new NotFoundException();
     return r;
@@ -177,9 +181,29 @@ export class OnboardingController {
     return this.svc.listAssignments({ personId: person.id });
   }
 
-  @Get('assignments/:id') @Roles('admin') async getAssignment(@Param('id') id: string) {
+  // Single-assignment read — admin sees any; workers only see their
+  // own. The match goes through Person.email = upn OR linked
+  // BandMember.upn = upn (same matcher as my-assignments + role-for).
+  @Get('assignments/:id') @Roles('member', 'staff', 'admin') async getAssignment(@Param('id') id: string, @Req() req: any) {
     const r = await this.svc.getAssignment(id);
     if (!r) throw new NotFoundException();
+    const role = (req.headers['x-role'] as string | undefined) ?? 'public';
+    if (role === 'admin') return r;
+    // Non-admin — confirm the assignment belongs to the caller.
+    const upn = ((req.headers['x-upn'] as string | undefined) || '').toLowerCase();
+    if (!upn) throw new ForbiddenException();
+    const prisma = (this.svc as any).prisma;
+    if (!prisma?.isAvailable) throw new ForbiddenException();
+    const person = await prisma.person.findFirst({
+      where: {
+        OR: [
+          { email: { equals: upn, mode: 'insensitive' } },
+          { bandMember: { upn: { equals: upn, mode: 'insensitive' } } },
+        ],
+      },
+      select: { id: true },
+    });
+    if (!person || person.id !== r.personId) throw new ForbiddenException();
     return r;
   }
 
