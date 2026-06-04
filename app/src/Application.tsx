@@ -221,7 +221,19 @@ export default function Application() {
       // but stays focused on the leftover Account route with no tab
       // bar. Refreshing the page forced a clean remount, which is the
       // bug Lucas hit on app.skintyee.ca's first sign-in.
-      <NavigationContainer key={allowedIn ? 'authed' : 'guest'}>
+      <NavigationContainer
+        key={allowedIn ? 'authed' : 'guest'}
+        // Browser-tab title format: "Skin Tyee · <Page>". Without this,
+        // React Navigation web defaults to just the route's title — so
+        // the user saw "Account" instead of "Skin Tyee · Account". The
+        // bare app name (no route yet) renders "Skin Tyee".
+        documentTitle={{
+          formatter: (options, route) => {
+            const page = (options?.title ?? route?.name ?? '').trim();
+            return page ? `Skin Tyee · ${page}` : 'Skin Tyee';
+          },
+        }}
+      >
         {!allowedIn ? (
           // Pre-sign-in: show only the Account screen (no tabs).
           // The Account screen contains BOTH the Microsoft sign-in button
