@@ -174,10 +174,12 @@ async function fetchRoleFromApi(upn: string): Promise<Role | null> {
 
 export const setRole = createAction<Role>('set_role');        // dev-only override
 
-// Unspoof — revert role to the signed-in user's canonical BandMember.appRole.
-// Uses cached `canonicalRole` when present; otherwise re-fetches from the
-// api/ via /v1/admin/role-for/:upn so users whose persisted state predates
-// the canonicalRole field can still revert successfully.
+// Unspoof — revert role to the signed-in user's canonical role and
+// re-fetch from the api/ so any People-based bump (timesheetsEnabled
+// → staff) is picked up. We deliberately DO NOT short-circuit on a
+// cached `canonicalRole`: it may be stale relative to People-table
+// changes that happened after the last sign-in. Cached value is only
+// used as a fallback when the network call fails.
 export const unspoof = createAsyncThunk<
   { role: Role; name: string } | null,
   void,
@@ -187,7 +189,8 @@ export const unspoof = createAsyncThunk<
   async (_, { getState, rejectWithValue }) => {
     const s = (getState() as any).auth as AuthState;
     if (!s.user?.upn) return rejectWithValue('No signed-in user — nothing to unspoof.');
-    const role: Role = s.canonicalRole ?? (await fetchRoleFromApi(s.user.upn)) ?? deriveRoleLocally(s.user);
+    const fetched = await fetchRoleFromApi(s.user.upn);
+    const role: Role = fetched ?? s.canonicalRole ?? deriveRoleLocally(s.user);
     return { role, name: s.user.name || s.user.upn };
   },
 );
