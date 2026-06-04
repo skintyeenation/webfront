@@ -248,75 +248,6 @@ export default function EditMember({ route, navigation }: any) {
   return (
     <PageContainer>
       <PageContent>
-        {/* Rotate-password panel — only meaningful when this member has
-            a real Entra id (members from the seed do; in-memory ones
-            from old AddMember don't). Action is its own button + save
-            cycle, NOT bundled with the main Save below. */}
-        {memberUpn ? (
-          <Card style={{ marginBottom: 14, backgroundColor: theme.colors.darkDefault, borderLeftWidth: 3, borderLeftColor: rotatedPassword ? theme.colors.success : theme.colors.accent }}>
-            <Card.Content>
-              <Text style={{ color: theme.colors.text, fontSize: 14, fontWeight: '600' }}>Password</Text>
-              {rotatedPassword ? (
-                <>
-                  <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginTop: 10 }}>
-                    NEW TEMPORARY PASSWORD
-                  </Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.04)', padding: 10, borderRadius: 4, marginTop: 4 }}>
-                    <Text style={{ color: theme.colors.text, fontSize: 16, fontFamily: 'monospace', flex: 1 }}>
-                      {rotatedPassword}
-                    </Text>
-                    <IconButton icon="content-copy" size={18} iconColor={theme.colors.textDarker} onPress={async () => {
-                      if (typeof navigator !== 'undefined' && (navigator as any).clipboard) {
-                        try { await (navigator as any).clipboard.writeText(rotatedPassword); setToast('Password copied'); return; } catch { /* fall through */ }
-                      }
-                      setToast(rotatedPassword);
-                    }} />
-                  </View>
-                  <HelperText type="info" visible style={{ marginLeft: -8 }}>
-                    Share this with {name} now — it isn't stored and won't appear again. They'll be required to change it on next sign-in.
-                  </HelperText>
-                </>
-              ) : (
-                <HelperText type="info" visible style={{ marginLeft: -8, marginTop: 4 }}>
-                  Use Rotate when the user forgot their password or you want to force a fresh one. This is a separate save from the main Edit below.
-                </HelperText>
-              )}
-              {rotateError ? <HelperText type="error" visible>{rotateError}</HelperText> : null}
-              <View style={{ flexDirection: 'row', marginTop: 6 }}>
-                <Button
-                  mode="outlined" icon="lock-reset"
-                  textColor={theme.colors.accent}
-                  loading={rotating}
-                  disabled={rotating}
-                  onPress={() => {
-                    confirm({
-                      title: 'Rotate password?',
-                      message: `Generates a new one-time password for ${name} and writes it to Entra. They'll be required to change it on next sign-in.`,
-                      confirmLabel: 'Rotate',
-                      destructive: true,
-                      onConfirm: async () => {
-                        setRotating(true);
-                        setRotateError(undefined);
-                        try {
-                          const r = await apiFactory().admin.rotatePassword(member!._id);
-                          setRotatedPassword(r.password);
-                        } catch (e: any) {
-                          setRotateError(e?.message ?? String(e));
-                        } finally {
-                          setRotating(false);
-                        }
-                      },
-                    });
-                  }}
-                  style={{ alignSelf: 'flex-start', borderColor: theme.colors.accent }}
-                >
-                  {rotatedPassword ? 'Rotate again' : 'Rotate password'}
-                </Button>
-              </View>
-            </Card.Content>
-          </Card>
-        ) : null}
-
         <TextInput label="Full name" value={name} onChangeText={setName} mode="outlined" style={{ marginBottom: 10 }} />
         {memberUpn ? (
           <>
@@ -402,6 +333,77 @@ export default function EditMember({ route, navigation }: any) {
             </View>
           </View>
         )}
+
+        {/* Rotate-password panel — sits below Shared mailbox access so
+            the high-frequency edits live up top and the destructive
+            credential reset has its own bottom-of-form home. Action is
+            its own separate save cycle, NOT bundled with the main Save
+            below. Only meaningful when the member has a real Entra id
+            (seeded members do; old in-memory ones don't). */}
+        {memberUpn ? (
+          <Card style={{ marginTop: 4, marginBottom: 14, backgroundColor: theme.colors.darkDefault, borderLeftWidth: 3, borderLeftColor: rotatedPassword ? theme.colors.success : theme.colors.accent }}>
+            <Card.Content>
+              <Text style={{ color: theme.colors.text, fontSize: 14, fontWeight: '600' }}>Password</Text>
+              {rotatedPassword ? (
+                <>
+                  <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginTop: 10 }}>
+                    NEW TEMPORARY PASSWORD
+                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.04)', padding: 10, borderRadius: 4, marginTop: 4 }}>
+                    <Text style={{ color: theme.colors.text, fontSize: 16, fontFamily: 'monospace', flex: 1 }}>
+                      {rotatedPassword}
+                    </Text>
+                    <IconButton icon="content-copy" size={18} iconColor={theme.colors.textDarker} onPress={async () => {
+                      if (typeof navigator !== 'undefined' && (navigator as any).clipboard) {
+                        try { await (navigator as any).clipboard.writeText(rotatedPassword); setToast('Password copied'); return; } catch { /* fall through */ }
+                      }
+                      setToast(rotatedPassword);
+                    }} />
+                  </View>
+                  <HelperText type="info" visible style={{ marginLeft: -8 }}>
+                    Share this with {name} now — it isn't stored and won't appear again. They'll be required to change it on next sign-in.
+                  </HelperText>
+                </>
+              ) : (
+                <HelperText type="info" visible style={{ marginLeft: -8, marginTop: 4 }}>
+                  Use Rotate when the user forgot their password or you want to force a fresh one. Separate from the Save button below.
+                </HelperText>
+              )}
+              {rotateError ? <HelperText type="error" visible>{rotateError}</HelperText> : null}
+              <View style={{ flexDirection: 'row', marginTop: 6 }}>
+                <Button
+                  mode="outlined" icon="lock-reset"
+                  textColor={theme.colors.accent}
+                  loading={rotating}
+                  disabled={rotating}
+                  onPress={() => {
+                    confirm({
+                      title: 'Rotate password?',
+                      message: `Generates a new one-time password for ${name} and writes it to Entra. They'll be required to change it on next sign-in.`,
+                      confirmLabel: 'Rotate',
+                      destructive: true,
+                      onConfirm: async () => {
+                        setRotating(true);
+                        setRotateError(undefined);
+                        try {
+                          const r = await apiFactory().admin.rotatePassword(member!._id);
+                          setRotatedPassword(r.password);
+                        } catch (e: any) {
+                          setRotateError(e?.message ?? String(e));
+                        } finally {
+                          setRotating(false);
+                        }
+                      },
+                    });
+                  }}
+                  style={{ alignSelf: 'flex-start', borderColor: theme.colors.accent }}
+                >
+                  {rotatedPassword ? 'Rotate again' : 'Rotate password'}
+                </Button>
+              </View>
+            </Card.Content>
+          </Card>
+        ) : null}
 
         {saveError && (
           <HelperText type="error" visible>
