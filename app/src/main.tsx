@@ -19,10 +19,23 @@ if (
 
 // Web only: hide scrollbars (desktop shows native ones from ScrollView/FlatList
 // overflow) while keeping scroll behaviour. Injected once at startup.
+//
+// iOS Chrome / Safari quirk: the URL-bar collapse animation transiently
+// miscalculates `height: 100%` on the document, which can leak scroll
+// up to the body — dragging the AppHeader and bottom tab bar with the
+// content (reported on Events, Notifications, TimeKeeping, People,
+// Onboarding, Documents, Polling — any long page). Locking html/body
+// to `overflow: hidden` + `100dvh` (dynamic viewport height) keeps the
+// inner ScrollView the only scroll surface, so the chrome stays put.
 if (Platform.OS === 'web' && typeof document !== 'undefined') {
   const style = document.createElement('style');
   style.textContent = `
-    html, body, #root { height: 100%; margin: 0; }
+    html, body, #root {
+      height: 100dvh;
+      margin: 0;
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
     /* Hide scrollbars but keep scrolling (Firefox / IE) */
     * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
     /* Hide scrollbars (WebKit / Blink: Chrome, Safari, Edge) */
