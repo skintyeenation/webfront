@@ -53,6 +53,11 @@ export interface PersonRecord {
    *  the Approvals roster + is allowed to enter timesheets via the
    *  saveDraft / submit endpoints. */
   timesheetsEnabled: boolean;
+  /** Whether this Person has a password set for the email/password
+   *  sign-in path (staff-auth feature). Always false when
+   *  bandMemberId is set (Entra-backed Persons use SSO). Drives the
+   *  Edit Person UI's "Reset" vs "Issue" labelling. */
+  hasAppSignIn: boolean;
   createdAt: string;
 }
 
@@ -593,6 +598,7 @@ export class OnboardingService implements OnApplicationBootstrap {
       bandMemberName: null,
       bandMemberUpn: null,
       timesheetsEnabled: !!input.timesheetsEnabled,
+      hasAppSignIn: false,  // in-memory mode: no password path
       createdAt: new Date().toISOString(),
     };
     this.memPeople.set(id, r);
@@ -821,6 +827,10 @@ function toPersonRecord(row: any): PersonRecord {
     bandMemberName: row.bandMember?.name ?? null,
     bandMemberUpn: row.bandMember?.upn ?? null,
     timesheetsEnabled: !!row.timesheetsEnabled,
+    // Boolean only — never expose the hash itself. A Person with a
+    // linked BandMember can't have a password (link transaction nulls
+    // it), so this is implicitly false there.
+    hasAppSignIn: !!row.passwordHash && !row.bandMemberId,
     createdAt: (row.createdAt instanceof Date ? row.createdAt : new Date(row.createdAt)).toISOString(),
   };
 }

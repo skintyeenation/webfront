@@ -66,6 +66,42 @@ export default function People({ navigation }: any) {
   const [revealedCredential, setRevealedCredential] = useState<
     { email: string; displayName: string; password: string } | null
   >(null);
+  // Inline copy confirmation. Snackbars render at the parent layer
+  // and end up BEHIND open modals on web, so the user can't see
+  // them. These two flags drive a small "Copied" badge next to the
+  // copy icon in each modal, separate so the form + reveal modal
+  // don't visually fight each other.
+  const [formPasswordCopied, setFormPasswordCopied] = useState(false);
+  const [revealedPasswordCopied, setRevealedPasswordCopied] = useState(false);
+
+  // staff-auth Edit-mode panel — server-generated reset / revoke, inline
+  // result so the admin doesn't lose the modal. Same UX as EditMember's
+  // rotate-password panel.
+  const [resetting, setResetting] = useState(false);
+  const [resetResult, setResetResult] = useState<string | null>(null);
+  const [resetResultCopied, setResetResultCopied] = useState(false);
+  const [resetError, setResetError] = useState<string | undefined>();
+
+  // Shared helper — copy to clipboard with the inline-badge timer.
+  const copyToClipboardInline = async (text: string, setFlag: (b: boolean) => void) => {
+    let ok = false;
+    if (typeof navigator !== 'undefined' && (navigator as any).clipboard) {
+      try {
+        await (navigator as any).clipboard.writeText(text);
+        ok = true;
+      } catch { /* fall through */ }
+    }
+    if (ok) {
+      setFlag(true);
+      setTimeout(() => setFlag(false), 1800);
+    } else {
+      // No Clipboard API (rare — old browser, insecure context): show
+      // the password in the snackbar as a fallback so admin can long-
+      // press / triple-click to grab it. Best-effort, but the inline
+      // success path covers the common case.
+      setToast(text);
+    }
+  };
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
 
@@ -151,9 +187,17 @@ export default function People({ navigation }: any) {
     setBandSearch('');
     setBandPickerOpen(false);
     setTimesheetsEnabled(!!p.timesheetsEnabled);
+    setResetting(false);
+    setResetResult(null);
+    setResetResultCopied(false);
+    setResetError(undefined);
     setFormError(undefined);
     setModalOpen(true);
   };
+
+  // Live row used by the Edit modal's app-sign-in panel — keeps
+  // `hasAppSignIn` fresh after a reset / revoke.
+  const editingPerson = editingId ? people.find((p) => p.id === editingId) : undefined;
   const removePerson = (p: PersonDto) =>
     confirm({
       title: 'Remove person?',
@@ -189,6 +233,18 @@ export default function People({ navigation }: any) {
     // Either a band-member link OR a typed displayName is required.
     if (!bandMemberId && !displayName.trim()) {
       setFormError('Pick a band member or type a display name.');
+      return;
+    }
+    // Email is REQUIRED for externals (no band-member link). It's both
+    // the contact address and — if "Create app sign-in" is on — the
+    // login identifier. A super-quick shape check; the server still
+    // enforces uniqueness.
+    if (!bandMemberId && !email.trim()) {
+      setFormError('Email is required for external people (it is also the sign-in identifier).');
+      return;
+    }
+    if (!bandMemberId && email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setFormError('Email doesn\'t look right (e.g. name@example.com).');
       return;
     }
     setSaving(true);
@@ -411,7 +467,7 @@ export default function People({ navigation }: any) {
               disabled={!!selectedMember}
             />
             <TextInput
-              label="Email (optional)"
+              label={selectedMember ? 'Email' : 'Email (required)'}
               value={email} onChangeText={setEmail}
               mode="outlined" autoCapitalize="none" keyboardType="email-address" style={{ marginTop: 8 }}
               disabled={!!selectedMember}
@@ -462,8 +518,20 @@ export default function People({ navigation }: any) {
                         mode="outlined"
                         autoCapitalize="none"
                         autoCorrect={false}
+                        right={
+                          <TextInput.Icon
+                            icon={formPasswordCopied ? 'check' : 'content-copy'}
+                            forceTextInputFocus={false}
+                            onPress={() => copyToClipboardInline(password, setFormPasswordCopied)}
+                          />
+                        }
                         style={{ flex: 1, marginRight: 6 }}
                       />
+                      {formPasswordCopied ? (
+                        <Text style={{ color: theme.colors.success, fontSize: 11, marginLeft: 4 }}>
+                          Copied
+                        </Text>
+                      ) : null}
                       <Button
                         compact
                         mode="text"
@@ -498,6 +566,118 @@ export default function People({ navigation }: any) {
                 </Text>
               </View>
             </View>
+
+            {/* App sign-in maintenance — Edit-mode only, external rows
+                only (band-member-linked uses SSO). Mirrors EditMember's
+                rotate-password panel: server-generated, inline result,
+                separate from the main Save. Reset issues a fresh
+                password; Revoke clears it without deleting the row. */}
+            {editingId && !selectedMember && editingPerson ? (
+              <View style={{ marginTop: 14, padding: 12, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.03)', borderLeftWidth: 3, borderLeftColor: resetResult ? theme.colors.success : (editingPerson.hasAppSignIn ? theme.colors.primary : theme.colors.textDarker) }}>
+                <Text style={{ color: theme.colors.text, fontSize: 13, fontWeight: '600' }}>App sign-in</Text>
+                {resetResult ? (
+                  <>
+                    <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginTop: 8 }}>
+                      NEW ONE-TIME PASSWORD
+                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', padding: 10, borderRadius: 4, marginTop: 4 }}>
+                      <Text selectable style={{ color: theme.colors.text, fontSize: 16, fontFamily: 'monospace', flex: 1 }}>
+                        {resetResult}
+                      </Text>
+                      {resetResultCopied ? (
+                        <Text style={{ color: theme.colors.success, fontSize: 12, marginRight: 6 }}>
+                          Copied
+                        </Text>
+                      ) : null}
+                      <IconButton
+                        icon={resetResultCopied ? 'check' : 'content-copy'}
+                        size={18}
+                        iconColor={resetResultCopied ? theme.colors.success : theme.colors.textDarker}
+                        onPress={() => copyToClipboardInline(resetResult, setResetResultCopied)}
+                      />
+                    </View>
+                    <HelperText type="info" visible style={{ marginLeft: -8 }}>
+                      Share with {editingPerson.displayName} now — won't appear again.
+                    </HelperText>
+                  </>
+                ) : (
+                  <HelperText type="info" visible style={{ marginLeft: -8, marginTop: 2 }}>
+                    {editingPerson.hasAppSignIn
+                      ? `Active — ${editingPerson.email} can sign in with email + password.`
+                      : 'No password set. Issue one to give this person app access.'}
+                  </HelperText>
+                )}
+                {resetError ? <HelperText type="error" visible>{resetError}</HelperText> : null}
+                <View style={{ flexDirection: 'row', marginTop: 6, flexWrap: 'wrap' }}>
+                  <Button
+                    mode="outlined"
+                    icon="lock-reset"
+                    textColor={theme.colors.primary}
+                    style={{ marginRight: 8, marginTop: 4, borderColor: theme.colors.primary }}
+                    loading={resetting}
+                    disabled={resetting || !editingPerson.email}
+                    onPress={() => {
+                      confirm({
+                        title: editingPerson.hasAppSignIn ? 'Reset password?' : 'Issue password?',
+                        message: editingPerson.hasAppSignIn
+                          ? `Generates a fresh one-time password for ${editingPerson.displayName}. The current password will stop working immediately.`
+                          : `Issues a one-time password so ${editingPerson.displayName} can sign in with their email.`,
+                        confirmLabel: editingPerson.hasAppSignIn ? 'Reset' : 'Issue',
+                        destructive: editingPerson.hasAppSignIn,
+                        onConfirm: async () => {
+                          setResetting(true);
+                          setResetError(undefined);
+                          setResetResultCopied(false);
+                          try {
+                            // Server-generated. Single-click parity
+                            // with EditMember's rotate-password.
+                            const r = await apiFactory().admin.setPersonPassword(editingPerson.id);
+                            setResetResult(r.password);
+                            await load();
+                          } catch (e: any) {
+                            setResetError(e?.message ?? String(e));
+                          } finally {
+                            setResetting(false);
+                          }
+                        },
+                      });
+                    }}
+                  >
+                    {editingPerson.hasAppSignIn
+                      ? (resetResult ? 'Reset again' : 'Reset password')
+                      : 'Issue password'}
+                  </Button>
+                  {editingPerson.hasAppSignIn ? (
+                    <Button
+                      mode="outlined"
+                      icon="account-cancel"
+                      textColor={theme.colors.accent}
+                      style={{ marginTop: 4, borderColor: theme.colors.accent }}
+                      onPress={() => {
+                        confirm({
+                          title: 'Revoke app access?',
+                          message: `${editingPerson.displayName} won't be able to sign in until you issue a new password. Their onboarding history is preserved.`,
+                          confirmLabel: 'Revoke',
+                          destructive: true,
+                          onConfirm: async () => {
+                            setResetError(undefined);
+                            try {
+                              await apiFactory().admin.revokePersonPassword(editingPerson.id);
+                              setResetResult(null);
+                              await load();
+                            } catch (e: any) {
+                              setResetError(e?.message ?? String(e));
+                            }
+                          },
+                        });
+                      }}
+                    >
+                      Revoke access
+                    </Button>
+                  ) : null}
+                </View>
+              </View>
+            ) : null}
 
             {formError ? <HelperText type="error" visible>{formError}</HelperText> : null}
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12 }}>
@@ -547,18 +727,16 @@ export default function People({ navigation }: any) {
                   <Text selectable style={{ color: theme.colors.text, fontSize: 16, fontFamily: 'monospace', flex: 1 }}>
                     {revealedCredential.password}
                   </Text>
+                  {revealedPasswordCopied ? (
+                    <Text style={{ color: theme.colors.success, fontSize: 12, marginRight: 6 }}>
+                      Copied
+                    </Text>
+                  ) : null}
                   <IconButton
-                    icon="content-copy"
+                    icon={revealedPasswordCopied ? 'check' : 'content-copy'}
                     size={18}
-                    iconColor={theme.colors.textDarker}
-                    onPress={async () => {
-                      const pw = revealedCredential.password;
-                      if (typeof navigator !== 'undefined' && (navigator as any).clipboard) {
-                        try { await (navigator as any).clipboard.writeText(pw); setToast('Password copied'); return; }
-                        catch { /* fall through to inline display */ }
-                      }
-                      setToast(pw);
-                    }}
+                    iconColor={revealedPasswordCopied ? theme.colors.success : theme.colors.textDarker}
+                    onPress={() => copyToClipboardInline(revealedCredential.password, setRevealedPasswordCopied)}
                   />
                 </View>
                 <HelperText type="info" visible style={{ marginLeft: -8 }}>

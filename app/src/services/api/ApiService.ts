@@ -358,6 +358,10 @@ export interface PersonDto {
   /** Toggle gating Time Keeping. When true, the person shows up on
    *  the Approvals roster + is allowed to enter timesheets. */
   timesheetsEnabled: boolean;
+  /** Whether this Person currently has a password set for the
+   *  email/password sign-in path. False for Entra-linked Persons
+   *  (they use SSO) and for externals who haven't had one issued yet. */
+  hasAppSignIn: boolean;
   createdAt: string;
 }
 

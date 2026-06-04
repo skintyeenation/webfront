@@ -196,7 +196,27 @@ export default function AddMember({ navigation }: any) {
             ONE-TIME PASSWORD
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-            <TextInput value={password} onChangeText={setPassword} mode="outlined" style={{ flex: 1, marginRight: 6 }} />
+            <TextInput
+              value={password}
+              onChangeText={setPassword}
+              mode="outlined"
+              autoCapitalize="none"
+              autoCorrect={false}
+              right={
+                <TextInput.Icon
+                  icon="content-copy"
+                  forceTextInputFocus={false}
+                  onPress={async () => {
+                    if (typeof navigator !== 'undefined' && (navigator as any).clipboard) {
+                      try { await (navigator as any).clipboard.writeText(password); setToast('Password copied'); return; }
+                      catch { /* fall through */ }
+                    }
+                    setToast(password);
+                  }}
+                />
+              }
+              style={{ flex: 1, marginRight: 6 }}
+            />
             <Button compact mode="text" icon="dice-multiple" textColor={theme.colors.textDarker} onPress={() => setPassword(generatePassword())}>
               Regenerate
             </Button>
