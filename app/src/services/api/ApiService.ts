@@ -150,6 +150,14 @@ export interface ApiService {
     allTimesheets(period?: string, status?: string): Promise<Timesheet[]>;
     approve(id: string): Promise<Timesheet>;
     reject(id: string, reason?: string): Promise<Timesheet>;
+    /** Admin-only nuclear option — removes the timesheet + its entries.
+     *  UI MUST confirm before calling. Used for duplicates, departures
+     *  mid-period, or correcting a mis-attributed sheet. */
+    deleteTimesheet(id: string): Promise<void>;
+    /** Admin-only edit on behalf of a worker. 403 once status='approved'
+     *  (delete + have the worker re-submit instead). */
+    adminGetTimesheet(id: string): Promise<Timesheet>;
+    adminEditTimesheet(id: string, body: { entries: Array<{ date: string; hours: number; task: string; timeIn?: string; timeOut?: string }>; notes?: string }): Promise<Timesheet>;
     // Reports — admin-only. PDF + CSV per pay period.
     reports: {
       list(count?: number): Promise<TimesheetReportSummary[]>;

@@ -131,14 +131,26 @@ function rowsFromTimesheet(existing: Timesheet | null): DraftEntry[] {
 export default function AddTimesheet({ navigation, route }: any) {
   const isSignedIn = useAppSelector((s) => s.auth.signedIn);
   const targetPeriodId: string | undefined = route?.params?.periodId;
+  // Admin-edit mode: when an admin lands here from the Approvals tab
+  // we receive the target timesheet's id + worker label. The form then
+  // saves through the admin-edit endpoint instead of the worker's
+  // own saveDraft path. No Submit button in this mode — admin can only
+  // save edits while the sheet sits in submitted / draft / rejected.
+  const adminEditId: string | undefined = route?.params?.adminEditId;
+  const adminEditFor: string | undefined = route?.params?.workerLabel;
+  const adminEditMode = !!adminEditId;
 
   // Set the header title dynamically — "Current timesheet" when editing
   // the live period, or "Timesheet · <period label>" when reviewing a
   // historical one. Falls back to a plain "Timesheet" while we resolve
   // the period asynchronously.
   useEffect(() => {
-    navigation?.setOptions?.({ title: targetPeriodId ? 'Timesheet' : 'Current timesheet' });
-  }, [navigation, targetPeriodId]);
+    navigation?.setOptions?.({
+      title: adminEditMode
+        ? (adminEditFor ? `Edit timesheet · ${adminEditFor}` : 'Edit timesheet')
+        : (targetPeriodId ? 'Timesheet' : 'Current timesheet'),
+    });
+  }, [navigation, targetPeriodId, adminEditMode, adminEditFor]);
 
   const [payPeriod, setPayPeriod] = useState<PayPeriod | undefined>();
   const [config, setConfig] = useState<PayPeriodConfig | undefined>();
@@ -157,15 +169,31 @@ export default function AddTimesheet({ navigation, route }: any) {
       try {
         setLoading(true);
         const api = apiFactory();
-        const periods = await api.timekeeping.payPeriods();
-        const periodTarget = targetPeriodId ?? periods.current.id;
-        const my = await api.timekeeping.myTimesheets(periodTarget);
-        if (cancelled) return;
-        setConfig(periods.config);
-        setPayPeriod(my.period);
-        setExisting(my.current);
-        setRows(rowsFromTimesheet(my.current));
-        setNotes(my.current?.notes ?? '');
+        if (adminEditMode && adminEditId) {
+          // Pull periods config + the specific sheet via admin endpoint.
+          const periods = await api.timekeeping.payPeriods();
+          const sheet = await api.timekeeping.adminGetTimesheet(adminEditId);
+          if (cancelled) return;
+          setConfig(periods.config);
+          const periodForSheet = await api.timekeeping.payPeriods().then(() =>
+            // Recover the period by id from recent — fallback to current.
+            periods.recent.find((p) => p.id === sheet.payPeriodId) ?? periods.current
+          );
+          setPayPeriod(periodForSheet);
+          setExisting(sheet);
+          setRows(rowsFromTimesheet(sheet));
+          setNotes(sheet?.notes ?? '');
+        } else {
+          const periods = await api.timekeeping.payPeriods();
+          const periodTarget = targetPeriodId ?? periods.current.id;
+          const my = await api.timekeeping.myTimesheets(periodTarget);
+          if (cancelled) return;
+          setConfig(periods.config);
+          setPayPeriod(my.period);
+          setExisting(my.current);
+          setRows(rowsFromTimesheet(my.current));
+          setNotes(my.current?.notes ?? '');
+        }
       } catch (e: any) {
         if (!cancelled) setError(e?.message ?? String(e));
       } finally {
@@ -173,7 +201,7 @@ export default function AddTimesheet({ navigation, route }: any) {
       }
     })();
     return () => { cancelled = true; };
-  }, [targetPeriodId]);
+  }, [targetPeriodId, adminEditMode, adminEditId]);
 
   const addRow = (date: string) => {
     setRows((prev) => [...prev, { id: newRowId(), date, task: 'Regular', hours: 0 }]);
@@ -284,12 +312,16 @@ export default function AddTimesheet({ navigation, route }: any) {
           })),
         notes: notes.trim() || undefined,
       };
-      const saved = mode === 'submit'
-        ? await api.timekeeping.submit(payPeriod.id, body)
-        : await api.timekeeping.saveDraft(payPeriod.id, body);
+      const saved = adminEditMode && adminEditId
+        ? await api.timekeeping.adminEditTimesheet(adminEditId, body)
+        : mode === 'submit'
+          ? await api.timekeeping.submit(payPeriod.id, body)
+          : await api.timekeeping.saveDraft(payPeriod.id, body);
       setExisting(saved);
-      setToast(mode === 'submit' ? 'Submitted for approval' : 'Saved');
-      if (mode === 'submit') {
+      setToast(adminEditMode ? 'Edits saved' : (mode === 'submit' ? 'Submitted for approval' : 'Saved'));
+      // Admin-edit always returns to the Approvals tab; worker submit
+      // bounces back too.
+      if (adminEditMode || mode === 'submit') {
         setTimeout(() => navigation?.goBack?.(), 900);
       }
     } catch (e: any) {
@@ -518,6 +550,23 @@ export default function AddTimesheet({ navigation, route }: any) {
           const today = dayjs().startOf('day');
           const cutoff = dayjs(payPeriod.endISO).startOf('day');
           const submitOpen = today.isSame(cutoff) || today.isAfter(cutoff);
+          // Admin-edit mode: no submit (the sheet is already past submit),
+          // and the "submit cutoff" hint doesn't apply.
+          if (adminEditMode) {
+            return (
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
+                <Button
+                  mode="contained" icon="content-save"
+                  buttonColor={theme.colors.primary} textColor="#fff"
+                  onPress={() => persist('draft')}
+                  disabled={saving || daysWithOverlaps.size > 0 || hasRowErrors}
+                  loading={saving}
+                >
+                  Save edits
+                </Button>
+              </View>
+            );
+          }
           return (
             <>
               {!submitOpen ? (

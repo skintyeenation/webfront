@@ -52,6 +52,9 @@ export const mockApiService: ApiService = {
     allTimesheets: () => { throw new Error('timekeeping.allTimesheets requires the real api/'); },
     approve:       () => { throw new Error('timekeeping.approve requires the real api/'); },
     reject:        () => { throw new Error('timekeeping.reject requires the real api/'); },
+    deleteTimesheet: () => delay(undefined as any),
+    adminGetTimesheet:  () => { throw new Error('timekeeping.adminGetTimesheet requires the real api/'); },
+    adminEditTimesheet: () => { throw new Error('timekeeping.adminEditTimesheet requires the real api/'); },
     reports: {
       list:     () => delay([]),
       generate: () => { throw new Error('timekeeping.reports.generate requires the real api/'); },

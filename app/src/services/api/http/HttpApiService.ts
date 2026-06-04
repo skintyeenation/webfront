@@ -160,6 +160,15 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
         }),
       approve: (id: string)                  => post<any>(`/timekeeping/timesheets/${encodeURIComponent(id)}/approve`, {}),
       reject:  (id: string, reason?: string) => post<any>(`/timekeeping/timesheets/${encodeURIComponent(id)}/reject`,  { reason }),
+      deleteTimesheet: async (id: string) => {
+        const res = await fetch(api(`/timekeeping/timesheets/${encodeURIComponent(id)}`), {
+          method: 'DELETE',
+          headers: headers(),
+        });
+        if (!res.ok && res.status !== 204) throw new Error(`DELETE /timekeeping/timesheets/${id} → ${res.status}: ${await res.text()}`);
+      },
+      adminGetTimesheet:  (id: string)            => get<any>(`/timekeeping/timesheets/admin/${encodeURIComponent(id)}`),
+      adminEditTimesheet: (id: string, body: any) => patch<any>(`/timekeeping/timesheets/admin/${encodeURIComponent(id)}`, body),
       reports: {
         list: (count?: number) => get<any[]>('/timekeeping/reports', count ? { count: String(count) } : undefined),
         generate: (periodId: string) => post<any>(`/timekeeping/reports/${encodeURIComponent(periodId)}/generate`, {}),

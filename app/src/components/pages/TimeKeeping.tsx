@@ -4,7 +4,7 @@ import { Badge, Button, Card, Chip, Divider, HelperText, IconButton, Menu, Modal
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useFocusEffect } from '@react-navigation/native';
 import dayjs from 'dayjs';
-import { PageContainer, PageContent, NoContent } from 'skintyee/components/layout';
+import { PageContainer, PageContent, NoContent, useConfirm } from 'skintyee/components/layout';
 import { useAppSelector } from 'skintyee/store';
 import { apiFactory } from 'skintyee/store/apis';
 import { PayPeriod, Timesheet } from 'skintyee/models';
@@ -131,6 +131,18 @@ export default function TimeKeeping({ navigation }: any) {
       setActingOn(undefined);
     }
   };
+  const onDelete = async (t: Timesheet) => {
+    setActingOn(t.id);
+    setError(undefined);
+    try {
+      await apiFactory().timekeeping.deleteTimesheet(t.id);
+      setAllTimesheets((prev) => prev.filter((x) => x.id !== t.id));
+    } catch (e: any) {
+      setError(e?.message ?? String(e));
+    } finally {
+      setActingOn(undefined);
+    }
+  };
   const onReject = async (id: string) => {
     setActingOn(id);
     setError(undefined);
@@ -247,6 +259,9 @@ export default function TimeKeeping({ navigation }: any) {
             actingOn={actingOn}
             onApprove={onApprove}
             onReject={onReject}
+            onDelete={onDelete}
+            canDelete={role === 'admin'}
+            navigation={navigation}
           />
         )}
       </PageContent>
@@ -337,13 +352,38 @@ function MyTimesheetView({
 // ---- Approvals view --------------------------------------------------------
 
 function ApprovalsView({
-  timesheets, actingOn, onApprove, onReject,
+  timesheets, actingOn, onApprove, onReject, onDelete, canDelete, navigation,
 }: {
   timesheets: Timesheet[];
   actingOn?: string;
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
+  onDelete: (t: Timesheet) => void;
+  canDelete: boolean;
+  navigation: any;
 }) {
+  const { confirm, ConfirmHost } = useConfirm();
+
+  // Open AddTimesheet in admin-edit mode for this sheet. Cap-gated by
+  // status — approved sheets can't be edited (delete + re-submit only).
+  const openEdit = (t: Timesheet) => {
+    navigation?.navigate?.('timesheetCreate', {
+      adminEditId: t.id,
+      workerLabel: t.workerName,
+    });
+  };
+
+  // Wrap the bare onDelete with a confirm dialog. Inline so it can reach
+  // the hook above and lives next to the cards that trigger it.
+  const askDelete = (t: Timesheet) =>
+    confirm({
+      title: 'Delete timesheet?',
+      message: `${t.workerName}'s ${t.totalHours}h timesheet for ${t.payPeriodId} will be permanently removed.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: () => onDelete(t),
+    });
+
   if (timesheets.length === 0) {
     return <NoContent message="No timesheets in this pay period yet." />;
   }
@@ -361,7 +401,12 @@ function ApprovalsView({
         </Text>
       ) : (
         submitted.map((t) => (
-          <ApprovalCard key={t.id} t={t} actingOn={actingOn} onApprove={onApprove} onReject={onReject} />
+          <ApprovalCard
+            key={t.id} t={t} actingOn={actingOn}
+            onApprove={onApprove} onReject={onReject}
+            onDelete={canDelete ? askDelete : undefined}
+            onEdit={canDelete ? () => openEdit(t) : undefined}
+          />
         ))
       )}
 
@@ -370,32 +415,62 @@ function ApprovalsView({
           <Text style={{ color: theme.colors.accent, fontSize: 12, fontWeight: '700', letterSpacing: 1, marginTop: 16, marginBottom: 6 }}>
             ALREADY DECIDED
           </Text>
-          {done.map((t) => (
-            <Card key={t.id} style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 6 }}>
-              <Card.Content>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Text style={{ color: theme.colors.text, flex: 1 }}>{t.workerName}</Text>
-                  <Text style={{ color: theme.colors.textDarker, marginRight: 8 }}>{t.totalHours}h</Text>
-                  <Chip compact style={{ backgroundColor: statusColor(t.status) }} textStyle={{ color: '#000', fontSize: 10 }}>
-                    {statusLabel(t.status)}
-                  </Chip>
-                </View>
-              </Card.Content>
-            </Card>
-          ))}
+          {done.map((t) => {
+            const busy = actingOn === t.id;
+            // Edit allowed for everything except an already-approved
+            // sheet. Approved → delete + worker re-submit.
+            const canEdit = canDelete && t.status !== 'approved';
+            return (
+              <Card key={t.id} style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 6 }}>
+                <Card.Content>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text style={{ color: theme.colors.text, flex: 1 }}>{t.workerName}</Text>
+                    <Text style={{ color: theme.colors.textDarker, marginRight: 8 }}>{t.totalHours}h</Text>
+                    <Chip compact style={{ backgroundColor: statusColor(t.status) }} textStyle={{ color: '#000', fontSize: 10 }}>
+                      {statusLabel(t.status)}
+                    </Chip>
+                    {canEdit ? (
+                      <IconButton
+                        icon="pencil"
+                        size={18}
+                        iconColor={theme.colors.textDarker}
+                        disabled={busy}
+                        onPress={() => openEdit(t)}
+                        accessibilityLabel="Edit timesheet"
+                      />
+                    ) : null}
+                    {canDelete ? (
+                      <IconButton
+                        icon="delete"
+                        size={18}
+                        iconColor={theme.colors.textDarker}
+                        disabled={busy}
+                        onPress={() => askDelete(t)}
+                        accessibilityLabel="Delete timesheet"
+                      />
+                    ) : null}
+                  </View>
+                </Card.Content>
+              </Card>
+            );
+          })}
         </>
       ) : null}
+
+      <ConfirmHost />
     </View>
   );
 }
 
 function ApprovalCard({
-  t, actingOn, onApprove, onReject,
+  t, actingOn, onApprove, onReject, onDelete, onEdit,
 }: {
   t: Timesheet;
   actingOn?: string;
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
+  onDelete?: (t: Timesheet) => void;
+  onEdit?: () => void;
 }) {
   const busy = actingOn === t.id;
   const [detailOpen, setDetailOpen] = useState(false);
@@ -440,6 +515,26 @@ function ApprovalCard({
             iconColor={theme.colors.textDarker}
             onPress={() => setDetailOpen(true)}
           />
+          {onEdit ? (
+            <IconButton
+              icon="pencil"
+              size={18}
+              iconColor={theme.colors.textDarker}
+              disabled={busy}
+              onPress={onEdit}
+              accessibilityLabel="Edit timesheet"
+            />
+          ) : null}
+          {onDelete ? (
+            <IconButton
+              icon="delete"
+              size={18}
+              iconColor={theme.colors.textDarker}
+              disabled={busy}
+              onPress={() => onDelete(t)}
+              accessibilityLabel="Delete timesheet"
+            />
+          ) : null}
         </View>
 
         <TimesheetDetailModal

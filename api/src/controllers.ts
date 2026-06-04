@@ -1061,6 +1061,78 @@ export class TimeKeepingController {
     });
   }
 
+  // GET /v1/timekeeping/timesheets/admin/:id — admin only.
+  // Full row + entries for editing in AddTimesheet's admin mode.
+  @Get('timesheets/admin/:id') @Roles('admin')
+  async adminGetTimesheet(@Param('id') id: string) {
+    if (!this.prisma.isAvailable) throw new NotFoundException('Prisma not connected');
+    const row = await this.prisma.timesheet.findUnique({
+      where: { id }, include: { entries: { orderBy: [{ date: 'asc' }] } },
+    });
+    if (!row) throw new NotFoundException();
+    return row;
+  }
+
+  // PATCH /v1/timekeeping/timesheets/admin/:id — admin only.
+  // Edit on behalf of a worker. Refuses if status === 'approved' so
+  // the audit chain stays clean (admin has to delete + the worker has
+  // to re-submit). Recomputes totals + OT the same way the worker's
+  // own saveDraft path does.
+  @Patch('timesheets/admin/:id') @Roles('admin')
+  async adminEditTimesheet(@Param('id') id: string, @Body() body: any) {
+    if (!this.prisma.isAvailable) throw new NotFoundException('Prisma not connected');
+    const cur = await this.prisma.timesheet.findUnique({ where: { id } });
+    if (!cur) throw new NotFoundException();
+    if (cur.status === 'approved') {
+      throw new ForbiddenException('Approved timesheets cannot be edited. Delete and have the worker re-submit.');
+    }
+    const rawEntries = Array.isArray(body?.entries) ? body.entries : [];
+    // Mirror saveDraft's normalisation + totals.
+    const entries = rawEntries.map((e: any) => ({
+      date: String(e.date), hours: Number(e.hours) || 0, task: String(e.task ?? 'Regular'),
+      timeIn: e.timeIn || null, timeOut: e.timeOut || null,
+    }));
+    const split = dayjs(payPeriodFor(cur.payPeriodId).startISO).add(7, 'day').format('YYYY-MM-DD');
+    let w1 = 0, w2 = 0;
+    for (const e of entries) {
+      if (e.date < split) w1 += e.hours; else w2 += e.hours;
+    }
+    const ot = Math.max(0, w1 - PAY_PERIOD_CONFIG.overtimeWeeklyHoursThreshold) +
+               Math.max(0, w2 - PAY_PERIOD_CONFIG.overtimeWeeklyHoursThreshold);
+    const total = Math.round((w1 + w2) * 100) / 100;
+    return this.prisma.$transaction(async (tx) => {
+      await tx.timesheetEntry.deleteMany({ where: { timesheetId: id } });
+      await tx.timesheetEntry.createMany({
+        data: entries.map((e: any) => ({ ...e, timesheetId: id })),
+      });
+      return tx.timesheet.update({
+        where: { id },
+        data: {
+          notes: body?.notes ?? null,
+          week1Hours: Math.round(w1 * 100) / 100,
+          week2Hours: Math.round(w2 * 100) / 100,
+          totalHours: total,
+          overtimeHours: Math.round(ot * 100) / 100,
+          requiresAdminApproval: ot > 0,
+        },
+        include: { entries: { orderBy: [{ date: 'asc' }] } },
+      });
+    });
+  }
+
+  // DELETE /v1/timekeeping/timesheets/:id — admin only.
+  // Removes the timesheet + cascades its TimesheetEntry rows. The
+  // client requires a Confirm dialog before calling (UI is the gate
+  // for accidental clicks). Use case: a duplicated submission, a
+  // worker who left mid-period, or correcting a mis-attributed sheet.
+  @Delete('timesheets/:id') @Roles('admin') @HttpCode(204)
+  async deleteTimesheet(@Param('id') id: string) {
+    if (!this.prisma.isAvailable) throw new NotFoundException('Prisma not connected');
+    const sheet = await this.prisma.timesheet.findUnique({ where: { id } });
+    if (!sheet) throw new NotFoundException('Timesheet not found');
+    await this.prisma.timesheet.delete({ where: { id } });
+  }
+
   // ---- Approver check ---------------------------------------------------
   // Admin appRole → always.
   // Otherwise: staff appRole + bandGroups.includes('band-manager') →
