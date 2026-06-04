@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { TouchableOpacity, View } from 'react-native';
+import { Image, TouchableOpacity, View } from 'react-native';
 import { ActivityIndicator } from 'react-native';
 import { Avatar, Button, Card, Chip, Divider, Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -103,10 +103,20 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
         <View style={{ alignItems: 'center', marginBottom: 16 }}>
           <View style={{ position: 'relative', width: 72, height: 72 }}>
             {/* Avatar cascade:
-                1. real M365 profile photo (when signed in + directory says hasPhoto)
-                2. initials over the brand background (whenever we have a name)
-                3. generic person icon (only when truly nothing — public role, no name) */}
-            {photoSrc ? (
+                1. NOT signed in → Skin Tyee mark (replaces the placeholder
+                   "G" initial — guest state owns the brand mark)
+                2. real M365 profile photo (signed in + directory says hasPhoto)
+                3. initials over the brand background (whenever we have a name)
+                4. generic person icon (only when truly nothing — signed in
+                   but no name + no photo, e.g. mid-spoof of a public role) */}
+            {!signedIn ? (
+              <Image
+                source={require('../../../assets/skintyee-logo.png')}
+                resizeMode="contain"
+                style={{ width: 72, height: 72 }}
+                accessibilityLabel="Skin Tyee logo"
+              />
+            ) : photoSrc ? (
               <Avatar.Image
                 size={72}
                 source={{ uri: photoSrc }}
@@ -116,14 +126,14 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
                 size={72}
                 label={ini}
                 color="#000"
-                style={{ backgroundColor: signedIn ? theme.colors.primary : theme.colors.secondary }}
+                style={{ backgroundColor: theme.colors.primary }}
                 labelStyle={{ fontSize: 28, fontWeight: '600' }}
               />
             ) : (
               <Avatar.Icon
                 size={72}
-                icon={signedIn ? 'account-check' : 'account'}
-                style={{ backgroundColor: signedIn ? theme.colors.primary : theme.colors.darkDefault }}
+                icon="account-check"
+                style={{ backgroundColor: theme.colors.primary }}
               />
             )}
             {signedIn ? (
