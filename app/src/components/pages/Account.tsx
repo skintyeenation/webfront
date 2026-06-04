@@ -136,12 +136,19 @@ export default function Account() {
             <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginTop: 2 }}>{user.upn}</Text>
           ) : null}
 
+          {/* Role chip carries a tappable refresh icon — re-fetches
+              /v1/admin/role-for/:upn through the unspoof thunk so any
+              server-side change picks up without a separate button.
+              Words are uppercased (ROLE: STAFF) to match the rest of
+              the in-chip typography. */}
           <Chip
             compact
+            icon={signedIn ? 'refresh' : undefined}
+            onPress={signedIn ? () => dispatch(unspoof()) : undefined}
             style={{ marginTop: 6, backgroundColor: isAdmin ? theme.colors.accent : theme.colors.secondary }}
             textStyle={{ color: isAdmin ? '#000' : theme.colors.text, fontSize: 11 }}
           >
-            {signedIn ? `role: ${role}` : 'not signed in'}
+            {signedIn ? `ROLE: ${role.toUpperCase()}` : 'NOT SIGNED IN'}
           </Chip>
         </View>
 
@@ -215,17 +222,6 @@ export default function Account() {
                  role === 'member' ? ' You have band-member access.' :
                  ''}
               </Text>
-              {/* Manual refresh — auto-refresh on mount already fires,
-                  but lets the user re-fetch after a server-side change
-                  without bouncing screens. */}
-              <Button
-                mode="text" compact icon="refresh"
-                textColor={theme.colors.textDarker}
-                onPress={() => dispatch(unspoof())}
-                style={{ alignSelf: 'flex-start', marginBottom: 6 }}
-              >
-                Refresh role
-              </Button>
               <Button
                 mode="outlined"
                 icon="logout"
