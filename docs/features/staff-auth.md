@@ -275,19 +275,104 @@ Effort estimate:
 - (3) — 1 day
 - (4) — half a day plus Graph `Mail.Send` consent
 
-## Open decisions
+## Locked-in decisions
 
-These are flagged for confirmation before implementation:
+Confirmed 2026-06-04. Recorded here so the implementation slices can
+proceed without re-litigating each choice, and so a future reader who
+wonders "why did they do X?" finds the rationale next to the choice.
 
-| # | Decision                              | Recommendation                                                                                                   |
-|---|---------------------------------------|------------------------------------------------------------------------------------------------------------------|
-| 1 | Token mechanism                       | **JWT (HS256, 24h, refresh by re-login)**. Opaque sessions need a server-side store we don't have.               |
-| 2 | Email sender                          | **Graph from info@skintyee.ca**. Adds `Mail.Send` to `skintyee-app-graph`.                                       |
-| 3 | Password complexity                   | **Entra default** — 8+ chars, 3 of 4 categories. Same as M365 user passwords so admins explain it once.          |
-| 4 | Failed-login lockout                  | **5 attempts → 15-min lockout per email**, in-memory (single-instance api/). Skip distributed lockout for now.   |
-| 5 | Can a password-auth Person be admin?  | **Yes, via explicit `appRole` flip** by an existing admin. Rare but useful for non-Entra accountants / auditors. |
-| 6 | "Skin Tyee Staff" group population    | **Manual in Entra for now.** AddMember's createPerson switch adds to it; admins can also manage in Entra directly. |
-| 7 | Existing M365 over-licensed members   | **Out of scope here.** Separate cleanup; needs a list + a "downgrade" pipeline that's not in this feature.       |
+### 1. Token mechanism — **JWT (HS256, 24-hour TTL)**
+
+The api/ already runs as a single Container App revision per environment,
+so a server-side opaque-session store would mean adding either an
+in-memory map (lost on revision swap during deploys) or a Postgres
+session table (extra write per request). JWT sidesteps both: signed
+client-side, validated on every request via the same middleware Entra
+JWT validation will eventually use (ADR-7). Refresh = re-login —
+24h matches typical M365 token lifetimes so the UX is consistent.
+
+`STAFF_AUTH_SECRET` lives as a Container App secret; rotation = update
+the secret + invalidate all in-flight tokens (acceptable for a small
+staff population).
+
+### 2. Email sender — **Microsoft Graph from `info@skintyee.ca`**
+
+We already have the app-only Graph credential (`skintyee-app-graph`),
+the Container App already has its tenant + client id + secret wired,
+and `info@skintyee.ca` is a known shared mailbox with bounce handling
+configured. Adds one permission (`Mail.Send`, GUID
+`b633e1c5-b582-4048-a93e-9f11b44c7e96`) to `scripts/setup-app-graph.sh`.
+
+Mailgun was the alternative — rejected because it would require
+provisioning a new account, paying for it, and managing yet another
+credential. Graph is "we already have it; one consent grant".
+
+### 3. Password complexity — **Entra default (8+ chars, 3 of 4 categories)**
+
+Categories = uppercase, lowercase, digit, symbol. Identical to the
+complexity Entra enforces on M365 users, which means:
+
+- Admins explain password rules once across both auth paths.
+- The server-side validation is a single shared helper.
+- Users with one M365 password and one staff-auth password don't have to
+  remember two different policy quirks.
+
+Stricter (16+ char passphrases, breach-list checks) is future work if
+the population grows enough to warrant it.
+
+### 4. Failed-login lockout — **5 attempts → 15-min lockout per email, in-memory**
+
+Single-instance api/ today (Container App with revisions, not multi-replica),
+so an in-memory Map keyed by email-lowercase tracking (count, firstFailAt)
+is sufficient. Distributed lockout (Redis, Postgres-backed counter) would
+add a hard dependency for a problem we don't yet have — the staff
+population is small enough that brute-force is observable in the API logs
+long before it'd succeed against an 8+ char password.
+
+Lockout window: 15 minutes. Auto-clears when the window expires. Admin
+can force-clear by clearing+resetting the password.
+
+### 5. Password-auth Person as admin — **Yes, via explicit `appRole` flip**
+
+Not the default. The `Person.appRole` column has `@default("staff")` —
+which is what every password-auth user gets. Promoting to admin requires
+an existing admin to PATCH it explicitly through a separate endpoint
+(rejected by the AddPerson form to avoid accidental self-grant via
+form-field manipulation).
+
+Rationale: rare but real — non-Entra accountants, external auditors, or
+contractors who need admin-level access without provisioning an M365
+seat. The cost of supporting this is one nullable column; the cost of
+not supporting it is "every admin has to be in Entra forever," which
+forecloses a legitimate workflow.
+
+### 6. "Skin Tyee Staff" group population — **Manual in Entra + AddMember auto-seat**
+
+Two paths, both end at the same place:
+
+- **AddMember** with the "Also create staff record" switch flipped
+  automatically calls `POST /groups/{staff-id}/members/$ref` so the new
+  BandMember lands in the group as part of the create transaction.
+- **Direct in Entra Admin Center** — admins managing existing band
+  members tag them as staff by adding them to the group manually. The
+  next directory sync picks the change up.
+
+Both paths converge on `bandGroups` containing `staff` for the user,
+which drives `appRole = 'staff'` via `role-derivation.ts`. No third
+source of truth.
+
+### 7. Existing over-licensed members — **Out of scope**
+
+There are band members in the current M365 tenant who aren't staff and
+shouldn't be licensed under the going-forward policy. De-licensing them
+needs:
+
+- a list (admin-curated — not derivable from the data we have today)
+- a Graph `removeLicense` pipeline
+- a comms plan ("you'll lose @skintyee.ca email on X date")
+
+None of that is part of this feature. Treat it as a separate
+"M365 right-sizing" workstream after the password auth path is live.
 
 ## Related
 
