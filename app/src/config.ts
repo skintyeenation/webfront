@@ -7,10 +7,25 @@ const extra = (Constants?.expoConfig?.extra ?? {}) as Record<string, unknown>;
  * reachable at App.SkinTyee.ca. Until that exists, `apiServer` is 'mock' and all
  * data is served from src/services/api/mock. See STUBS.md.
  */
+const apiServer = (extra.apiServer as string) ?? 'mock';
+
+// True when the app is talking to the production api host
+// (api.skintyee.ca). Drives prod-only gates — e.g. the dev Role
+// Switcher hides in prod so real users can't spoof admin.
+// Anything else (mock, localhost, staging) counts as non-prod.
+const isProd = (() => {
+  try {
+    return /(^|\.)api\.skintyee\.ca$/i.test(new URL(apiServer).hostname);
+  } catch {
+    return false;
+  }
+})();
+
 const Config = {
   // 'mock' selects the in-memory mock ApiService. An http(s) URL selects
   // HttpApiService pointed at that base URL + /v1/*.
-  apiServer: (extra.apiServer as string) ?? 'mock',
+  apiServer,
+  isProd,
   appName: 'Skin Tyee',
   // Microsoft Entra sign-in (PUBLIC values; public-client + PKCE means
   // there's no client_secret to protect — safe in the client bundle).

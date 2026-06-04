@@ -75,7 +75,7 @@ export default function PollDetail({ route }: any) {
 
         {!canVote ? (
           <Text style={{ color: theme.colors.textDarker, marginTop: 8 }}>
-            Voting is for band members. Switch to a Band Member or Admin role on the Account page (tap the profile badge to spoof admin) to cast a vote.
+            Voting is for band members. Sign in with your Skin Tyee Microsoft 365 account on the Account page to cast a vote.
           </Text>
         ) : null}
       </PageContent>

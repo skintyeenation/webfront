@@ -310,7 +310,15 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
           </Card>
         ) : null}
 
-        {/* Dev role switcher --------------------------------------------- */}
+        {/* Dev role switcher ---------------------------------------------
+            Hidden in prod (Config.isProd resolves true when apiServer is
+            api.skintyee.ca). Letting real users spoof admin would be a
+            privilege-escalation surface; the switcher only exists so
+            dev/staging can exercise role-gated screens without juggling
+            Entra accounts. The signed-in user's canonical role still
+            comes through normally. */}
+        {!Config.isProd ? (
+        <>
         <Text style={{ color: theme.colors.textDarker, marginBottom: 8 }}>
           Switch role (development only){isSpoofed ? ` · tap "${role}" again to revert to your ${canonicalRole} role` : ''}
         </Text>
@@ -361,6 +369,8 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
             })}
           </Card.Content>
         </Card>
+        </>
+        ) : null}
       </PageContent>
     </PageContainer>
   );
