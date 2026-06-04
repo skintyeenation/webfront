@@ -387,8 +387,16 @@ function ApprovalsView({
   if (timesheets.length === 0) {
     return <NoContent message="No timesheets in this pay period yet." />;
   }
+  // Three buckets:
+  //   - drafts    : not yet submitted; admin can peek + edit, no approve.
+  //   - submitted : awaiting review.
+  //   - done      : already approved or rejected.
+  // Drafts used to fall into `done` (status !== 'submitted') which is
+  // why "System Admin (draft)" landed under Already Decided — fixed
+  // by partitioning explicitly.
+  const drafts    = timesheets.filter((t) => t.status === 'draft');
   const submitted = timesheets.filter((t) => t.status === 'submitted');
-  const done = timesheets.filter((t) => t.status !== 'submitted');
+  const done      = timesheets.filter((t) => t.status === 'approved' || t.status === 'rejected');
 
   return (
     <View>
@@ -410,10 +418,56 @@ function ApprovalsView({
         ))
       )}
 
+      {drafts.length > 0 ? (
+        <>
+          <Text style={{ color: theme.colors.accent, fontSize: 12, fontWeight: '700', letterSpacing: 1, marginTop: 16, marginBottom: 6 }}>
+            DRAFTS IN PROGRESS ({drafts.length})
+          </Text>
+          <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginBottom: 6 }}>
+            Not submitted yet — worker is still editing. No approval action available.
+          </Text>
+          {drafts.map((t) => {
+            const busy = actingOn === t.id;
+            const canEdit = canDelete;
+            return (
+              <Card key={t.id} style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 6 }}>
+                <Card.Content>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text style={{ color: theme.colors.text, flex: 1 }}>{t.workerName}</Text>
+                    <Text style={{ color: theme.colors.textDarker, marginRight: 8 }}>{t.totalHours}h</Text>
+                    <Chip compact style={{ backgroundColor: statusColor(t.status) }} textStyle={{ color: '#000', fontSize: 10 }}>
+                      {statusLabel(t.status)}
+                    </Chip>
+                    {canEdit ? (
+                      <IconButton
+                        icon="pencil" size={18}
+                        iconColor={theme.colors.textDarker}
+                        disabled={busy}
+                        onPress={() => openEdit(t)}
+                        accessibilityLabel="Edit timesheet"
+                      />
+                    ) : null}
+                    {canDelete ? (
+                      <IconButton
+                        icon="delete" size={18}
+                        iconColor={theme.colors.textDarker}
+                        disabled={busy}
+                        onPress={() => askDelete(t)}
+                        accessibilityLabel="Delete timesheet"
+                      />
+                    ) : null}
+                  </View>
+                </Card.Content>
+              </Card>
+            );
+          })}
+        </>
+      ) : null}
+
       {done.length > 0 ? (
         <>
           <Text style={{ color: theme.colors.accent, fontSize: 12, fontWeight: '700', letterSpacing: 1, marginTop: 16, marginBottom: 6 }}>
-            ALREADY DECIDED
+            ALREADY DECIDED ({done.length})
           </Text>
           {done.map((t) => {
             const busy = actingOn === t.id;
