@@ -64,17 +64,35 @@ const ROLES: { role: Role; label: string; desc: string }[] = [
 // via the signInStaff thunk, which lands a JWT in auth.accessToken so
 // HttpApiService sends it as Authorization: Bearer on subsequent calls.
 // See docs/features/staff-auth.md for the design + locked decisions.
-function StaffSignInCard({ isSigningIn, error }: { isSigningIn: boolean; error: string | null }) {
+//
+// Submit + error state is owned LOCALLY (not via auth.status / auth.error)
+// so clicking Sign in here doesn't fire the Microsoft card's spinner —
+// the two paths share the auth slice's signedIn/role landing but not
+// the in-flight UI.
+function StaffSignInCard() {
   const dispatch = useAppDispatch();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const canSubmit = email.trim().length > 0 && password.length > 0 && !isSigningIn;
+  const [submitting, setSubmitting] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const canSubmit = email.trim().length > 0 && password.length > 0 && !submitting;
 
-  const onSubmit = () => {
+  const onSubmit = async () => {
     if (!canSubmit) return;
-    dispatch(resetSignInStatus());
-    dispatch(signInStaff({ email, password }));
+    setSubmitting(true);
+    setLocalError(null);
+    try {
+      const result = await dispatch(signInStaff({ email, password }));
+      if (signInStaff.rejected.match(result)) {
+        setLocalError((result.payload as string) ?? 'Sign-in failed.');
+      }
+      // Success path: auth.signedIn flips in the slice reducer, the
+      // Account screen re-renders into its signed-in branch and this
+      // component unmounts — no need to clear state here.
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -126,14 +144,14 @@ function StaffSignInCard({ isSigningIn, error }: { isSigningIn: boolean; error: 
           icon="login"
           disabled={!canSubmit}
           onPress={onSubmit}
-          loading={isSigningIn}
+          loading={submitting}
           style={{ marginTop: 6 }}
         >
           Sign in
         </Button>
-        {error ? (
+        {localError ? (
           <Text style={{ color: theme.colors.accent, fontSize: 12, marginTop: 8 }}>
-            {error}
+            {localError}
           </Text>
         ) : null}
       </Card.Content>
@@ -322,7 +340,7 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
             identity (contractors, externals). See
             docs/features/staff-auth.md. Surfaces only when signed-out. */}
         {!signedIn ? (
-          <StaffSignInCard isSigningIn={isSigningIn} error={error} />
+          <StaffSignInCard />
         ) : null}
 
         {!signedIn ? null : (

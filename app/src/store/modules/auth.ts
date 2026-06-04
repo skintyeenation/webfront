@@ -554,9 +554,13 @@ const authSlice = createSlice({
     // signInStaff — email/password path. Same outcome shape as the
     // Entra sign-in: signedIn=true + role/user/canonical pinned. The
     // JWT lands in accessToken so HttpApiService sends it as Bearer.
-    builder.addCase(signInStaff.pending, (state) => ({
-      ...state, status: 'signing-in', error: null,
-    }));
+    //
+    // Note: we DON'T touch `status` / `error` here on pending or
+    // rejected — those are owned by the Microsoft path's spinner +
+    // error display. The staff sign-in card tracks its own submit
+    // state + error locally (via the awaited dispatch return value)
+    // so the Microsoft spinner doesn't fire when the user clicks the
+    // email Sign in button.
     builder.addCase(signInStaff.fulfilled, (state, action) => ({
       ...state,
       signedIn: true,
@@ -570,13 +574,6 @@ const authSlice = createSlice({
       // (locked decision #1).
       idToken: null,
       expiresAt: null,
-      status: 'idle',
-      error: null,
-    }));
-    builder.addCase(signInStaff.rejected, (state, action) => ({
-      ...state,
-      status: 'error',
-      error: action.payload ?? 'Sign-in failed.',
     }));
 
     // Unspoof — drops the (spoofed) label and applies the freshly
