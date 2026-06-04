@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, ForbiddenException, Get, HttpCode, Logger, NotFoundException, OnApplicationBootstrap, Param, Post, Patch, Query, Req, Res } from '@nestjs/common';
 import { TimekeepingReportsService } from './timekeeping-reports.service';
+import { OnboardingService } from './onboarding.service';
 import { DataService } from './data.service';
 import { Roles, callerRole } from './roles';
 import { GraphFeedService, FeedItem, AppRole } from './graph-feed.service';
@@ -821,7 +822,61 @@ export class TimeKeepingController {
     private data: DataService,
     private prisma: PrismaService,
     private reports: TimekeepingReportsService,
+    private people: OnboardingService,
   ) {}
+
+  // ---- Eligibility -----------------------------------------------------
+  //
+  // Timesheets are gated by the Person.timesheetsEnabled flag (set in
+  // the People screen). A signed-in user can only save/submit their
+  // own timesheet if their UPN matches an eligible Person row; admins
+  // can also seed timesheets on behalf of eligible people.
+
+  // GET /v1/timekeeping/eligible-people — admin only. Returns
+  // [{ personId, workerUpn, workerName, isBandMember }] for the
+  // Approvals screen so the admin sees the full roster regardless
+  // of whether each person has a sheet yet.
+  @Get('eligible-people') @Roles('admin')
+  async eligiblePeople() {
+    return this.people.listTimesheetWorkers();
+  }
+
+  // GET /v1/timekeeping/me/eligible — any signed-in caller. Drives
+  // the worker-side AddTimesheet gate (no toggle → friendly message
+  // instead of a broken form).
+  @Get('me/eligible') @Roles('member', 'staff', 'admin')
+  async meEligible(@Req() req: any): Promise<{ eligible: boolean; upn: string }> {
+    const upn = callerUpn(req);
+    return { upn, eligible: await this.people.isWorkerEligible(upn) };
+  }
+
+  // POST /v1/timekeeping/timesheets/admin/start — admin creates a
+  // fresh blank draft for a person. The UI navigates to admin-edit
+  // mode on the returned id. Idempotent: if a sheet already exists
+  // for (workerUpn, periodId), returns that one.
+  @Post('timesheets/admin/start') @Roles('admin')
+  async adminStartTimesheet(@Body() b: { personId: string; periodId: string }) {
+    if (!this.prisma.isAvailable) throw new NotFoundException('Prisma not connected');
+    if (!b?.personId || !b?.periodId) throw new Error('personId + periodId required');
+    const workers = await this.people.listTimesheetWorkers();
+    const worker = workers.find((w) => w.personId === b.personId);
+    if (!worker) throw new ForbiddenException('Person not enabled for timesheets.');
+    const period = payPeriodFor(b.periodId);
+    if (period.id !== b.periodId) throw new Error(`Unknown period: ${b.periodId}`);
+    const id = `${worker.workerUpn}:${period.id}`;
+    const existing = await this.prisma.timesheet.findUnique({ where: { id }, include: { entries: true } });
+    if (existing) return existing;
+    return this.prisma.timesheet.create({
+      data: {
+        id,
+        workerUpn: worker.workerUpn,
+        workerName: worker.workerName,
+        payPeriodId: period.id,
+        status: 'draft',
+      },
+      include: { entries: true },
+    });
+  }
 
   // ---- Reports ---------------------------------------------------------
   //
@@ -934,6 +989,14 @@ export class TimeKeepingController {
     const upn = callerUpn(req);
     const period = payPeriodFor(periodId);
     if (period.id !== periodId) throw new Error(`Unknown period: ${periodId}`);
+
+    // Worker-side eligibility gate — only callers whose UPN lines up
+    // with an enabled Person row are allowed to write through this
+    // path. Admin should use POST /timesheets/admin/start +
+    // /timesheets/admin/:id to act on a worker's behalf.
+    if (!(await this.people.isWorkerEligible(upn))) {
+      throw new ForbiddenException('Your account is not enabled for timesheets. Ask an admin to add you under People with Timesheets enabled.');
+    }
 
     const me = await this.prisma.bandMember.findUnique({ where: { upn } });
     const workerName = me?.name ?? upn;

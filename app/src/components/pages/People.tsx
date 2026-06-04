@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
-import { ActivityIndicator, Button, Card, Chip, HelperText, IconButton, Modal, Portal, Snackbar, Text, TextInput } from 'react-native-paper';
+import { ActivityIndicator, Button, Card, Chip, HelperText, IconButton, Modal, Portal, Snackbar, Switch, Text, TextInput } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useFocusEffect } from '@react-navigation/native';
 import dayjs from 'dayjs';
@@ -39,6 +39,7 @@ export default function People({ navigation }: any) {
   const [bandMemberId, setBandMemberId] = useState<string | undefined>();
   const [bandSearch, setBandSearch] = useState('');
   const [bandPickerOpen, setBandPickerOpen] = useState(false);
+  const [timesheetsEnabled, setTimesheetsEnabled] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
 
@@ -85,7 +86,7 @@ export default function People({ navigation }: any) {
       .slice(0, 30);
   }, [linkableMembers, bandSearch]);
 
-  const selectedMember = bandMemberId ? linkableMembers.find((m) => m.id === bandMemberId) : undefined;
+  const selectedMember = bandMemberId ? linkableMembers.find((m) => m._id === bandMemberId) : undefined;
 
   // Email-match fallback: for legacy People rows that predate the
   // bandMemberId column (or weren't linked at create time), infer a
@@ -103,6 +104,7 @@ export default function People({ navigation }: any) {
     setDisplayName(''); setEmail(''); setPhone('');
     setBandMemberId(undefined); setBandSearch('');
     setBandPickerOpen(false);
+    setTimesheetsEnabled(false);
     setFormError(undefined);
   };
 
@@ -118,6 +120,7 @@ export default function People({ navigation }: any) {
     setBandMemberId(p.bandMemberId ?? undefined);
     setBandSearch('');
     setBandPickerOpen(false);
+    setTimesheetsEnabled(!!p.timesheetsEnabled);
     setFormError(undefined);
     setModalOpen(true);
   };
@@ -139,7 +142,7 @@ export default function People({ navigation }: any) {
     });
 
   const pickMember = (m: any) => {
-    setBandMemberId(m.id);
+    setBandMemberId(m._id);
     // Pre-fill the form fields from the member as a courtesy — the server
     // will overwrite from the canonical BandMember row on save anyway.
     setDisplayName(m.name ?? '');
@@ -168,6 +171,7 @@ export default function People({ navigation }: any) {
           email: email.trim() || null,
           phone: phone.trim() || null,
           bandMemberId: bandMemberId ?? null,
+          timesheetsEnabled,
         });
         setToast('Saved');
       } else {
@@ -176,6 +180,7 @@ export default function People({ navigation }: any) {
           email: email.trim() || undefined,
           phone: phone.trim() || undefined,
           bandMemberId,
+          timesheetsEnabled,
         });
         setToast('Person added');
       }
@@ -234,6 +239,15 @@ export default function People({ navigation }: any) {
                   <Text style={{ color: theme.colors.textDarker, fontSize: 10, flex: 1 }}>
                     Added {dayjs(p.createdAt).format('MMM D, YYYY')}
                   </Text>
+                  {p.timesheetsEnabled ? (
+                    <Chip
+                      compact icon="clock-outline"
+                      style={{ marginRight: 4, backgroundColor: theme.colors.success }}
+                      textStyle={{ color: '#000', fontSize: 10 }}
+                    >
+                      Timesheets
+                    </Chip>
+                  ) : null}
                   <IconButton icon="pencil" size={18} iconColor={theme.colors.textDarker} onPress={() => openEdit(p)} />
                   <IconButton icon="delete" size={18} iconColor={theme.colors.textDarker} onPress={() => removePerson(p)} />
                 </View>
@@ -292,10 +306,10 @@ export default function People({ navigation }: any) {
                     </HelperText>
                   ) : (
                     filteredMembers.map((m) => {
-                      const alreadyLinked = linkedMemberIds.has(m.id);
+                      const alreadyLinked = linkedMemberIds.has(m._id);
                       return (
                         <TouchableOpacity
-                          key={m.id}
+                          key={m._id}
                           onPress={() => { if (!alreadyLinked) pickMember(m); }}
                           activeOpacity={alreadyLinked ? 1 : 0.6}
                           style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, opacity: alreadyLinked ? 0.45 : 1 }}
@@ -344,6 +358,23 @@ export default function People({ navigation }: any) {
                 Name, email, and phone come from the linked band member.
               </HelperText>
             ) : null}
+
+            {/* Time Keeping toggle. When on the person becomes a worker
+                in the Approvals roster + their account is allowed to
+                save / submit timesheets via the worker-side endpoints. */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12 }}>
+              <Switch
+                value={timesheetsEnabled}
+                onValueChange={setTimesheetsEnabled}
+                color={theme.colors.primary}
+              />
+              <View style={{ marginLeft: 8, flex: 1 }}>
+                <Text style={{ color: theme.colors.text, fontSize: 13 }}>Enable Timesheets</Text>
+                <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>
+                  Worker appears in Time Keeping approvals and can submit hours.
+                </Text>
+              </View>
+            </View>
 
             {formError ? <HelperText type="error" visible>{formError}</HelperText> : null}
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12 }}>

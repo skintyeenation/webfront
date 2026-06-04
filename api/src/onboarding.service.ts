@@ -49,6 +49,10 @@ export interface PersonRecord {
    *  need a second fetch. Null when bandMemberId is null. */
   bandMemberName: string | null;
   bandMemberUpn: string | null;
+  /** Toggle gating Time Keeping. When true, the worker shows up in
+   *  the Approvals roster + is allowed to enter timesheets via the
+   *  saveDraft / submit endpoints. */
+  timesheetsEnabled: boolean;
   createdAt: string;
 }
 
@@ -422,13 +426,14 @@ export class OnboardingService implements OnApplicationBootstrap {
     return Array.from(this.memPeople.values()).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
-  async updatePerson(id: string, patch: Partial<{ displayName: string; email: string | null; phone: string | null; companyId: string | null; bandMemberId: string | null }>): Promise<PersonRecord | null> {
+  async updatePerson(id: string, patch: Partial<{ displayName: string; email: string | null; phone: string | null; companyId: string | null; bandMemberId: string | null; timesheetsEnabled: boolean }>): Promise<PersonRecord | null> {
     if (this.prisma.isAvailable) {
       const data: any = {};
       if (patch.displayName != null) data.displayName = patch.displayName;
       if (patch.email !== undefined) data.email = patch.email;
       if (patch.phone !== undefined) data.phone = patch.phone;
       if (patch.companyId !== undefined) data.companyId = patch.companyId;
+      if (patch.timesheetsEnabled !== undefined) data.timesheetsEnabled = patch.timesheetsEnabled;
       // Switching the band-member link → re-pull name/email/phone from
       // the new linked member so it stays authoritative.
       if (patch.bandMemberId !== undefined) {
@@ -458,8 +463,69 @@ export class OnboardingService implements OnApplicationBootstrap {
     if (patch.phone !== undefined) next.phone = patch.phone;
     if (patch.companyId !== undefined) next.companyId = patch.companyId;
     if (patch.bandMemberId !== undefined) next.bandMemberId = patch.bandMemberId;
+    if (patch.timesheetsEnabled !== undefined) next.timesheetsEnabled = patch.timesheetsEnabled;
     this.memPeople.set(id, next);
     return next;
+  }
+
+  // ---- Time keeping bridge ------------------------------------------------
+
+  /** People with timesheetsEnabled=true + their derived workerUpn /
+   *  workerName for the Time Keeping screen. The UPN comes from the
+   *  linked BandMember when present, else from email (most external
+   *  contractors); rows without either are dropped (can't key a
+   *  Timesheet to them). */
+  async listTimesheetWorkers(): Promise<Array<{ personId: string; workerUpn: string; workerName: string; isBandMember: boolean }>> {
+    if (this.prisma.isAvailable) {
+      const rows = await this.prisma.person.findMany({
+        where: { timesheetsEnabled: true },
+        include: { bandMember: { select: { upn: true, name: true } } },
+        orderBy: { displayName: 'asc' },
+      });
+      return rows
+        .map((p) => {
+          const upn = (p.bandMember?.upn ?? p.email ?? '').toLowerCase();
+          if (!upn) return null;
+          return {
+            personId: p.id,
+            workerUpn: upn,
+            workerName: p.bandMember?.name ?? p.displayName,
+            isBandMember: !!p.bandMember,
+          };
+        })
+        .filter((x): x is { personId: string; workerUpn: string; workerName: string; isBandMember: boolean } => !!x);
+    }
+    return Array.from(this.memPeople.values())
+      .filter((p) => p.timesheetsEnabled)
+      .map((p) => {
+        const upn = ((p as any).bandMemberUpn ?? p.email ?? '').toLowerCase();
+        if (!upn) return null;
+        return { personId: p.id, workerUpn: upn, workerName: p.displayName, isBandMember: !!p.bandMemberId };
+      })
+      .filter((x): x is { personId: string; workerUpn: string; workerName: string; isBandMember: boolean } => !!x)
+      .sort((a, b) => a.workerName.localeCompare(b.workerName));
+  }
+
+  /** Whether a given UPN is a timesheet-eligible worker. Drives both
+   *  the worker-side AddTimesheet gate and the server's save/submit
+   *  refusal for non-eligible UPNs. */
+  async isWorkerEligible(upn: string): Promise<boolean> {
+    if (!upn) return false;
+    const u = upn.toLowerCase();
+    if (this.prisma.isAvailable) {
+      const row = await this.prisma.person.findFirst({
+        where: {
+          timesheetsEnabled: true,
+          OR: [
+            { email: { equals: u, mode: 'insensitive' } },
+            { bandMember: { upn: u } },
+          ],
+        },
+        select: { id: true },
+      });
+      return !!row;
+    }
+    return (await this.listTimesheetWorkers()).some((w) => w.workerUpn === u);
   }
 
   async deletePerson(id: string): Promise<boolean> {
@@ -474,7 +540,7 @@ export class OnboardingService implements OnApplicationBootstrap {
   // If bandMemberId is supplied, pull name/email/phone from the linked
   // BandMember row so they stay authoritative; admin's overrides are only
   // used when there's no link.
-  async createPerson(input: { displayName: string; email?: string; phone?: string; companyId?: string; bandMemberId?: string }): Promise<PersonRecord> {
+  async createPerson(input: { displayName: string; email?: string; phone?: string; companyId?: string; bandMemberId?: string; timesheetsEnabled?: boolean }): Promise<PersonRecord> {
     if (this.prisma.isAvailable) {
       let displayName = input.displayName;
       let email = input.email;
@@ -496,6 +562,7 @@ export class OnboardingService implements OnApplicationBootstrap {
           phone: phone ?? null,
           companyId: input.companyId ?? null,
           bandMemberId: input.bandMemberId ?? null,
+          timesheetsEnabled: !!input.timesheetsEnabled,
         },
         include: { bandMember: { select: { id: true, name: true, upn: true } } },
       });
@@ -509,6 +576,7 @@ export class OnboardingService implements OnApplicationBootstrap {
       bandMemberId: input.bandMemberId ?? null,
       bandMemberName: null,
       bandMemberUpn: null,
+      timesheetsEnabled: !!input.timesheetsEnabled,
       createdAt: new Date().toISOString(),
     };
     this.memPeople.set(id, r);
@@ -736,6 +804,7 @@ function toPersonRecord(row: any): PersonRecord {
     bandMemberId: row.bandMemberId ?? null,
     bandMemberName: row.bandMember?.name ?? null,
     bandMemberUpn: row.bandMember?.upn ?? null,
+    timesheetsEnabled: !!row.timesheetsEnabled,
     createdAt: (row.createdAt instanceof Date ? row.createdAt : new Date(row.createdAt)).toISOString(),
   };
 }

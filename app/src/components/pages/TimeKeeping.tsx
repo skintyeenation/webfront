@@ -49,6 +49,10 @@ export default function TimeKeeping({ navigation }: any) {
   const [myCurrent, setMyCurrent] = useState<Timesheet | null>(null);
   const [myHistory, setMyHistory] = useState<Timesheet[]>([]);
   const [allTimesheets, setAllTimesheets] = useState<Timesheet[]>([]);
+  // Roster of every timesheets-enabled Person — drives the "Not started"
+  // bucket on the Approvals tab so admin sees the full team regardless
+  // of who's submitted yet.
+  const [eligiblePeople, setEligiblePeople] = useState<Array<{ personId: string; workerUpn: string; workerName: string; isBandMember: boolean }>>([]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>();
@@ -97,9 +101,13 @@ export default function TimeKeeping({ navigation }: any) {
             setMyCurrent(my.current);
             setMyHistory(my.history);
           } else {
-            const all = await api.timekeeping.allTimesheets(selectedPeriodId);
+            const [all, roster] = await Promise.all([
+              api.timekeeping.allTimesheets(selectedPeriodId),
+              api.timekeeping.eligiblePeople().catch(() => []),
+            ]);
             if (cancelled) return;
             setAllTimesheets(all);
+            setEligiblePeople(roster);
           }
         } catch (e: any) {
           if (!cancelled) setError(e?.message ?? String(e));
@@ -256,6 +264,8 @@ export default function TimeKeeping({ navigation }: any) {
         ) : (
           <ApprovalsView
             timesheets={allTimesheets}
+            eligiblePeople={eligiblePeople}
+            selectedPeriodId={selectedPeriodId}
             actingOn={actingOn}
             onApprove={onApprove}
             onReject={onReject}
@@ -352,9 +362,11 @@ function MyTimesheetView({
 // ---- Approvals view --------------------------------------------------------
 
 function ApprovalsView({
-  timesheets, actingOn, onApprove, onReject, onDelete, canDelete, navigation,
+  timesheets, eligiblePeople, selectedPeriodId, actingOn, onApprove, onReject, onDelete, canDelete, navigation,
 }: {
   timesheets: Timesheet[];
+  eligiblePeople: Array<{ personId: string; workerUpn: string; workerName: string; isBandMember: boolean }>;
+  selectedPeriodId?: string;
   actingOn?: string;
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
@@ -363,6 +375,7 @@ function ApprovalsView({
   navigation: any;
 }) {
   const { confirm, ConfirmHost } = useConfirm();
+  const [startingFor, setStartingFor] = useState<string | undefined>();
 
   // Open AddTimesheet in admin-edit mode for this sheet. Cap-gated by
   // status — approved sheets can't be edited (delete + re-submit only).
@@ -371,6 +384,29 @@ function ApprovalsView({
       adminEditId: t.id,
       workerLabel: t.workerName,
     });
+  };
+
+  // Admin starts a timesheet for a person who hasn't created one yet.
+  // Lands on AddTimesheet in admin-edit mode pointed at the new draft.
+  const startFor = async (person: { personId: string; workerName: string }) => {
+    if (!selectedPeriodId) return;
+    setStartingFor(person.personId);
+    try {
+      const sheet = await apiFactory().timekeeping.adminStartTimesheet({
+        personId: person.personId,
+        periodId: selectedPeriodId,
+      });
+      navigation?.navigate?.('timesheetCreate', {
+        adminEditId: sheet.id,
+        workerLabel: person.workerName,
+      });
+    } catch (e: any) {
+      // Inline error surface on the row — fallback to a stub for now.
+      // eslint-disable-next-line no-console
+      console.warn('adminStartTimesheet failed', e);
+    } finally {
+      setStartingFor(undefined);
+    }
   };
 
   // Wrap the bare onDelete with a confirm dialog. Inline so it can reach
@@ -384,19 +420,24 @@ function ApprovalsView({
       onConfirm: () => onDelete(t),
     });
 
-  if (timesheets.length === 0) {
-    return <NoContent message="No timesheets in this pay period yet." />;
-  }
-  // Three buckets:
-  //   - drafts    : not yet submitted; admin can peek + edit, no approve.
-  //   - submitted : awaiting review.
-  //   - done      : already approved or rejected.
+  // Four buckets:
+  //   - notStarted : enabled person, no sheet yet — admin can start one.
+  //   - drafts     : not yet submitted; admin can peek + edit, no approve.
+  //   - submitted  : awaiting review.
+  //   - done       : already approved or rejected.
   // Drafts used to fall into `done` (status !== 'submitted') which is
-  // why "System Admin (draft)" landed under Already Decided — fixed
-  // by partitioning explicitly.
+  // why a draft landed under Already Decided — fixed by partitioning
+  // explicitly. Not-started uses the eligible-people roster + filters
+  // out anyone who already has a sheet this period.
   const drafts    = timesheets.filter((t) => t.status === 'draft');
   const submitted = timesheets.filter((t) => t.status === 'submitted');
   const done      = timesheets.filter((t) => t.status === 'approved' || t.status === 'rejected');
+  const accountedFor = new Set(timesheets.map((t) => t.workerUpn));
+  const notStarted = eligiblePeople.filter((p) => !accountedFor.has(p.workerUpn));
+
+  if (timesheets.length === 0 && notStarted.length === 0) {
+    return <NoContent message="No people enabled for timesheets. Add one under People with Timesheets enabled." />;
+  }
 
   return (
     <View>
@@ -417,6 +458,38 @@ function ApprovalsView({
           />
         ))
       )}
+
+      {notStarted.length > 0 && canDelete ? (
+        <>
+          <Text style={{ color: theme.colors.accent, fontSize: 12, fontWeight: '700', letterSpacing: 1, marginTop: 16, marginBottom: 6 }}>
+            NOT STARTED ({notStarted.length})
+          </Text>
+          <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginBottom: 6 }}>
+            People enabled for timesheets who don't have one for this period yet.
+          </Text>
+          {notStarted.map((p) => (
+            <Card key={p.personId} style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 6 }}>
+              <Card.Content>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: theme.colors.text }}>{p.workerName}</Text>
+                    <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>{p.workerUpn}</Text>
+                  </View>
+                  <Button
+                    compact mode="contained" icon="plus"
+                    buttonColor={theme.colors.primary} textColor="#fff"
+                    onPress={() => startFor(p)}
+                    loading={startingFor === p.personId}
+                    disabled={!!startingFor}
+                  >
+                    Add timesheet
+                  </Button>
+                </View>
+              </Card.Content>
+            </Card>
+          ))}
+        </>
+      ) : null}
 
       {drafts.length > 0 ? (
         <>

@@ -157,6 +157,10 @@ export default function AddTimesheet({ navigation, route }: any) {
   const [existing, setExisting] = useState<Timesheet | null>(null);
   const [rows, setRows] = useState<DraftEntry[]>([]);
   const [notes, setNotes] = useState<string>('');
+  // Worker-mode eligibility — admin-edit mode bypasses (admin acts on
+  // behalf of an already-eligible person via the admin-edit endpoint).
+  const [eligible, setEligible] = useState<boolean | null>(null);
+  const [eligibleUpn, setEligibleUpn] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [submittedMode, setSubmittedMode] = useState<'draft' | 'submit' | null>(null);
@@ -169,6 +173,30 @@ export default function AddTimesheet({ navigation, route }: any) {
       try {
         setLoading(true);
         const api = apiFactory();
+        // Worker-mode eligibility gate — only callers whose Person row
+        // is enabled for timesheets can use the worker-side form.
+        if (!adminEditMode) {
+          try {
+            const r = await api.timekeeping.meEligible();
+            if (cancelled) return;
+            setEligible(r.eligible);
+            setEligibleUpn(r.upn);
+            if (!r.eligible) {
+              // Still resolve a period so the page can render the
+              // gating message inside the normal frame.
+              const periods = await api.timekeeping.payPeriods();
+              if (cancelled) return;
+              setPayPeriod(periods.current);
+              return;
+            }
+          } catch (e: any) {
+            // Network/server error — fall through to normal load,
+            // saveDraft will surface the real error if any.
+            this; // no-op to keep eslint happy
+          }
+        } else {
+          setEligible(true); // admin-edit bypasses the gate
+        }
         if (adminEditMode && adminEditId) {
           // Pull periods config + the specific sheet via admin endpoint.
           const periods = await api.timekeeping.payPeriods();
@@ -336,6 +364,19 @@ export default function AddTimesheet({ navigation, route }: any) {
     return (
       <PageContainer><PageContent>
         <Text style={{ color: theme.colors.text }}>Sign in to enter a timesheet.</Text>
+      </PageContent></PageContainer>
+    );
+  }
+  // Worker-mode eligibility gate. Admin-edit mode bypasses entirely.
+  if (!adminEditMode && eligible === false) {
+    return (
+      <PageContainer><PageContent>
+        <Text style={{ color: theme.colors.text, fontSize: 16 }}>Not enabled for timesheets</Text>
+        <HelperText type="info" visible style={{ marginLeft: -8, marginTop: 6 }}>
+          Your account ({eligibleUpn || 'unknown'}) isn't enabled for timesheets.
+          Ask an admin to add you under People with the "Enable Timesheets"
+          toggle on.
+        </HelperText>
       </PageContent></PageContainer>
     );
   }

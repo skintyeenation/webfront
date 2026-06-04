@@ -169,6 +169,9 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
       },
       adminGetTimesheet:  (id: string)            => get<any>(`/timekeeping/timesheets/admin/${encodeURIComponent(id)}`),
       adminEditTimesheet: (id: string, body: any) => patch<any>(`/timekeeping/timesheets/admin/${encodeURIComponent(id)}`, body),
+      eligiblePeople:     ()                      => get<any[]>('/timekeeping/eligible-people'),
+      meEligible:         ()                      => get<any>('/timekeeping/me/eligible'),
+      adminStartTimesheet: (input: any)           => post<any>('/timekeeping/timesheets/admin/start', input),
       reports: {
         list: (count?: number) => get<any[]>('/timekeeping/reports', count ? { count: String(count) } : undefined),
         generate: (periodId: string) => post<any>(`/timekeeping/reports/${encodeURIComponent(periodId)}/generate`, {}),

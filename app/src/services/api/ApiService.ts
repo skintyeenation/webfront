@@ -158,6 +158,15 @@ export interface ApiService {
      *  (delete + have the worker re-submit instead). */
     adminGetTimesheet(id: string): Promise<Timesheet>;
     adminEditTimesheet(id: string, body: { entries: Array<{ date: string; hours: number; task: string; timeIn?: string; timeOut?: string }>; notes?: string }): Promise<Timesheet>;
+    /** Admin: list every person enabled for timesheets — drives the
+     *  Approvals tab's full roster including the NOT STARTED bucket. */
+    eligiblePeople(): Promise<Array<{ personId: string; workerUpn: string; workerName: string; isBandMember: boolean }>>;
+    /** Worker self-check: am I allowed to enter timesheets? */
+    meEligible(): Promise<{ eligible: boolean; upn: string }>;
+    /** Admin: seed an empty draft for a person; idempotent. Returns
+     *  the (existing or newly created) Timesheet so the UI can
+     *  navigate to admin-edit on its id. */
+    adminStartTimesheet(input: { personId: string; periodId: string }): Promise<Timesheet>;
     // Reports — admin-only. PDF + CSV per pay period.
     reports: {
       list(count?: number): Promise<TimesheetReportSummary[]>;
@@ -245,8 +254,8 @@ export interface ApiService {
     addLink(stepId: string, input: { label: string; url: string }): Promise<void>;
     removeLink(rowId: string): Promise<void>;
     listPeople(): Promise<PersonDto[]>;
-    createPerson(input: { displayName?: string; email?: string; phone?: string; companyId?: string; bandMemberId?: string }): Promise<PersonDto>;
-    updatePerson(id: string, patch: Partial<{ displayName: string; email: string | null; phone: string | null; companyId: string | null; bandMemberId: string | null }>): Promise<PersonDto>;
+    createPerson(input: { displayName?: string; email?: string; phone?: string; companyId?: string; bandMemberId?: string; timesheetsEnabled?: boolean }): Promise<PersonDto>;
+    updatePerson(id: string, patch: Partial<{ displayName: string; email: string | null; phone: string | null; companyId: string | null; bandMemberId: string | null; timesheetsEnabled: boolean }>): Promise<PersonDto>;
     deletePerson(id: string): Promise<void>;
     listAssignments(opts?: { flowId?: string; personId?: string }): Promise<OnboardingAssignmentDto[]>;
     getAssignment(id: string): Promise<OnboardingAssignmentDto>;
@@ -301,6 +310,9 @@ export interface PersonDto {
   bandMemberId: string | null;
   bandMemberName: string | null;
   bandMemberUpn: string | null;
+  /** Toggle gating Time Keeping. When true, the person shows up on
+   *  the Approvals roster + is allowed to enter timesheets. */
+  timesheetsEnabled: boolean;
   createdAt: string;
 }
 

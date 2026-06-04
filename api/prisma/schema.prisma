@@ -351,21 +351,26 @@ model OnboardingStepLink {
 // Full auth / portal accounts are future work; for now they interact
 // via tokenised public links.
 model Person {
-  id           String                 @id @default(cuid())
-  displayName  String
-  email        String?
-  phone        String?
-  companyId    String?
-  company      Company?               @relation(fields: [companyId], references: [id])
+  id                String                 @id @default(cuid())
+  displayName       String
+  email             String?
+  phone             String?
+  companyId         String?
+  company           Company?               @relation(fields: [companyId], references: [id])
   // Optional 1:1 link to a BandMember (Entra-backed). When set, the
   // linked member's name/email/phone are the source of truth and the
   // Person row's fields are kept in sync at save time.
-  bandMemberId String?                @unique
-  bandMember   BandMember?            @relation(fields: [bandMemberId], references: [id])
-  assignments  OnboardingAssignment[]
-  createdAt    DateTime               @default(now())
+  bandMemberId      String?                @unique
+  bandMember        BandMember?            @relation(fields: [bandMemberId], references: [id])
+  // Gates whether this Person shows up in Time Keeping. Off by default
+  // so existing contractor records (added before the feature) don't
+  // suddenly appear in the Approvals roster.
+  timesheetsEnabled Boolean                @default(false)
+  assignments       OnboardingAssignment[]
+  createdAt         DateTime               @default(now())
 
   @@index([companyId])
+  @@index([timesheetsEnabled])
 }
 
 model OnboardingAssignment {

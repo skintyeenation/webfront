@@ -116,6 +116,7 @@ export class OnboardingController {
       phone: b.phone,
       companyId: b.companyId,
       bandMemberId: b.bandMemberId,
+      timesheetsEnabled: b.timesheetsEnabled,
     });
     if (!r) throw new NotFoundException();
     return r;
@@ -137,6 +138,7 @@ export class OnboardingController {
       phone: b.phone?.trim() || undefined,
       companyId: b.companyId || undefined,
       bandMemberId: b.bandMemberId || undefined,
+      timesheetsEnabled: !!b.timesheetsEnabled,
     });
   }
 
