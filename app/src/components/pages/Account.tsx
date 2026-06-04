@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 import { ActivityIndicator } from 'react-native';
 import { Avatar, Button, Card, Chip, Divider, Text } from 'react-native-paper';
@@ -46,6 +46,16 @@ const ROLES: { role: Role; label: string; desc: string }[] = [
 export default function Account() {
   const dispatch = useAppDispatch();
   const { role, canonicalRole, name, signedIn, user, status, error } = useAppSelector((s) => s.auth);
+
+  // Always refresh the role from the api/ when the Account screen
+  // mounts (signed-in only). Catches the case where the cached auth
+  // state predates a server-side change (e.g. People → role bump,
+  // BandMember.appRole patch, security-group rotation). Result lands
+  // through unspoof.fulfilled which also back-fills canonicalRole.
+  useEffect(() => {
+    if (signedIn) dispatch(unspoof());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signedIn]);
   // The role-switcher is dev-only "spoof". A user is "spoofed" if either:
   //   - canonicalRole is known and role !== canonicalRole, OR
   //   - canonicalRole is unknown (persisted state predates the field)
@@ -198,13 +208,24 @@ export default function Account() {
                 <MaterialCommunityIcons name="account-check" size={20} color={theme.colors.success} style={{ marginRight: 8 }} />
                 <Text style={{ color: theme.colors.text, fontSize: 15, flex: 1 }}>Signed in</Text>
               </View>
-              <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginBottom: 12 }}>
+              <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginBottom: 8 }}>
                 Your role was derived from your Microsoft account.
                 {role === 'admin' ? ' You have full admin access.' :
                  role === 'staff' ? ' You have staff access.' :
                  role === 'member' ? ' You have band-member access.' :
                  ''}
               </Text>
+              {/* Manual refresh — auto-refresh on mount already fires,
+                  but lets the user re-fetch after a server-side change
+                  without bouncing screens. */}
+              <Button
+                mode="text" compact icon="refresh"
+                textColor={theme.colors.textDarker}
+                onPress={() => dispatch(unspoof())}
+                style={{ alignSelf: 'flex-start', marginBottom: 6 }}
+              >
+                Refresh role
+              </Button>
               <Button
                 mode="outlined"
                 icon="logout"
