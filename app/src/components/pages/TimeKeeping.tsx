@@ -38,7 +38,12 @@ export default function TimeKeeping({ navigation }: any) {
   const directoryEntities = useAppSelector((s) => s.directory.entities);
   const me = (directoryEntities as any[]).find((m) => (m.upn ?? '').toLowerCase() === myUpn);
   const myBandGroups: string[] = (me?.bandGroups ?? []) as string[];
-  const canApprove = role === 'admin' || (role === 'staff' && myBandGroups.includes('band-manager'));
+  // Approvals are admin-only. Staff (incl. band-managers) submit their
+  // own hours but don't sign off on others'. We keep myBandGroups in
+  // scope because it's still consumed for related role-aware rendering
+  // (just not for the approval gate any more).
+  void myBandGroups;
+  const canApprove = role === 'admin';
 
   const [tab, setTab] = useState<Tab>('mine');
   const [recent, setRecent] = useState<PayPeriod[]>([]);
@@ -78,11 +83,13 @@ export default function TimeKeeping({ navigation }: any) {
         setCurrentPeriod(periods.current);
         setSelectedPeriodId((prev) => prev ?? periods.current.id);
         setMeEligibleNow(!!me.eligible);
-        // Default to the tab that matches what the user can actually
-        // do. Anyone who isn't a timesheet-enabled worker jumps to
-        // Approvals (their only job here). The switcher above is
-        // hidden in that case so there's nothing else to navigate to.
-        if (!me.eligible) setTab('approvals');
+        // Default tab logic:
+        //   - admin who isn't a worker  → Approvals (their only job)
+        //   - non-admin worker         → My timesheet (only thing they see)
+        //   - non-admin non-worker     → My timesheet (renders the gate)
+        // Approvals is never the default for non-admins.
+        if (!me.eligible && canApprove) setTab('approvals');
+        else if (!canApprove) setTab('mine');
       } catch (e: any) {
         if (!cancelled) setError(e?.message ?? String(e));
       } finally {
@@ -270,7 +277,7 @@ export default function TimeKeeping({ navigation }: any) {
 
         {error ? <HelperText type="error" visible>{error}</HelperText> : null}
 
-        {tab === 'mine' ? (
+        {tab === 'mine' || !canApprove ? (
           <MyTimesheetView
             navigation={navigation}
             period={selectedPeriod}

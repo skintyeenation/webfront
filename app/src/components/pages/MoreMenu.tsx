@@ -32,15 +32,25 @@ const ADMIN_ITEMS: MoreItem[] = [
   { route: 'documents',        label: 'Documents',         description: 'Forms, filings & PDFs by tag',                             icon: 'file-document-multiple',   roles: ['admin'] },
 ];
 
-// General community items — Financial Summary lives here so everyone
-// can see where the money goes (it was previously under Admin tools).
+// Community items — ordered to mirror the Admin section so a staff
+// member's menu structure feels like a subset of the admin's
+// (My Timesheets → Band Member Directory → Forms & Documents → polls
+// → Financial Summary). Financial Summary is band-member-only +
+// public; staff don't see it (transparency for the membership, not
+// operational tooling).
 const COMMUNITY_ITEMS: MoreItem[] = [
-  { route: 'directory',     label: 'Band Member Directory', description: 'Members, council & staff',                                 icon: 'account-group',         roles: ['public', 'member', 'staff'] },
-  { route: 'polls',         label: 'Polling + Surveys',     description: 'Surveys & vote on issues',                                 icon: 'vote-outline',          roles: ['public', 'member', 'staff', 'admin'] },
-  { route: 'publicRecords', label: 'Financial Summary',     description: 'Where the money goes — budgets, expenditures & projects', icon: 'chart-pie',             roles: ['public', 'member', 'staff', 'admin'] },
-  { route: 'documents',     label: 'Forms & Documents',     description: 'Forms, filings & PDFs by category',                       icon: 'file-document-outline', roles: ['member', 'staff'] },
-  // Staff submit their own timesheets here; admins use the Time Keeping tool above.
+  // Mirrors admin's "Time Keeping" entry.
   { route: 'timekeeping',   label: 'My Timesheets',         description: 'Submit & view your hours',                                 icon: 'clock-outline',         roles: ['staff'] },
+  // Mirrors admin's "Band Management" entry — non-admins see it as
+  // the read-only "Band Member Directory".
+  { route: 'directory',     label: 'Band Member Directory', description: 'Members, council & staff',                                 icon: 'account-group',         roles: ['public', 'member', 'staff'] },
+  // Mirrors admin's "Documents" entry — staff-visible read view.
+  { route: 'documents',     label: 'Forms & Documents',     description: 'Forms, filings & PDFs by category',                       icon: 'file-document-outline', roles: ['member', 'staff'] },
+  { route: 'polls',         label: 'Polling + Surveys',     description: 'Surveys & vote on issues',                                 icon: 'vote-outline',          roles: ['public', 'member', 'staff', 'admin'] },
+  // Public + members only (transparency surface). Staff don't see it
+  // — they're operational, not a transparency audience. Admins reach
+  // it through their own Admin tools list if needed.
+  { route: 'publicRecords', label: 'Financial Summary',     description: 'Where the money goes — budgets, expenditures & projects', icon: 'chart-pie',             roles: ['public', 'member'] },
 ];
 
 function Section({ title, items, role, navigation }: { title?: string; items: MoreItem[]; role: Role; navigation: any }) {
@@ -77,13 +87,17 @@ export default function MoreMenu({ navigation }: any) {
       <PageContent>
         {/* Account & Role pinned at the top for every role. For admins
             we surface Admin tools next (their daily work) and Community
-            sinks below — admin's everyday view is action-oriented and
-            community browsing is the lower-frequency surface for them.
-            Non-admins don't have admin tools so they just see Community
-            below their account. */}
+            sinks below. Staff + members get "Tools" (same ordering as
+            Admin tools, just labelled for them) — public still sees
+            "Community" since their list is the browsing surface only. */}
         <Section title="Account & Role" items={ACCOUNT_ITEMS} role={role} navigation={navigation} />
         {isAdmin ? <Section title="Admin tools" items={ADMIN_ITEMS} role={role} navigation={navigation} /> : null}
-        <Section title="Community" items={COMMUNITY_ITEMS} role={role} navigation={navigation} />
+        <Section
+          title={role === 'staff' || role === 'member' ? 'Tools' : 'Community'}
+          items={COMMUNITY_ITEMS}
+          role={role}
+          navigation={navigation}
+        />
       </PageContent>
     </PageContainer>
   );
