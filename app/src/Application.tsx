@@ -110,7 +110,16 @@ const MoreNavigation = () => {
   const moreTitle = role === 'admin' ? 'Admin' : 'More';
   return (
     <MoreStack.Navigator>
-      <MoreStack.Screen name="more" component={MoreMenu} options={{ header: (props: any) => <AppHeader {...props} options={{ title: moreTitle }} /> }} />
+      <MoreStack.Screen
+        name="more"
+        component={MoreMenu}
+        // `title: 'Menu'` is the documentTitle source for the browser tab
+        // (NavigationContainer.documentTitle.formatter reads options.title).
+        // The in-app AppHeader still shows the role-aware "Admin" / "More"
+        // label via the custom `header` below — different surface, different
+        // string by design.
+        options={{ title: 'Menu', header: (props: any) => <AppHeader {...props} options={{ title: moreTitle }} /> }}
+      />
       <MoreStack.Screen {...routeConfig.directory} component={Directory} />
       <MoreStack.Screen {...routeConfig.memberDetail} component={MemberDetail} />
       <MoreStack.Screen {...routeConfig.memberCreate} component={AddMember} />
