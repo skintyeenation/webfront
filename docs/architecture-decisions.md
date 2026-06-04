@@ -414,6 +414,67 @@ Decision record for the Skin Tyee app (`@skintyee/app`, in `app/`). Lives in the
   Graph credentials live in the Container App secret store, same
   pattern as the Postgres password).
 
+### ADR-15 — Member provisioning: Graph-native, no PowerShell layer
+
+- **Decision:** the **Add Member** admin flow creates a real Microsoft
+  Entra identity, assigns an M365 license, and seats the new user
+  into Entra security groups by calling **Microsoft Graph** directly
+  from the api/. The existing `skintyee-app-graph` application
+  credential picks up three new permissions
+  (`User.ReadWrite.All`, `LicenseAssignment.ReadWrite.All`,
+  `Organization.Read.All`); `Group.ReadWrite.All` is already in
+  place from ADR-14. **No PowerShell intermediary** — the EXO
+  Function exists only because `Get-MailboxPermission` isn't
+  exposed in Graph v1.0 (see ADR-15-companion in
+  [docs/365/shared-mailboxes.md](../docs/365/shared-mailboxes.md)),
+  but user creation + licensing + group writes are all fully
+  Graph-native, so adding PowerShell here would be a layer of
+  indirection with zero functional benefit.
+- **Why not the Entra B2B invite flow** (`POST /invitations`,
+  requires only `User.Invite.All`): that flow is geared at external
+  guests, not new internal users — it provisions a guest user
+  with a `#EXT#` UPN suffix and doesn't land them in the tenant
+  the way `POST /users` does. We want first-class internal members
+  here.
+- **Why `LicenseAssignment.ReadWrite.All`** (and not the broader
+  `User.ReadWrite.All` for licensing): Microsoft introduced the
+  scoped permission specifically so apps can manage licenses
+  without holding write access to every user attribute. Narrower
+  blast radius if the app credential leaks. We hold
+  `User.ReadWrite.All` for the create-user step but the
+  license-only path uses the scoped one.
+- **Why upsert into Postgres immediately on create (not wait for
+  the next `seed-directory` run):** Lucas wants the directory row
+  visible to the admin the second the form returns; the next seed
+  could be hours away. We compute `appRole` from the
+  about-to-be-assigned `bandGroups` via the shared derivation
+  helper (extracted from `graph-feed.service.ts` so both paths
+  call the same switch) so the new user lands with a correct
+  effective role on first sign-in.
+- **Why ship Slices 1 + 2 + 4 + cleanup together (and hold Slice 3
+  for a second pass):** Slices 1, 2, 4, and the cleanup helper need
+  **only one** new Graph permission (`User.ReadWrite.All`). Slice 3
+  (auto-license) needs **two more** that require a separate admin
+  consent. Splitting reduces the "consent stop the world" friction
+  on the first ship.
+- **Cost:** **$0/mo** incremental. The Entra app already exists;
+  the new permissions don't add billing. M365 license cost is the
+  per-license SKU cost (already paid). Graph API has no per-call
+  fee at the volumes we'll hit.
+- **Plan:** [`docs/features/member-provisioning.md`](features/member-provisioning.md)
+  — the four-slice design doc with per-slice UI mockups, Graph
+  endpoint references, permission GUIDs, and the SKU-pick fallback
+  ladder. Setup-script changes land in
+  [`scripts/setup-app-graph.sh`](../scripts/setup-app-graph.sh).
+- **What it relates to:** ADR-1 (Entra ID as identity provider —
+  this is the write half of that read-only relationship), ADR-7
+  (NestJS api/ — new admin endpoint), ADR-10 (Container Apps —
+  the new env var `PREFERRED_LICENSE_SKU_ID` lives there), ADR-14
+  (the `skintyee-app-graph` Entra app gets extended, not replaced),
+  the [App roles doc](../docs/365/app-roles.md) (the shared
+  derivation helper this ADR extracts is the same logic that
+  drives the role chip on Account).
+
 ## Summary: ppt → Skin Tyee service swaps
 
 | Concern | ppt (AWS) | Skin Tyee (Azure) | Status |
