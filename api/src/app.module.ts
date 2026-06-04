@@ -13,6 +13,8 @@ import { DocumentsController, DocumentTagsController } from './documents.control
 import { OnboardingService } from './onboarding.service';
 import { OnboardingController, OnboardingPublicController } from './onboarding.controller';
 import { TimekeepingReportsService } from './timekeeping-reports.service';
+import { StaffAuthService } from './staff-auth.service';
+import { StaffAuthController } from './staff-auth.controller';
 
 @Module({
   imports: [StorageModule],
@@ -20,6 +22,7 @@ import { TimekeepingReportsService } from './timekeeping-reports.service';
     ...CONTROLLERS,
     DocumentsController, DocumentTagsController,
     OnboardingController, OnboardingPublicController,
+    StaffAuthController,  // staff-auth feature — public /v1/auth/staff/*
   ],
   providers: [
     DataService,
@@ -30,6 +33,7 @@ import { TimekeepingReportsService } from './timekeeping-reports.service';
     DocumentsService,  // Phase 1 Documents library w/ pluggable storage adapter
     OnboardingService, // Phase 2 Onboarding flows (uses the same storage adapter)
     TimekeepingReportsService, // Time Keeping > Reports — PDF + CSV per pay period
+    StaffAuthService,  // Password hashing + JWT for the non-Entra sign-in path (docs/features/staff-auth.md)
     // Role guard runs on every route; handlers without @Roles are public.
     { provide: APP_GUARD, useClass: RolesGuard },
   ],

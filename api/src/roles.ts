@@ -1,5 +1,6 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable, SetMetadata } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { StaffAuthService } from './staff-auth.service';
 
 export type Role = 'public' | 'member' | 'staff' | 'admin';
 
@@ -8,19 +9,49 @@ export const ROLES_KEY = 'roles';
 export const Roles = (...roles: Role[]) => SetMetadata(ROLES_KEY, roles);
 
 /**
- * Role guard. POC: the caller's role comes from an `x-role` header (defaults to
- * `public`), standing in for an Entra ID access token. The production version
- * validates the Entra JWT and maps app roles/group claims to these roles.
+ * Role guard. Two sources for the caller's role, checked in order:
+ *
+ *   1. `Authorization: Bearer <jwt>` — the staff-auth path
+ *      (docs/features/staff-auth.md). JWT validated by StaffAuthService;
+ *      payload's role lands as the caller role and the Person id is
+ *      attached to req.staffPersonId for audit / row-ownership checks.
+ *      Invalid / expired tokens fall through to (2); a malformed token
+ *      doesn't get to spoof a role.
+ *
+ *   2. `x-role` header — the POC stand-in for Entra ID + role-derivation
+ *      that the Entra sign-in path uses today. Defaults to `public`.
+ *      Will be retired (along with the Entra side moving to JWT) when
+ *      ADR-7's full token validation lands.
  */
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(
+    private reflector: Reflector,
+    private staffAuth: StaffAuthService,
+  ) {}
 
   canActivate(ctx: ExecutionContext): boolean {
     const required = this.reflector.get<Role[]>(ROLES_KEY, ctx.getHandler());
-    if (!required || required.length === 0) return true; // public
     const req = ctx.switchToHttp().getRequest();
-    const role = (req.headers['x-role'] as Role) || 'public';
+
+    // (1) Bearer JWT wins when present + valid.
+    const auth = req.headers['authorization'] as string | undefined;
+    if (auth && /^Bearer\s+/i.test(auth)) {
+      const token = auth.replace(/^Bearer\s+/i, '').trim();
+      const payload = this.staffAuth.verifyToken(token);
+      if (payload) {
+        req.staffPersonId = payload.sub;
+        req.callerRole    = payload.role;
+      }
+      // If the token was malformed/expired, payload is null and we fall
+      // through to x-role — but the JWT wasn't allowed to set a role
+      // higher than what x-role provides. The token spoofing surface
+      // is therefore zero (you can't gain access without a valid
+      // signature).
+    }
+
+    if (!required || required.length === 0) return true; // public route
+    const role: Role = (req.callerRole as Role) || (req.headers['x-role'] as Role) || 'public';
     if (!required.includes(role)) {
       throw new ForbiddenException(`Requires role: ${required.join(' / ')}`);
     }
@@ -28,8 +59,11 @@ export class RolesGuard implements CanActivate {
   }
 }
 
-// Read the caller's role (for filtering responses, e.g. staff see own timesheets).
-export const callerRole = (req: any): Role => (req.headers['x-role'] as Role) || 'public';
+// Read the caller's role (for filtering responses, e.g. staff see own
+// timesheets). Prefers the JWT-derived role attached by the guard;
+// falls back to the x-role header for the legacy Entra-stub path.
+export const callerRole = (req: any): Role =>
+  (req.callerRole as Role) || (req.headers['x-role'] as Role) || 'public';
 
 // Per-document audience values. Matches the `audience` column on Document
 // and is used by the documents + onboarding features for read gating.

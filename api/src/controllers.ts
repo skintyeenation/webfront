@@ -8,6 +8,7 @@ import { GraphFeedService, FeedItem, AppRole } from './graph-feed.service';
 import { PrismaService } from './prisma.service';
 import { ExoService } from './exo.service';
 import { MailboxReconcileService } from './mailbox-reconcile.service';
+import { StaffAuthService } from './staff-auth.service';
 import { SKINTYEE_SECURITY_GROUPS, groupBySlug, isInvitableGroupBlacklisted } from './skintyee-groups';
 
 // Map a Prisma BandMember row → the BandMember shape the app expects.
@@ -311,6 +312,7 @@ export class AdminController implements OnApplicationBootstrap {
     private graph: GraphFeedService,
     private prisma: PrismaService,
     private reconcile: MailboxReconcileService,
+    private staffAuth: StaffAuthService,
   ) {}
 
   // NestJS lifecycle hook — fires once after the app starts listening.
@@ -689,6 +691,73 @@ export class AdminController implements OnApplicationBootstrap {
       }).catch(() => null);
     }
     return { password: newPassword };
+  }
+
+  // ---- People password admin endpoints ----------------------------------
+  // Staff-auth feature (docs/features/staff-auth.md, Slice 2). Admin
+  // issues + rotates + revokes passwords for Person rows that have NO
+  // linked BandMember (contractors / non-band-member staff). The Person
+  // signs in at /v1/auth/staff/login with email + password.
+
+  // POST /v1/admin/people/:id/set-password — body { password? }
+  // Server-generates a 12-char password if absent. Returns the new
+  // password ONCE (admin shares it with the user out-of-band).
+  // Rejects when bandMemberId IS set on the target Person (they use SSO).
+  @Post('people/:id/set-password') @Roles('admin')
+  async setPersonPassword(@Param('id') id: string, @Body() b: { password?: string }) {
+    if (!this.prisma.isAvailable) {
+      throw new NotFoundException('Prisma not connected — set DATABASE_URL and re-deploy');
+    }
+    const person = await this.prisma.person.findUnique({ where: { id } });
+    if (!person) throw new NotFoundException('Person not found');
+    if (person.bandMemberId !== null) {
+      throw new BadRequestException(
+        'This Person is linked to a BandMember and uses Microsoft Entra sign-in. ' +
+        'Unlink first if password sign-in is required.',
+      );
+    }
+    if (!person.email) {
+      throw new BadRequestException(
+        'Person has no email — set an email before issuing a password (it is the login identifier).',
+      );
+    }
+    const newPassword = b?.password ?? generateAdminPassword();
+    const hash = await this.staffAuth.hashPassword(newPassword);
+    await this.prisma.person.update({
+      where: { id },
+      data: {
+        passwordHash: hash,
+        passwordSetAt: new Date(),
+        // Clear any pending reset token so the new password can't be
+        // back-doored by a stale link.
+        resetToken: null,
+        resetTokenAt: null,
+      },
+    });
+    this.staffAuth.clearFailures(person.email.toLowerCase());
+    this.log.log(`set-password: Person ${id} (${person.email})`);
+    return { password: newPassword };
+  }
+
+  // DELETE /v1/admin/people/:id/password — revoke app access without
+  // deleting the Person row. Onboarding-assignment history is preserved.
+  @Delete('people/:id/password') @Roles('admin') @HttpCode(204)
+  async revokePersonPassword(@Param('id') id: string) {
+    if (!this.prisma.isAvailable) {
+      throw new NotFoundException('Prisma not connected');
+    }
+    const person = await this.prisma.person.findUnique({ where: { id } });
+    if (!person) throw new NotFoundException('Person not found');
+    await this.prisma.person.update({
+      where: { id },
+      data: {
+        passwordHash: null,
+        passwordSetAt: null,
+        resetToken: null,
+        resetTokenAt: null,
+      },
+    });
+    this.log.log(`revoke-password: Person ${id}`);
   }
 }
 

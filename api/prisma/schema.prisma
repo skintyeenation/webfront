@@ -353,19 +353,38 @@ model OnboardingStepLink {
 model Person {
   id                String                 @id @default(cuid())
   displayName       String
-  email             String?
+  // Email — also the password-auth login identifier when this Person
+  // has no linked BandMember (contractor / external staff). Stored
+  // lowercased at write time so login lookups are case-insensitive.
+  // Nullable for legacy rows / Persons tracked for onboarding only.
+  email             String?                @unique
   phone             String?
   companyId         String?
   company           Company?               @relation(fields: [companyId], references: [id])
   // Optional 1:1 link to a BandMember (Entra-backed). When set, the
   // linked member's name/email/phone are the source of truth and the
-  // Person row's fields are kept in sync at save time.
+  // Person row's fields are kept in sync at save time. Setting this
+  // also nulls passwordHash / resetToken in the same transaction —
+  // see docs/features/staff-auth.md "Lifecycle: password → linked".
   bandMemberId      String?                @unique
   bandMember        BandMember?            @relation(fields: [bandMemberId], references: [id])
   // Gates whether this Person shows up in Time Keeping. Off by default
   // so existing contractor records (added before the feature) don't
   // suddenly appear in the Approvals roster.
   timesheetsEnabled Boolean                @default(false)
+  // ---- Password-auth (staff-auth feature) -----------------------------
+  // Only populated for Persons WITHOUT a bandMemberId. Setting any of
+  // these on a Person with a linked BandMember is rejected at the
+  // service layer — they use Entra SSO instead.
+  passwordHash      String?
+  passwordSetAt     DateTime?
+  resetToken        String?                @unique
+  resetTokenAt      DateTime?
+  lastSignInAt      DateTime?
+  // Default role for the password-auth path is 'staff'. Promote to
+  // 'admin' is a deliberate admin-grant via a separate endpoint, not
+  // the AddPerson form. Null falls back to 'staff' at read time.
+  appRole           String?                @default("staff")
   assignments       OnboardingAssignment[]
   createdAt         DateTime               @default(now())
 

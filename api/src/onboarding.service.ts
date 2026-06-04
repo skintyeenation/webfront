@@ -447,6 +447,18 @@ export class OnboardingService implements OnApplicationBootstrap {
           data.displayName = bm.name;
           data.email = bm.email ?? data.email ?? null;
           data.phone = bm.phone ?? data.phone ?? null;
+          // staff-auth lifecycle: linking to a BandMember means the
+          // Person now uses Entra SSO; null out the password-auth
+          // columns in the same transaction so the email/password
+          // path is dormant. The login endpoint also defensively
+          // rejects when bandMemberId is set, but clearing the data
+          // here is the source-of-truth state. See
+          // docs/features/staff-auth.md "Lifecycle: password ->
+          // linked to BandMember".
+          data.passwordHash = null;
+          data.passwordSetAt = null;
+          data.resetToken = null;
+          data.resetTokenAt = null;
         }
       }
       const r = await this.prisma.person.update({
