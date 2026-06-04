@@ -13,12 +13,15 @@ module.exports = {
     scheme: 'skintyee',
     version: '0.0.0',
     userInterfaceStyle: 'dark',
-    // STUB (assets): no app icon / splash art yet, so the icon/splash/favicon
-    // fields are intentionally omitted and Expo's defaults are used. Add artwork
-    // to assets/ and re-add icon/splash/adaptiveIcon/favicon here. See STUBS.md.
+    // App icon / splash art still TBD (no native artwork yet — see STUBS.md).
+    // The web favicon IS wired up below (web.favicon) using the Skin Tyee
+    // mark padded square and downscaled from the splash/header asset.
     splash: {
       resizeMode: 'contain',
       backgroundColor: '#1e1e1e',
+    },
+    web: {
+      favicon: './assets/favicon.png',
     },
     updates: {
       fallbackToCacheTimeout: 0,
