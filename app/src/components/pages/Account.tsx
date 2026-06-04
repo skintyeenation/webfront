@@ -204,7 +204,7 @@ export default function Account() {
                 icon="logout"
                 textColor={theme.colors.accent}
                 onPress={() => dispatch(signOut())}
-                style={{ borderColor: theme.colors.defaultBorder, alignSelf: 'flex-start' }}
+                style={{ borderColor: theme.colors.defaultBorder, alignSelf: 'center', marginTop: 6 }}
               >
                 Sign out
               </Button>

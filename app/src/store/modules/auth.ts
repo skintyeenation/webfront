@@ -375,9 +375,26 @@ const authSlice = createSlice({
   extraReducers: (builder) => {
     builder.addCase(setRole, (state, action) => {
       // Dev-only override (Account screen Role Switcher). Real auth comes
-      // through signIn; this stays for testing role-gated UI. Setting any
-      // role via this action also flips `bypassed: true` so the sign-in
-      // gate lets the user past — they've explicitly chosen access.
+      // through signIn; this stays for testing role-gated UI.
+      //
+      // Two cases:
+      //   1. Reverting to the signed-in user's canonical role — restore
+      //      their real name from `state.user` and DON'T label them
+      //      "(spoofed)". This is the "untap to unspoof" path.
+      //   2. Spoofing to a different role — flip `bypassed: true` so
+      //      the sign-in gate lets them past, label name as "(spoofed)"
+      //      so the header avatar / "name" surface visually flags it.
+      const newRole = action.payload;
+      const isRevertToCanonical =
+        state.signedIn && !!state.canonicalRole && newRole === state.canonicalRole;
+      if (isRevertToCanonical) {
+        return {
+          ...state,
+          role: newRole,
+          // Drop the "(spoofed)" label; restore the real signed-in name.
+          name: state.user?.name || state.user?.upn || state.name,
+        };
+      }
       const nameByRole: Record<Role, string> = {
         admin: 'Admin (spoofed)',
         staff: 'Staff (spoofed)',
@@ -386,9 +403,9 @@ const authSlice = createSlice({
       };
       return {
         ...state,
-        role: action.payload,
+        role: newRole,
         bypassed: true,
-        name: nameByRole[action.payload],
+        name: nameByRole[newRole],
       };
     });
 
