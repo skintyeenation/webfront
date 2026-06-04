@@ -67,12 +67,20 @@ async function sha256base64url(input: string): Promise<string> {
 // ---- Types ---------------------------------------------------------------
 
 export interface SignedInUser {
-  oid: string;          // Entra object id
-  upn: string;          // userPrincipalName
+  oid: string;          // Entra object id (entra path) | Person.id (staff path)
+  upn: string;          // userPrincipalName (entra) | email (staff)
   email?: string;
   name: string;
   given?: string;
   family?: string;
+  /**
+   * Which sign-in path landed this session. Drives M365 feature
+   * gating — staff-auth users have no Entra identity so anything
+   * that calls Graph on their behalf (Planner, Teams calendar,
+   * etc.) has nothing to fetch. Cheaper + cleaner than checking
+   * upn-ends-with-@skintyee.ca everywhere.
+   */
+  kind?: 'entra' | 'staff';
 }
 
 export interface AuthState {
@@ -141,6 +149,7 @@ function parseIdToken(idToken: string): SignedInUser {
     name:  payload.name ?? `${payload.given_name ?? ''} ${payload.family_name ?? ''}`.trim(),
     given: payload.given_name,
     family: payload.family_name,
+    kind:  'entra',
   };
 }
 
@@ -256,6 +265,7 @@ export const signInStaff = createAsyncThunk<
         upn: (body.person.email ?? email).toLowerCase(),
         email: body.person.email ?? email,
         name: body.person.displayName,
+        kind: 'staff' as const,
       },
     };
   },

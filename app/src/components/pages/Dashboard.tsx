@@ -10,6 +10,7 @@ import { loadRollup } from 'skintyee/store/modules/planner';
 import { loadTimeEntries } from 'skintyee/store/modules/timekeeping';
 import { apiFactory } from 'skintyee/store/apis';
 import { FeedItem, Role } from 'skintyee/models';
+import FEATURES from 'skintyee/features';
 import { theme } from 'skintyee/styles';
 
 // ----------------------------------------------------------------------------
@@ -265,8 +266,16 @@ export default function Dashboard({ navigation }: any) {
   // not for any conditional UI on the homescreen (which by design shows
   // the same shape to everyone, just with role-tiered ITEMS).
   const role = useAppSelector((s) => s.auth.role) as Role;
+  const userKind = useAppSelector((s) => s.auth.user?.kind);
   const isAdmin = role === 'admin';
   const isStaffOrAdmin = role === 'staff' || role === 'admin';
+  // M365-dependent widgets — feature-gated. External users (staff-
+  // auth path, no Entra identity) have nothing for Graph to fetch
+  // for Planner / Teams, so the widgets just show empty + the api/
+  // logs Graph 404s. Hide both the cards AND the data fetches when
+  // the flag is on. See app/src/features.ts.
+  const hasM365 = userKind !== 'staff';
+  const showPlannerWidgets = isStaffOrAdmin && (hasM365 || !FEATURES.hideM365WidgetsForExternals);
   const { items, loading, loaded } = useAppSelector((s) => s.feed);
 
   // Planner rollup + time entries — admin-tools section below the feed
@@ -296,10 +305,13 @@ export default function Dashboard({ navigation }: any) {
     const to = moment().add(7, 'days').endOf('day').toISOString();
     dispatch(loadFeed({ role, from, to }));
     if (isStaffOrAdmin) {
-      dispatch(loadRollup());
+      // loadRollup pulls Microsoft Planner data — skip for externals
+      // when the feature flag is on. loadTimeEntries is Postgres-
+      // backed and works for everyone.
+      if (showPlannerWidgets) dispatch(loadRollup());
       dispatch(loadTimeEntries());
     }
-  }, [dispatch, role, isStaffOrAdmin]);
+  }, [dispatch, role, isStaffOrAdmin, showPlannerWidgets]);
 
   // Worker-side timesheet fetch — every non-admin role check + load,
   // gated by /me/eligible so members who aren't workers don't render
@@ -465,7 +477,7 @@ export default function Dashboard({ navigation }: any) {
         ) : null}
 
         {/* ── 2. MY PROJECTS — Planner plans as project bars ────────────── */}
-        {isStaffOrAdmin ? (
+        {showPlannerWidgets ? (
           <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 16 }}>
             <Card.Content>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
@@ -507,7 +519,10 @@ export default function Dashboard({ navigation }: any) {
           </Card>
         ) : null}
 
-        {/* ── 3. MY TASKS — Planner tasks, list / calendar toggle ───────── */}
+        {/* ── 3. MY TASKS — Planner tasks, list / calendar toggle ─────────
+            Gated on showPlannerWidgets — externals (staff-auth, no
+            Entra) don't have Planner tasks to surface. See features.ts. */}
+        {showPlannerWidgets ? <>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
           <MaterialCommunityIcons name="checkbox-marked-outline" size={18} color={theme.colors.text} style={{ marginRight: 6 }} />
           <Text style={{ color: theme.colors.text, fontSize: 16, flex: 1 }}>
@@ -554,6 +569,7 @@ export default function Dashboard({ navigation }: any) {
         ) : (
           <CalendarView items={taskItems} />
         )}
+        </> : null}
 
       </PageContent>
     </PageContainer>
