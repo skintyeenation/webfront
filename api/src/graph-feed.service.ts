@@ -668,8 +668,23 @@ export class GraphFeedService {
           : hasTitle ? 'Staff'
           : 'Member';
 
-        const appRole = isBreakGlass
-          ? 'admin'
+        // appRole is the canonical "what does the app let this person
+        // do" axis. Derivation priority (first hit wins):
+        //   1. Break-glass account → admin (no questions asked).
+        //   2. Membership in an Entra security group → matches one of
+        //      our role buckets: admins/system-admin → admin;
+        //      management/it/chief/council/band-manager → staff (or
+        //      admin for chief/council); contractors/band-members →
+        //      member.
+        //   3. Job-title heuristics (fallback when bandGroups didn't
+        //      decide it) — director/manager/admin in title → admin;
+        //      any other title → staff; no title → member.
+        const groups = bandGroupsByUser.get(u.id) ?? new Set<string>();
+        const inGroup = (slug: string) => groups.has(slug);
+        const appRole = isBreakGlass ? 'admin'
+          : (inGroup('admins') || inGroup('system-admin')) ? 'admin'
+          : (inGroup('chief') || inGroup('council')) ? 'admin'
+          : (inGroup('management') || inGroup('it') || inGroup('band-manager') || inGroup('finance')) ? 'staff'
           : (isChief || isCouncil || /director|manager|admin/i.test(jobTitle)) ? 'admin'
           : hasTitle ? 'staff'
           : 'member';
