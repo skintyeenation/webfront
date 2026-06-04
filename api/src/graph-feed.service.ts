@@ -830,6 +830,29 @@ export class GraphFeedService {
     return { id: created.id, userPrincipalName: created.userPrincipalName };
   }
 
+  // PATCH /users/{id} — rotate the user's password (admin-initiated from
+  // EditMember). Sets forceChangePasswordNextSignIn so the user has to
+  // change it on the next sign-in. Requires User.ReadWrite.All — the
+  // same permission user create uses.
+  async rotateUserPassword(userId: string, newPassword: string): Promise<void> {
+    const tok = await this.getToken();
+    const res = await fetch(`https://graph.microsoft.com/v1.0/users/${userId}`, {
+      method: 'PATCH',
+      headers: { 'Authorization': `Bearer ${tok}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        passwordProfile: {
+          forceChangePasswordNextSignIn: true,
+          password: newPassword,
+        },
+      }),
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Rotate password failed ${res.status}: ${text}`);
+    }
+    this.log.log(`rotateUserPassword: ${userId}`);
+  }
+
   // ---- Band Meetings (M365 calendars + Outlook categories) -------------
   //
   // Reads events from the three source calendars in MEETING_SOURCE_CALENDARS

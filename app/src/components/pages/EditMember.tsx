@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { Button, Chip, HelperText, Text, TextInput } from 'react-native-paper';
-import { PageContainer, PageContent, NoContent } from 'skintyee/components/layout';
+import { Button, Card, Chip, HelperText, IconButton, Snackbar, Text, TextInput } from 'react-native-paper';
+import { PageContainer, PageContent, NoContent, useConfirm } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { setMemberGroups, setMemberMailboxes, updateMember } from 'skintyee/store/modules/directory';
 import { BandMember } from 'skintyee/models';
@@ -39,8 +39,14 @@ export default function EditMember({ route, navigation }: any) {
 
   const [name, setName] = useState(member?.name ?? '');
   const [title, setTitle] = useState(member?.title ?? '');
+  const [department, setDepartment] = useState((member as any)?.department ?? '');
   const [email, setEmail] = useState(member?.email ?? '');
   const [phone, setPhone] = useState(member?.phone ?? '');
+  // UPN is read-only on edit — changing it in Entra requires its own
+  // ritual (POST .../changeUserPrincipalName) and the new value has to
+  // pass mail-flow validation. Surface it so the admin can confirm
+  // who they're editing, but don't edit it inline.
+  const memberUpn = (member as any)?.upn ?? '';
 
   // Catalog of all security groups (fetched once from /v1/admin/security-groups).
   const [catalog, setCatalog] = useState<SecurityGroup[]>([]);
@@ -51,6 +57,15 @@ export default function EditMember({ route, navigation }: any) {
   const [selected, setSelected] = useState<Set<string>>(new Set(member?.bandGroups ?? []));
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | undefined>();
+
+  // Rotate-password state — kept entirely separate from the main edit
+  // save. `rotatedPassword` is the new password the admin needs to
+  // copy / share with the user; clears when they navigate away.
+  const [rotating, setRotating] = useState(false);
+  const [rotatedPassword, setRotatedPassword] = useState<string | null>(null);
+  const [rotateError, setRotateError] = useState<string | undefined>();
+  const [toast, setToast] = useState<string | null>(null);
+  const { confirm, ConfirmHost } = useConfirm();
 
   // Shared mailbox catalog + selected. Only fetched/shown for licensed
   // users (shared inboxes themselves don't get access to other inboxes).
@@ -163,16 +178,20 @@ export default function EditMember({ route, navigation }: any) {
     if (!name.trim()) return;
     setSaveError(undefined);
 
-    // Identity fields — in-memory only for now.
+    // Identity fields — in-memory only for now. Department joins the
+    // local mirror so the EditMember surface round-trips correctly,
+    // even though it doesn't reach Entra yet (parity wired via the
+    // same Graph PATCH /users/{id} path AddMember uses is a follow-up).
     dispatch(
       updateMember({
         _id: member._id,
         name: name.trim(),
         title: title.trim() || undefined,
+        department: department.trim() || undefined,
         email: email.trim() || undefined,
         phone: phone.trim() || undefined,
         avatarLetter: name.trim()[0]?.toUpperCase(),
-      })
+      } as any)
     );
 
     // Role chips — write back to Entra. Mailbox chips — write back to EXO.
@@ -229,8 +248,92 @@ export default function EditMember({ route, navigation }: any) {
   return (
     <PageContainer>
       <PageContent>
+        {/* Rotate-password panel — only meaningful when this member has
+            a real Entra id (members from the seed do; in-memory ones
+            from old AddMember don't). Action is its own button + save
+            cycle, NOT bundled with the main Save below. */}
+        {memberUpn ? (
+          <Card style={{ marginBottom: 14, backgroundColor: theme.colors.darkDefault, borderLeftWidth: 3, borderLeftColor: rotatedPassword ? theme.colors.success : theme.colors.accent }}>
+            <Card.Content>
+              <Text style={{ color: theme.colors.text, fontSize: 14, fontWeight: '600' }}>Password</Text>
+              {rotatedPassword ? (
+                <>
+                  <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginTop: 10 }}>
+                    NEW TEMPORARY PASSWORD
+                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.04)', padding: 10, borderRadius: 4, marginTop: 4 }}>
+                    <Text style={{ color: theme.colors.text, fontSize: 16, fontFamily: 'monospace', flex: 1 }}>
+                      {rotatedPassword}
+                    </Text>
+                    <IconButton icon="content-copy" size={18} iconColor={theme.colors.textDarker} onPress={async () => {
+                      if (typeof navigator !== 'undefined' && (navigator as any).clipboard) {
+                        try { await (navigator as any).clipboard.writeText(rotatedPassword); setToast('Password copied'); return; } catch { /* fall through */ }
+                      }
+                      setToast(rotatedPassword);
+                    }} />
+                  </View>
+                  <HelperText type="info" visible style={{ marginLeft: -8 }}>
+                    Share this with {name} now — it isn't stored and won't appear again. They'll be required to change it on next sign-in.
+                  </HelperText>
+                </>
+              ) : (
+                <HelperText type="info" visible style={{ marginLeft: -8, marginTop: 4 }}>
+                  Use Rotate when the user forgot their password or you want to force a fresh one. This is a separate save from the main Edit below.
+                </HelperText>
+              )}
+              {rotateError ? <HelperText type="error" visible>{rotateError}</HelperText> : null}
+              <View style={{ flexDirection: 'row', marginTop: 6 }}>
+                <Button
+                  mode="outlined" icon="lock-reset"
+                  textColor={theme.colors.accent}
+                  loading={rotating}
+                  disabled={rotating}
+                  onPress={() => {
+                    confirm({
+                      title: 'Rotate password?',
+                      message: `Generates a new one-time password for ${name} and writes it to Entra. They'll be required to change it on next sign-in.`,
+                      confirmLabel: 'Rotate',
+                      destructive: true,
+                      onConfirm: async () => {
+                        setRotating(true);
+                        setRotateError(undefined);
+                        try {
+                          const r = await apiFactory().admin.rotatePassword(member!._id);
+                          setRotatedPassword(r.password);
+                        } catch (e: any) {
+                          setRotateError(e?.message ?? String(e));
+                        } finally {
+                          setRotating(false);
+                        }
+                      },
+                    });
+                  }}
+                  style={{ alignSelf: 'flex-start', borderColor: theme.colors.accent }}
+                >
+                  {rotatedPassword ? 'Rotate again' : 'Rotate password'}
+                </Button>
+              </View>
+            </Card.Content>
+          </Card>
+        ) : null}
+
         <TextInput label="Full name" value={name} onChangeText={setName} mode="outlined" style={{ marginBottom: 10 }} />
-        <TextInput label="Title (optional)" value={title} onChangeText={setTitle} mode="outlined" style={{ marginBottom: 10 }} />
+        {memberUpn ? (
+          <>
+            <TextInput
+              label="User principal name (UPN)"
+              value={memberUpn}
+              disabled
+              mode="outlined"
+              style={{ marginBottom: 2 }}
+            />
+            <HelperText type="info" visible style={{ marginLeft: -8 }}>
+              Read-only. Changing a UPN requires a separate Entra rename + mail-flow validation.
+            </HelperText>
+          </>
+        ) : null}
+        <TextInput label="Job title (optional)" value={title} onChangeText={setTitle} mode="outlined" style={{ marginBottom: 10 }} />
+        <TextInput label="Department (optional)" value={department} onChangeText={setDepartment} mode="outlined" style={{ marginBottom: 10 }} />
         <TextInput label="Email (optional)" value={email} onChangeText={setEmail} mode="outlined" autoCapitalize="none" keyboardType="email-address" style={{ marginBottom: 10 }} />
         <TextInput label="Phone (optional)" value={phone} onChangeText={setPhone} mode="outlined" keyboardType="phone-pad" style={{ marginBottom: 16 }} />
 
@@ -318,6 +421,18 @@ export default function EditMember({ route, navigation }: any) {
             ? (mailboxesDirty ? 'Saving to Exchange Online…' : 'Saving to Entra…')
             : (dirty || mailboxesDirty) ? 'Save changes' : 'Save'}
         </Button>
+
+        <ConfirmHost />
+
+        <Snackbar
+          visible={toast !== null}
+          onDismiss={() => setToast(null)}
+          duration={1800}
+          wrapperStyle={{ alignItems: 'center' }}
+          style={{ backgroundColor: theme.colors.success, alignSelf: 'center', width: '100%', maxWidth: 420 }}
+        >
+          <Text style={{ color: '#000', textAlign: 'center', width: '100%' }}>{toast ?? ''}</Text>
+        </Snackbar>
       </PageContent>
     </PageContainer>
   );

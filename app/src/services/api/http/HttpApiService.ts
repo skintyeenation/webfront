@@ -120,6 +120,7 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
         patch<MailboxAccess>(`/admin/shared-mailboxes/${encodeURIComponent(mailboxUpn)}/access`, { users }),
       sync: () => post<any>('/admin/sync', {}),
       createUser: (input: any) => post<any>('/admin/users', input),
+      rotatePassword: (id: string, password?: string) => post<{ password: string }>(`/admin/users/${encodeURIComponent(id)}/rotate-password`, password ? { password } : {}),
     },
     events: {
       list: () => get<CommunityEvent[]>('/events'),

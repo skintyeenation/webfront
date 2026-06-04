@@ -89,6 +89,10 @@ export interface ApiService {
       oneTimePassword: string;
       failedGroups: string[];
     }>;
+    /** Rotate a user's Entra password. Returns the new password once;
+     *  it isn't persisted server-side. Sets forceChangePasswordNextSignIn
+     *  so the user has to change it on next sign-in. */
+    rotatePassword(id: string, password?: string): Promise<{ password: string }>;
   };
   events: {
     list(): Promise<CommunityEvent[]>;

@@ -662,6 +662,36 @@ export class AdminController implements OnApplicationBootstrap {
       failedGroups,
     };
   }
+
+  // POST /v1/admin/users/:id/rotate-password — admin rotates a user's
+  // password via Graph. Generates server-side OR accepts one from the
+  // caller, returns it once. Sets forceChangePasswordNextSignIn=true so
+  // the user has to change it on next sign-in. Separate from the main
+  // EditMember save — admin explicitly opts in.
+  @Post('users/:id/rotate-password') @Roles('admin')
+  async rotatePassword(@Param('id') id: string, @Body() b: { password?: string }) {
+    const newPassword = b?.password ?? generateAdminPassword();
+    await this.graph.rotateUserPassword(id, newPassword);
+    if (this.prisma.isAvailable) {
+      await this.prisma.bandMember.update({
+        where: { id },
+        data: { syncedAt: new Date() },
+      }).catch(() => null);
+    }
+    return { password: newPassword };
+  }
+}
+
+// Server-side password generator for the rotate-password endpoint.
+// Matches the AddMember client-side generator's shape so the password
+// satisfies Entra's default complexity rules without retries.
+function generateAdminPassword(): string {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let out = '';
+  for (let i = 0; i < 12; i++) {
+    out += alphabet[Math.floor(Math.random() * alphabet.length)];
+  }
+  return out + 'a1!';
 }
 
 // ---- Events ---------------------------------------------------------------
