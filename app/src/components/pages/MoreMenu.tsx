@@ -21,14 +21,14 @@ const ACCOUNT_ITEMS: MoreItem[] = [
 ];
 
 // Admin-only tools — grouped under the Admin tab for admins.
-// Order requested by Lucas: Onboarding → Time Keeping → Band Management
-// → Staff Management → Documents. "Band Management" is the admin-facing
-// label for the directory (membership CRUD lives there).
+// Order: Time Keeping → Band Management → Staff Management → Onboarding
+// → Documents. Onboarding sits right above Documents because the two
+// are paired (flows pull from the document library).
 const ADMIN_ITEMS: MoreItem[] = [
-  { route: 'onboardingFlows',  label: 'Onboarding',        description: 'Design onboarding flows & track progress for new people', icon: 'clipboard-check-multiple', roles: ['admin'] },
   { route: 'timekeeping',      label: 'Time Keeping',      description: 'Worker hours & approvals',                                 icon: 'clock-outline',            roles: ['admin'] },
   { route: 'directory',        label: 'Band Management',   description: 'Members, council & staff — add, remove, manage groups',   icon: 'account-group',            roles: ['admin'] },
   { route: 'onboardingPeople', label: 'Staff Management',  description: 'People on file — band members + external contractors',    icon: 'account-supervisor',       roles: ['admin'] },
+  { route: 'onboardingFlows',  label: 'Onboarding',        description: 'Design onboarding flows & track progress for new people', icon: 'clipboard-check-multiple', roles: ['admin'] },
   { route: 'documents',        label: 'Documents',         description: 'Forms, filings & PDFs by tag',                             icon: 'file-document-multiple',   roles: ['admin'] },
 ];
 
