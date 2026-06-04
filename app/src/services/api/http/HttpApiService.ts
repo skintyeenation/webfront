@@ -327,6 +327,7 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
           if (!res.ok && res.status !== 204) throw new Error(`DELETE /onboarding/people/${id} → ${res.status}: ${await res.text()}`);
         },
         listAssignments:   (opts?: any) => get<OnboardingAssignmentDto[]>('/onboarding/assignments', opts ? { flowId: opts.flowId, personId: opts.personId } : undefined),
+        myAssignments:     () => get<OnboardingAssignmentDto[]>('/onboarding/my-assignments'),
         getAssignment:     (id: string) => get<OnboardingAssignmentDto>(`/onboarding/assignments/${encodeURIComponent(id)}`),
         createAssignment:  (input: any) => post<OnboardingAssignmentDto>('/onboarding/assignments', input),
         rotateToken:       (id: string) => post<{ publicToken: string }>(`/onboarding/assignments/${encodeURIComponent(id)}/rotate-token`, {}),

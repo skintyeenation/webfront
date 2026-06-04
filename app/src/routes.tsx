@@ -45,6 +45,7 @@ export const routeConfig = {
   onboardingFlowEdit: { name: 'onboardingFlowEdit', options: { title: 'Edit flow', header: header('Edit Onboarding Flow') } },
   onboardingPeople: { name: 'onboardingPeople', options: { title: 'People', header: header('People') } },
   onboardingAssignment: { name: 'onboardingAssignment', options: { title: 'Assignment', header: header('Assignment') } },
+  myOnboarding: { name: 'myOnboarding', options: { title: 'My Onboarding', header: header('My Onboarding') } },
   // Account / role switcher
   account: { name: 'account', options: { title: 'Account', header: header('Account') } },
 };

@@ -151,6 +151,32 @@ export class OnboardingController {
     return this.svc.listAssignments({ flowId, personId });
   }
 
+  // Worker view — assignments belonging to the signed-in caller. Match
+  // goes through Person.email = upn OR linked BandMember.upn = upn so
+  // contractors without a BandMember row still resolve. Returns []
+  // when the caller has no Person record at all.
+  @Get('my-assignments') @Roles('member', 'staff', 'admin')
+  async myAssignments(@Req() req: any) {
+    const upn = ((req.headers['x-upn'] as string | undefined) || '').toLowerCase();
+    if (!upn) return [];
+    // Lookup via the OnboardingService's internal prisma — service
+    // exposes person CRUD already; we want a quick UPN match without
+    // adding a dedicated method for this one caller.
+    const prisma = (this.svc as any).prisma;
+    if (!prisma?.isAvailable) return [];
+    const person = await prisma.person.findFirst({
+      where: {
+        OR: [
+          { email: { equals: upn, mode: 'insensitive' } },
+          { bandMember: { upn: { equals: upn, mode: 'insensitive' } } },
+        ],
+      },
+      select: { id: true },
+    });
+    if (!person) return [];
+    return this.svc.listAssignments({ personId: person.id });
+  }
+
   @Get('assignments/:id') @Roles('admin') async getAssignment(@Param('id') id: string) {
     const r = await this.svc.getAssignment(id);
     if (!r) throw new NotFoundException();

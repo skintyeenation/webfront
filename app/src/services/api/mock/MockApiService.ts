@@ -204,6 +204,7 @@ export const mockApiService: ApiService = {
     updatePerson: () => delay({} as any),
     deletePerson: () => delay(undefined as any),
     listAssignments:  () => delay([]),
+    myAssignments:    () => delay([]),
     getAssignment:    () => delay({} as any),
     createAssignment: () => delay({} as any),
     rotateToken:      () => delay({ publicToken: '' }),

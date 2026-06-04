@@ -42,6 +42,7 @@ import Documents from 'skintyee/components/pages/Documents';
 import EditDocument from 'skintyee/components/pages/EditDocument';
 import TagManager from 'skintyee/components/pages/TagManager';
 import OnboardingFlows from 'skintyee/components/pages/OnboardingFlows';
+import MyOnboarding from 'skintyee/components/pages/MyOnboarding';
 import EditOnboardingFlow from 'skintyee/components/pages/EditOnboardingFlow';
 import People from 'skintyee/components/pages/People';
 import AssignmentTimeline from 'skintyee/components/pages/AssignmentTimeline';
@@ -133,6 +134,7 @@ const MoreNavigation = () => {
       <MoreStack.Screen {...routeConfig.onboardingFlowEdit} component={EditOnboardingFlow} />
       <MoreStack.Screen {...routeConfig.onboardingPeople} component={People} />
       <MoreStack.Screen {...routeConfig.onboardingAssignment} component={AssignmentTimeline} />
+      <MoreStack.Screen {...routeConfig.myOnboarding} component={MyOnboarding} />
     </MoreStack.Navigator>
   );
 };

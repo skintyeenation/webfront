@@ -258,6 +258,8 @@ export interface ApiService {
     updatePerson(id: string, patch: Partial<{ displayName: string; email: string | null; phone: string | null; companyId: string | null; bandMemberId: string | null; timesheetsEnabled: boolean }>): Promise<PersonDto>;
     deletePerson(id: string): Promise<void>;
     listAssignments(opts?: { flowId?: string; personId?: string }): Promise<OnboardingAssignmentDto[]>;
+    /** Worker view — assignments belonging to the signed-in caller. */
+    myAssignments(): Promise<OnboardingAssignmentDto[]>;
     getAssignment(id: string): Promise<OnboardingAssignmentDto>;
     createAssignment(input: { flowId: string; personId: string }): Promise<OnboardingAssignmentDto>;
     rotateToken(id: string): Promise<{ publicToken: string }>;

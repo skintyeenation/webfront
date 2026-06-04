@@ -1,7 +1,10 @@
-import React from 'react';
-import { Divider, List, Text } from 'react-native-paper';
+import React, { useCallback, useState } from 'react';
+import { Badge, Divider, List, Text } from 'react-native-paper';
+import { View } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { PageContainer, PageContent } from 'skintyee/components/layout';
 import { useAppSelector } from 'skintyee/store';
+import { apiFactory } from 'skintyee/store/apis';
 import { Role } from 'skintyee/models';
 import { theme } from 'skintyee/styles';
 
@@ -39,12 +42,20 @@ const ADMIN_ITEMS: MoreItem[] = [
 // community-browsing surfaces (Polls, Financial Summary).
 const TOOLS_ITEMS: MoreItem[] = [
   // Mirrors admin's "Time Keeping" entry.
-  { route: 'timekeeping',   label: 'My Timesheets',         description: 'Submit & view your hours',                                 icon: 'clock-outline',         roles: ['staff'] },
+  { route: 'timekeeping',    label: 'My Timesheets',         description: 'Submit & view your hours',                                 icon: 'clock-outline',           roles: ['staff'] },
   // Mirrors admin's "Band Management" entry — non-admins see it as
   // the read-only "Band Member Directory".
-  { route: 'directory',     label: 'Band Member Directory', description: 'Members, council & staff',                                 icon: 'account-group',         roles: ['public', 'member', 'staff'] },
+  { route: 'directory',      label: 'Band Member Directory', description: 'Members, council & staff',                                 icon: 'account-group',           roles: ['public', 'member', 'staff'] },
   // Mirrors admin's "Documents" entry — staff-visible read view.
-  { route: 'documents',     label: 'Forms & Documents',     description: 'Forms, filings & PDFs by category',                       icon: 'file-document-outline', roles: ['member', 'staff'] },
+  { route: 'documents',      label: 'Forms & Documents',     description: 'Forms, filings & PDFs by category',                        icon: 'file-document-outline',   roles: ['member', 'staff'] },
+];
+
+// "My Onboarding" — its own pinned section above Tools so workers
+// can see they have outstanding onboarding to complete. Only renders
+// when /v1/onboarding/my-assignments returns at least one open
+// (non-completed) assignment.
+const ONBOARDING_ITEMS: MoreItem[] = [
+  { route: 'myOnboarding', label: 'My Onboarding', description: 'Complete your onboarding steps', icon: 'clipboard-check-outline', roles: ['member', 'staff'] },
 ];
 
 // "Community" — bottom grouping on every role's view. Both admins and
@@ -85,7 +96,28 @@ function Section({ title, items, role, navigation }: { title?: string; items: Mo
 // "Admin" tab and surfaces admin tools first; for others it's "More".
 export default function MoreMenu({ navigation }: any) {
   const role = useAppSelector((s) => s.auth.role);
+  const signedIn = useAppSelector((s) => s.auth.signedIn);
   const isAdmin = role === 'admin';
+  // Count of open (non-completed) onboarding assignments. When > 0 we
+  // pin a "My onboarding" section above Tools with a red badge so the
+  // worker sees they have something outstanding the moment they open
+  // this screen.
+  const [openOnboarding, setOpenOnboarding] = useState(0);
+  useFocusEffect(useCallback(() => {
+    let cancelled = false;
+    if (!signedIn || isAdmin) { setOpenOnboarding(0); return; }
+    (async () => {
+      try {
+        const as = await apiFactory().onboarding.myAssignments();
+        if (cancelled) return;
+        setOpenOnboarding(as.filter((a) => !a.completedAt).length);
+      } catch {
+        if (!cancelled) setOpenOnboarding(0);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [signedIn, isAdmin]));
+
   return (
     <PageContainer>
       <PageContent>
@@ -99,6 +131,17 @@ export default function MoreMenu({ navigation }: any) {
                  at the bottom so the same browsing surface lives in
                  the same place across roles. */}
         <Section title="Account & Role" items={ACCOUNT_ITEMS} role={role} navigation={navigation} />
+        {/* My Onboarding — pinned at the top above Tools (mandatory
+            surface). Only renders when the worker has at least one
+            open assignment. Red badge counts open ones. */}
+        {!isAdmin && openOnboarding > 0 ? (
+          <View>
+            <Section title="MY ONBOARDING" items={ONBOARDING_ITEMS} role={role} navigation={navigation} />
+            <View style={{ position: 'absolute', right: 12, top: 36 }}>
+              <Badge style={{ backgroundColor: theme.colors.error }}>{openOnboarding}</Badge>
+            </View>
+          </View>
+        ) : null}
         {isAdmin ? (
           <Section title="Admin tools" items={ADMIN_ITEMS} role={role} navigation={navigation} />
         ) : (
