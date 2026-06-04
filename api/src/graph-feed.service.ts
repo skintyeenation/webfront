@@ -853,6 +853,45 @@ export class GraphFeedService {
     this.log.log(`rotateUserPassword: ${userId}`);
   }
 
+  // POST /v1/auth/staff/request-reset uses this to send the reset
+  // link from info@skintyee.ca via Graph. App-only credential needs
+  // the Mail.Send application permission (granted by
+  // scripts/setup-app-graph.sh). The "from" mailbox must exist in
+  // the tenant; we use info@skintyee.ca as the dedicated sender for
+  // system mail (no personal inbox baggage). Returns nothing on
+  // success; throws on Graph errors so the caller can decide
+  // whether to surface to the user (we don't — request-reset is
+  // best-effort to avoid email enumeration).
+  async sendMail(input: {
+    from: string;       // sender mailbox UPN (must exist in tenant)
+    to: string;         // recipient email (any domain)
+    subject: string;
+    html: string;       // HTML body
+  }): Promise<void> {
+    const tok = await this.getToken();
+    const res = await fetch(
+      `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(input.from)}/sendMail`,
+      {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${tok}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: {
+            subject: input.subject,
+            body: { contentType: 'HTML', content: input.html },
+            toRecipients: [{ emailAddress: { address: input.to } }],
+          },
+          saveToSentItems: false,  // system mailbox stays tidy
+        }),
+      },
+    );
+    // 202 Accepted = queued. Anything else = real failure.
+    if (res.status !== 202) {
+      const text = await res.text();
+      throw new Error(`sendMail failed ${res.status}: ${text}`);
+    }
+    this.log.log(`sendMail: ${input.from} → ${input.to}  ·  ${input.subject}`);
+  }
+
   // ---- Band Meetings (M365 calendars + Outlook categories) -------------
   //
   // Reads events from the three source calendars in MEETING_SOURCE_CALENDARS

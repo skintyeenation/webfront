@@ -6,6 +6,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { PageContainer, PageContent } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { resetSignInStatus, setRole, signIn, signInStaff, signOut, unspoof } from 'skintyee/store/modules/auth';
+import { requestStaffPasswordReset, submitStaffPasswordReset } from 'skintyee/services/staffAuth';
 import { Role } from 'skintyee/models';
 import Config from 'skintyee/config';
 import { theme } from 'skintyee/styles';
@@ -69,6 +70,25 @@ const ROLES: { role: Role; label: string; desc: string }[] = [
 // so clicking Sign in here doesn't fire the Microsoft card's spinner —
 // the two paths share the auth slice's signedIn/role landing but not
 // the in-flight UI.
+// Detect a ?reset-token=... query on web boot so the reset-password
+// link from the forgot-password email lands the user directly in the
+// reset panel (instead of the sign-in form). Returns the token if
+// present, null otherwise. Cleared from the URL on consumption so a
+// refresh doesn't re-open the reset panel.
+function pickResetTokenFromUrl(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const u = new URL(window.location.href);
+    const t = u.searchParams.get('reset-token');
+    if (!t) return null;
+    u.searchParams.delete('reset-token');
+    window.history.replaceState({}, '', u.toString());
+    return t;
+  } catch {
+    return null;
+  }
+}
+
 function StaffSignInCard() {
   const dispatch = useAppDispatch();
   const [email, setEmail] = useState('');
@@ -77,6 +97,34 @@ function StaffSignInCard() {
   const [submitting, setSubmitting] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const canSubmit = email.trim().length > 0 && password.length > 0 && !submitting;
+
+  // Three panels — one card, three states:
+  //   'signin'   — default (email + password form)
+  //   'forgot'   — email-only forgot-password form (after "Forgot password?")
+  //   'reset'    — set a new password via reset token (link from email)
+  // 'reset' auto-opens on mount if URL has a ?reset-token query param.
+  const [panel, setPanel] = useState<'signin' | 'forgot' | 'reset'>('signin');
+  const [resetToken, setResetToken] = useState<string | null>(null);
+  useEffect(() => {
+    const t = pickResetTokenFromUrl();
+    if (t) {
+      setResetToken(t);
+      setPanel('reset');
+    }
+  }, []);
+
+  // ---- Forgot panel state -----------------------------------------
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSubmitting, setForgotSubmitting] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
+  const [forgotError, setForgotError] = useState<string | null>(null);
+
+  // ---- Reset panel state ------------------------------------------
+  const [newPassword, setNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [resetSubmitting, setResetSubmitting] = useState(false);
+  const [resetDone, setResetDone] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
 
   const onSubmit = async () => {
     if (!canSubmit) return;
@@ -100,63 +148,248 @@ function StaffSignInCard() {
       <Card.Content>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
           <MaterialCommunityIcons name="email-outline" size={22} color={theme.colors.primary} style={{ marginRight: 8 }} />
-          <Text style={{ color: theme.colors.text, fontSize: 16, flex: 1 }}>Sign in with email</Text>
-        </View>
-        <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginBottom: 12 }}>
-          For staff and contractors who don't have a Skin Tyee Microsoft 365
-          account. An admin must have created your account first.
-        </Text>
-        <TextInput
-          label="Email"
-          value={email}
-          onChangeText={setEmail}
-          mode="outlined"
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType="email-address"
-          textContentType="emailAddress"
-          style={{ marginBottom: 8 }}
-        />
-        <TextInput
-          label="Password"
-          value={password}
-          onChangeText={setPassword}
-          mode="outlined"
-          secureTextEntry={!showPassword}
-          autoCapitalize="none"
-          autoCorrect={false}
-          textContentType="password"
-          right={
-            <TextInput.Icon
-              icon={showPassword ? 'eye-off' : 'eye'}
-              onPress={() => setShowPassword((p) => !p)}
-              forceTextInputFocus={false}
-            />
-          }
-          onSubmitEditing={onSubmit}
-          style={{ marginBottom: 4 }}
-        />
-        <HelperText type="info" visible style={{ marginLeft: -8, marginBottom: 4 }}>
-          8+ characters, mix of upper, lower, digit, symbol.
-        </HelperText>
-        <Button
-          mode="contained"
-          icon="login"
-          disabled={!canSubmit}
-          onPress={onSubmit}
-          loading={submitting}
-          textColor="#FFFFFF"
-          // Match the "Sign in with Microsoft" button — regular weight,
-          // not the bold default Paper applies to short labels.
-          labelStyle={{ fontWeight: '400' }}
-          style={{ marginTop: 6 }}
-        >
-          Sign in
-        </Button>
-        {localError ? (
-          <Text style={{ color: theme.colors.accent, fontSize: 12, marginTop: 8 }}>
-            {localError}
+          <Text style={{ color: theme.colors.text, fontSize: 16, flex: 1 }}>
+            {panel === 'forgot' ? 'Reset your password'
+             : panel === 'reset' ? 'Set a new password'
+             : 'Sign in with email'}
           </Text>
+        </View>
+
+        {panel === 'signin' ? (
+          <>
+            <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginBottom: 12 }}>
+              For staff and contractors who don't have a Skin Tyee Microsoft 365
+              account. An admin must have created your account first.
+            </Text>
+            <TextInput
+              label="Email"
+              value={email}
+              onChangeText={setEmail}
+              mode="outlined"
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="email-address"
+              textContentType="emailAddress"
+              style={{ marginBottom: 8 }}
+            />
+            <TextInput
+              label="Password"
+              value={password}
+              onChangeText={setPassword}
+              mode="outlined"
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
+              autoCorrect={false}
+              textContentType="password"
+              right={
+                <TextInput.Icon
+                  icon={showPassword ? 'eye-off' : 'eye'}
+                  onPress={() => setShowPassword((p) => !p)}
+                  forceTextInputFocus={false}
+                />
+              }
+              onSubmitEditing={onSubmit}
+              style={{ marginBottom: 4 }}
+            />
+            <HelperText type="info" visible style={{ marginLeft: -8, marginBottom: 4 }}>
+              8+ characters, mix of upper, lower, digit, symbol.
+            </HelperText>
+            <Button
+              mode="contained"
+              icon="login"
+              disabled={!canSubmit}
+              onPress={onSubmit}
+              loading={submitting}
+              textColor="#FFFFFF"
+              // Match the "Sign in with Microsoft" button — regular
+              // weight, not Paper's bold default for short labels.
+              labelStyle={{ fontWeight: '400' }}
+              style={{ marginTop: 6 }}
+            >
+              Sign in
+            </Button>
+            {localError ? (
+              <Text style={{ color: theme.colors.accent, fontSize: 12, marginTop: 8 }}>
+                {localError}
+              </Text>
+            ) : null}
+            <Button
+              mode="text"
+              compact
+              textColor={theme.colors.textDarker}
+              onPress={() => {
+                // Pre-fill the forgot-email field if the user already typed
+                // an address in the sign-in form — saves a re-type.
+                setForgotEmail(email);
+                setForgotError(null);
+                setForgotSent(false);
+                setPanel('forgot');
+              }}
+              style={{ alignSelf: 'flex-start', marginTop: 6 }}
+            >
+              Forgot password?
+            </Button>
+          </>
+        ) : null}
+
+        {panel === 'forgot' ? (
+          forgotSent ? (
+            <>
+              <Text style={{ color: theme.colors.text, fontSize: 13, marginTop: 4, marginBottom: 12 }}>
+                If <Text style={{ color: theme.colors.primary }}>{forgotEmail}</Text> is registered
+                for app sign-in, a reset link is on its way. The link
+                is valid for 1 hour.
+              </Text>
+              <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginBottom: 12 }}>
+                Didn't get it after a few minutes? Check spam, or ask
+                an admin to issue a new password directly.
+              </Text>
+              <Button
+                mode="outlined"
+                textColor={theme.colors.text}
+                onPress={() => { setPanel('signin'); setForgotSent(false); }}
+                style={{ alignSelf: 'flex-start', borderColor: theme.colors.defaultBorder }}
+              >
+                Back to sign in
+              </Button>
+            </>
+          ) : (
+            <>
+              <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginBottom: 12 }}>
+                Enter the email address for your app account. We'll send
+                you a one-hour reset link.
+              </Text>
+              <TextInput
+                label="Email"
+                value={forgotEmail}
+                onChangeText={setForgotEmail}
+                mode="outlined"
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+                textContentType="emailAddress"
+                style={{ marginBottom: 8 }}
+              />
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 4 }}>
+                <Button
+                  mode="contained"
+                  icon="email-send"
+                  disabled={forgotSubmitting || forgotEmail.trim().length === 0}
+                  loading={forgotSubmitting}
+                  textColor="#FFFFFF"
+                  labelStyle={{ fontWeight: '400' }}
+                  style={{ marginRight: 8 }}
+                  onPress={async () => {
+                    setForgotSubmitting(true);
+                    setForgotError(null);
+                    try {
+                      await requestStaffPasswordReset(forgotEmail);
+                      setForgotSent(true);
+                    } catch (e: any) {
+                      setForgotError(e?.message ?? String(e));
+                    } finally {
+                      setForgotSubmitting(false);
+                    }
+                  }}
+                >
+                  Send reset link
+                </Button>
+                <Button
+                  mode="text"
+                  textColor={theme.colors.textDarker}
+                  onPress={() => setPanel('signin')}
+                >
+                  Cancel
+                </Button>
+              </View>
+              {forgotError ? (
+                <Text style={{ color: theme.colors.accent, fontSize: 12, marginTop: 8 }}>
+                  {forgotError}
+                </Text>
+              ) : null}
+            </>
+          )
+        ) : null}
+
+        {panel === 'reset' ? (
+          resetDone ? (
+            <>
+              <Text style={{ color: theme.colors.text, fontSize: 13, marginTop: 4, marginBottom: 12 }}>
+                ✓ Password updated. You can sign in with your new
+                password now.
+              </Text>
+              <Button
+                mode="contained"
+                icon="login"
+                textColor="#FFFFFF"
+                labelStyle={{ fontWeight: '400' }}
+                onPress={() => {
+                  setPanel('signin');
+                  setResetDone(false);
+                  setResetToken(null);
+                  setNewPassword('');
+                }}
+                style={{ alignSelf: 'flex-start' }}
+              >
+                Sign in
+              </Button>
+            </>
+          ) : (
+            <>
+              <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginBottom: 12 }}>
+                Choose a new password. The reset link you clicked
+                stays valid for 1 hour from when it was sent.
+              </Text>
+              <TextInput
+                label="New password"
+                value={newPassword}
+                onChangeText={setNewPassword}
+                mode="outlined"
+                secureTextEntry={!showNewPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+                right={
+                  <TextInput.Icon
+                    icon={showNewPassword ? 'eye-off' : 'eye'}
+                    onPress={() => setShowNewPassword((p) => !p)}
+                    forceTextInputFocus={false}
+                  />
+                }
+                style={{ marginBottom: 4 }}
+              />
+              <HelperText type="info" visible style={{ marginLeft: -8, marginBottom: 4 }}>
+                8+ characters, mix of upper, lower, digit, symbol.
+              </HelperText>
+              <Button
+                mode="contained"
+                icon="lock-reset"
+                disabled={resetSubmitting || !resetToken || newPassword.length < 8}
+                loading={resetSubmitting}
+                textColor="#FFFFFF"
+                labelStyle={{ fontWeight: '400' }}
+                onPress={async () => {
+                  if (!resetToken) return;
+                  setResetSubmitting(true);
+                  setResetError(null);
+                  const r = await submitStaffPasswordReset(resetToken, newPassword);
+                  setResetSubmitting(false);
+                  if (r.ok === true) {
+                    setResetDone(true);
+                  } else {
+                    setResetError(r.reason);
+                  }
+                }}
+                style={{ marginTop: 6 }}
+              >
+                Set new password
+              </Button>
+              {resetError ? (
+                <Text style={{ color: theme.colors.accent, fontSize: 12, marginTop: 8 }}>
+                  {resetError}
+                </Text>
+              ) : null}
+            </>
+          )
         ) : null}
       </Card.Content>
     </Card>

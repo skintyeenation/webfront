@@ -72,6 +72,7 @@ PERMS=(
   "ef54d2bf-783f-4e0f-bca1-3210c0444d99=Role:Calendars.ReadWrite"   # Calendar events: read (Teams meetings) + create Band Meetings
   "df021288-bdef-4463-88db-98f22de89214=Role:User.Read.All"         # Assignee ID → display name lookup
   "741f803b-c850-494e-b5df-cde7c675a1ca=Role:User.ReadWrite.All"    # ADR-15 — POST /v1/admin/users creates Entra users (Add Member form)
+  "b633e1c5-b582-4048-a93e-9f11b44c7e96=Role:Mail.Send"             # Staff-auth: forgot-password reset link emails sent from info@skintyee.ca
 )
 # Slice 3 (auto-license assignment) of the member-provisioning feature
 # adds two more permissions on top of these — kept separate so the

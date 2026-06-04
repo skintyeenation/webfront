@@ -22,10 +22,20 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import { StaffAuthService } from './staff-auth.service';
+import { GraphFeedService } from './graph-feed.service';
 
 function normaliseEmail(e: unknown): string {
   if (typeof e !== 'string') return '';
   return e.trim().toLowerCase();
+}
+
+// Tiny HTML escape — the reset email only interpolates the user's
+// displayName (admin-controlled but worth defensive escaping) and the
+// link (built from a server-generated token). No npm dep needed.
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string),
+  );
 }
 
 // Locked decision #3 — Entra-default complexity. Mirrored here so the
@@ -55,6 +65,7 @@ export class StaffAuthController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auth: StaffAuthService,
+    private readonly graph: GraphFeedService,
   ) {}
 
   // ---- POST /v1/auth/staff/login ---------------------------------------
@@ -133,10 +144,52 @@ export class StaffAuthController {
       where: { id: person.id },
       data: { resetToken: token, resetTokenAt: new Date() },
     });
-    // TEMP (Slice 4 replaces this with a Graph sendMail call):
-    this.log.log(
-      `staff-auth: reset-token issued for ${email} — token=${token} (expires in 1h)`,
-    );
+
+    // Build the reset link. APP_BASE_URL points at the deployed web
+    // app (https://app.skintyee.ca in prod). The path matches the
+    // route the app will surface from this slice's UI work.
+    const base = (process.env.APP_BASE_URL ?? 'https://app.skintyee.ca').replace(/\/+$/, '');
+    // Query key matches what the app's Account screen looks for via
+    // pickResetTokenFromUrl(). Root path + query (rather than a
+    // /reset-password route) keeps the link working with the
+    // existing SPA serve-all-paths fallback.
+    const link = `${base}/?reset-token=${encodeURIComponent(token)}`;
+    const subject = 'Reset your Skin Tyee app password';
+    const html = `
+      <p>Hi ${escapeHtml(person.displayName)},</p>
+      <p>Someone (probably you) asked to reset the password on your
+        Skin Tyee app account. Click the link below to choose a new
+        one — it's valid for the next hour:</p>
+      <p><a href="${link}">${link}</a></p>
+      <p>If you didn't request this, you can ignore this email —
+        your current password keeps working.</p>
+      <p style="color:#888;font-size:11px;margin-top:24px">
+        This is an automated message from the Skin Tyee app sign-in
+        system. Replies aren't monitored. Contact admins if you need
+        help.
+      </p>
+    `;
+
+    // Best-effort send. If Graph is misconfigured (Mail.Send not
+    // granted, sender mailbox missing, etc.) we log + swallow rather
+    // than leaking the failure to the caller — the endpoint returns
+    // 204 either way so a bad email doesn't tell an attacker the
+    // address is unknown. Admin can read the log for the token to
+    // hand-deliver if needed.
+    try {
+      await this.graph.sendMail({
+        from: process.env.STAFF_AUTH_MAIL_FROM ?? 'info@skintyee.ca',
+        to: email,
+        subject,
+        html,
+      });
+      this.log.log(`request-reset: emailed ${email}`);
+    } catch (e: any) {
+      this.log.warn(
+        `request-reset: sendMail failed for ${email}: ${e?.message ?? e}. ` +
+        `Token (hand-deliver if needed): ${token}`,
+      );
+    }
   }
 
   // ---- POST /v1/auth/staff/reset-password ------------------------------
