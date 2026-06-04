@@ -32,13 +32,12 @@ const ADMIN_ITEMS: MoreItem[] = [
   { route: 'documents',        label: 'Documents',         description: 'Forms, filings & PDFs by tag',                             icon: 'file-document-multiple',   roles: ['admin'] },
 ];
 
-// Community items — ordered to mirror the Admin section so a staff
-// member's menu structure feels like a subset of the admin's
-// (My Timesheets → Band Member Directory → Forms & Documents → polls
-// → Financial Summary). Financial Summary is band-member-only +
-// public; staff don't see it (transparency for the membership, not
-// operational tooling).
-const COMMUNITY_ITEMS: MoreItem[] = [
+// "Tools" — non-admin everyday operational tiles. Mirrors the admin
+// items 1:1 by route so a staff member's menu structure feels like a
+// subset of the admin's. Items here render in the Tools section above
+// the Community section so the bottom of the page consistently holds
+// community-browsing surfaces (Polls, Financial Summary).
+const TOOLS_ITEMS: MoreItem[] = [
   // Mirrors admin's "Time Keeping" entry.
   { route: 'timekeeping',   label: 'My Timesheets',         description: 'Submit & view your hours',                                 icon: 'clock-outline',         roles: ['staff'] },
   // Mirrors admin's "Band Management" entry — non-admins see it as
@@ -46,10 +45,15 @@ const COMMUNITY_ITEMS: MoreItem[] = [
   { route: 'directory',     label: 'Band Member Directory', description: 'Members, council & staff',                                 icon: 'account-group',         roles: ['public', 'member', 'staff'] },
   // Mirrors admin's "Documents" entry — staff-visible read view.
   { route: 'documents',     label: 'Forms & Documents',     description: 'Forms, filings & PDFs by category',                       icon: 'file-document-outline', roles: ['member', 'staff'] },
+];
+
+// "Community" — bottom grouping on every role's view. Both admins and
+// staff/members see Polls here; Financial Summary is public + member
+// only (staff don't see it, admin reaches it via Admin tools if needed
+// — but the admin view ALSO shows the community section so they get
+// Polls there).
+const COMMUNITY_ITEMS: MoreItem[] = [
   { route: 'polls',         label: 'Polling + Surveys',     description: 'Surveys & vote on issues',                                 icon: 'vote-outline',          roles: ['public', 'member', 'staff', 'admin'] },
-  // Public + members only (transparency surface). Staff don't see it
-  // — they're operational, not a transparency audience. Admins reach
-  // it through their own Admin tools list if needed.
   { route: 'publicRecords', label: 'Financial Summary',     description: 'Where the money goes — budgets, expenditures & projects', icon: 'chart-pie',             roles: ['public', 'member'] },
 ];
 
@@ -85,19 +89,22 @@ export default function MoreMenu({ navigation }: any) {
   return (
     <PageContainer>
       <PageContent>
-        {/* Account & Role pinned at the top for every role. For admins
-            we surface Admin tools next (their daily work) and Community
-            sinks below. Staff + members get "Tools" (same ordering as
-            Admin tools, just labelled for them) — public still sees
-            "Community" since their list is the browsing surface only. */}
+        {/* Three sections, always in this order:
+              1. Account & Role        — pinned at top for every role.
+              2. Admin tools / Tools   — daily-work tiles. "Admin
+                 tools" for admins (ADMIN_ITEMS); "Tools" for staff +
+                 members (TOOLS_ITEMS, same routes as the admin
+                 list).
+              3. Community             — Polls + Financial Summary
+                 at the bottom so the same browsing surface lives in
+                 the same place across roles. */}
         <Section title="Account & Role" items={ACCOUNT_ITEMS} role={role} navigation={navigation} />
-        {isAdmin ? <Section title="Admin tools" items={ADMIN_ITEMS} role={role} navigation={navigation} /> : null}
-        <Section
-          title={role === 'staff' || role === 'member' ? 'Tools' : 'Community'}
-          items={COMMUNITY_ITEMS}
-          role={role}
-          navigation={navigation}
-        />
+        {isAdmin ? (
+          <Section title="Admin tools" items={ADMIN_ITEMS} role={role} navigation={navigation} />
+        ) : (
+          <Section title="Tools" items={TOOLS_ITEMS} role={role} navigation={navigation} />
+        )}
+        <Section title="Community" items={COMMUNITY_ITEMS} role={role} navigation={navigation} />
       </PageContent>
     </PageContainer>
   );
