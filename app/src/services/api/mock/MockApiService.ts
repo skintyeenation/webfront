@@ -177,6 +177,7 @@ export const mockApiService: ApiService = {
     create: () => delay({} as any),
     update: () => delay({} as any),
     delete: () => delay(undefined as any),
+    fetchPdf: () => { throw new Error('documents.fetchPdf requires the real api/'); },
   },
   documentTags: {
     list:   () => delay({ categories: [], tags: [] }),
@@ -212,6 +213,7 @@ export const mockApiService: ApiService = {
     rejectStep:       () => delay({} as any),
     resetStep:        () => delay({} as any),
     adminUpload:      () => delay({} as any),
+    meUpload:         () => delay({} as any),
     publicView:       () => delay({} as any),
     publicUpload:     () => delay({} as any),
   },

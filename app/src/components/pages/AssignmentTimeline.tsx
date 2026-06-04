@@ -123,6 +123,71 @@ export default function AssignmentTimeline({ navigation, route }: any) {
     finally { setBusyStep(undefined); }
   };
 
+  // Open or save a document PDF through the streaming endpoint so it
+  // works in in-memory storage mode too. Inline Blob pattern matches
+  // TimekeepingReports.
+  const openDocPdf = async (docId: string) => {
+    try {
+      const { blob } = await apiFactory().documents.fetchPdf(docId);
+      if (Platform.OS === 'web' && typeof URL !== 'undefined') {
+        const u = URL.createObjectURL(blob);
+        window.open(u, '_blank');
+        setTimeout(() => URL.revokeObjectURL(u), 60_000);
+      }
+    } catch (e: any) { setError(e?.message ?? String(e)); }
+  };
+  const saveDocPdf = async (docId: string) => {
+    try {
+      const { blob, filename } = await apiFactory().documents.fetchPdf(docId, { download: true });
+      if (Platform.OS === 'web' && typeof URL !== 'undefined') {
+        const u = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = u; a.download = filename;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(u), 5_000);
+        setToast('Saved');
+      }
+    } catch (e: any) { setError(e?.message ?? String(e)); }
+  };
+
+  // Worker uploading their OWN file for a step. Same picker logic as
+  // the admin variant — diverges only in the api call.
+  const workerUpload = async (stepId: string) => {
+    if (!assignment) return;
+    let file: { uri: string; name: string; mimeType: string } | undefined;
+    if (Platform.OS === 'web') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'application/pdf,image/*';
+      file = await new Promise<typeof file>((resolve) => {
+        input.onchange = async () => {
+          const f = input.files?.[0];
+          if (!f) return resolve(undefined);
+          const r = new FileReader();
+          r.onload = () => resolve({ uri: r.result as string, name: f.name, mimeType: f.type || 'application/pdf' });
+          r.readAsDataURL(f);
+        };
+        input.click();
+      });
+    } else {
+      try {
+        const DocumentPicker = await import('expo-document-picker');
+        const res = await DocumentPicker.getDocumentAsync({ type: ['application/pdf', 'image/*'], copyToCacheDirectory: true });
+        if (res.canceled || !res.assets?.[0]) return;
+        const a = res.assets[0];
+        file = { uri: a.uri, name: a.name, mimeType: a.mimeType ?? 'application/pdf' };
+      } catch (e: any) { setError(e?.message ?? String(e)); return; }
+    }
+    if (!file) return;
+    setBusyStep(stepId);
+    try {
+      await apiFactory().onboarding.meUpload(assignment.id, stepId, file);
+      setToast('Uploaded');
+      await load();
+    } catch (e: any) { setError(e?.message ?? String(e)); }
+    finally { setBusyStep(undefined); }
+  };
+
   const adminUpload = async (stepId: string) => {
     if (!assignment) return;
     let file: { uri: string; name: string; mimeType: string } | undefined;
@@ -271,15 +336,19 @@ export default function AssignmentTimeline({ navigation, route }: any) {
                       const doc = documentById.get(sd.documentId);
                       if (!doc) return null;
                       return (
-                        <View key={sd.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 4 }}>
+                        <View key={sd.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 4, flexWrap: 'wrap' }}>
                           <Text style={{ color: theme.colors.text, fontSize: 12, flex: 1 }} numberOfLines={1}>
                             📄 {doc.title}
                           </Text>
-                          {doc.fileUrl ? (
-                            <Button compact mode="text" icon="download" textColor={theme.colors.primary} onPress={() => Linking.openURL(doc.fileUrl!)}>
-                              Open
-                            </Button>
-                          ) : null}
+                          {/* Open via the streaming api/ endpoint so
+                              this works in in-memory storage mode too
+                              (where doc.fileUrl is `mem://...`). */}
+                          <Button compact mode="text" icon="file-pdf-box" textColor={theme.colors.primary} onPress={() => openDocPdf(doc.id)}>
+                            Open
+                          </Button>
+                          <Button compact mode="text" icon="download" textColor={theme.colors.textDarker} onPress={() => saveDocPdf(doc.id)}>
+                            Save
+                          </Button>
                         </View>
                       );
                     })}
@@ -326,6 +395,25 @@ export default function AssignmentTimeline({ navigation, route }: any) {
                   <HelperText type="error" visible style={{ marginLeft: -8, marginTop: 4 }}>
                     Rejected: {state.notes}
                   </HelperText>
+                ) : null}
+
+                {/* Worker action row — Upload for the steps that
+                    expect a contractor / staff upload. Hidden when
+                    the step is 'admin_marks' (no upload needed) or
+                    the user is admin (admin gets its own row below
+                    with extra approve/reject controls). */}
+                {!isAdmin && step.completion !== 'admin_marks' && status !== 'completed' ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+                    <Button
+                      mode="contained" compact icon="upload"
+                      buttonColor={theme.colors.primary} textColor="#fff"
+                      onPress={() => workerUpload(step.id)}
+                      disabled={busyStep === step.id}
+                      loading={busyStep === step.id}
+                    >
+                      {state?.personFileUrl ? 'Replace upload' : 'Upload'}
+                    </Button>
+                  </View>
                 ) : null}
 
                 {/* Admin action row — matches ApprovalCard from TimeKeeping. */}

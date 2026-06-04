@@ -228,6 +228,10 @@ export interface ApiService {
       tagIds: string[];
     }>): Promise<DocumentDto>;
     delete(id: string): Promise<void>;
+    /** Stream the PDF/file bytes through the api/. Same Blob pattern as
+     *  TimesheetReports — lets the client open / save without needing
+     *  the storage adapter's URL to be browser-reachable. */
+    fetchPdf(id: string, opts?: { download?: boolean }): Promise<{ blob: Blob; filename: string }>;
   };
   documentTags: {
     list(): Promise<{
@@ -267,6 +271,8 @@ export interface ApiService {
     rejectStep(assignmentId: string, stepId: string, notes?: string): Promise<OnboardingStepStateDto>;
     resetStep(assignmentId: string, stepId: string): Promise<OnboardingStepStateDto>;
     adminUpload(assignmentId: string, stepId: string, file: { uri: string; name: string; mimeType: string }): Promise<OnboardingStepStateDto>;
+    /** Worker uploading their own file for a step in their own assignment. */
+    meUpload(assignmentId: string, stepId: string, file: { uri: string; name: string; mimeType: string }): Promise<OnboardingStepStateDto>;
     // Public — no role needed; pass the assignment token.
     publicView(token: string): Promise<OnboardingAssignmentDto>;
     publicUpload(token: string, stepId: string, file: { uri: string; name: string; mimeType: string }): Promise<OnboardingStepStateDto>;

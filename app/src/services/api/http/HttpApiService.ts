@@ -264,6 +264,15 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
         });
         if (!res.ok && res.status !== 204) throw new Error(`DELETE /documents/${id} → ${res.status}: ${await res.text()}`);
       },
+      fetchPdf: async (id: string, opts?: { download?: boolean }) => {
+        const path = `/documents/${encodeURIComponent(id)}/pdf${opts?.download ? '?download=1' : ''}`;
+        const res = await fetch(api(path), { headers: headers() });
+        if (!res.ok) throw new Error(`GET ${path} → ${res.status}: ${await res.text()}`);
+        const blob = await res.blob();
+        const cd = res.headers.get('content-disposition') ?? '';
+        const fnMatch = cd.match(/filename="([^"]+)"/);
+        return { blob, filename: fnMatch?.[1] ?? `document-${id}.pdf` };
+      },
     },
     documentTags: {
       list: () => get<any>('/document-tags'),
@@ -339,6 +348,8 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
           post<OnboardingStepStateDto>(`/onboarding/assignments/${encodeURIComponent(assignmentId)}/steps/${encodeURIComponent(stepId)}/reset`, {}),
         adminUpload: (assignmentId: string, stepId: string, file: any) =>
           uploadFile(`/onboarding/assignments/${encodeURIComponent(assignmentId)}/steps/${encodeURIComponent(stepId)}/upload`, file),
+        meUpload: (assignmentId: string, stepId: string, file: any) =>
+          uploadFile(`/onboarding/assignments/${encodeURIComponent(assignmentId)}/steps/${encodeURIComponent(stepId)}/me-upload`, file),
         publicView: (token: string) => get<OnboardingAssignmentDto>(`/onboarding/public/${encodeURIComponent(token)}`),
         publicUpload: (token: string, stepId: string, file: any) =>
           uploadFile(`/onboarding/public/${encodeURIComponent(token)}/steps/${encodeURIComponent(stepId)}/upload`, file, false),

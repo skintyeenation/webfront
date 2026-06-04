@@ -245,6 +245,44 @@ export class OnboardingController {
     return r;
   }
 
+  // Worker-side upload — signed-in caller uploads their own file for a
+  // step in an assignment they own. Same ownership check as
+  // GET /v1/onboarding/assignments/:id so a worker can't push files
+  // onto someone else's assignment.
+  @Post('assignments/:id/steps/:stepId/me-upload')
+  @Roles('member', 'staff', 'admin')
+  @UseInterceptors(FileInterceptor('file'))
+  async meUpload(
+    @Param('id') id: string, @Param('stepId') stepId: string,
+    @UploadedFile() file: any, @Req() req: any,
+  ) {
+    if (!file) throw new BadRequestException('file required');
+    const role = (req.headers['x-role'] as string | undefined) ?? 'public';
+    if (role !== 'admin') {
+      const upn = ((req.headers['x-upn'] as string | undefined) || '').toLowerCase();
+      if (!upn) throw new ForbiddenException();
+      const a = await this.svc.getAssignment(id);
+      if (!a) throw new NotFoundException();
+      const prisma = (this.svc as any).prisma;
+      if (!prisma?.isAvailable) throw new ForbiddenException();
+      const person = await prisma.person.findFirst({
+        where: {
+          OR: [
+            { email: { equals: upn, mode: 'insensitive' } },
+            { bandMember: { upn: { equals: upn, mode: 'insensitive' } } },
+          ],
+        },
+        select: { id: true },
+      });
+      if (!person || person.id !== a.personId) throw new ForbiddenException();
+    }
+    const r = await this.svc.personUpload(id, stepId, {
+      fileName: file.originalname, mimeType: file.mimetype, bytes: file.buffer,
+    });
+    if (!r) throw new NotFoundException();
+    return r;
+  }
+
   // Admin-side upload (admin uploading on behalf of the person, e.g.
   // receiving a paper form). Goes through the same path as the public
   // tokenised upload below.
