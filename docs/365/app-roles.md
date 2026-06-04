@@ -18,12 +18,18 @@ who can write timesheets independent of role. See
 | `member` | Band Member Directory, Forms & Documents, Polls, Financial Summary. |
 | `public` | Anonymous browse — Directory, Polls, Financial Summary. |
 
-## Derivation (first hit wins)
+## Derivation
+
+Roles are computed in two stages: a **baseline** at directory-seed
+time (Entra → `BandMember.appRole`), and an **effective** role at
+sign-in time that layers a Person-based bump on top.
+
+### Stage 1 — Baseline (BandMember.appRole)
 
 Source: `BandMember` seed in
 [`api/src/graph-feed.service.ts`](../../api/src/graph-feed.service.ts)
 (`getDirectory()`). Re-runs from
-`POST /v1/admin/seed-directory`.
+`POST /v1/admin/seed-directory`. First hit wins:
 
 1. **Break-glass account** → `admin`. Identified by the
    `breakGlass` claim on the Entra user.
@@ -38,8 +44,27 @@ Source: `BandMember` seed in
    - Any other non-empty title → `staff`
 4. **No title and no matching group** → `member`.
 
-The derivation lives in one block — to change the mapping, edit that
-single switch and re-seed (`POST /v1/admin/seed-directory`).
+The derivation lives in one block in `getDirectory()` — to change the
+mapping, edit that switch and re-seed
+(`POST /v1/admin/seed-directory`).
+
+### Stage 2 — Effective role (sign-in time)
+
+`GET /v1/admin/role-for/:upn` returns the effective role used by
+`HttpApiService` (set as `x-role` on every request):
+
+1. Look up `BandMember` by UPN. If present + enabled, start with
+   `appRole`; otherwise `public`.
+2. Look up `Person` where (`bandMember.upn = upn` OR
+   `email = upn`) AND `timesheetsEnabled = true`. If found AND the
+   baseline is below `staff` → **bump to `staff`**.
+3. Admins stay admin; staff stay staff.
+
+The Person-based bump is what lets an **external contractor** without
+a BandMember row become `staff` — they only need an admin to add them
+under People with Enable Timesheets on. Their `name` falls back to
+`Person.displayName` when there's no BandMember row to source it
+from.
 
 ## Active role at request time
 

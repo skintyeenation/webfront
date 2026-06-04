@@ -475,22 +475,63 @@ export class AdminController implements OnApplicationBootstrap {
     };
   }
 
-  // GET /v1/admin/role-for/:upn — look up an app-role by UPN. Used during
-  // sign-in to derive the signed-in user's app role from their Entra UPN.
-  // Returns 'public' if not found (anonymous users get the public role).
+  // GET /v1/admin/role-for/:upn — look up the effective app-role for a
+  // UPN. Used during sign-in (and the Unspoof flow) to derive the
+  // signed-in user's app role.
+  //
+  // The role is layered:
+  //   1. BandMember.appRole (Entra-derived: security groups + job
+  //      title heuristic — see api/src/graph-feed.service.ts).
+  //   2. If a Person row exists for this UPN (matched on either the
+  //      linked BandMember.upn or Person.email) AND
+  //      timesheetsEnabled=true, bump the role to 'staff' when the
+  //      base is below that. Admins stay admin; staff stay staff;
+  //      member/public who are timesheet workers get the staff
+  //      surface they need to act on Time Keeping screens.
+  //
+  // Returns 'public' when the UPN isn't found in either table
+  // (anonymous baseline).
   @Get('role-for/:upn')
   async roleFor(@Param('upn') upn: string) {
     if (!this.prisma.isAvailable) {
       return { upn, appRole: 'public', source: 'no-db-fallback' };
     }
-    const row = await this.prisma.bandMember.findUnique({
-      where: { upn: upn.toLowerCase() },
+    const u = upn.toLowerCase();
+    const bm = await this.prisma.bandMember.findUnique({
+      where: { upn: u },
       select: { upn: true, appRole: true, name: true, enabled: true },
     });
-    if (!row || !row.enabled) {
-      return { upn, appRole: 'public', source: 'not-found' };
-    }
-    return { upn: row.upn, appRole: row.appRole, name: row.name, source: 'db' };
+    const baseRole: string = (bm && bm.enabled) ? bm.appRole : 'public';
+    // People-based bump — a Person row with timesheetsEnabled=true is
+    // a worker. Workers need at least the staff surface so they see
+    // operational tools (timesheets, etc.). Staff don't have to be
+    // 365 / Entra users — external contractors with no BandMember row
+    // still qualify, matched purely by Person.email = upn.
+    const personRow = await this.prisma.person.findFirst({
+      where: {
+        timesheetsEnabled: true,
+        OR: [
+          { email: { equals: u, mode: 'insensitive' } },
+          { bandMember: { upn: { equals: u, mode: 'insensitive' } } },
+        ],
+      },
+      select: { id: true, displayName: true },
+    });
+    const rank: Record<string, number> = { public: 0, member: 1, staff: 2, admin: 3 };
+    const effective = personRow && (rank[baseRole] ?? 0) < rank.staff
+      ? 'staff'
+      : baseRole;
+    return {
+      upn: bm?.upn ?? u,
+      appRole: effective,
+      // Fall back to the Person.displayName when there's no BandMember
+      // row (typical for external contractors) so the app has a name
+      // to render.
+      name: bm?.name ?? personRow?.displayName ?? undefined,
+      source: bm
+        ? (effective === baseRole ? 'db' : 'db+people-bump')
+        : (personRow ? 'people-bump' : 'not-found'),
+    };
   }
 
   // GET /v1/admin/security-groups — return the catalog of the 13 Entra
