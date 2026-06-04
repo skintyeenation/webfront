@@ -9,7 +9,10 @@ import { theme } from 'skintyee/styles';
 export function SplashScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background, alignItems: 'center', justifyContent: 'center' }}>
-      <Logo size={56} />
+      {/* Vertical lockup: bitmap mark above the wordmark. markScale=2.4
+          makes the mark visibly the focal element while the wordmark
+          stays at the splash text size. */}
+      <Logo size={56} direction="column" markScale={2.4} />
       <Text style={{ color: theme.colors.textDarker, marginTop: 12, letterSpacing: 1 }}>First Nation</Text>
       <ActivityIndicator color={theme.colors.primary} style={{ marginTop: 28 }} />
     </View>
