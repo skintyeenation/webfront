@@ -53,6 +53,10 @@ export default function TimeKeeping({ navigation }: any) {
   // bucket on the Approvals tab so admin sees the full team regardless
   // of who's submitted yet.
   const [eligiblePeople, setEligiblePeople] = useState<Array<{ personId: string; workerUpn: string; workerName: string; isBandMember: boolean }>>([]);
+  // Worker-side eligibility for the signed-in user — gates whether
+  // "My timesheet" tab is even visible. An admin who isn't enabled for
+  // their own timesheets still gets Approvals.
+  const [meEligibleNow, setMeEligibleNow] = useState<boolean | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>();
@@ -65,11 +69,20 @@ export default function TimeKeeping({ navigation }: any) {
       try {
         setLoading(true);
         const api = apiFactory();
-        const periods = await api.timekeeping.payPeriods();
+        const [periods, me] = await Promise.all([
+          api.timekeeping.payPeriods(),
+          api.timekeeping.meEligible().catch(() => ({ eligible: false, upn: '' })),
+        ]);
         if (cancelled) return;
         setRecent(periods.recent);
         setCurrentPeriod(periods.current);
         setSelectedPeriodId((prev) => prev ?? periods.current.id);
+        setMeEligibleNow(!!me.eligible);
+        // Default to the tab that matches what the user can actually
+        // do. Anyone who isn't a timesheet-enabled worker jumps to
+        // Approvals (their only job here). The switcher above is
+        // hidden in that case so there's nothing else to navigate to.
+        if (!me.eligible) setTab('approvals');
       } catch (e: any) {
         if (!cancelled) setError(e?.message ?? String(e));
       } finally {
@@ -182,8 +195,12 @@ export default function TimeKeeping({ navigation }: any) {
   return (
     <PageContainer>
       <PageContent>
-        {/* Tab — only if user is an approver */}
-        {canApprove ? (
+        {/* Tab switcher — only when the user is BOTH an approver AND an
+            enabled worker. An approver who's not also an enabled worker
+            (e.g. a System Admin without Person.timesheetsEnabled) jumps
+            straight to Approvals; their own timesheet view is hidden so
+            they don't see a draft from before they were disabled. */}
+        {canApprove && meEligibleNow ? (
           <SegmentedButtons
             value={tab}
             onValueChange={(v) => setTab(v as Tab)}
