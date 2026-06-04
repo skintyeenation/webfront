@@ -213,7 +213,15 @@ export default function Application() {
       {booting ? (
         <SplashScreen />
       ) : (
-      <NavigationContainer>
+      // Key the NavigationContainer on `allowedIn` so React fully
+      // unmounts the pre-auth Account-only navigator and remounts the
+      // tabs navigator when the user signs in mid-session. Without
+      // the key change, React Navigation's internal state from the
+      // old tree lingers — the user lands on the post-auth navigator
+      // but stays focused on the leftover Account route with no tab
+      // bar. Refreshing the page forced a clean remount, which is the
+      // bug Lucas hit on app.skintyee.ca's first sign-in.
+      <NavigationContainer key={allowedIn ? 'authed' : 'guest'}>
         {!allowedIn ? (
           // Pre-sign-in: show only the Account screen (no tabs).
           // The Account screen contains BOTH the Microsoft sign-in button
