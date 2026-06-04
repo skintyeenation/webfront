@@ -307,6 +307,10 @@ function MyTimesheetView({
   history: Timesheet[];
   currentPeriodId?: string;
 }) {
+  // Modal state for the summary card's read-only View action. Editable
+  // periods route to AddTimesheet via navigation instead.
+  const [summaryOpen, setSummaryOpen] = useState(false);
+
   if (!period) return null;
   const isCurrentPeriod = period.id === currentPeriodId;
   const editable = isCurrentPeriod && current?.status !== 'approved';
@@ -353,13 +357,32 @@ function MyTimesheetView({
             icon={editable ? 'pencil' : 'eye-outline'}
             buttonColor={editable ? theme.colors.primary : undefined}
             textColor={editable ? '#000' : theme.colors.text}
-            onPress={() => navigation.navigate('timesheetCreate', { periodId: period.id })}
+            // Approved timesheets are frozen — view-only. Pop the
+            // summary modal instead of routing to the editor. Everything
+            // else (current draft, rejected, historical non-approved)
+            // still goes to AddTimesheet which respects its own editable
+            // state when rendering.
+            onPress={() => {
+              if (current?.status === 'approved') {
+                setSummaryOpen(true);
+              } else {
+                navigation.navigate('timesheetCreate', { periodId: period.id });
+              }
+            }}
             style={{ marginTop: 12, alignSelf: 'flex-start', borderColor: theme.colors.secondary }}
           >
             {editable ? 'Edit / submit' : 'View'}
           </Button>
         </Card.Content>
       </Card>
+
+      {current ? (
+        <TimesheetDetailModal
+          visible={summaryOpen}
+          timesheet={current}
+          onDismiss={() => setSummaryOpen(false)}
+        />
+      ) : null}
 
       {/* History list */}
       {history.length > 0 ? (
