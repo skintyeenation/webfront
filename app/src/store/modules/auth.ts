@@ -80,6 +80,13 @@ export interface AuthState {
   signedIn: boolean;
   user: SignedInUser | null;
   role: Role;
+  /**
+   * The signed-in user's canonical role (their BandMember.appRole at
+   * sign-in time). Stays put when the dev Role Switcher overrides
+   * `role`, so the Account screen can offer an "Unspoof — reset to
+   * <canonical>" button to revert. Null until a real signIn lands.
+   */
+  canonicalRole: Role | null;
   // Tokens
   accessToken: string | null;
   idToken: string | null;
@@ -99,6 +106,7 @@ export const authInitialState: AuthState = {
   signedIn: false,
   user: null,
   role: 'public',
+  canonicalRole: null,
   accessToken: null,
   idToken: null,
   expiresAt: null,
@@ -401,6 +409,9 @@ const authSlice = createSlice({
       signedIn: true,
       user: action.payload.user,
       role: action.payload.role,
+      // Pin the canonical role so the Account screen can offer
+      // "Unspoof — reset to <canonical>" after a dev role override.
+      canonicalRole: action.payload.role,
       name: action.payload.user.name || action.payload.user.upn,
       accessToken: action.payload.tokens.accessToken,
       idToken: action.payload.tokens.idToken,
@@ -427,6 +438,7 @@ const authSlice = createSlice({
         signedIn: true,
         user: action.payload.user,
         role: action.payload.role,
+        canonicalRole: action.payload.role,
         name: action.payload.user.name || action.payload.user.upn,
         accessToken: action.payload.tokens.accessToken,
         idToken: action.payload.tokens.idToken,

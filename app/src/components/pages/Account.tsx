@@ -45,7 +45,11 @@ const ROLES: { role: Role; label: string; desc: string }[] = [
  */
 export default function Account() {
   const dispatch = useAppDispatch();
-  const { role, name, signedIn, user, status, error } = useAppSelector((s) => s.auth);
+  const { role, canonicalRole, name, signedIn, user, status, error } = useAppSelector((s) => s.auth);
+  // The role-switcher is dev-only "spoof". When the active role
+  // doesn't match the signed-in user's canonical role we offer a
+  // one-tap revert so the user can drop back to their real privileges.
+  const isSpoofed = signedIn && canonicalRole && role !== canonicalRole;
   const directory = useAppSelector((s) => s.directory.entities);
   const isAdmin = role === 'admin';
   const isSigningIn = status === 'signing-in';
@@ -210,31 +214,51 @@ export default function Account() {
 
         {/* Dev role switcher --------------------------------------------- */}
         <Text style={{ color: theme.colors.textDarker, marginBottom: 8 }}>
-          Switch role (development only)
+          Switch role (development only){isSpoofed ? ` · tap "${role}" again to revert to your ${canonicalRole} role` : ''}
         </Text>
         <Card style={{ backgroundColor: theme.colors.darkDefault }}>
           <Card.Content>
-            {ROLES.map((r, i) => (
-              <View key={r.role}>
-                {i > 0 ? <Divider style={{ marginVertical: 6 }} /> : null}
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <View style={{ flex: 1, paddingRight: 8 }}>
-                    <Text style={{ color: theme.colors.text }}>{r.label}</Text>
-                    <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>{r.desc}</Text>
+            {ROLES.map((r, i) => {
+              const isActive = role === r.role;
+              const isCanonical = canonicalRole === r.role;
+              // When the active row is a SPOOFED role (i.e. not the
+              // user's canonical role), tapping it again reverts to
+              // canonical — the "untap to unspoof" gesture. Tapping
+              // the canonical Active row is a no-op.
+              const onTap = () => {
+                if (isActive && isSpoofed && canonicalRole) {
+                  dispatch(setRole(canonicalRole));
+                } else if (!isActive) {
+                  dispatch(setRole(r.role));
+                }
+              };
+              return (
+                <View key={r.role}>
+                  {i > 0 ? <Divider style={{ marginVertical: 6 }} /> : null}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <View style={{ flex: 1, paddingRight: 8 }}>
+                      <Text style={{ color: theme.colors.text }}>
+                        {r.label}
+                        {isCanonical ? (
+                          <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>  · your role</Text>
+                        ) : null}
+                      </Text>
+                      <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>{r.desc}</Text>
+                    </View>
+                    <Button
+                      mode={isActive ? 'contained' : 'outlined'}
+                      compact
+                      onPress={onTap}
+                      buttonColor={isActive ? (isSpoofed ? theme.colors.accent : theme.colors.primary) : undefined}
+                      textColor={isActive ? '#000' : theme.colors.primary}
+                      style={{ borderColor: theme.colors.defaultBorder }}
+                    >
+                      {isActive ? (isSpoofed ? 'Active · tap to unspoof' : 'Active') : 'Use'}
+                    </Button>
                   </View>
-                  <Button
-                    mode={role === r.role ? 'contained' : 'outlined'}
-                    compact
-                    onPress={() => dispatch(setRole(r.role))}
-                    buttonColor={role === r.role ? theme.colors.primary : undefined}
-                    textColor={role === r.role ? '#000' : theme.colors.primary}
-                    style={{ borderColor: theme.colors.defaultBorder }}
-                  >
-                    {role === r.role ? 'Active' : 'Use'}
-                  </Button>
                 </View>
-              </View>
-            ))}
+              );
+            })}
           </Card.Content>
         </Card>
       </PageContent>
