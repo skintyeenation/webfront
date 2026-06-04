@@ -145,6 +145,10 @@ function StaffSignInCard() {
           disabled={!canSubmit}
           onPress={onSubmit}
           loading={submitting}
+          textColor="#FFFFFF"
+          // Match the "Sign in with Microsoft" button — regular weight,
+          // not the bold default Paper applies to short labels.
+          labelStyle={{ fontWeight: '400' }}
           style={{ marginTop: 6 }}
         >
           Sign in
