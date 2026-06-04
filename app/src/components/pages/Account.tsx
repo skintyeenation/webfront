@@ -12,6 +12,21 @@ import { theme } from 'skintyee/styles';
 
 // Derive 2-letter initials from a display name. "Lucas Lopatka" → "LL",
 // "System Admin" → "SA", "Madonna" → "M". Falls back to '?'.
+// Single label / value row used in the Member details card. Hides
+// itself when the value is missing so the card doesn't show empty rows.
+function MemberDetailRow({ icon, label, value }: { icon: string; label: string; value?: string | null }) {
+  if (!value) return null;
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8 }}>
+      <MaterialCommunityIcons name={icon as any} size={16} color={theme.colors.textDarker} style={{ marginRight: 8, marginTop: 2 }} />
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: theme.colors.textDarker, fontSize: 10, letterSpacing: 1 }}>{label.toUpperCase()}</Text>
+        <Text style={{ color: theme.colors.text, fontSize: 13 }}>{value}</Text>
+      </View>
+    </View>
+  );
+}
+
 function initialsOf(name?: string): string {
   if (!name) return '?';
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -43,7 +58,7 @@ const ROLES: { role: Role; label: string; desc: string }[] = [
  * in: shows the "Sign in with Microsoft" button + the dev role switcher
  * underneath (for testing role-gated UI without going through real sign-in).
  */
-export default function Account() {
+export default function Account({ navigation }: { navigation?: any } = {}) {
   const dispatch = useAppDispatch();
   const { role, canonicalRole, name, signedIn, user, status, error } = useAppSelector((s) => s.auth);
 
@@ -234,6 +249,56 @@ export default function Account() {
             </Card.Content>
           </Card>
         )}
+
+        {/* Member details — read-only mirror of what shows up on Edit
+            Member. Pulled from the directory slice (Entra-seeded) and
+            only renders for signed-in users with a matching directory
+            row. Gives the user (and admin) a quick "is my profile
+            correct?" view without bouncing through Band Management. */}
+        {signedIn && me ? (
+          <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 16 }}>
+            <Card.Content>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                <MaterialCommunityIcons name="card-account-details-outline" size={20} color={theme.colors.primary} style={{ marginRight: 8 }} />
+                <Text style={{ color: theme.colors.text, fontSize: 15, flex: 1 }}>Member details</Text>
+                {isAdmin ? (
+                  <Button
+                    compact mode="text" icon="pencil"
+                    textColor={theme.colors.primary}
+                    onPress={() => (navigation as any)?.navigate?.('Admin', { screen: 'memberEdit', params: { id: me._id } })}
+                  >
+                    Edit
+                  </Button>
+                ) : null}
+              </View>
+              <MemberDetailRow icon="briefcase-outline" label="Job title" value={me.title} />
+              <MemberDetailRow icon="domain"             label="Department" value={(me as any).department} />
+              <MemberDetailRow icon="email-outline"      label="Email"      value={(me as any).email} />
+              <MemberDetailRow icon="phone-outline"      label="Phone"      value={me.phone} />
+              {me.managerName ? (
+                <MemberDetailRow icon="account-tie" label="Manager" value={me.managerName} />
+              ) : null}
+              {Array.isArray(me.bandGroups) && me.bandGroups.length > 0 ? (
+                <View style={{ marginTop: 8 }}>
+                  <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginBottom: 4 }}>
+                    SECURITY GROUPS
+                  </Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                    {me.bandGroups.map((g: string) => (
+                      <Chip
+                        key={g} compact
+                        style={{ marginRight: 6, marginBottom: 4, backgroundColor: theme.colors.secondary }}
+                        textStyle={{ color: theme.colors.text, fontSize: 10 }}
+                      >
+                        {g}
+                      </Chip>
+                    ))}
+                  </View>
+                </View>
+              ) : null}
+            </Card.Content>
+          </Card>
+        ) : null}
 
         {/* Dev role switcher --------------------------------------------- */}
         <Text style={{ color: theme.colors.textDarker, marginBottom: 8 }}>
