@@ -173,6 +173,24 @@ async function fetchRoleFromApi(upn: string): Promise<Role | null> {
 // ---- Actions -------------------------------------------------------------
 
 export const setRole = createAction<Role>('set_role');        // dev-only override
+
+// Unspoof — revert role to the signed-in user's canonical BandMember.appRole.
+// Uses cached `canonicalRole` when present; otherwise re-fetches from the
+// api/ via /v1/admin/role-for/:upn so users whose persisted state predates
+// the canonicalRole field can still revert successfully.
+export const unspoof = createAsyncThunk<
+  { role: Role; name: string } | null,
+  void,
+  { state: any; rejectValue: string }
+>(
+  'auth/unspoof',
+  async (_, { getState, rejectWithValue }) => {
+    const s = (getState() as any).auth as AuthState;
+    if (!s.user?.upn) return rejectWithValue('No signed-in user — nothing to unspoof.');
+    const role: Role = s.canonicalRole ?? (await fetchRoleFromApi(s.user.upn)) ?? deriveRoleLocally(s.user);
+    return { role, name: s.user.name || s.user.upn };
+  },
+);
 export const signOut = createAction('sign_out');
 // resetSignInStatus — clears the in-flight 'signing-in' status + any error.
 // Used when the user wants to retry after closing the Microsoft popup
@@ -469,6 +487,19 @@ const authSlice = createSlice({
       status: 'error',
       error: action.payload ?? 'Sign-in callback failed.',
     }));
+
+    // Unspoof — drops the (spoofed) label and applies the freshly
+    // resolved canonical role. Also back-fills state.canonicalRole so
+    // future toggles take the fast path through setRole's revert branch.
+    builder.addCase(unspoof.fulfilled, (state, action) => {
+      if (!action.payload) return state;
+      return {
+        ...state,
+        role: action.payload.role,
+        canonicalRole: action.payload.role,
+        name: action.payload.name,
+      };
+    });
   },
 });
 

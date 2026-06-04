@@ -5,7 +5,7 @@ import { Avatar, Button, Card, Chip, Divider, Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { PageContainer, PageContent } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
-import { resetSignInStatus, setRole, signIn, signOut } from 'skintyee/store/modules/auth';
+import { resetSignInStatus, setRole, signIn, signOut, unspoof } from 'skintyee/store/modules/auth';
 import { Role } from 'skintyee/models';
 import Config from 'skintyee/config';
 import { theme } from 'skintyee/styles';
@@ -46,10 +46,16 @@ const ROLES: { role: Role; label: string; desc: string }[] = [
 export default function Account() {
   const dispatch = useAppDispatch();
   const { role, canonicalRole, name, signedIn, user, status, error } = useAppSelector((s) => s.auth);
-  // The role-switcher is dev-only "spoof". When the active role
-  // doesn't match the signed-in user's canonical role we offer a
-  // one-tap revert so the user can drop back to their real privileges.
-  const isSpoofed = signedIn && canonicalRole && role !== canonicalRole;
+  // The role-switcher is dev-only "spoof". A user is "spoofed" if either:
+  //   - canonicalRole is known and role !== canonicalRole, OR
+  //   - canonicalRole is unknown (persisted state predates the field)
+  //     BUT the displayed name is one of the synthetic "(spoofed)"
+  //     labels setRole writes. We fall back to unspoof() which refetches
+  //     the canonical role from the api/ so the user can still revert.
+  const nameLooksSpoofed = signedIn && typeof name === 'string' && / \(spoofed\)$/.test(name);
+  const isSpoofed = !!signedIn && (
+    (canonicalRole && role !== canonicalRole) || (!canonicalRole && nameLooksSpoofed)
+  );
   const directory = useAppSelector((s) => s.directory.entities);
   const isAdmin = role === 'admin';
   const isSigningIn = status === 'signing-in';
@@ -223,11 +229,13 @@ export default function Account() {
               const isCanonical = canonicalRole === r.role;
               // When the active row is a SPOOFED role (i.e. not the
               // user's canonical role), tapping it again reverts to
-              // canonical — the "untap to unspoof" gesture. Tapping
-              // the canonical Active row is a no-op.
+              // canonical — the "untap to unspoof" gesture. If we don't
+              // know the canonical role (persisted state predates the
+              // field), call unspoof() which re-fetches from the api/.
               const onTap = () => {
-                if (isActive && isSpoofed && canonicalRole) {
-                  dispatch(setRole(canonicalRole));
+                if (isActive && isSpoofed) {
+                  if (canonicalRole) dispatch(setRole(canonicalRole));
+                  else dispatch(unspoof());
                 } else if (!isActive) {
                   dispatch(setRole(r.role));
                 }
