@@ -43,6 +43,10 @@ export default function AssignmentTimeline({ navigation, route }: any) {
   const id: string | undefined = route?.params?.id;
   const role = useAppSelector((s) => s.auth.role);
   const isAdmin = role === 'admin';
+  // Fallback display name for non-admin viewers (their own assignment).
+  // We can't call listPeople (admin-only), so we use the signed-in
+  // user's name from the auth slice. Admins still get the Person row.
+  const meName = useAppSelector((s) => s.auth.user?.name || s.auth.name);
 
   const [assignment, setAssignment] = useState<OnboardingAssignmentDto | undefined>();
   const [flow, setFlow] = useState<OnboardingFlowDto | undefined>();
@@ -66,9 +70,13 @@ export default function AssignmentTimeline({ navigation, route }: any) {
       const api = apiFactory();
       const a = await api.onboarding.getAssignment(id);
       setAssignment(a);
+      // listPeople is admin-only — non-admin viewers (workers looking
+      // at their own assignment) just skip the roster lookup. We
+      // already know the assignment is theirs because getAssignment
+      // enforces ownership on the server.
       const [f, conts, docs] = await Promise.all([
         api.onboarding.getFlow(a.flowId),
-        api.onboarding.listPeople(),
+        isAdmin ? api.onboarding.listPeople().catch(() => []) : Promise.resolve([] as PersonDto[]),
         api.documents.list().catch(() => []),
       ]);
       setFlow(f);
@@ -79,7 +87,7 @@ export default function AssignmentTimeline({ navigation, route }: any) {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, isAdmin]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
@@ -204,7 +212,9 @@ export default function AssignmentTimeline({ navigation, route }: any) {
           <Card.Content>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: theme.colors.text, fontSize: 16 }}>{person?.displayName ?? assignment.personId}</Text>
+                <Text style={{ color: theme.colors.text, fontSize: 16 }}>
+                  {person?.displayName ?? (isAdmin ? assignment.personId : meName)}
+                </Text>
                 <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginTop: 2 }}>
                   {flow.title} · {completed}/{assignment.stepStates.length} complete
                 </Text>
