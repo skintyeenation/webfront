@@ -6,6 +6,7 @@ import yaml from 'js-yaml';
 import swaggerUi from 'swagger-ui-express';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { ApiExceptionFilter } from './error-filter';
 
 // Sync the schema BEFORE Nest starts so the BandMember table is in place
 // when controllers connect. Best-effort: if DATABASE_URL is missing OR
@@ -51,6 +52,11 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors();
   app.setGlobalPrefix('v1');
+  // Catches every thrown error and logs route + status + (for 5xx)
+  // full stack to stdout, so `az containerapp logs show` is enough
+  // to debug a 500. Without this, NestJS' default filter logs only
+  // some shapes; HttpExceptions are silent.
+  app.useGlobalFilters(new ApiExceptionFilter());
 
   // Serve the OpenAPI contract + Swagger UI (contract-first: the committed
   // openapi.yaml is the source of truth).
