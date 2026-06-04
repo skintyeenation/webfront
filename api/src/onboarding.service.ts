@@ -508,7 +508,11 @@ export class OnboardingService implements OnApplicationBootstrap {
 
   /** Whether a given UPN is a timesheet-eligible worker. Drives both
    *  the worker-side AddTimesheet gate and the server's save/submit
-   *  refusal for non-eligible UPNs. */
+   *  refusal for non-eligible UPNs.
+   *
+   *  Matches case-insensitively on both Person.email AND BandMember.upn,
+   *  even though BandMember.upn is conventionally stored lowercased
+   *  (Entra seed step) — belt + suspenders. */
   async isWorkerEligible(upn: string): Promise<boolean> {
     if (!upn) return false;
     const u = upn.toLowerCase();
@@ -518,7 +522,7 @@ export class OnboardingService implements OnApplicationBootstrap {
           timesheetsEnabled: true,
           OR: [
             { email: { equals: u, mode: 'insensitive' } },
-            { bandMember: { upn: u } },
+            { bandMember: { upn: { equals: u, mode: 'insensitive' } } },
           ],
         },
         select: { id: true },
