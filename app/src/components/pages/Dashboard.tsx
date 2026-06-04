@@ -8,6 +8,7 @@ import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { loadFeed } from 'skintyee/store/modules/feed';
 import { loadRollup } from 'skintyee/store/modules/planner';
 import { loadTimeEntries } from 'skintyee/store/modules/timekeeping';
+import { apiFactory } from 'skintyee/store/apis';
 import { FeedItem, Role } from 'skintyee/models';
 import { theme } from 'skintyee/styles';
 
@@ -264,6 +265,7 @@ export default function Dashboard({ navigation }: any) {
   // not for any conditional UI on the homescreen (which by design shows
   // the same shape to everyone, just with role-tiered ITEMS).
   const role = useAppSelector((s) => s.auth.role) as Role;
+  const isAdmin = role === 'admin';
   const isStaffOrAdmin = role === 'staff' || role === 'admin';
   const { items, loading, loaded } = useAppSelector((s) => s.feed);
 
@@ -272,6 +274,19 @@ export default function Dashboard({ navigation }: any) {
   const timeEntries = useAppSelector((s) => s.timekeeping.entities);
   const pendingApprovals = timeEntries.filter((t) => !t.approved).length;
   const hoursLogged = timeEntries.reduce((s, t) => s + t.hours, 0);
+
+  // Worker-side timesheet snapshot for the current pay period — pulled
+  // when the signed-in user isn't admin so the widget can render their
+  // own hours instead of the approver-side "Review timesheets" copy.
+  const [myTimesheet, setMyTimesheet] = useState<null | { status: string; totalHours: number; week1Hours: number; week2Hours: number; overtimeHours: number }>(null);
+  const [myPeriodLabel, setMyPeriodLabel] = useState<string | undefined>();
+  const [myEligible, setMyEligible] = useState<boolean | null>(null);
+  // Open onboarding assignments for the signed-in user. Pinned alert
+  // banner at the top of the dashboard until dismissed in-session.
+  // Reloading the app re-fetches + re-shows.
+  const [openOnboardingCount, setOpenOnboardingCount] = useState(0);
+  const [openFlowTitles, setOpenFlowTitles] = useState<string[]>([]);
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
 
   const [view, setView] = useState<FeedView>('list');
 
@@ -285,6 +300,62 @@ export default function Dashboard({ navigation }: any) {
       dispatch(loadTimeEntries());
     }
   }, [dispatch, role, isStaffOrAdmin]);
+
+  // Worker-side timesheet fetch — every non-admin role check + load,
+  // gated by /me/eligible so members who aren't workers don't render
+  // an empty widget. Admins skip this block entirely (they get the
+  // approver widget).
+  useEffect(() => {
+    let cancelled = false;
+    if (isAdmin) { setMyEligible(false); return; }
+    (async () => {
+      try {
+        const api = apiFactory().timekeeping;
+        const me = await api.meEligible();
+        if (cancelled) return;
+        setMyEligible(!!me.eligible);
+        if (!me.eligible) return;
+        const my = await api.myTimesheets();
+        if (cancelled) return;
+        setMyPeriodLabel(my.period?.label);
+        if (my.current) {
+          setMyTimesheet({
+            status: my.current.status,
+            totalHours: my.current.totalHours ?? 0,
+            week1Hours: my.current.week1Hours ?? 0,
+            week2Hours: my.current.week2Hours ?? 0,
+            overtimeHours: my.current.overtimeHours ?? 0,
+          });
+        }
+      } catch { /* swallow — widget hides gracefully */ }
+    })();
+    return () => { cancelled = true; };
+  }, [isAdmin]);
+
+  // Open onboarding assignments — separate fetch so admins (who can
+  // also be assigned an onboarding flow) see the alert too. Runs once
+  // per Dashboard mount; "every time we reload" satisfied by the mount.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const as = await apiFactory().onboarding.myAssignments();
+        if (cancelled) return;
+        const open = as.filter((a) => !a.completedAt);
+        setOpenOnboardingCount(open.length);
+        // Pull titles for the alert copy — best-effort, fall back to
+        // the count-only banner if any flow lookup fails.
+        if (open.length > 0) {
+          const flows = await Promise.all(
+            open.map((a) => apiFactory().onboarding.getFlow(a.flowId).catch(() => null)),
+          );
+          if (cancelled) return;
+          setOpenFlowTitles(flows.filter(Boolean).map((f) => f!.title));
+        }
+      } catch { /* swallow — banner just doesn't render */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   // ---- My Tasks feed items (Planner tasks within ~7 days) -----------------
   // Meetings + events have their own tabs; Notifications has one too. This
@@ -321,84 +392,76 @@ export default function Dashboard({ navigation }: any) {
   return (
     <PageContainer>
       <PageContent>
-        {/* ── 1. TIME KEEPING (staff + admin) ───────────────────────────── */}
-        {isStaffOrAdmin ? (
+        {/* Pinned alert: open onboarding work. Dismissable in-session;
+            reloading the app re-fires the fetch + shows it again until
+            the underlying assignments are completed server-side. */}
+        {openOnboardingCount > 0 && !onboardingDismissed ? (
           <Card
             style={{
               backgroundColor: theme.colors.darkDefault,
-              marginBottom: 16,
-              // Border-left accent flips to red when something is waiting on
-              // the admin — visual "this needs you" cue.
+              marginBottom: 12,
               borderLeftWidth: 3,
-              borderLeftColor: pendingApprovals > 0 ? theme.colors.accent : theme.colors.primary,
+              borderLeftColor: theme.colors.accent,
             }}
           >
             <Card.Content>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-                <MaterialCommunityIcons name="clock-outline" size={18} color={theme.colors.primary} style={{ marginRight: 6 }} />
-                <Text style={{ color: theme.colors.text, fontSize: 15, flex: 1 }}>Time keeping</Text>
-                {/* Alert badge when timesheets are awaiting approval. */}
-                {pendingApprovals > 0 ? (
-                  <Badge
-                    style={{ backgroundColor: theme.colors.accent }}
-                  >
-                    {pendingApprovals === 1
-                      ? '1 timesheet to approve'
-                      : `${pendingApprovals} timesheets to approve`}
-                  </Badge>
-                ) : null}
-              </View>
-              <View style={{ flexDirection: 'row' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                <MaterialCommunityIcons name="clipboard-alert-outline" size={20} color={theme.colors.accent} style={{ marginRight: 8, marginTop: 2 }} />
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: pendingApprovals > 0 ? theme.colors.accent : theme.colors.success, fontSize: 22 }}>{pendingApprovals}</Text>
-                  <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Entries to approve</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: theme.colors.primary, fontSize: 22 }}>{hoursLogged}</Text>
-                  <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Hours logged</Text>
+                  <Text style={{ color: theme.colors.text, fontSize: 14, fontWeight: '600' }}>
+                    Onboarding incomplete
+                  </Text>
+                  <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginTop: 2 }}>
+                    {openOnboardingCount === 1
+                      ? `You have an open onboarding flow${openFlowTitles[0] ? `: ${openFlowTitles[0]}` : ''}.`
+                      : `You have ${openOnboardingCount} open onboarding flows${openFlowTitles.length ? `: ${openFlowTitles.join(', ')}` : ''}.`}
+                  </Text>
+                  <View style={{ flexDirection: 'row', marginTop: 8 }}>
+                    <Button
+                      compact mode="contained" icon="arrow-right"
+                      buttonColor={theme.colors.primary} textColor="#fff"
+                      onPress={() => navigation.navigate(isAdmin ? 'Admin' : 'More', { screen: 'myOnboarding' })}
+                    >
+                      Open
+                    </Button>
+                    <Button
+                      compact mode="text" icon="close"
+                      textColor={theme.colors.textDarker}
+                      onPress={() => setOnboardingDismissed(true)}
+                      style={{ marginLeft: 4 }}
+                    >
+                      Dismiss
+                    </Button>
+                  </View>
                 </View>
               </View>
-
-              {/* Next cut-off + days remaining — semi-monthly cycle */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: theme.colors.secondary }}>
-                <MaterialCommunityIcons name="calendar-clock" size={16} color={theme.colors.textDarker} style={{ marginRight: 6 }} />
-                <Text style={{ color: theme.colors.textDarker, fontSize: 12, flex: 1 }}>
-                  Cut-off {cutoffDate.format('ddd, MMM D')}
-                </Text>
-                <Chip
-                  compact
-                  style={{
-                    backgroundColor: daysRemaining <= 2 ? theme.colors.accent : theme.colors.secondary,
-                  }}
-                  textStyle={{ color: daysRemaining <= 2 ? '#000' : theme.colors.text, fontSize: 10 }}
-                >
-                  {daysRemaining === 0
-                    ? 'Due today'
-                    : daysRemaining === 1
-                    ? '1 day left'
-                    : `${daysRemaining} days left`}
-                </Chip>
-              </View>
-
-              <Button
-                mode={pendingApprovals > 0 ? 'contained' : 'outlined'}
-                compact
-                icon="clock-outline"
-                buttonColor={pendingApprovals > 0 ? theme.colors.accent : undefined}
-                textColor={pendingApprovals > 0 ? '#000' : theme.colors.primary}
-                style={{ marginTop: 12, alignSelf: 'flex-start' }}
-                // timekeeping lives in MoreStack (under the More/Admin tab),
-                // not DashboardStack — nested-navigate up to the tabs nav,
-                // jump to More/Admin (tab name depends on role), then drill
-                // into the timekeeping screen.
-                onPress={() =>
-                  navigation.navigate(role === 'admin' ? 'Admin' : 'More', { screen: 'timekeeping' })
-                }
-              >
-                {pendingApprovals > 0 ? 'Review timesheets' : 'Open time keeping'}
-              </Button>
             </Card.Content>
           </Card>
+        ) : null}
+
+        {/* ── 1. TIME KEEPING — admin approver card or worker self-view.
+            Both components live at the bottom of this file; see
+            AdminTimekeepingCard / MyTimekeepingCard. */}
+        {isAdmin ? (
+          <AdminTimekeepingCard
+            pendingApprovals={pendingApprovals}
+            hoursLogged={hoursLogged}
+            cutoffDate={cutoffDate}
+            daysRemaining={daysRemaining}
+            onOpen={() => navigation.navigate('Admin', { screen: 'timekeeping' })}
+          />
+        ) : myEligible ? (
+          <MyTimekeepingCard
+            status={myTimesheet?.status ?? 'not_started'}
+            totalHours={myTimesheet?.totalHours ?? 0}
+            week1Hours={myTimesheet?.week1Hours ?? 0}
+            week2Hours={myTimesheet?.week2Hours ?? 0}
+            overtimeHours={myTimesheet?.overtimeHours ?? 0}
+            periodLabel={myPeriodLabel}
+            cutoffDate={cutoffDate}
+            daysRemaining={daysRemaining}
+            onOpen={() => navigation.navigate('More', { screen: 'timekeeping' })}
+          />
         ) : null}
 
         {/* ── 2. MY PROJECTS — Planner plans as project bars ────────────── */}
@@ -494,5 +557,166 @@ export default function Dashboard({ navigation }: any) {
 
       </PageContent>
     </PageContainer>
+  );
+}
+
+// ---- TIME KEEPING widgets ------------------------------------------------
+//
+// Two role-flavoured cards that share the same outer shape: header row
+// ("Time keeping" + status/badge), totals row, cut-off footer, primary
+// CTA. Co-located in Dashboard.tsx since both are dashboard-only; if
+// either grows new use sites, lift to components/layout/.
+
+interface AdminTimekeepingCardProps {
+  pendingApprovals: number;
+  hoursLogged: number;
+  cutoffDate: moment.Moment;
+  daysRemaining: number;
+  onOpen: () => void;
+}
+
+function AdminTimekeepingCard({ pendingApprovals, hoursLogged, cutoffDate, daysRemaining, onOpen }: AdminTimekeepingCardProps) {
+  return (
+    <Card
+      style={{
+        backgroundColor: theme.colors.darkDefault,
+        marginBottom: 16,
+        // Border-left accent flips to orange when something is waiting
+        // on the admin — visual "this needs you" cue.
+        borderLeftWidth: 3,
+        borderLeftColor: pendingApprovals > 0 ? theme.colors.accent : theme.colors.primary,
+      }}
+    >
+      <Card.Content>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+          <MaterialCommunityIcons name="clock-outline" size={18} color={theme.colors.primary} style={{ marginRight: 6 }} />
+          <Text style={{ color: theme.colors.text, fontSize: 15, flex: 1 }}>Time keeping</Text>
+          {pendingApprovals > 0 ? (
+            <Badge style={{ backgroundColor: theme.colors.accent }}>
+              {pendingApprovals === 1 ? '1 timesheet to approve' : `${pendingApprovals} timesheets to approve`}
+            </Badge>
+          ) : null}
+        </View>
+        <View style={{ flexDirection: 'row' }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: pendingApprovals > 0 ? theme.colors.accent : theme.colors.success, fontSize: 22 }}>{pendingApprovals}</Text>
+            <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Entries to approve</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: theme.colors.primary, fontSize: 22 }}>{hoursLogged}</Text>
+            <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Hours logged</Text>
+          </View>
+        </View>
+        <CutoffFooter cutoffDate={cutoffDate} daysRemaining={daysRemaining} />
+        <Button
+          mode={pendingApprovals > 0 ? 'contained' : 'outlined'}
+          compact icon="clock-outline"
+          buttonColor={pendingApprovals > 0 ? theme.colors.accent : undefined}
+          textColor={pendingApprovals > 0 ? '#000' : theme.colors.primary}
+          style={{ marginTop: 12, alignSelf: 'flex-start' }}
+          onPress={onOpen}
+        >
+          {pendingApprovals > 0 ? 'Review timesheets' : 'Open time keeping'}
+        </Button>
+      </Card.Content>
+    </Card>
+  );
+}
+
+interface MyTimekeepingCardProps {
+  status: string;
+  totalHours: number;
+  week1Hours: number;
+  week2Hours: number;
+  overtimeHours: number;
+  periodLabel?: string;
+  cutoffDate: moment.Moment;
+  daysRemaining: number;
+  onOpen: () => void;
+}
+
+const MY_STATUS_LABEL: Record<string, string> = {
+  draft: 'DRAFT',
+  submitted: 'SUBMITTED',
+  approved: 'APPROVED',
+  rejected: 'REJECTED',
+  not_started: 'NOT STARTED',
+};
+
+function MyTimekeepingCard({
+  status, totalHours, week1Hours, week2Hours, overtimeHours, periodLabel,
+  cutoffDate, daysRemaining, onOpen,
+}: MyTimekeepingCardProps) {
+  // Status-driven left rule colour so a rejection / approval stands out.
+  const accent =
+      status === 'rejected'  ? theme.colors.error
+    : status === 'submitted' || status === 'in_progress' ? theme.colors.accent
+    : status === 'approved'  ? theme.colors.success
+    : theme.colors.primary;
+
+  return (
+    <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 16, borderLeftWidth: 3, borderLeftColor: accent }}>
+      <Card.Content>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+          <MaterialCommunityIcons name="clock-outline" size={18} color={theme.colors.primary} style={{ marginRight: 6 }} />
+          <Text style={{ color: theme.colors.text, fontSize: 15, flex: 1 }}>Time keeping</Text>
+          <Chip compact style={{ backgroundColor: accent }} textStyle={{ color: '#000', fontSize: 10 }}>
+            {MY_STATUS_LABEL[status] ?? status.toUpperCase()}
+          </Chip>
+        </View>
+        {periodLabel ? (
+          <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginBottom: 6 }}>
+            Pay period {periodLabel}
+          </Text>
+        ) : null}
+        <View style={{ flexDirection: 'row' }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: theme.colors.primary, fontSize: 22 }}>{totalHours}h</Text>
+            <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Total</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: theme.colors.text, fontSize: 22 }}>{week1Hours}h</Text>
+            <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Week 1</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: theme.colors.text, fontSize: 22 }}>{week2Hours}h</Text>
+            <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Week 2</Text>
+          </View>
+          {overtimeHours ? (
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: theme.colors.accent, fontSize: 22 }}>{overtimeHours}h</Text>
+              <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>OT</Text>
+            </View>
+          ) : null}
+        </View>
+        <CutoffFooter cutoffDate={cutoffDate} daysRemaining={daysRemaining} />
+        <Button
+          mode="contained" compact icon="clock-outline"
+          buttonColor={theme.colors.primary} textColor="#fff"
+          style={{ marginTop: 12, alignSelf: 'flex-start' }}
+          onPress={onOpen}
+        >
+          Open my timesheet
+        </Button>
+      </Card.Content>
+    </Card>
+  );
+}
+
+// Shared cut-off footer used by both flavours — pay-period banner with
+// the days-remaining chip.
+function CutoffFooter({ cutoffDate, daysRemaining }: { cutoffDate: moment.Moment; daysRemaining: number }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: theme.colors.secondary }}>
+      <MaterialCommunityIcons name="calendar-clock" size={16} color={theme.colors.textDarker} style={{ marginRight: 6 }} />
+      <Text style={{ color: theme.colors.textDarker, fontSize: 12, flex: 1 }}>
+        Cut-off {cutoffDate.format('ddd, MMM D')}
+      </Text>
+      <Chip compact
+        style={{ backgroundColor: daysRemaining <= 2 ? theme.colors.accent : theme.colors.secondary }}
+        textStyle={{ color: daysRemaining <= 2 ? '#000' : theme.colors.text, fontSize: 10 }}>
+        {daysRemaining === 0 ? 'Due today' : daysRemaining === 1 ? '1 day left' : `${daysRemaining} days left`}
+      </Chip>
+    </View>
   );
 }
