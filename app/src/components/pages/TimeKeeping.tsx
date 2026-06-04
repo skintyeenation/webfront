@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, TouchableOpacity, View } from 'react-native';
-import { Badge, Button, Card, Chip, Divider, HelperText, IconButton, Menu, Modal, Portal, SegmentedButtons, Text } from 'react-native-paper';
+import { Badge, Button, Card, Chip, Divider, HelperText, IconButton, Menu, Modal, Portal, SegmentedButtons, Text, TouchableRipple } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useFocusEffect } from '@react-navigation/native';
 import dayjs from 'dayjs';
@@ -426,41 +426,16 @@ function ApprovalsView({
           <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginBottom: 6 }}>
             Not submitted yet — worker is still editing. No approval action available.
           </Text>
-          {drafts.map((t) => {
-            const busy = actingOn === t.id;
-            const canEdit = canDelete;
-            return (
-              <Card key={t.id} style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 6 }}>
-                <Card.Content>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Text style={{ color: theme.colors.text, flex: 1 }}>{t.workerName}</Text>
-                    <Text style={{ color: theme.colors.textDarker, marginRight: 8 }}>{t.totalHours}h</Text>
-                    <Chip compact style={{ backgroundColor: statusColor(t.status) }} textStyle={{ color: '#000', fontSize: 10 }}>
-                      {statusLabel(t.status)}
-                    </Chip>
-                    {canEdit ? (
-                      <IconButton
-                        icon="pencil" size={18}
-                        iconColor={theme.colors.textDarker}
-                        disabled={busy}
-                        onPress={() => openEdit(t)}
-                        accessibilityLabel="Edit timesheet"
-                      />
-                    ) : null}
-                    {canDelete ? (
-                      <IconButton
-                        icon="delete" size={18}
-                        iconColor={theme.colors.textDarker}
-                        disabled={busy}
-                        onPress={() => askDelete(t)}
-                        accessibilityLabel="Delete timesheet"
-                      />
-                    ) : null}
-                  </View>
-                </Card.Content>
-              </Card>
-            );
-          })}
+          {drafts.map((t) => (
+            <DecidedRow
+              key={t.id} t={t}
+              actingOn={actingOn}
+              canEdit={canDelete}
+              canDelete={canDelete}
+              onEdit={() => openEdit(t)}
+              onDelete={() => askDelete(t)}
+            />
+          ))}
         </>
       ) : null}
 
@@ -469,50 +444,80 @@ function ApprovalsView({
           <Text style={{ color: theme.colors.accent, fontSize: 12, fontWeight: '700', letterSpacing: 1, marginTop: 16, marginBottom: 6 }}>
             ALREADY DECIDED ({done.length})
           </Text>
-          {done.map((t) => {
-            const busy = actingOn === t.id;
-            // Edit allowed for everything except an already-approved
-            // sheet. Approved → delete + worker re-submit.
-            const canEdit = canDelete && t.status !== 'approved';
-            return (
-              <Card key={t.id} style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 6 }}>
-                <Card.Content>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Text style={{ color: theme.colors.text, flex: 1 }}>{t.workerName}</Text>
-                    <Text style={{ color: theme.colors.textDarker, marginRight: 8 }}>{t.totalHours}h</Text>
-                    <Chip compact style={{ backgroundColor: statusColor(t.status) }} textStyle={{ color: '#000', fontSize: 10 }}>
-                      {statusLabel(t.status)}
-                    </Chip>
-                    {canEdit ? (
-                      <IconButton
-                        icon="pencil"
-                        size={18}
-                        iconColor={theme.colors.textDarker}
-                        disabled={busy}
-                        onPress={() => openEdit(t)}
-                        accessibilityLabel="Edit timesheet"
-                      />
-                    ) : null}
-                    {canDelete ? (
-                      <IconButton
-                        icon="delete"
-                        size={18}
-                        iconColor={theme.colors.textDarker}
-                        disabled={busy}
-                        onPress={() => askDelete(t)}
-                        accessibilityLabel="Delete timesheet"
-                      />
-                    ) : null}
-                  </View>
-                </Card.Content>
-              </Card>
-            );
-          })}
+          {done.map((t) => (
+            <DecidedRow
+              key={t.id} t={t}
+              actingOn={actingOn}
+              canEdit={canDelete && t.status !== 'approved'}
+              canDelete={canDelete}
+              onEdit={() => openEdit(t)}
+              onDelete={() => askDelete(t)}
+            />
+          ))}
         </>
       ) : null}
 
       <ConfirmHost />
     </View>
+  );
+}
+
+// Tappable row used by both DRAFTS IN PROGRESS and ALREADY DECIDED.
+// Tap anywhere on the card → opens the read-only summary modal. The
+// edit / delete IconButtons stop propagation so a tap on those doesn't
+// also open the modal.
+function DecidedRow({
+  t, actingOn, canEdit, canDelete, onEdit, onDelete,
+}: {
+  t: Timesheet;
+  actingOn?: string;
+  canEdit: boolean;
+  canDelete: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const busy = actingOn === t.id;
+  return (
+    <>
+      <TouchableRipple onPress={() => setOpen(true)} borderless={false} style={{ borderRadius: 4, marginBottom: 6 }}>
+        <Card style={{ backgroundColor: theme.colors.darkDefault }}>
+          <Card.Content>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={{ color: theme.colors.text, flex: 1 }}>{t.workerName}</Text>
+              <Text style={{ color: theme.colors.textDarker, marginRight: 8 }}>{t.totalHours}h</Text>
+              <Chip compact style={{ backgroundColor: statusColor(t.status) }} textStyle={{ color: '#000', fontSize: 10 }}>
+                {statusLabel(t.status)}
+              </Chip>
+              {canEdit ? (
+                <IconButton
+                  icon="pencil" size={18}
+                  iconColor={theme.colors.textDarker}
+                  disabled={busy}
+                  // Stop the ripple's onPress from re-firing the modal.
+                  onPress={(e: any) => { e?.stopPropagation?.(); onEdit(); }}
+                  accessibilityLabel="Edit timesheet"
+                />
+              ) : null}
+              {canDelete ? (
+                <IconButton
+                  icon="delete" size={18}
+                  iconColor={theme.colors.textDarker}
+                  disabled={busy}
+                  onPress={(e: any) => { e?.stopPropagation?.(); onDelete(); }}
+                  accessibilityLabel="Delete timesheet"
+                />
+              ) : null}
+            </View>
+          </Card.Content>
+        </Card>
+      </TouchableRipple>
+      <TimesheetDetailModal
+        visible={open}
+        timesheet={t}
+        onDismiss={() => setOpen(false)}
+      />
+    </>
   );
 }
 
@@ -658,12 +663,18 @@ function TimesheetDetailModal({
       <Modal
         visible={visible}
         onDismiss={onDismiss}
+        // Full-screen overlay — fills the viewport with margin: 0 +
+        // height/width 100% and no maxHeight cap. Inner ScrollView
+        // handles overflow.
         contentContainerStyle={{
           backgroundColor: theme.colors.background,
-          margin: 16,
-          borderRadius: 8,
-          maxHeight: '85%',
+          margin: 0,
+          flex: 1,
+          width: '100%',
+          height: '100%',
+          borderRadius: 0,
         }}
+        style={{ margin: 0 }}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: theme.colors.secondary }}>
           <View style={{ flex: 1 }}>
