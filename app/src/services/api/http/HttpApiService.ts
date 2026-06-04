@@ -119,6 +119,7 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
       setMailboxAccess: (mailboxUpn: string, users: string[]) =>
         patch<MailboxAccess>(`/admin/shared-mailboxes/${encodeURIComponent(mailboxUpn)}/access`, { users }),
       sync: () => post<any>('/admin/sync', {}),
+      createUser: (input: any) => post<any>('/admin/users', input),
     },
     events: {
       list: () => get<CommunityEvent[]>('/events'),

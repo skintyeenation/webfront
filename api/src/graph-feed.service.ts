@@ -38,6 +38,7 @@ import {
   TeamsConference,
   MeetingLink,
 } from './teams-block';
+import { deriveAppRole } from './role-derivation';
 
 export interface BandMeetingFromGraph {
   id: string;          // Graph event id
@@ -668,26 +669,14 @@ export class GraphFeedService {
           : hasTitle ? 'Staff'
           : 'Member';
 
-        // appRole is the canonical "what does the app let this person
-        // do" axis. Derivation priority (first hit wins):
-        //   1. Break-glass account → admin (no questions asked).
-        //   2. Membership in an Entra security group → matches one of
-        //      our role buckets: admins/system-admin → admin;
-        //      management/it/chief/council/band-manager → staff (or
-        //      admin for chief/council); contractors/band-members →
-        //      member.
-        //   3. Job-title heuristics (fallback when bandGroups didn't
-        //      decide it) — director/manager/admin in title → admin;
-        //      any other title → staff; no title → member.
+        // appRole — single source of truth lives in role-derivation.ts
+        // so the new Add Member endpoint matches the seed verbatim.
         const groups = bandGroupsByUser.get(u.id) ?? new Set<string>();
-        const inGroup = (slug: string) => groups.has(slug);
-        const appRole = isBreakGlass ? 'admin'
-          : (inGroup('admins') || inGroup('system-admin')) ? 'admin'
-          : (inGroup('chief') || inGroup('council')) ? 'admin'
-          : (inGroup('management') || inGroup('it') || inGroup('band-manager') || inGroup('finance')) ? 'staff'
-          : (isChief || isCouncil || /director|manager|admin/i.test(jobTitle)) ? 'admin'
-          : hasTitle ? 'staff'
-          : 'member';
+        const appRole = deriveAppRole({
+          isBreakGlass,
+          bandGroupSlugs: Array.from(groups),
+          jobTitle,
+        });
 
         // Account type — license check distinguishes shared mailboxes from
         // real users. The 13 shared mailboxes (it@, chief@, councillor1@,
@@ -789,6 +778,56 @@ export class GraphFeedService {
     }
 
     return Array.from(desired).sort();
+  }
+
+  // ---- New user provisioning (Add Member) -------------------------------
+  //
+  // POST /users — creates an internal Entra identity (not a B2B guest;
+  // see ADR-15). Caller has already validated input + chosen a one-
+  // time password. Returns the new user's id + a normalised UPN for
+  // the api/ to upsert into BandMember.
+  //
+  // Requires Graph application permission User.ReadWrite.All
+  // (scripts/setup-app-graph.sh).
+  async createBandMemberUser(input: {
+    displayName: string;
+    mailNickname: string;
+    userPrincipalName: string;
+    jobTitle?: string;
+    department?: string;
+    mobilePhone?: string;
+    password: string;
+    usageLocation?: string;        // ISO 3166-1 alpha-2; required for licensing
+    forceChangePasswordNextSignIn?: boolean;
+  }): Promise<{ id: string; userPrincipalName: string }> {
+    const tok = await this.getToken();
+    const body: any = {
+      accountEnabled: true,
+      displayName: input.displayName,
+      mailNickname: input.mailNickname,
+      userPrincipalName: input.userPrincipalName,
+      passwordProfile: {
+        forceChangePasswordNextSignIn: input.forceChangePasswordNextSignIn ?? true,
+        password: input.password,
+      },
+      usageLocation: input.usageLocation ?? 'CA',
+    };
+    if (input.jobTitle)    body.jobTitle = input.jobTitle;
+    if (input.department)  body.department = input.department;
+    if (input.mobilePhone) body.mobilePhone = input.mobilePhone;
+
+    const res = await fetch(`https://graph.microsoft.com/v1.0/users`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${tok}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Create user failed ${res.status}: ${text}`);
+    }
+    const created: any = await res.json();
+    this.log.log(`createBandMemberUser: ${created.userPrincipalName} (${created.id})`);
+    return { id: created.id, userPrincipalName: created.userPrincipalName };
   }
 
   // ---- Band Meetings (M365 calendars + Outlook categories) -------------

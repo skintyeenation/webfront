@@ -1,6 +1,7 @@
-import { Body, Controller, Delete, ForbiddenException, Get, HttpCode, Logger, NotFoundException, OnApplicationBootstrap, Param, Post, Patch, Query, Req, Res } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, HttpCode, Logger, NotFoundException, OnApplicationBootstrap, Param, Post, Patch, Query, Req, Res } from '@nestjs/common';
 import { TimekeepingReportsService } from './timekeeping-reports.service';
 import { OnboardingService } from './onboarding.service';
+import { deriveAppRole } from './role-derivation';
 import { DataService } from './data.service';
 import { Roles, callerRole } from './roles';
 import { GraphFeedService, FeedItem, AppRole } from './graph-feed.service';
@@ -546,6 +547,120 @@ export class AdminController implements OnApplicationBootstrap {
       description: g.description,
       kind: g.kind,
     }));
+  }
+
+  // POST /v1/admin/users — Slice 1 + 4 of the member-provisioning
+  // feature (docs/features/member-provisioning.md, ADR-15). Creates a
+  // real Entra user via Graph, seats them into the picked security
+  // groups, optionally chains a Person record with timesheets, and
+  // upserts BandMember in Postgres so the directory shows the row
+  // immediately. Returns the new user's id + UPN + the one-time
+  // password (the only place the admin will see it).
+  //
+  // Slice 3 (license auto-provision) is a follow-up; this endpoint
+  // doesn't call assignLicense yet — that needs the two extra Graph
+  // perms granted via setup-app-graph.sh.
+  @Post('users') @Roles('admin')
+  async createUser(@Body() b: any) {
+    if (!this.prisma.isAvailable) throw new NotFoundException('Prisma not connected — set DATABASE_URL.');
+    if (!b?.displayName || !b?.userPrincipalName || !b?.password) {
+      throw new BadRequestException('displayName, userPrincipalName, password required.');
+    }
+    const mailNickname: string =
+      b.mailNickname ?? String(b.userPrincipalName).split('@')[0];
+
+    // Validate band-group slugs up-front so a partial Graph write isn't
+    // rolled back. Unknown slugs fail fast.
+    const groupSlugs: string[] = Array.isArray(b.bandGroups) ? b.bandGroups : [];
+    const unknown = groupSlugs.filter((s) => !groupBySlug.has(s));
+    if (unknown.length) {
+      throw new BadRequestException(`Unknown group slugs: ${unknown.join(', ')}`);
+    }
+
+    // 1. Entra user via Graph
+    const created = await this.graph.createBandMemberUser({
+      displayName: b.displayName,
+      mailNickname,
+      userPrincipalName: b.userPrincipalName,
+      jobTitle: b.jobTitle,
+      department: b.department,
+      mobilePhone: b.phone,
+      password: b.password,
+      usageLocation: b.usageLocation ?? 'CA',
+      forceChangePasswordNextSignIn: b.forceChangePasswordNextSignIn ?? true,
+    });
+
+    // 2. Security-group adds (best-effort — collect per-slug failures
+    //    so the admin can retry from EditMember).
+    const failedGroups: string[] = [];
+    if (groupSlugs.length) {
+      try {
+        await this.graph.setUserBandGroups(created.id, groupSlugs, []);
+      } catch (e: any) {
+        // setUserBandGroups throws on first failure today; surface
+        // that as a list of all slugs so the admin retries the lot.
+        this.log.warn(`createUser: group writes failed for ${created.id}: ${e?.message ?? e}`);
+        failedGroups.push(...groupSlugs);
+      }
+    }
+    const persistedSlugs = failedGroups.length ? [] : groupSlugs;
+
+    // 3. Persistent BandMember row + appRole via shared derivation.
+    const appRole = deriveAppRole({
+      bandGroupSlugs: persistedSlugs,
+      jobTitle: b.jobTitle,
+    });
+    const upn = created.userPrincipalName.toLowerCase();
+    const bm = await this.prisma.bandMember.upsert({
+      where: { id: created.id },
+      create: {
+        id: created.id,
+        upn,
+        email: upn,
+        name: b.displayName,
+        role: appRole === 'admin' ? 'Staff' : appRole === 'staff' ? 'Staff' : 'Member',
+        title: b.jobTitle ?? null,
+        department: b.department ?? null,
+        phone: b.phone ?? null,
+        avatarLetter: (b.displayName?.[0] ?? '?').toUpperCase(),
+        appRole,
+        accountType: 'licensed-user',
+        bandGroups: persistedSlugs.join(','),
+        enabled: true,
+      },
+      update: {
+        upn, name: b.displayName, appRole,
+        bandGroups: persistedSlugs.join(','),
+      },
+    });
+
+    // 4. Optional Person record with timesheets enabled.
+    let person: any = null;
+    if (b.createPerson) {
+      person = await this.prisma.person.upsert({
+        where: { bandMemberId: bm.id },
+        create: {
+          displayName: b.displayName,
+          email: upn,
+          phone: b.phone ?? null,
+          bandMemberId: bm.id,
+          timesheetsEnabled: b.timesheetsEnabled !== false,
+        },
+        update: {
+          displayName: b.displayName,
+          email: upn,
+          phone: b.phone ?? null,
+          timesheetsEnabled: b.timesheetsEnabled !== false,
+        },
+      });
+    }
+
+    return {
+      bandMember: mapBandMember(bm),
+      personId: person?.id,
+      oneTimePassword: b.password,
+      failedGroups,
+    };
   }
 }
 

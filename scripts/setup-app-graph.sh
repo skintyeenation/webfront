@@ -71,7 +71,14 @@ PERMS=(
   "62a82d76-70ea-41e2-9197-370581804d09=Role:Group.ReadWrite.All"   # Read M365 Groups (plan owners) + manage security-group membership write-back
   "ef54d2bf-783f-4e0f-bca1-3210c0444d99=Role:Calendars.ReadWrite"   # Calendar events: read (Teams meetings) + create Band Meetings
   "df021288-bdef-4463-88db-98f22de89214=Role:User.Read.All"         # Assignee ID → display name lookup
+  "741f803b-c850-494e-b5df-cde7c675a1ca=Role:User.ReadWrite.All"    # ADR-15 — POST /v1/admin/users creates Entra users (Add Member form)
 )
+# Slice 3 (auto-license assignment) of the member-provisioning feature
+# adds two more permissions on top of these — kept separate so the
+# license slice ships in its own consent prompt:
+#   "5facf0c1-8979-4e95-abcf-ff3d079771c0=Role:LicenseAssignment.ReadWrite.All"
+#   "498476ce-e0fe-48b0-b801-37ba7e2685c6=Role:Organization.Read.All"
+# Uncomment + re-run when ready to ship Slice 3.
 # Note: Group.ReadWrite.All (62a82d76-…) is a superset of Group.Read.All
 # (5b567255-…). Granted because the api/'s EditMember screen writes
 # security-group memberships back via POST/DELETE /groups/{id}/members/$ref
@@ -379,6 +386,7 @@ Permissions granted (application):
                            group memberships from EditMember screen   (read/write)
   • Calendars.Read       — Calendar events (incl. Teams meetings)     (read)
   • User.Read.All        — Assignee ID → display name lookup           (read)
+  • User.ReadWrite.All   — Create new Entra users (Add Member form)    (write)
 
 What the api/ now has available (via Container App secrets):
   GRAPH_CLIENT_ID, GRAPH_CLIENT_SECRET, GRAPH_TENANT_ID

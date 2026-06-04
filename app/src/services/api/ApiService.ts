@@ -67,6 +67,28 @@ export interface ApiService {
     // (Graph) AND reconciles Exchange Online mailbox permissions into
     // the DB. Returns a summary of what changed.
     sync(): Promise<{ total: number; inserted: number; updated: number; disabled: number; reconcile: { users: number; mailboxes: number; grants: number } }>;
+    /** Provision a new Entra user via Graph + upsert BandMember +
+     *  optionally seed a Person. Returns the persisted member, the
+     *  one-time password (admin shows it once), and any group slugs
+     *  that failed to apply. See docs/features/member-provisioning.md. */
+    createUser(input: {
+      displayName: string;
+      userPrincipalName: string;
+      mailNickname?: string;
+      jobTitle?: string;
+      department?: string;
+      phone?: string;
+      password: string;
+      forceChangePasswordNextSignIn?: boolean;
+      bandGroups?: string[];
+      createPerson?: boolean;
+      timesheetsEnabled?: boolean;
+    }): Promise<{
+      bandMember: BandMember;
+      personId?: string;
+      oneTimePassword: string;
+      failedGroups: string[];
+    }>;
   };
   events: {
     list(): Promise<CommunityEvent[]>;

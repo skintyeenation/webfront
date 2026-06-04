@@ -28,6 +28,7 @@ export const mockApiService: ApiService = {
     mailboxAccess:    () => { throw new Error('admin.mailboxAccess requires the real api/ (EXO function)'); },
     setMailboxAccess: () => { throw new Error('admin.setMailboxAccess requires the real api/ (EXO function)'); },
     sync:             () => { throw new Error('admin.sync requires the real api/'); },
+    createUser:       () => { throw new Error('admin.createUser requires the real api/'); },
   },
   events: {
     list: () => delay(fixtures.events),
