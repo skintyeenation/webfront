@@ -261,7 +261,7 @@ export default function Account() {
                       textColor={isActive ? '#000' : theme.colors.primary}
                       style={{ borderColor: theme.colors.defaultBorder }}
                     >
-                      {isActive ? (isSpoofed ? 'Active · tap to unspoof' : 'Active') : 'Use'}
+                      {isActive ? (isSpoofed ? 'Unspoof' : 'Active') : 'Use'}
                     </Button>
                   </View>
                 </View>
