@@ -105,6 +105,17 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
     return res.json() as Promise<T>;
   }
 
+  async function del(path: string): Promise<void> {
+    const res = await fetch(api(path), {
+      method: 'DELETE',
+      headers: headers({ 'Cache-Control': 'no-cache' }),
+      cache: 'no-store',
+    });
+    if (!res.ok && res.status !== 204) {
+      throw new Error(`DELETE ${api(path)} → ${res.status}: ${await res.text()}`);
+    }
+  }
+
   return {
     directory: {
       list: () => get<BandMember[]>('/directory'),
@@ -121,6 +132,8 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
       sync: () => post<any>('/admin/sync', {}),
       createUser: (input: any) => post<any>('/admin/users', input),
       rotatePassword: (id: string, password?: string) => post<{ password: string }>(`/admin/users/${encodeURIComponent(id)}/rotate-password`, password ? { password } : {}),
+      setPersonPassword: (id: string, password?: string) => post<{ password: string }>(`/admin/people/${encodeURIComponent(id)}/set-password`, password ? { password } : {}),
+      revokePersonPassword: (id: string) => del(`/admin/people/${encodeURIComponent(id)}/password`),
     },
     events: {
       list: () => get<CommunityEvent[]>('/events'),

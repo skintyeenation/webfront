@@ -93,6 +93,17 @@ export interface ApiService {
      *  it isn't persisted server-side. Sets forceChangePasswordNextSignIn
      *  so the user has to change it on next sign-in. */
     rotatePassword(id: string, password?: string): Promise<{ password: string }>;
+
+    // ---- Person (staff-auth) password admin --------------------------
+    // For Person rows with bandMemberId=null only. Server rejects with
+    // 400 when the target Person is Entra-backed.
+    //
+    /** Issue or rotate a Person's app-sign-in password. Server-generates
+     *  if `password` is absent. Returns the new password ONCE (the only
+     *  place it appears — not stored client-side). */
+    setPersonPassword(id: string, password?: string): Promise<{ password: string }>;
+    /** Revoke app access for a Person without deleting the row. */
+    revokePersonPassword(id: string): Promise<void>;
   };
   events: {
     list(): Promise<CommunityEvent[]>;

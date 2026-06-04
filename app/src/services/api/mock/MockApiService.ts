@@ -30,6 +30,8 @@ export const mockApiService: ApiService = {
     sync:             () => { throw new Error('admin.sync requires the real api/'); },
     createUser:       () => { throw new Error('admin.createUser requires the real api/'); },
     rotatePassword:   () => { throw new Error('admin.rotatePassword requires the real api/'); },
+    setPersonPassword:     () => { throw new Error('admin.setPersonPassword requires the real api/ (staff-auth)'); },
+    revokePersonPassword:  () => { throw new Error('admin.revokePersonPassword requires the real api/ (staff-auth)'); },
   },
   events: {
     list: () => delay(fixtures.events),

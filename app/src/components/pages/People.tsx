@@ -20,6 +20,19 @@ import { theme } from 'skintyee/styles';
 // characters, pick from the matching directory entries, or skip the
 // link and add an external person (most contractors).
 
+// 12-char random + 'a1!' tail — matches AddMember's generator so the
+// resulting password satisfies the same complexity rule (8+ chars,
+// 3 of upper/lower/digit/symbol) the staff-auth server enforces.
+function generatePassword(): string {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  const bytes = new Uint8Array(12);
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) crypto.getRandomValues(bytes);
+  else for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+  let out = '';
+  for (const b of bytes) out += alphabet[b % alphabet.length];
+  return out + 'a1!';
+}
+
 export default function People({ navigation }: any) {
   const dispatch = useAppDispatch();
   const directory = useAppSelector((s) => s.directory.entities) as Array<any>;
@@ -40,6 +53,19 @@ export default function People({ navigation }: any) {
   const [bandSearch, setBandSearch] = useState('');
   const [bandPickerOpen, setBandPickerOpen] = useState(false);
   const [timesheetsEnabled, setTimesheetsEnabled] = useState(false);
+  // staff-auth: when adding an external Person (no band-member link)
+  // with an email, the admin can mint an app-sign-in account at the
+  // same time. Mirrors the AddMember UX:
+  //   • `password` is pre-generated; admin can edit / Regenerate before
+  //     saving so they can pick something easy to relay (rare) or just
+  //     accept the random one.
+  //   • After save, the same password is revealed ONCE in the follow-up
+  //     modal with a copy button.
+  const [createAppSignIn, setCreateAppSignIn] = useState(true);
+  const [password, setPassword] = useState<string>(generatePassword());
+  const [revealedCredential, setRevealedCredential] = useState<
+    { email: string; displayName: string; password: string } | null
+  >(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
 
@@ -105,6 +131,10 @@ export default function People({ navigation }: any) {
     setBandMemberId(undefined); setBandSearch('');
     setBandPickerOpen(false);
     setTimesheetsEnabled(false);
+    setCreateAppSignIn(true);
+    // Fresh password per add — avoids accidentally reusing a previous
+    // one across modal opens.
+    setPassword(generatePassword());
     setFormError(undefined);
   };
 
@@ -174,19 +204,58 @@ export default function People({ navigation }: any) {
           timesheetsEnabled,
         });
         setToast('Saved');
+        setModalOpen(false);
+        resetForm();
+        await load();
       } else {
-        await api.createPerson({
+        const created = await api.createPerson({
           displayName: displayName.trim(),
           email: email.trim() || undefined,
           phone: phone.trim() || undefined,
           bandMemberId,
           timesheetsEnabled,
         });
+
+        // staff-auth: optionally mint an app-sign-in password right
+        // after the create. Skip silently when there's no email or
+        // when bandMember is linked (those Persons use SSO and the
+        // server would reject the set-password call anyway).
+        const wantsAppSignIn =
+          createAppSignIn && !bandMemberId && email.trim().length > 0 && !!created?.id;
+        if (wantsAppSignIn) {
+          try {
+            // Send the admin-picked password — the same value lands
+            // in the reveal modal below so they always see what they
+            // saved, never a server-regenerated one.
+            const { password: savedPassword } =
+              await apiFactory().admin.setPersonPassword(created.id, password);
+            // Close the Add Person modal and pop the credential
+            // reveal modal — same UX as AddMember.
+            setModalOpen(false);
+            setRevealedCredential({
+              email: email.trim(),
+              displayName: displayName.trim(),
+              password: savedPassword,
+            });
+            resetForm();
+            await load();
+            return;
+          } catch (e: any) {
+            // Person is created; password issuance failed. Surface
+            // the failure so admin can rotate from EditPerson later.
+            setFormError(
+              `Person created, but couldn't set password: ${e?.message ?? e}. Issue it from Edit Person.`,
+            );
+            await load();
+            return;
+          }
+        }
+
         setToast('Person added');
+        setModalOpen(false);
+        resetForm();
+        await load();
       }
-      setModalOpen(false);
-      resetForm();
-      await load();
     } catch (e: any) {
       setFormError(e?.message ?? String(e));
     } finally {
@@ -359,6 +428,60 @@ export default function People({ navigation }: any) {
               </HelperText>
             ) : null}
 
+            {/* App sign-in — only available for external Persons with an
+                email (band-member-linked rows use Microsoft Entra SSO).
+                Hidden on edit; the EditPerson Reset/Revoke panels handle
+                rotation post-create. Same one-time-password UX as
+                AddMember: a pre-generated value with Regenerate, shown
+                ONCE in the success modal below.
+                See docs/features/staff-auth.md. */}
+            {!editingId && !selectedMember && email.trim().length > 0 ? (
+              <>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12 }}>
+                  <Switch
+                    value={createAppSignIn}
+                    onValueChange={setCreateAppSignIn}
+                    color={theme.colors.primary}
+                  />
+                  <View style={{ marginLeft: 8, flex: 1 }}>
+                    <Text style={{ color: theme.colors.text, fontSize: 13 }}>Create app sign-in</Text>
+                    <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>
+                      {email.trim()} signs in at the Account page with their email + password.
+                    </Text>
+                  </View>
+                </View>
+                {createAppSignIn ? (
+                  <>
+                    <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginTop: 12 }}>
+                      ONE-TIME PASSWORD
+                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                      <TextInput
+                        value={password}
+                        onChangeText={setPassword}
+                        mode="outlined"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        style={{ flex: 1, marginRight: 6 }}
+                      />
+                      <Button
+                        compact
+                        mode="text"
+                        icon="dice-multiple"
+                        textColor={theme.colors.textDarker}
+                        onPress={() => setPassword(generatePassword())}
+                      >
+                        Regenerate
+                      </Button>
+                    </View>
+                    <HelperText type="info" visible style={{ marginLeft: -8 }}>
+                      You'll see this once on the success screen. 8+ chars; mix of upper, lower, digit, symbol.
+                    </HelperText>
+                  </>
+                ) : null}
+              </>
+            ) : null}
+
             {/* Time Keeping toggle. When on the person becomes a worker
                 in the Approvals roster + their account is allowed to
                 save / submit timesheets via the worker-side endpoints. */}
@@ -383,6 +506,77 @@ export default function People({ navigation }: any) {
                 {editingId ? 'Save' : 'Add'}
               </Button>
             </View>
+          </Modal>
+        </Portal>
+
+        {/* One-time password reveal — shown ONCE after a Person is
+            created with createAppSignIn. Same UX as the AddMember
+            success card. Admin shares the password with the user out-
+            of-band; closing dismisses the password forever. */}
+        <Portal>
+          <Modal
+            visible={revealedCredential !== null}
+            // Dismiss only via the explicit "Done" button so an
+            // accidental backdrop tap doesn't lose the password.
+            onDismiss={() => { /* swallowed — done button only */ }}
+            dismissable={false}
+            contentContainerStyle={{
+              backgroundColor: theme.colors.darkDefault,
+              padding: 16,
+              borderRadius: 8,
+              marginHorizontal: 20,
+              alignSelf: 'center',
+              width: '90%',
+              maxWidth: 460,
+              borderLeftWidth: 3,
+              borderLeftColor: theme.colors.success,
+            }}
+          >
+            {revealedCredential ? (
+              <>
+                <Text style={{ color: theme.colors.text, fontSize: 16, fontWeight: '700' }}>
+                  ✓ Person added — app sign-in ready
+                </Text>
+                <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginTop: 4 }}>
+                  {revealedCredential.displayName} ({revealedCredential.email})
+                </Text>
+                <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginTop: 14 }}>
+                  ONE-TIME PASSWORD
+                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.04)', padding: 10, borderRadius: 4, marginTop: 4 }}>
+                  <Text selectable style={{ color: theme.colors.text, fontSize: 16, fontFamily: 'monospace', flex: 1 }}>
+                    {revealedCredential.password}
+                  </Text>
+                  <IconButton
+                    icon="content-copy"
+                    size={18}
+                    iconColor={theme.colors.textDarker}
+                    onPress={async () => {
+                      const pw = revealedCredential.password;
+                      if (typeof navigator !== 'undefined' && (navigator as any).clipboard) {
+                        try { await (navigator as any).clipboard.writeText(pw); setToast('Password copied'); return; }
+                        catch { /* fall through to inline display */ }
+                      }
+                      setToast(pw);
+                    }}
+                  />
+                </View>
+                <HelperText type="info" visible style={{ marginLeft: -8 }}>
+                  Share this with {revealedCredential.displayName} now — the password isn't stored and won't appear again. They can sign in at the Account page using their email + this password.
+                </HelperText>
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 14 }}>
+                  <Button
+                    mode="contained"
+                    icon="check"
+                    buttonColor={theme.colors.primary}
+                    textColor="#fff"
+                    onPress={() => setRevealedCredential(null)}
+                  >
+                    Done
+                  </Button>
+                </View>
+              </>
+            ) : null}
           </Modal>
         </Portal>
 
