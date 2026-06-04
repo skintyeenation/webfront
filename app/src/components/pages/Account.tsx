@@ -1,11 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Image, TouchableOpacity, View } from 'react-native';
 import { ActivityIndicator } from 'react-native';
-import { Avatar, Button, Card, Chip, Divider, Text } from 'react-native-paper';
+import { Avatar, Button, Card, Chip, Divider, HelperText, Text, TextInput } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { PageContainer, PageContent } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
-import { resetSignInStatus, setRole, signIn, signOut, unspoof } from 'skintyee/store/modules/auth';
+import { resetSignInStatus, setRole, signIn, signInStaff, signOut, unspoof } from 'skintyee/store/modules/auth';
 import { Role } from 'skintyee/models';
 import Config from 'skintyee/config';
 import { theme } from 'skintyee/styles';
@@ -58,6 +58,89 @@ const ROLES: { role: Role; label: string; desc: string }[] = [
  * in: shows the "Sign in with Microsoft" button + the dev role switcher
  * underneath (for testing role-gated UI without going through real sign-in).
  */
+
+// Staff (email + password) sign-in card. Surfaces below the Microsoft
+// button on the signed-out Account screen. Calls /v1/auth/staff/login
+// via the signInStaff thunk, which lands a JWT in auth.accessToken so
+// HttpApiService sends it as Authorization: Bearer on subsequent calls.
+// See docs/features/staff-auth.md for the design + locked decisions.
+function StaffSignInCard({ isSigningIn, error }: { isSigningIn: boolean; error: string | null }) {
+  const dispatch = useAppDispatch();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const canSubmit = email.trim().length > 0 && password.length > 0 && !isSigningIn;
+
+  const onSubmit = () => {
+    if (!canSubmit) return;
+    dispatch(resetSignInStatus());
+    dispatch(signInStaff({ email, password }));
+  };
+
+  return (
+    <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 16, borderLeftWidth: 3, borderLeftColor: theme.colors.primary }}>
+      <Card.Content>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+          <MaterialCommunityIcons name="email-outline" size={22} color={theme.colors.primary} style={{ marginRight: 8 }} />
+          <Text style={{ color: theme.colors.text, fontSize: 16, flex: 1 }}>Sign in with email</Text>
+        </View>
+        <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginBottom: 12 }}>
+          For staff and contractors who don't have a Skin Tyee Microsoft 365
+          account. An admin must have created your account first.
+        </Text>
+        <TextInput
+          label="Email"
+          value={email}
+          onChangeText={setEmail}
+          mode="outlined"
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="email-address"
+          textContentType="emailAddress"
+          style={{ marginBottom: 8 }}
+        />
+        <TextInput
+          label="Password"
+          value={password}
+          onChangeText={setPassword}
+          mode="outlined"
+          secureTextEntry={!showPassword}
+          autoCapitalize="none"
+          autoCorrect={false}
+          textContentType="password"
+          right={
+            <TextInput.Icon
+              icon={showPassword ? 'eye-off' : 'eye'}
+              onPress={() => setShowPassword((p) => !p)}
+              forceTextInputFocus={false}
+            />
+          }
+          onSubmitEditing={onSubmit}
+          style={{ marginBottom: 4 }}
+        />
+        <HelperText type="info" visible style={{ marginLeft: -8, marginBottom: 4 }}>
+          8+ characters, mix of upper, lower, digit, symbol.
+        </HelperText>
+        <Button
+          mode="contained"
+          icon="login"
+          disabled={!canSubmit}
+          onPress={onSubmit}
+          loading={isSigningIn}
+          style={{ marginTop: 6 }}
+        >
+          Sign in
+        </Button>
+        {error ? (
+          <Text style={{ color: theme.colors.accent, fontSize: 12, marginTop: 8 }}>
+            {error}
+          </Text>
+        ) : null}
+      </Card.Content>
+    </Card>
+  );
+}
+
 export default function Account({ navigation }: { navigation?: any } = {}) {
   const dispatch = useAppDispatch();
   const { role, canonicalRole, name, signedIn, user, status, error } = useAppSelector((s) => s.auth);
@@ -233,7 +316,16 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
               ) : null}
             </Card.Content>
           </Card>
-        ) : (
+        ) : null}
+
+        {/* Email + password sign-in — for Person rows without an Entra
+            identity (contractors, externals). See
+            docs/features/staff-auth.md. Surfaces only when signed-out. */}
+        {!signedIn ? (
+          <StaffSignInCard isSigningIn={isSigningIn} error={error} />
+        ) : null}
+
+        {!signedIn ? null : (
           <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 16 }}>
             <Card.Content>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>

@@ -202,6 +202,66 @@ export const signOut = createAction('sign_out');
 export const resetSignInStatus = createAction('reset_sign_in_status');
 
 // ----------------------------------------------------------------------------
+// signInStaff — email/password sign-in path for Person rows that have no
+// linked BandMember (contractors, externals, non-band-member staff).
+// See docs/features/staff-auth.md.
+//
+// POSTs to /v1/auth/staff/login, stores the returned JWT in
+// `accessToken` so HttpApiService sends it as Authorization: Bearer
+// on every subsequent call. RolesGuard on the api/ verifies the JWT
+// first, then falls back to x-role for the Entra path — so the same
+// store field drives both auth paths and the rest of the app doesn't
+// care which one signed you in.
+export const signInStaff = createAsyncThunk<
+  { token: string; user: SignedInUser; role: Role },
+  { email: string; password: string },
+  { rejectValue: string }
+>(
+  'auth/signInStaff',
+  async ({ email, password }, { rejectWithValue }) => {
+    const base = Config.apiServer;
+    if (!base || base === 'mock' || !/^https?:\/\//.test(base)) {
+      return rejectWithValue(
+        'Email sign-in needs a real api/ — set EXPO_PUBLIC_API_SERVER (currently "' + base + '").',
+      );
+    }
+    let res: Response;
+    try {
+      res = await fetch(`${base.replace(/\/+$/, '')}/v1/auth/staff/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+      });
+    } catch (e: any) {
+      return rejectWithValue(`Couldn't reach the api/: ${e?.message ?? e}`);
+    }
+    if (res.status === 401) {
+      return rejectWithValue('Email or password is incorrect.');
+    }
+    if (res.status === 429) {
+      return rejectWithValue('Too many failed attempts — try again in 15 minutes.');
+    }
+    if (!res.ok) {
+      return rejectWithValue(`Sign-in failed (${res.status}).`);
+    }
+    const body = await res.json() as {
+      token: string;
+      person: { id: string; displayName: string; email: string | null; appRole: 'staff' | 'admin' };
+    };
+    return {
+      token: body.token,
+      role: body.person.appRole,
+      user: {
+        oid: body.person.id,
+        upn: (body.person.email ?? email).toLowerCase(),
+        email: body.person.email ?? email,
+        name: body.person.displayName,
+      },
+    };
+  },
+);
+
+// ----------------------------------------------------------------------------
 // signIn — platform-appropriate Microsoft Entra OAuth flow.
 //
 //   • WEB:  full-page redirect (this thunk navigates away; the user is
@@ -489,6 +549,34 @@ const authSlice = createSlice({
       ...state,
       status: 'error',
       error: action.payload ?? 'Sign-in callback failed.',
+    }));
+
+    // signInStaff — email/password path. Same outcome shape as the
+    // Entra sign-in: signedIn=true + role/user/canonical pinned. The
+    // JWT lands in accessToken so HttpApiService sends it as Bearer.
+    builder.addCase(signInStaff.pending, (state) => ({
+      ...state, status: 'signing-in', error: null,
+    }));
+    builder.addCase(signInStaff.fulfilled, (state, action) => ({
+      ...state,
+      signedIn: true,
+      user: action.payload.user,
+      role: action.payload.role,
+      canonicalRole: action.payload.role,
+      name: action.payload.user.name || action.payload.user.email || '',
+      accessToken: action.payload.token,
+      // No Entra idToken / expiresAt for the staff path — the JWT
+      // owns its own exp claim and we treat re-login as the refresh
+      // (locked decision #1).
+      idToken: null,
+      expiresAt: null,
+      status: 'idle',
+      error: null,
+    }));
+    builder.addCase(signInStaff.rejected, (state, action) => ({
+      ...state,
+      status: 'error',
+      error: action.payload ?? 'Sign-in failed.',
     }));
 
     // Unspoof — drops the (spoofed) label and applies the freshly
