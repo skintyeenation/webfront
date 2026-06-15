@@ -1,3 +1,6 @@
+// MUST be first: starts OpenTelemetry (when OTEL_EXPORTER_OTLP_ENDPOINT is set)
+// before any instrumented library (http/express/pg) is loaded below.
+import './telemetry';
 import 'reflect-metadata';
 import fs from 'fs';
 import path from 'path';

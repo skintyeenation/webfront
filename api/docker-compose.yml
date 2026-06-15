@@ -38,6 +38,26 @@ services:
       timeout: 3s
       retries: 5
 
+  # Aspire Dashboard — standalone OpenTelemetry UI. One pane for the API's
+  # traces, metrics, and structured logs instead of bouncing between the Azure
+  # portal, `az` CLI, and Swagger. The app (run on the host via `pnpm dev`)
+  # exports OTLP/gRPC to localhost:18889; view it at http://localhost:18888.
+  #
+  #   docker compose up -d aspire-dashboard
+  #
+  # UNSECURED_ALLOW_ANONYMOUS skips the login token — fine for a local-only
+  # dashboard bound to 127.0.0.1. Production (ACA) runs the same image WITH
+  # auth — see scripts/deploy-aspire-dashboard.sh.
+  aspire-dashboard:
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:9.0
+    container_name: skintyee-aspire-dashboard
+    restart: unless-stopped
+    environment:
+      DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: "true"
+    ports:
+      - "127.0.0.1:18888:18888"   # dashboard UI
+      - "127.0.0.1:18889:18889"   # OTLP/gRPC ingestion
+
 volumes:
   skintyee-api-pgdata:
     name: skintyee-api-pgdata
