@@ -6,6 +6,15 @@
   "engines": {
     "node": ">=20"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "@prisma/client",
+      "@prisma/engines",
+      "esbuild",
+      "prisma"
+    ]
+  },
   "scripts": {
     "app": "pnpm --filter @skintyee/app",
     "lookup": "pnpm --filter @skintyee/lookup-api lookup",
