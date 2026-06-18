@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-Item *)",
+      "PowerShell(New-TemporaryFile *)",
+      "PowerShell(Add-Content *)",
+      "PowerShell(Get-Command *)",
+      "PowerShell(Test-Path *)"
+    ]
+  }
+}
