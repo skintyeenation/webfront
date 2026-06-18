@@ -140,6 +140,16 @@ Admin + on-prem Enterprise Admin credentials ready. Skip the whole step with
 - **Reopen PowerShell** after the run so PATH / profile changes (`~/.local/bin`,
   the `cc` alias) take effect in new shells.
 
+## TODO / nice-to-have
+
+- **RDS shared-computer activation (M365).** The install on the current box used
+  the default **non-RDS** mode — no `SharedComputerLicensing` — which is correct
+  for a single-admin server. **If this server is, or becomes, a multi-user RDS /
+  session-host** where several users sign into Office on the same machine,
+  reinstall Microsoft 365 with `-RdsHost` (which sets `SharedComputerLicensing=1`
+  in the config). Without it, per-user activation fails for everyone past the
+  first user. Not urgent — revisit only if/when an RDS Session Host role is added.
+
 ## See also
 
 - [`../365/entra-id.md`](../365/entra-id.md) — Entra ID, the admin account, Entra
