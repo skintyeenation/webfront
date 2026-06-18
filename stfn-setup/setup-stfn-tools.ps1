@@ -4,8 +4,10 @@
 #
 # Order:
 #   1. PATH / env  (~/.local/bin)
-#   2. Alias       (cc function in $PROFILE)
+#   2. Alias       (cc -> claude --dangerously-skip-permissions, in $PROFILE)
+#   2b. cc alias for Git Bash (~/.bashrc) + cmd.exe (doskey AutoRun)
 #   3. Claude Code CLI
+#   3b. bypassPermissions (full vibe mode) in ~/.claude/settings.json
 #   4. Module-install prereqs (TLS, NuGet, PSGallery)
 #   5. Entra-relevant Graph submodules
 #   6. Microsoft.Entra module
@@ -59,6 +61,40 @@ if ($profileContent -notmatch 'function\s+cc\b') {
     Write-Host "  cc function already defined"
 }
 
+# ---------- 2b. cc alias for Git Bash + cmd.exe ----------
+# Mirror the PowerShell `cc` into the other shells so typing `cc` launches Claude
+# in dangerously-skip-permissions mode everywhere (matches the Mac alias).
+Write-Host "=== cc alias: Git Bash (~/.bashrc) ===" -ForegroundColor Cyan
+$bashrc = Join-Path $env:USERPROFILE '.bashrc'
+$bashrcContent = if (Test-Path $bashrc) { Get-Content $bashrc -Raw } else { '' }
+if (-not $bashrcContent) { $bashrcContent = '' }
+if ($bashrcContent -notmatch 'alias cc=') {
+    Add-Content -Path $bashrc -Value "`n# Claude Code: type cc to launch in dangerously-skip-permissions mode`nalias cc='claude --dangerously-skip-permissions'"
+    Write-Host "  added cc alias to ~/.bashrc"
+} else {
+    Write-Host "  cc alias already in ~/.bashrc"
+}
+$bashProfile = Join-Path $env:USERPROFILE '.bash_profile'
+if (-not (Test-Path $bashProfile)) {
+    Set-Content -Path $bashProfile -Value '[ -f ~/.bashrc ] && . ~/.bashrc' -Encoding ASCII
+    Write-Host "  created ~/.bash_profile (sources ~/.bashrc)"
+}
+
+Write-Host "=== cc doskey macro: cmd.exe (AutoRun) ===" -ForegroundColor Cyan
+$cmdKey = 'HKCU:\Software\Microsoft\Command Processor'
+$ccMacro = 'doskey cc=claude --dangerously-skip-permissions $*'
+if (-not (Test-Path $cmdKey)) { New-Item -Path $cmdKey -Force | Out-Null }
+$autoRun = (Get-ItemProperty $cmdKey -Name AutoRun -ErrorAction SilentlyContinue).AutoRun
+if (-not $autoRun) {
+    Set-ItemProperty $cmdKey -Name AutoRun -Value $ccMacro
+    Write-Host "  set cmd AutoRun cc macro"
+} elseif ($autoRun -notmatch 'doskey cc=') {
+    Set-ItemProperty $cmdKey -Name AutoRun -Value "$autoRun & $ccMacro"
+    Write-Host "  appended cc macro to existing cmd AutoRun"
+} else {
+    Write-Host "  cc doskey already in cmd AutoRun"
+}
+
 # ---------- 3. Claude Code CLI ----------
 Write-Host "=== Claude Code CLI ===" -ForegroundColor Cyan
 $claude = Get-Command claude -ErrorAction SilentlyContinue
@@ -77,6 +113,24 @@ if ($claude) {
         Write-Host "  install manually from https://docs.claude.com/en/docs/claude-code/setup" -ForegroundColor Yellow
     }
 }
+
+# ---------- 3b. Claude Code: bypassPermissions (full vibe mode) ----------
+# Make `claude` skip all tool-permission prompts by default (belt-and-suspenders
+# with the cc alias's --dangerously-skip-permissions flag).
+Write-Host "=== Claude Code: bypassPermissions in settings.json ===" -ForegroundColor Cyan
+$ccDir = Join-Path $env:USERPROFILE '.claude'
+$ccSettings = Join-Path $ccDir 'settings.json'
+if (-not (Test-Path $ccDir)) { New-Item -ItemType Directory -Force $ccDir | Out-Null }
+$cfg = if (Test-Path $ccSettings) {
+    try { Get-Content $ccSettings -Raw | ConvertFrom-Json } catch { [PSCustomObject]@{} }
+} else { [PSCustomObject]@{} }
+if (-not ($cfg.PSObject.Properties.Name -contains 'permissions') -or $null -eq $cfg.permissions) {
+    $cfg | Add-Member -NotePropertyName permissions -NotePropertyValue ([PSCustomObject]@{}) -Force
+}
+$cfg.permissions | Add-Member -NotePropertyName defaultMode -NotePropertyValue 'bypassPermissions' -Force
+$cfg | Add-Member -NotePropertyName skipDangerousModePermissionPrompt -NotePropertyValue $true -Force
+$cfg | ConvertTo-Json -Depth 10 | Set-Content -Path $ccSettings -Encoding UTF8
+Write-Host "  set permissions.defaultMode=bypassPermissions in $ccSettings"
 
 # ---------- 4. Module-install prereqs ----------
 Write-Host "=== TLS 1.2 ===" -ForegroundColor Cyan
