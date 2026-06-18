@@ -367,6 +367,21 @@ Tooling used to build/maintain the software: **JetBrains IntelliJ IDEA Ultimate*
 🛠️ **[Developer tools & cost →](docs/developer-tools.md)** — IDE + AI assistant,
 pricing, and 100% Canadian tax-deductibility.
 
+## Server provisioning
+
+A new Skin Tyee Windows Server gets its full software baseline from a single
+one-shot, idempotent script —
+[`stfn-setup/provision-stfn-server.ps1`](stfn-setup/provision-stfn-server.ps1).
+Run it once on a freshly-built box and it installs **dev tooling** (delegated to
+`setup-stfn-tools.ps1` — Claude Code CLI, the Microsoft.Graph/Entra modules,
+Azure CLI), **1Password** (machine-wide), **Microsoft 365 Apps** (Click-to-Run),
+and stages the **Entra Connect** sync tool. It self-elevates via UAC and is
+safe to re-run (every step checks current state).
+
+🖥️ **[Server provisioning →](docs/devops/server-provisioning.md)** — what gets
+installed, the full parameter table (skip flags, M365 product/channel, RDS host,
+the Entra-Connect-on-a-DC guardrail), usage examples, and caveats.
+
 ## Pricing & costs
 
 💰 **[Pricing overview →](docs/pricing-overview.md)** — all software/service
@@ -665,6 +680,7 @@ backup to walk every existing message.
 - [`docs/devops/azure-primary-github-mirror.md`](docs/devops/azure-primary-github-mirror.md) — wire the Azure-to-GitHub read-only mirror push
 - [`docs/devops/migrate-ci-workflows.md`](docs/devops/migrate-ci-workflows.md) — port the SharePoint publisher from GitHub Actions to Azure Pipelines with federated credentials
 - [`docs/devops/agents.md`](docs/devops/agents.md) — self-hosted ADO agent guidance
+- [`docs/devops/server-provisioning.md`](docs/devops/server-provisioning.md) — one-shot, idempotent Skin Tyee Windows Server baseline (`stfn-setup/provision-stfn-server.ps1`): dev tooling (via `setup-stfn-tools.ps1`), 1Password, Microsoft 365 Apps (Click-to-Run), and the Entra Connect sync tool (DC-aware, opt-in install). Self-elevates via UAC; full parameter table + caveats
 - [`azure-pipelines/README.md`](azure-pipelines/README.md) — Azure Pipelines YAML pipeline definitions (CI/CD on the `skintyeenation`/`devops` ADO project)
 - [`azure-pipelines/publish-docs-to-sharepoint.yml`](azure-pipelines/publish-docs-to-sharepoint.yml) — Azure Pipeline that publishes `docs/` to SharePoint via workload identity federation (replaces the legacy GitHub Actions workflow once verified)
 - [`scripts/setup-sharepoint-pipeline.sh`](scripts/setup-sharepoint-pipeline.sh) — idempotent setup script that wires the federated credential + ADO service connection + variable group + pipeline registration so the YAML above can actually run (automates four of the five admin steps; see `--help` for what stays manual)
