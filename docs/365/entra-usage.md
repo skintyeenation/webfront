@@ -6,6 +6,11 @@ abstractly. This one is the **operational inventory**: every service
 and app currently relying on Entra, every app that *will* once Phase 2
 lands, and a few that deliberately won't.
 
+> **For the *current realized state*** — exactly what's provisioned and consented
+> right now (app permissions configured vs. granted, secret expiries, staff-auth
+> slice completion, open items) — see [`entra-status.md`](./entra-status.md).
+> This file is the intent/plan; that file is the live fact.
+
 ## In production today
 
 ### Identity / SSO for Microsoft surfaces
@@ -30,7 +35,7 @@ immediately revokes access everywhere.
 | **`skintyeenation-admin-cli`** | Interactive sign-in for admin tooling | Lucas / admins running the m365 CLI locally for setup tasks | Microsoft Graph **`Sites.FullControl.All`** + **`User.Read`** (Delegated); SharePoint Online **`AllSites.FullControl`** (Delegated, best-effort) | None — public client, browser-flow sign-in only |
 | **`skintyee-prod-deploy`** | App-only auth target | ADO pipelines that build/push images + update Container Apps + manage SWAs | Contributor on `skintyeeprodacr` + the 2 Container Apps + the 2 Static Web Apps in `skintyee-prod-rg` | **Federated credential** (WIF via ADO service connection) — see [`scripts/setup-api-azure.sh`](../../scripts/setup-api-azure.sh) |
 | **`skintyee-m365-backup`** *(to be created)* | App-only auth target | The M365 email backup script on the onsite Windows Server 2022 | Microsoft Graph: **`Mail.Read`** + **`Calendars.Read`** + **`Contacts.Read`** + **`User.Read.All`** (all Application) — read-only across every mailbox in the tenant | **Client secret** (24-month rotation; 1Password) — see [`scripts/setup-backup-cloud.sh`](../../scripts/setup-backup-cloud.sh) and [`docs/365/email-backup.md`](./email-backup.md) |
-| **`skintyee-app-graph`** *(to be created)* | App-only auth target | The community app's NestJS api/ — reads Planner + Teams meeting calendar data for the unified homescreen feed | Microsoft Graph: **`Tasks.Read.All`** + **`Group.Read.All`** + **`Calendars.Read`** + **`User.Read.All`** (all Application) | **Client secret** (24-month rotation; stored as Container App secret env vars) — see [`scripts/setup-app-graph.sh`](../../scripts/setup-app-graph.sh) and [`docs/features/planner-dashboard.md`](../features/planner-dashboard.md) (ADR-14) |
+| **`skintyee-app-graph`** ✅ *live + consented* | App-only auth target | The community app's NestJS api/ — Planner/Teams feed **and** directory writes (group membership) + sendMail | Microsoft Graph: **`Tasks.Read.All`** + **`User.Read.All`** + **`Group.ReadWrite.All`** + **`Calendars.ReadWrite`** (Application) + Exchange Online **`Exchange.ManageAsApp`** — broader (read-**write**) than originally planned; see [`entra-status.md`](./entra-status.md) | **Client secret** (expires 2028-06-01; stored as Container App secret env vars) — see [`scripts/setup-app-graph.sh`](../../scripts/setup-app-graph.sh) and [`docs/features/planner-dashboard.md`](../features/planner-dashboard.md) (ADR-14) |
 
 Setup walkthrough for both:
 [`sharepoint-docs-publish.md`](./sharepoint-docs-publish.md).
