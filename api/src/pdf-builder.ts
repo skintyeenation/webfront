@@ -1,12 +1,14 @@
 // Tiny hand-rolled PDF builder. Produces a valid one-or-more-page PDF
-// with positioned text using a single Helvetica font face. Same approach
-// as the NDA seed — xref offsets are computed against actual byte
-// positions so the file opens cleanly in browsers, Acrobat, and Preview.
+// with positioned text (single Helvetica face), embedded raster images
+// (FlateDecode DeviceRGB), and filled rectangles (for rule/signature
+// lines). xref offsets are computed against actual byte positions so the
+// file opens cleanly in browsers, Acrobat, and Preview.
 //
-// Limitations (deliberate — we'd rather ship a tiny zero-dep builder than
-// pull in pdfkit / pdf-lib for the POC):
-//   - No images.
-//   - No font embedding beyond Type1 Helvetica (always available).
+// Still deliberately tiny (no pdfkit / pdf-lib):
+//   - Images must be pre-deflated raw RGB (8 bpc) — see timesheet-logo.ts
+//     and scripts/gen-timesheet-logo.py. Identical images (same `key`)
+//     are embedded once and shared across pages.
+//   - Helvetica Type1 only (always available; no embedding).
 //   - No automatic line breaking — caller picks line positions.
 //
 // Coordinates are PDF-native (origin bottom-left, units = 1/72in). A US
@@ -23,22 +25,88 @@ export interface PdfLine {
   text: string;
 }
 
+/** A filled black rectangle — used for rule lines / signature lines. */
+export interface PdfRect {
+  x: number;
+  y: number;
+  /** width in points. */
+  w: number;
+  /** height in points (e.g. 0.7 for a thin rule). */
+  h: number;
+}
+
+/** A raster image placed on a page. Bytes are shared across pages by `key`. */
+export interface PdfImage {
+  /** Dedup key — identical keys embed the pixel data only once. */
+  key: string;
+  /** zlib/FlateDecode-compressed raw RGB (8 bits/component), base64. */
+  flateRgbB64: string;
+  /** Native pixel dimensions of the (deflated) image. */
+  widthPx: number;
+  heightPx: number;
+  /** Placement: bottom-left corner (PDF coords) + display size in points. */
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 export interface PdfPage {
   lines: PdfLine[];
+  rects?: PdfRect[];
+  images?: PdfImage[];
 }
 
 const PAGE_W = 612;
 const PAGE_H = 792;
 const PAGE_MARGIN = 48;
 
-// PDF strings inside (...) need basic escaping for parens + backslashes.
-function escapePdfText(s: string): string {
-  return s.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+// Map common non-ASCII Unicode → its Windows-1252 (WinAnsi) byte so the
+// Helvetica face (declared /WinAnsiEncoding below) renders it. Covers the
+// punctuation that sneaks into pasted notes — en/em dashes, smart quotes,
+// ellipsis, bullet — plus the Latin-1 accented range (é, ç, ü, …). Anything
+// outside WinAnsi (e.g. Indigenous-orthography glyphs that need a custom
+// embedded font) degrades to '?' rather than corrupting the byte stream.
+const WINANSI: Record<number, number> = {
+  0x20ac: 0x80, 0x201a: 0x82, 0x0192: 0x83, 0x201e: 0x84, 0x2026: 0x85,
+  0x2020: 0x86, 0x2021: 0x87, 0x02c6: 0x88, 0x2030: 0x89, 0x0160: 0x8a,
+  0x2039: 0x8b, 0x0152: 0x8c, 0x017d: 0x8e, 0x2018: 0x91, 0x2019: 0x92,
+  0x201c: 0x93, 0x201d: 0x94, 0x2022: 0x95, 0x2013: 0x96, 0x2014: 0x97,
+  0x02dc: 0x98, 0x2122: 0x99, 0x0161: 0x9a, 0x203a: 0x9b, 0x0153: 0x9c,
+  0x017e: 0x9e, 0x0178: 0x9f,
+};
+function toWinAnsi(s: string): string {
+  let out = '';
+  for (const ch of s) {
+    const cp = ch.codePointAt(0)!;
+    if (cp >= 0x20 && cp <= 0x7e) out += ch;
+    else if (cp >= 0xa0 && cp <= 0xff) out += String.fromCharCode(cp);
+    else if (WINANSI[cp] !== undefined) out += String.fromCharCode(WINANSI[cp]);
+    else if (cp === 0x09 || cp === 0xa0) out += ' ';
+    else out += '?';
+  }
+  return out;
 }
 
-function pageContents(lines: PdfLine[]): string {
+// PDF strings inside (...) need basic escaping for parens + backslashes.
+function escapePdfText(s: string): string {
+  return toWinAnsi(s).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+}
+
+// Content stream for one page: rectangles (filled), then images (XObject
+// draws), then text — so text and lines sit on top of any image. `imName`
+// maps an image key to its shared XObject resource name.
+function pageContents(page: PdfPage, imName: Map<string, string>): string {
   const stmts: string[] = [];
-  for (const ln of lines) {
+  for (const r of page.rects ?? []) {
+    stmts.push(`${r.x} ${r.y} ${r.w} ${r.h} re f`);
+  }
+  for (const img of page.images ?? []) {
+    const name = imName.get(img.key)!;
+    // cm = [w 0 0 h x y] scales the unit image square to w×h at (x,y).
+    stmts.push(`q ${img.w} 0 0 ${img.h} ${img.x} ${img.y} cm /${name} Do Q`);
+  }
+  for (const ln of page.lines) {
     const x = ln.x ?? PAGE_MARGIN;
     stmts.push(`BT /F1 ${ln.size} Tf ${x} ${ln.y} Td (${escapePdfText(ln.text)}) Tj ET`);
   }
@@ -46,40 +114,64 @@ function pageContents(lines: PdfLine[]): string {
 }
 
 /**
- * Build a multi-page PDF from an array of pages. The font dictionary
- * (Helvetica Type1) is shared across pages.
+ * Build a multi-page PDF. Shared objects (font + each unique image) live
+ * up front; page + content-stream objects follow.
  */
 export function buildPdf(pages: PdfPage[]): Buffer {
   if (pages.length === 0) {
     return buildPdf([{ lines: [{ size: 12, y: PAGE_H - PAGE_MARGIN, text: '(empty)' }] }]);
   }
-  // Object layout — fixed slots at the front, dynamic page + content objects after:
-  //   1 = Catalog
-  //   2 = Pages tree
-  //   3 = Font (Helvetica)
-  //   then per page: PageObj, ContentsStream
+
   const objects: string[] = [];
   const fontRef = '3 0 R';
-  // Placeholders — back-patched below once page object numbers are known.
-  objects.push('CATALOG_PLACEHOLDER');
-  objects.push('PAGES_PLACEHOLDER');
-  objects.push(`<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>`);
+  // Fixed front slots — back-patched once page numbers are known.
+  objects.push('CATALOG_PLACEHOLDER'); // 1
+  objects.push('PAGES_PLACEHOLDER');   // 2
+  objects.push(`<</Type/Font/Subtype/Type1/BaseFont/Helvetica/Encoding/WinAnsiEncoding>>`); // 3
+
+  // Embed each unique image once (by key) → object number + resource name.
+  const imObjNum = new Map<string, number>();
+  const imName = new Map<string, string>();
+  for (const page of pages) {
+    for (const img of page.images ?? []) {
+      if (imObjNum.has(img.key)) continue;
+      const bytes = Buffer.from(img.flateRgbB64, 'base64');
+      const objNum = objects.length + 1;
+      imObjNum.set(img.key, objNum);
+      imName.set(img.key, `Im${objNum}`);
+      objects.push(
+        `<</Type/XObject/Subtype/Image/Width ${img.widthPx}/Height ${img.heightPx}` +
+        `/ColorSpace/DeviceRGB/BitsPerComponent 8/Filter/FlateDecode/Length ${bytes.length}>>` +
+        `\nstream\n${bytes.toString('binary')}\nendstream`,
+      );
+    }
+  }
 
   const pageObjNumbers: number[] = [];
   pages.forEach((page) => {
     const contentObjNum = objects.length + 1;
-    const stream = pageContents(page.lines);
+    const stream = pageContents(page, imName);
     objects.push(`<</Length ${stream.length}>>\nstream\n${stream}\nendstream`);
     const pageObjNum = objects.length + 1;
     pageObjNumbers.push(pageObjNum);
-    objects.push(`<</Type/Page/Parent 2 0 R/MediaBox[0 0 ${PAGE_W} ${PAGE_H}]/Contents ${contentObjNum} 0 R/Resources<</Font<</F1 ${fontRef}>>>>>>`);
+    // Per-page XObject dict listing only the images this page draws.
+    const usedKeys = Array.from(new Set((page.images ?? []).map((i) => i.key)));
+    const xobj = usedKeys.length
+      ? `/XObject<<${usedKeys.map((k) => `/${imName.get(k)} ${imObjNum.get(k)} 0 R`).join('')}>>`
+      : '';
+    objects.push(
+      `<</Type/Page/Parent 2 0 R/MediaBox[0 0 ${PAGE_W} ${PAGE_H}]/Contents ${contentObjNum} 0 R` +
+      `/Resources<</Font<</F1 ${fontRef}>>${xobj}>>>>`,
+    );
   });
+
   // Back-patch the catalog + pages tree.
   objects[0] = '<</Type/Catalog/Pages 2 0 R>>';
   const kids = pageObjNumbers.map((n) => `${n} 0 R`).join(' ');
   objects[1] = `<</Type/Pages/Kids[${kids}]/Count ${pages.length}>>`;
 
-  // Serialize w/ accurate xref offsets.
+  // Serialize w/ accurate xref offsets. 'binary' (latin1) keeps the image
+  // bytes 1:1 with their string length, so the offsets stay correct.
   const header = '%PDF-1.4\n';
   const offsets: number[] = [0]; // slot 0 = free
   let cursor = header.length;
