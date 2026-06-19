@@ -51,6 +51,7 @@ attached inline (`cid:logo.png`) so it renders without external hosting.
 | **Staff sign-in (OTP)** | `POST /v1/admin/users` with `createPerson:true` (adding a **staff** member) | the new staff member (`notifyEmail` overrides; defaults to their UPN) | username + one-time password + sign-in link + optional admin note. **Plain band-member adds do _not_ get this.** |
 | **Community notification** | `POST /v1/notifications` | **all band members** — everyone in the `band-members` Entra group (incl. band members who are also staff). **Non-band-member staff are excluded.** | the notification title + body + category |
 | **Timesheet — submitted / edited / approved / rejected** | the matching `/v1/timekeeping/timesheets/*` endpoints | the **worker** + the **`admins` group** | a per-event **"what changed"** summary (status, hour/OT/week diffs, per-day entry changes; rejection reason) + current totals |
+| **Staff account removed (offboarding)** | `DELETE /v1/onboarding/people/:id` | the **`admins` group** + the person's **non-`skintyee.ca`** email (their `@skintyee.ca` mailbox is gone) | name, account, who deleted it |
 
 **Not emailed:** Teams / Microsoft 365 **meetings & events** — Microsoft 365
 already sends those calendar invites/notifications.

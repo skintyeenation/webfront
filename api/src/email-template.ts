@@ -188,6 +188,34 @@ export function renderNotificationEmail(opts: {
   return { subject: opts.title, html, text: toPlainText(html) };
 }
 
+/** Offboarding — a staff app account was deleted. To the admins group (audit)
+ *  and the person's non-skintyee.ca email (since their @skintyee.ca is gone). */
+export function renderAccountDeletedEmail(opts: {
+  personName: string;
+  personEmail?: string;
+  deletedBy?: string;
+}): { subject: string; html: string; text: string } {
+  const c = BRAND.colors;
+  const row = (label: string, val: string) =>
+    `<tr><td style="padding:5px 0; font-size:13px; color:${c.muted};">${esc(label)}</td><td style="padding:5px 0; font-size:13px; color:${c.ink}; text-align:right; font-weight:600;">${esc(val)}</td></tr>`;
+  const bodyHtml = `
+    <p style="margin:0 0 16px; font-size:14px; line-height:1.6;">
+      A ${esc(BRAND.name)} staff app account has been <strong>removed</strong>${opts.deletedBy ? ` by ${esc(opts.deletedBy)}` : ''}.
+      Access to the app and related staff records has been revoked.
+    </p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;">
+      <tr><td style="padding:16px 20px; background:${c.panel}; border:1px solid ${c.border}; border-radius:8px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          ${row('Name', opts.personName)}
+          ${opts.personEmail ? row('Account', opts.personEmail) : ''}
+        </table>
+      </td></tr>
+    </table>
+    <p style="margin:0; font-size:12px; color:${c.muted};">If this wasn't expected, contact the band office at ${esc(BRAND.phone)}.</p>`;
+  const html = renderEmail({ title: 'Staff account removed', bodyHtml, preheader: `${opts.personName} — account removed` });
+  return { subject: `Account removed — ${opts.personName}`, html, text: toPlainText(html) };
+}
+
 export type TimesheetEvent = 'submitted' | 'edited' | 'approved' | 'rejected';
 
 /**

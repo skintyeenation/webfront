@@ -1,12 +1,15 @@
 import {
   BadRequestException,
   Body, Controller, Delete, ForbiddenException, Get,
-  HttpCode, NotFoundException, Param, Patch, Post, Query, Req,
+  HttpCode, Logger, NotFoundException, Param, Patch, Post, Query, Req,
   UploadedFile, UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Roles, callerRole } from './roles';
 import { OnboardingService, StepCompletion } from './onboarding.service';
+import { PrismaService } from './prisma.service';
+import { MailgunService } from './mailgun.service';
+import { renderAccountDeletedEmail } from './email-template';
 
 function readCallerUpn(req: any): string {
   return (req.headers['x-upn'] as string | undefined) || 'unknown';
@@ -23,7 +26,12 @@ function readCallerUpn(req: any): string {
 
 @Controller('onboarding')
 export class OnboardingController {
-  constructor(private readonly svc: OnboardingService) {}
+  private readonly log = new Logger(OnboardingController.name);
+  constructor(
+    private readonly svc: OnboardingService,
+    private readonly prisma: PrismaService,
+    private readonly mailgun: MailgunService,
+  ) {}
 
   // ---- Flows -------------------------------------------------------------
 
@@ -125,8 +133,42 @@ export class OnboardingController {
     if (!r) throw new NotFoundException();
     return r;
   }
-  @Delete('people/:id') @Roles('admin') @HttpCode(204) async deletePerson(@Param('id') id: string) {
+  @Delete('people/:id') @Roles('admin') @HttpCode(204) async deletePerson(@Param('id') id: string, @Req() req: any) {
+    // Capture identity BEFORE deletion so the offboarding email can name them.
+    const person = this.prisma.isAvailable
+      ? await this.prisma.person.findUnique({ where: { id }, select: { displayName: true, email: true } })
+      : null;
+
     await this.svc.deletePerson(id);
+
+    // Offboarding email — to the admins group (audit) + the person's
+    // non-skintyee.ca email (their @skintyee.ca mailbox is being removed, so
+    // it's no use sending there). Best-effort: never fails the delete.
+    if (person && this.prisma.isAvailable) {
+      try {
+        const members = await this.prisma.bandMember.findMany({
+          where: { enabled: true },
+          select: { email: true, bandGroups: true },
+        });
+        const admins = members
+          .filter((m) => (m.bandGroups ?? '').split(',').map((s) => s.trim()).includes('admins'))
+          .map((m) => m.email)
+          .filter((e): e is string => !!e);
+        const external = person.email && !/@skintyee\.ca$/i.test(person.email) ? [person.email] : [];
+        const recipients = [...new Set([...admins, ...external])];
+        if (recipients.length) {
+          const by = readCallerUpn(req);
+          const mail = renderAccountDeletedEmail({
+            personName: person.displayName,
+            personEmail: person.email ?? undefined,
+            deletedBy: by !== 'unknown' ? by : undefined,
+          });
+          await this.mailgun.sendBulk({ recipients, subject: mail.subject, html: mail.html, text: mail.text });
+        }
+      } catch (e: any) {
+        this.log.warn(`offboarding email failed for person ${id}: ${e?.message ?? e}`);
+      }
+    }
   }
 
   @Post('people') @Roles('admin') async createPerson(@Body() b: any) {
