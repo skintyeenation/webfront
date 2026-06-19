@@ -62,15 +62,20 @@ P1 assigned** to each user who'll use SSPR.
 *On the `STFN.local` box running Azure AD Connect (likely the DC or a server
 beside it). This is the linchpin — it can't be done from the cloud.*
 
-- **Wizard:** launch **Azure AD Connect** → *Configure* → *Customize
-  synchronization options* → *Optional features* → tick ✅ **Password
-  writeback** → Next → Finish, **or**
-- **PowerShell** on that server (the `-Connector` parameter is **mandatory** — it's
-  the AAD/cloud connector name; run `Get-ADSyncConnector | Select Name` to confirm
-  it):
+- **Wizard (preferred — reliable):** launch **Azure AD Connect** → *Configure* →
+  *Customize synchronization options* → sign in to Entra → *Optional features* →
+  tick ✅ **Password writeback** → Next → Configure → "Configuration complete". It
+  re-authenticates to Azure and provisions writeback on both sides.
+- **PowerShell (alternative, finicky):** `-Connector` is **mandatory** (the
+  AAD/cloud connector name; `Get-ADSyncConnector | Select Name`):
   ```powershell
   Set-ADSyncAADPasswordResetConfiguration -Connector "skintyeenation.onmicrosoft.com - AAD" -Enable $true
   ```
+  > ⚠️ Seen 2026-06-19: this cmdlet failed with **`E_FAIL` / "Password reset
+  > configuration may be in an invalid state. Try removing the configuration."**
+  > Fix: clear it (`-Enable $false`) then retry, or — better — **use the wizard
+  > above**, which succeeds where the cmdlet chokes. Check *Event Viewer →
+  > Application* (source `ADSync`) for the underlying cause if it persists.
 - The AAD Connect **connector account** (`MSOL_f5db7948b14f`) needs *Reset
   Password* + *Change Password* + write to `lockoutTime` / `pwdLastSet` on the
   *SkinTyee Users* OU. Grant them with
