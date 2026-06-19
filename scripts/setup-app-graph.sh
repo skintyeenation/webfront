@@ -12,6 +12,10 @@
 #                            /groups/{id}/members/$ref).
 #   - Calendars.Read       — calendar events including Teams meetings
 #   - User.Read.All        — resolve task-assignee user IDs → display names
+#   - User.ReadWrite.All   — create Entra users (Add Member)
+#   - LicenseAssignment.ReadWrite.All — assign/remove SKUs from EditMember
+#   - Organization.Read.All — read subscribedSkus (license catalog + seats)
+#   - Mail.Send            — staff-auth password-reset emails
 #
 # Reads + grants admin consent + assigns the Privileged Authentication
 # Administrator directory role (required for admin password resets) +
@@ -75,13 +79,9 @@ PERMS=(
   "df021288-bdef-4463-88db-98f22de89214=Role:User.Read.All"         # Assignee ID → display name lookup
   "741f803b-c850-494e-b5df-cde7c675a1ca=Role:User.ReadWrite.All"    # ADR-15 — POST /v1/admin/users creates Entra users (Add Member form)
   "b633e1c5-b582-4048-a93e-9f11b44c7e96=Role:Mail.Send"             # Staff-auth: forgot-password reset link emails sent from info@skintyee.ca
+  "5facf0c1-8979-4e95-abcf-ff3d079771c0=Role:LicenseAssignment.ReadWrite.All"  # EditMember license toggles — assign/remove SKUs (Business Standard, Entra ID P1)
+  "498476ce-e0fe-48b0-b801-37ba7e2685c6=Role:Organization.Read.All" # Read subscribedSkus — license catalog + seat availability for EditMember
 )
-# Slice 3 (auto-license assignment) of the member-provisioning feature
-# adds two more permissions on top of these — kept separate so the
-# license slice ships in its own consent prompt:
-#   "5facf0c1-8979-4e95-abcf-ff3d079771c0=Role:LicenseAssignment.ReadWrite.All"
-#   "498476ce-e0fe-48b0-b801-37ba7e2685c6=Role:Organization.Read.All"
-# Uncomment + re-run when ready to ship Slice 3.
 # Note: Group.ReadWrite.All (62a82d76-…) is a superset of Group.Read.All
 # (5b567255-…). Granted because the api/'s EditMember screen writes
 # security-group memberships back via POST/DELETE /groups/{id}/members/$ref
