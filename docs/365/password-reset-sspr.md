@@ -108,14 +108,17 @@ reset**:
 ## Status checklist
 
 - [x] Entra ID P1 purchased + assigned (SSPR prerequisite)
-- [ ] **Step 1** — password writeback enabled on the Azure AD Connect server
-      (`passwordWritebackEnabled` still **false**) ← **blocker**
-- [ ] **Step 2** — SSPR enabled + writeback toggled on in Entra
+- [x] **Step 1** — password writeback enabled on the Azure AD Connect server
+      (**2026-06-19**): enabled via the wizard *Optional features* → confirmed by
+      `Set-ADSyncAADPasswordResetConfiguration … -Enable $true` returning
+      *"Password Reset Configuration … updated"*; connector account
+      `MSOL_f5db7948b14f` granted Reset/Change Password + write
+      `lockoutTime`/`pwdLastSet` on `OU=SkinTyee Users` (verified).
+- [ ] **Step 2** — SSPR enabled + writeback toggled on in Entra ← **next**
 - [ ] **Step 3** — users registered + reset tested
 
-**Open question:** confirmed access to the `STFN.local` Azure AD Connect /
-domain-controller server. Without it, Step 1 is impossible and on-prem reset
-(section A) remains the only path.
+> Access to the `STFN.local` Azure AD Connect / DC server is **confirmed** — Step 1
+> was completed on it. (`STFN-DC`, Entra Connect v2.4.129.0.)
 
 ---
 
