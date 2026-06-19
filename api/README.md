@@ -52,7 +52,8 @@ email clients than an inline `cid:` attachment.
 |---|---|---|---|
 | **Staff sign-in (OTP)** | `POST /v1/admin/users` with `createPerson:true` (adding a **staff** member) | the new staff member (`notifyEmail` overrides; defaults to their UPN) | username + one-time password + sign-in link + optional admin note. **Plain band-member adds do _not_ get this.** |
 | **Community notification** | `POST /v1/notifications` | **all band members** — everyone in the `band-members` Entra group (incl. band members who are also staff). **Non-band-member staff are excluded.** | the notification title + body + category |
-| **Timesheet — submitted / edited / approved / rejected** | the matching `/v1/timekeeping/timesheets/*` endpoints | the **worker** + the **`admins` group** | a per-event **"what changed"** summary (status, hour/OT/week diffs, per-day entry changes; rejection reason) + current totals |
+| **Timesheet — submitted / approved / rejected** | the matching `/v1/timekeeping/timesheets/*` endpoints | the **worker** + the **`admins` group** | a per-event **"what changed"** summary (status, hour/OT/week diffs, per-day entry changes; rejection reason) + current totals |
+| **Timesheet — edited** (admin edits a worker's sheet) | `PATCH /v1/timekeeping/timesheets/admin/:id` | the **worker** + the **editing admin only** (not the whole group) | the same "what changed" summary. **Draft sheets don't email** — a sheet that's never been submitted/approved isn't in the approval pipeline yet, so edits to it are silent. (Adding a timesheet sends no email either.) |
 | **Staff account removed (offboarding)** | `DELETE /v1/onboarding/people/:id` | the **`admins` group** + the person's **non-`skintyee.ca`** email (their `@skintyee.ca` mailbox is gone) | name, account, who deleted it |
 
 **Not emailed:** Teams / Microsoft 365 **meetings & events** — Microsoft 365
@@ -64,13 +65,28 @@ already sends those calendar invites/notifications.
 |---|---|---|
 | `MAILGUN_API_KEY` | ✅ | Mailgun private API key (Container App secret in prod) |
 | `MAILGUN_DOMAIN` | ✅ | verified sending domain, e.g. `mg.skintyee.ca` |
-| `MAILGUN_FROM` | — | default `Skin Tyee First Nation <it@skintyee.ca>` |
+| `MAILGUN_FROM` | — | **default** sender `Skin Tyee First Nation <it@skintyee.ca>` (overridable at runtime — see below) |
+| `MAILGUN_REPLY_TO` | — | **default** Reply-To (overridable at runtime); unset ⇒ no Reply-To header |
 | `MAILGUN_BASE_URL` | — | default `https://api.mailgun.net` (EU: `https://api.eu.mailgun.net`) |
 | `APP_SIGNIN_URL` | — | sign-in link in the OTP email (default `https://app.skintyee.ca`) |
 
 > **Setup:** create a Mailgun sending domain and add its DNS records (SPF/DKIM/
 > tracking) at the registrar, verify in Mailgun, then set `MAILGUN_API_KEY` +
 > `MAILGUN_DOMAIN`. Opt a single message out with `sendEmail:false` in the body.
+
+### Runtime config — `GET/PUT /v1/admin/notification-settings` (admin)
+
+The app's **System → Configure Notifications** screen (admin-only) drives a
+small settings store ([`src/settings.service.ts`](./src/settings.service.ts),
+persisted in the `AppSetting` table; in-memory fallback when Prisma is down):
+
+- **Per-category kill-switches** — globally enable/disable each class of system
+  email: `staffOtp`, `communityNotifications`, `timesheetEvents`,
+  `accountDeleted`. A disabled category short-circuits the send at the call site.
+- **Sender identity** — `fromName` / `fromEmail` (the Mailgun `From`) and
+  `replyTo` (the `Reply-To` header), applied to **every** outgoing email by
+  `MailgunService`. These default to the `MAILGUN_FROM` / `MAILGUN_REPLY_TO`
+  env values until an admin overrides them in the UI.
 
 ---
 
