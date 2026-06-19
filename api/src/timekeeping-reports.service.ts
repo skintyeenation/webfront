@@ -5,6 +5,7 @@ import { DocumentStorageAdapter } from './storage/document-storage';
 import { recentPayPeriods, payPeriodFor, PayPeriod } from './skintyee-pay-periods';
 import { buildPdf, PdfLine, PdfRect, PdfImage, PDF_CONST } from './pdf-builder';
 import { TIMESHEET_LOGO } from './timesheet-logo';
+import { BRAND } from './email-template';
 import dayjs from 'dayjs';
 
 // ---- PDF layout helpers ----------------------------------------------------
@@ -311,53 +312,82 @@ export class TimekeepingReportsService {
     type Page = { lines: PdfLine[]; rects: PdfRect[]; images: PdfImage[] };
     const pages: Page[] = [];
 
-    // Cover sheet — centered logo above the report summary.
+    const ACCENT_H = 1.4;
+    const contactLine1 = `${BRAND.tagline}  ·  ${BRAND.address}`;
+    const contactLine2 = `${BRAND.phone}  ·  ${BRAND.email}  ·  ${BRAND.website}`;
+
+    // Letterhead — Skin Tyee logo on the LEFT + full band info/contact to its
+    // right + an accent rule. Shown on every worker page (matches the emails).
+    // Returns the y where page content should begin.
+    const letterhead = (page: Page): number => {
+      const logoW = 50;
+      const logoH = (logoW * TIMESHEET_LOGO.heightPx) / TIMESHEET_LOGO.widthPx;
+      page.images.push(logoImage(PAGE_MARGIN, TOP_Y + 6, logoW));
+      const tx = PAGE_MARGIN + logoW + 12;
+      page.lines.push({ size: 12, x: tx, y: TOP_Y - 2, text: BRAND.name });
+      page.lines.push({ size: 7.5, x: tx, y: TOP_Y - 13, text: contactLine1 });
+      page.lines.push({ size: 7.5, x: tx, y: TOP_Y - 23, text: contactLine2 });
+      const ruleY = TOP_Y - logoH - 6;
+      page.rects.push({ x: PAGE_MARGIN, y: ruleY, w: PAGE_W - 2 * PAGE_MARGIN, h: ACCENT_H });
+      return ruleY - 18;
+    };
+
+    // Cover sheet — fully centered: logo, band letterhead/contact, report title,
+    // then the period summary.
     {
-      const lines: PdfLine[] = [];
-      const images: PdfImage[] = [];
-      const logoW = 150;
-      images.push(logoImage((PAGE_W - logoW) / 2, TOP_Y, logoW));
-      let y = TOP_Y - (logoW * TIMESHEET_LOGO.heightPx) / TIMESHEET_LOGO.widthPx - 28;
-      lines.push({ size: 22, y, text: `Skin Tyee Timesheet Report` });
+      const page: Page = { lines: [], rects: [], images: [] };
+      const logoW = 130;
+      const logoH = (logoW * TIMESHEET_LOGO.heightPx) / TIMESHEET_LOGO.widthPx;
+      page.images.push(logoImage((PAGE_W - logoW) / 2, TOP_Y, logoW));
+      let y = TOP_Y - logoH - 22;
+      page.lines.push({ size: 18, y, center: true, text: BRAND.name });
+      y -= 16;
+      page.lines.push({ size: 9, y, center: true, text: contactLine1 });
+      y -= 12;
+      page.lines.push({ size: 9, y, center: true, text: contactLine2 });
+      y -= 12;
+      const rw = 380;
+      page.rects.push({ x: (PAGE_W - rw) / 2, y, w: rw, h: ACCENT_H });
+      y -= 30;
+      page.lines.push({ size: 20, y, center: true, text: 'Timesheet Report' });
+      y -= 24;
+      page.lines.push({ size: 13, y, center: true, text: `Pay period ${period.label}` });
+      y -= 17;
+      page.lines.push({ size: 10, y, center: true, text: `Cutoff ${dayjs(period.endISO).format('ddd MMM D, YYYY')}  ·  Pay date ${dayjs(period.payDateISO).format('ddd MMM D, YYYY')}` });
       y -= 26;
-      lines.push({ size: 14, y, text: `Pay period ${period.label}` });
-      y -= 18;
-      lines.push({ size: 11, y, text: `Cutoff ${dayjs(period.endISO).format('ddd MMM D, YYYY')} - Pay date ${dayjs(period.payDateISO).format('ddd MMM D, YYYY')}` });
-      y -= 24;
-      lines.push({ size: 12, y, text: `Workers: ${timesheets.length}` });
-      y -= 16;
+      page.lines.push({ size: 11, y, center: true, text: `Workers: ${timesheets.length}` });
+      y -= 15;
       const totalHours = timesheets.reduce((s, t) => s + (t.totalHours ?? 0), 0);
-      lines.push({ size: 12, y, text: `Total hours: ${Math.round(totalHours * 100) / 100}` });
-      y -= 16;
+      page.lines.push({ size: 11, y, center: true, text: `Total hours: ${Math.round(totalHours * 100) / 100}` });
+      y -= 15;
       const totalOT = timesheets.reduce((s, t) => s + (t.overtimeHours ?? 0), 0);
-      lines.push({ size: 12, y, text: `Total OT: ${Math.round(totalOT * 100) / 100}` });
-      y -= 24;
-      lines.push({ size: 10, y, text: `Generated ${dayjs().format('YYYY-MM-DD HH:mm')} - Skin Tyee Time Keeping` });
-      pages.push({ lines, rects: [], images });
+      page.lines.push({ size: 11, y, center: true, text: `Total OT: ${Math.round(totalOT * 100) / 100}` });
+      y -= 26;
+      page.lines.push({ size: 9, y, center: true, text: `Generated ${dayjs().format('YYYY-MM-DD HH:mm')}  ·  Skin Tyee Time Keeping` });
+      pages.push(page);
     }
 
-    // A fresh worker page: name header + a small logo top-right. `meta` is
-    // omitted for continuation pages (entries overflow / notes continued).
+    // A fresh worker page: the letterhead (logo left + band info) then the
+    // worker's name + meta. `meta` omitted for continuation pages.
     const newWorkerPage = (title: string, meta?: { t: any }): { page: Page; y: number } => {
-      const lines: PdfLine[] = [];
-      const images: PdfImage[] = [logoImage(PAGE_W - PAGE_MARGIN - 64, TOP_Y + 8, 64)];
-      let y = TOP_Y;
-      lines.push({ size: 16, y, text: title });
-      y -= 18;
+      const page: Page = { lines: [], rects: [], images: [] };
+      let y = letterhead(page);
+      page.lines.push({ size: 14, y, text: title });
+      y -= 16;
       if (meta) {
         const t = meta.t;
-        lines.push({ size: 10, y, text: `${t.workerUpn} - ${period.label}` });
-        y -= 16;
-        lines.push({ size: 10, y, text: `Status: ${(t.status as string).toUpperCase()} - Total ${t.totalHours}h - OT ${t.overtimeHours}h - W1 ${t.week1Hours}h - W2 ${t.week2Hours}h` });
-        y -= 22;
+        page.lines.push({ size: 10, y, text: `${t.workerUpn}  ·  ${period.label}` });
+        y -= 14;
+        page.lines.push({ size: 10, y, text: `Status: ${(t.status as string).toUpperCase()} - Total ${t.totalHours}h - OT ${t.overtimeHours}h - W1 ${t.week1Hours}h - W2 ${t.week2Hours}h` });
+        y -= 18;
         if (t.submittedAt) {
-          lines.push({ size: 9, y, text: `Submitted ${dayjs(t.submittedAt).format('YYYY-MM-DD HH:mm')}${t.approvedBy ? ` - Approved by ${t.approvedBy}` : ''}${t.rejectedReason ? ` - Rejected: ${t.rejectedReason}` : ''}` });
-          y -= 18;
+          page.lines.push({ size: 9, y, text: `Submitted ${dayjs(t.submittedAt).format('YYYY-MM-DD HH:mm')}${t.approvedBy ? ` - Approved by ${t.approvedBy}` : ''}${t.rejectedReason ? ` - Rejected: ${t.rejectedReason}` : ''}` });
+          y -= 16;
         }
       } else {
-        y -= 4;
+        y -= 2;
       }
-      return { page: { lines, rects: [], images }, y };
+      return { page, y };
     };
 
     // Employee/Contractor + Manager signature lines in a fixed bottom band.

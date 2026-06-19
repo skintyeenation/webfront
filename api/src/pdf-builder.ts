@@ -19,10 +19,31 @@ export interface PdfLine {
   size: number;
   /** Y baseline in PDF coords (bottom-left origin). */
   y: number;
-  /** X position (defaults to PAGE_MARGIN). */
+  /** X position (defaults to PAGE_MARGIN). Ignored when `center` is set. */
   x?: number;
   /** Text content. */
   text: string;
+  /** Horizontally center the text on the page (overrides `x`). */
+  center?: boolean;
+}
+
+// Helvetica glyph advance widths (per 1000 units) for ASCII 32–126 — enough to
+// measure text for centering. Anything outside that range falls back to 556.
+const HELV_W: number[] = [
+  278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278, 278,
+  556, 556, 556, 556, 556, 556, 556, 556, 556, 556, 278, 278, 584, 584, 584, 556,
+  1015, 667, 667, 722, 722, 667, 611, 778, 722, 278, 500, 667, 556, 833, 722, 778,
+  667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 278, 278, 278, 469, 556,
+  333, 556, 556, 500, 556, 556, 278, 556, 556, 222, 222, 500, 222, 833, 556, 556,
+  556, 556, 333, 500, 278, 556, 500, 722, 500, 500, 500, 334, 260, 334, 584,
+];
+function textWidth(text: string, size: number): number {
+  let w = 0;
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charCodeAt(i);
+    w += (c >= 32 && c <= 126 ? HELV_W[c - 32] : 556);
+  }
+  return (w * size) / 1000;
 }
 
 /** A filled black rectangle — used for rule lines / signature lines. */
@@ -107,7 +128,7 @@ function pageContents(page: PdfPage, imName: Map<string, string>): string {
     stmts.push(`q ${img.w} 0 0 ${img.h} ${img.x} ${img.y} cm /${name} Do Q`);
   }
   for (const ln of page.lines) {
-    const x = ln.x ?? PAGE_MARGIN;
+    const x = ln.center ? (PAGE_W - textWidth(ln.text, ln.size)) / 2 : (ln.x ?? PAGE_MARGIN);
     stmts.push(`BT /F1 ${ln.size} Tf ${x} ${ln.y} Td (${escapePdfText(ln.text)}) Tj ET`);
   }
   return stmts.join('\n');
