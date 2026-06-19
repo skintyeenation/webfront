@@ -13,9 +13,11 @@
 #   - Calendars.Read       — calendar events including Teams meetings
 #   - User.Read.All        — resolve task-assignee user IDs → display names
 #
-# Reads + grants admin consent + creates a 24-month client secret +
-# wires the credentials into the api-prod Container App as secrets +
-# updates the ADO variable group with non-secret fields.
+# Reads + grants admin consent + assigns the Privileged Authentication
+# Administrator directory role (required for admin password resets) +
+# creates a 24-month client secret + wires the credentials into the
+# api-prod Container App as secrets + updates the ADO variable group
+# with non-secret fields.
 #
 # Per ADR-14 + docs/features/planner-dashboard.md.
 #
@@ -213,6 +215,41 @@ if [ "$DRY_RUN" -eq 0 ]; then
     || warn "couldn't grant admin consent (do it manually in the Entra portal: App registrations → $APP_DISPLAY → API permissions → Grant admin consent)"
 fi
 
+# ----- 3.5) Directory role — admin password resets --------------------------
+# User.ReadWrite.All lets the app CREATE users, but resetting an EXISTING
+# user's password (POST /v1/admin/users/:id/rotate-password) additionally
+# requires the app's service principal to hold a directory role:
+#   • User Administrator                       — reset staff/member (non-admin) passwords
+#   • Privileged Authentication Administrator   — ALSO reset users who hold admin roles
+# We assign Privileged Authentication Administrator so rotate works for every
+# account. Without it Graph returns 403 Authorization_RequestDenied and the
+# rotate-password endpoint fails. (Built-in role: roleDefinitionId == template id.)
+PRIV_AUTH_ADMIN_ROLE_ID="7be44c8a-adaf-4e2a-84d6-ab2649e08a13"
+say "ensuring SP holds 'Privileged Authentication Administrator' (password resets)…"
+if [ "$DRY_RUN" -eq 0 ]; then
+  APP_SP_ID=$(az ad sp show --id "$APP_ID" --query id -o tsv 2>/dev/null || echo "")
+  if [ -z "$APP_SP_ID" ]; then
+    warn "couldn't resolve the app SP object id — skipping role assignment"
+  else
+    EXISTING=$(az rest --method GET \
+      --url "https://graph.microsoft.com/v1.0/roleManagement/directory/roleAssignments?\$filter=principalId eq '${APP_SP_ID}' and roleDefinitionId eq '${PRIV_AUTH_ADMIN_ROLE_ID}'" \
+      --query 'length(value)' -o tsv 2>/dev/null || echo "0")
+    if [ "${EXISTING:-0}" != "0" ]; then
+      ok "role already assigned"
+    else
+      az rest --method POST \
+        --url "https://graph.microsoft.com/v1.0/roleManagement/directory/roleAssignments" \
+        --headers "Content-Type=application/json" \
+        --body "{\"principalId\":\"${APP_SP_ID}\",\"roleDefinitionId\":\"${PRIV_AUTH_ADMIN_ROLE_ID}\",\"directoryScopeId\":\"/\"}" \
+        --only-show-errors >/dev/null 2>&1 \
+        && ok "Privileged Authentication Administrator assigned" \
+        || warn "couldn't assign the role (assign manually: Entra → Roles and administrators → Privileged Authentication Administrator → Add assignment → $APP_DISPLAY)"
+    fi
+  fi
+else
+  printf '  (dry-run) assign Privileged Authentication Administrator to the %s SP\n' "$APP_DISPLAY"
+fi
+
 # ----- 4) Client secret -----------------------------------------------------
 SECRET_EXISTS=0
 if [ "$DRY_RUN" -eq 0 ]; then
@@ -388,6 +425,10 @@ Permissions granted (application):
   • Calendars.Read       — Calendar events (incl. Teams meetings)     (read)
   • User.Read.All        — Assignee ID → display name lookup           (read)
   • User.ReadWrite.All   — Create new Entra users (Add Member form)    (write)
+
+Directory role assigned:
+  • Privileged Authentication Administrator — reset existing users'
+    passwords incl. admins (POST /v1/admin/users/:id/rotate-password)
 
 What the api/ now has available (via Container App secrets):
   GRAPH_CLIENT_ID, GRAPH_CLIENT_SECRET, GRAPH_TENANT_ID

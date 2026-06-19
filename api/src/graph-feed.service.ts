@@ -832,8 +832,12 @@ export class GraphFeedService {
 
   // PATCH /users/{id} — rotate the user's password (admin-initiated from
   // EditMember). Sets forceChangePasswordNextSignIn so the user has to
-  // change it on the next sign-in. Requires User.ReadWrite.All — the
-  // same permission user create uses.
+  // change it on the next sign-in. Beyond User.ReadWrite.All, resetting an
+  // EXISTING user's password requires the app's service principal to hold a
+  // directory role: "User Administrator" (members) or "Privileged
+  // Authentication Administrator" (also admins) — assigned in
+  // scripts/setup-app-graph.sh. Without it Graph returns 403
+  // Authorization_RequestDenied.
   async rotateUserPassword(userId: string, newPassword: string): Promise<void> {
     const tok = await this.getToken();
     const res = await fetch(`https://graph.microsoft.com/v1.0/users/${userId}`, {

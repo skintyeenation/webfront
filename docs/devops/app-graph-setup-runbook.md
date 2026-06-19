@@ -60,6 +60,9 @@ Walks through every `az` call without executing. Look for:
 - ✅ "adding 4 Microsoft Graph application permissions" (Tasks.Read.All,
   Group.Read.All, Calendars.Read, User.Read.All)
 - ✅ "granting admin consent (interactive — may open a browser)"
+- ✅ "ensuring SP holds 'Privileged Authentication Administrator'" — directory
+  role required to reset existing users' passwords (rotate-password); without
+  it Graph returns 403 Authorization_RequestDenied
 - ✅ "creating client secret (24-month expiry)"
 - ✅ "writing credentials into api-prod Container App secrets"
 - ✅ "updating ADO variable group 'skintyee-prod-azure' with non-secret fields"
