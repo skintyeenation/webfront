@@ -111,8 +111,31 @@ norm.)
 | On-prem forest/domain | `STFN.local` (non-routable) |
 | Entra tenant | `skintyeenation.onmicrosoft.com`; **`skintyee.ca`** verified + default |
 | Sign-in method | **Password Hash Sync (PHS)** |
-| Entra Connect | ⬜ not installed yet |
-| Domain-joined computers | 11 + DC (most stale since 2024; active 2026: `XYNTAX-FMS2`, `ITG-LOANERPC`) |
+| Entra Connect | ✅ installed **v2.4.129.0** (2026-06-18), ADSync service running, first cycle started at install |
+| Domain-joined computers | 12 objects (DC + 11) — see inventory below; only 3 live in 2026 |
+
+### Domain-joined computer inventory (2026-06-18)
+
+All non-DC machines sit in the default **`CN=Computers`** container — **not a real
+OU**, so GPOs can't be linked to them directly (only domain-level applies). Moving
+them into a proper OU structure is a Phase 3 prerequisite. No `description` set on
+any object.
+
+| Name | OS / build | Last logon | Status | Notes |
+|---|---|---|---|---|
+| `STFN-DC` | Server 2022 (20348) | 2026-06-17 | 🟢 live | the DC (`OU=Domain Controllers`) |
+| `ITG-LOANERPC` | Win 10 Pro (19045/22H2) | 2026-06-11 | 🟢 live | loaner laptop; Win 10 = EOL Oct 2025 |
+| `XYNTAX-FMS2` | Win 11 Pro (22631/23H2) | 2026-06-09 | 🟢 live | **finance workstation — Xyntax now runs here only** |
+| `STFN2024-LT02` | Win 11 Pro | 2024-11-23 | 🟡 stale | laptop |
+| `XYNTAX-FMS1` | Win 11 Pro | 2024-11-10 | 🟡 stale | old finance box (FMS2 replaced it) |
+| `STFN2024-LT03` | Win 11 Pro | 2024-10-15 | 🟡 stale | laptop |
+| `STFN2024-LT01` | Win 11 Business | 2024-09-18 | 🟡 stale | laptop |
+| `STFN2022-LT01` | Win 11 Pro | 2024-08-19 | 🟡 stale | laptop |
+| `FS1`–`FS4` | Win 10 Pro (19045) | 2024-08-07 | 🟡 stale | **workstations, not servers** (client OS); batch created May 2024, all last seen the same morning — decommissioned together |
+
+> ⚠️ **Single point of failure:** with `XYNTAX-FMS1` stale since Nov 2024, all
+> domain-authenticated **Xyntax/finance** work now depends on the single
+> `XYNTAX-FMS2`. Worth a second known-good finance machine.
 
 ## Progress
 
@@ -222,6 +245,17 @@ present in `OU=SkinTyee Users` with matching UPN / mail / `SMTP:` proxy.
 
 ### ⬜ Phase 3 — Devices & Intune (later)
 
+**Cleanup prerequisites (do first — surfaced by the 2026-06-18 inventory above):**
+- **Create a computer OU structure.** All PCs are in `CN=Computers` today, which
+  can't be a GPO link target. Make e.g. `OU=Workstations`, `OU=Finance` and move
+  the live machines in before relying on GPO / preparing Hybrid join.
+- **Disable then delete the 8 stale objects** (`FS1`–`FS4`, `XYNTAX-FMS1`,
+  `STFN2024-LT01/02/03`, `STFN2022-LT01`) — no point Hybrid-joining ghosts.
+  Disable first, confirm nothing breaks, then remove.
+- **Add a second finance machine.** `XYNTAX-FMS2` is currently the *only* live
+  Xyntax workstation (single point of failure).
+
+**Then:**
 - Entra-join new/replacement workstations; enroll in **Intune** (after the
   Business Premium / Intune add-on licensing decision above).
 - Optionally enable **Hybrid Entra join** on the existing domain-joined PCs so
