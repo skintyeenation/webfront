@@ -35,12 +35,13 @@ const ADMIN_ITEMS: MoreItem[] = [
   { route: 'documents',        label: 'Documents',         description: 'Forms, filings & PDFs by tag',                             icon: 'file-document-multiple',   roles: ['admin'] },
 ];
 
-// "Assets" — admin inventory of band-owned assets. First tile: Devices
-// (Entra-registered devices + who can access them). Sits in its own
-// section right below Admin tools so future asset types (equipment,
-// licenses) can slot in here.
-const ASSETS_ITEMS: MoreItem[] = [
+// "System" — admin inventory of band-owned assets/infrastructure. First
+// tile: Devices (Entra-registered devices + who can access them). Sits in
+// its own section right below Admin tools so future system entries
+// (equipment, licenses) can slot in here.
+const SYSTEM_ITEMS: MoreItem[] = [
   { route: 'devices', label: 'Devices', description: 'Entra devices & who can access them', icon: 'devices', roles: ['admin'] },
+  { route: 'configureNotifications', label: 'Configure Notifications', description: 'Enable/disable system emails & set sender', icon: 'email-edit-outline', roles: ['admin'] },
 ];
 
 // "Tools" — non-admin everyday operational tiles. Mirrors the admin
@@ -153,7 +154,7 @@ export default function MoreMenu({ navigation }: any) {
         {isAdmin ? (
           <>
             <Section title="Admin tools" items={ADMIN_ITEMS} role={role} navigation={navigation} />
-            <Section title="Assets" items={ASSETS_ITEMS} role={role} navigation={navigation} />
+            <Section title="System" items={SYSTEM_ITEMS} role={role} navigation={navigation} />
           </>
         ) : (
           <Section title="Tools" items={TOOLS_ITEMS} role={role} navigation={navigation} />

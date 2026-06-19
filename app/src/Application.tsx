@@ -42,6 +42,7 @@ import Documents from 'skintyee/components/pages/Documents';
 import EditDocument from 'skintyee/components/pages/EditDocument';
 import Devices from 'skintyee/components/pages/Devices';
 import DeviceDetail from 'skintyee/components/pages/DeviceDetail';
+import ConfigureNotifications from 'skintyee/components/pages/ConfigureNotifications';
 import TagManager from 'skintyee/components/pages/TagManager';
 import OnboardingFlows from 'skintyee/components/pages/OnboardingFlows';
 import MyOnboarding from 'skintyee/components/pages/MyOnboarding';
@@ -141,6 +142,7 @@ const MoreNavigation = () => {
       <MoreStack.Screen {...routeConfig.documentEdit} component={EditDocument} />
       <MoreStack.Screen {...routeConfig.devices} component={Devices} />
       <MoreStack.Screen {...routeConfig.deviceDetail} component={DeviceDetail} />
+      <MoreStack.Screen {...routeConfig.configureNotifications} component={ConfigureNotifications} />
       <MoreStack.Screen {...routeConfig.tagManager} component={TagManager} />
       <MoreStack.Screen {...routeConfig.onboardingFlows} component={OnboardingFlows} />
       <MoreStack.Screen {...routeConfig.onboardingFlowCreate} component={EditOnboardingFlow} />

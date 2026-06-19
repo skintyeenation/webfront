@@ -1,4 +1,4 @@
-import { ApiService } from 'skintyee/services/api/ApiService';
+import { ApiService, NotificationSettings } from 'skintyee/services/api/ApiService';
 import * as fixtures from './fixtures';
 import { Poll } from 'skintyee/models';
 
@@ -10,6 +10,18 @@ const delay = <T>(value: T, ms = 250): Promise<T> => new Promise((resolve) => se
 
 // Mutable copy so `vote` can mutate poll state during a session.
 let polls: Poll[] = JSON.parse(JSON.stringify(fixtures.polls));
+
+// In-memory notification settings so the System → Configure Notifications
+// screen is fully usable in mock mode (resets on reload, like all mock state).
+let notificationSettings: NotificationSettings = {
+  staffOtp: true,
+  communityNotifications: true,
+  timesheetEvents: true,
+  accountDeleted: true,
+  fromName: 'Skin Tyee First Nation',
+  fromEmail: 'it@skintyee.ca',
+  replyTo: '',
+};
 
 export const mockApiService: ApiService = {
   directory: {
@@ -32,6 +44,18 @@ export const mockApiService: ApiService = {
     rotatePassword:   () => { throw new Error('admin.rotatePassword requires the real api/'); },
     setPersonPassword:     () => { throw new Error('admin.setPersonPassword requires the real api/ (staff-auth)'); },
     revokePersonPassword:  () => { throw new Error('admin.revokePersonPassword requires the real api/ (staff-auth)'); },
+    getNotificationSettings: () => delay({ ...notificationSettings }),
+    updateNotificationSettings: (patch) => {
+      notificationSettings = {
+        ...notificationSettings,
+        ...patch,
+        // keep string fields trimmed, mirroring the api/'s SettingsService
+        fromName:  (patch.fromName  ?? notificationSettings.fromName ).toString().trim() || 'Skin Tyee First Nation',
+        fromEmail: (patch.fromEmail ?? notificationSettings.fromEmail).toString().trim() || 'it@skintyee.ca',
+        replyTo:   (patch.replyTo   ?? notificationSettings.replyTo  ).toString().trim(),
+      };
+      return delay({ ...notificationSettings });
+    },
   },
   events: {
     list: () => delay(fixtures.events),

@@ -40,6 +40,20 @@ export interface MailboxAccess {
   sendAs: Array<{ user: string; rights: string }>;
 }
 
+// Global notification settings — drives System → "Configure Notifications".
+// Returned by GET/PUT /v1/admin/notification-settings (admin-only). Each
+// boolean is a kill-switch for one class of system email; the sender fields
+// set the From + Reply-To on every outgoing message.
+export interface NotificationSettings {
+  staffOtp: boolean;               // staff sign-in OTP (on add / password set)
+  communityNotifications: boolean; // band-member notification blasts
+  timesheetEvents: boolean;        // timesheet submitted / edited / approved / rejected
+  accountDeleted: boolean;         // staff offboarding email
+  fromName: string;                // sender display name
+  fromEmail: string;               // sender address (e.g. it@skintyee.ca)
+  replyTo: string;                 // Reply-To address ('' = none)
+}
+
 export interface ApiService {
   directory: {
     list(): Promise<BandMember[]>;
@@ -104,6 +118,12 @@ export interface ApiService {
     setPersonPassword(id: string, password?: string): Promise<{ password: string }>;
     /** Revoke app access for a Person without deleting the row. */
     revokePersonPassword(id: string): Promise<void>;
+
+    // ---- Notification settings (System → Configure Notifications) -----
+    /** Global per-category email toggles + sender/reply-to. Admin-only. */
+    getNotificationSettings(): Promise<NotificationSettings>;
+    /** Patch any subset of the notification settings; returns the full set. */
+    updateNotificationSettings(patch: Partial<NotificationSettings>): Promise<NotificationSettings>;
   };
   events: {
     list(): Promise<CommunityEvent[]>;

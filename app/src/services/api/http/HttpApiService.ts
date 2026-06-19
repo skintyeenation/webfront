@@ -21,7 +21,7 @@ import {
   PublicRecord, Role, TimeEntry,
 } from 'skintyee/models';
 import {
-  ApiService, SecurityGroup, SharedMailbox, MailboxAccess,
+  ApiService, SecurityGroup, SharedMailbox, MailboxAccess, NotificationSettings,
   DocumentDto, DocumentTagDto,
   DeviceDto, DeviceDetailDto,
   OnboardingFlowDto, OnboardingStepDto, OnboardingAssignmentDto, OnboardingStepStateDto,
@@ -106,6 +106,19 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
     return res.json() as Promise<T>;
   }
 
+  async function put<T>(path: string, body: unknown): Promise<T> {
+    const res = await fetch(api(path), {
+      method: 'PUT',
+      headers: headers({ 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' }),
+      body: JSON.stringify(body ?? {}),
+      cache: 'no-store',
+    });
+    if (!res.ok) {
+      throw new Error(`PUT ${api(path)} → ${res.status}: ${await res.text()}`);
+    }
+    return res.json() as Promise<T>;
+  }
+
   async function del(path: string): Promise<void> {
     const res = await fetch(api(path), {
       method: 'DELETE',
@@ -135,6 +148,9 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
       rotatePassword: (id: string, password?: string) => post<{ password: string }>(`/admin/users/${encodeURIComponent(id)}/rotate-password`, password ? { password } : {}),
       setPersonPassword: (id: string, password?: string) => post<{ password: string }>(`/admin/people/${encodeURIComponent(id)}/set-password`, password ? { password } : {}),
       revokePersonPassword: (id: string) => del(`/admin/people/${encodeURIComponent(id)}/password`),
+      getNotificationSettings: () => get<NotificationSettings>('/admin/notification-settings'),
+      updateNotificationSettings: (patchBody: Partial<NotificationSettings>) =>
+        put<NotificationSettings>('/admin/notification-settings', patchBody),
     },
     events: {
       list: () => get<CommunityEvent[]>('/events'),

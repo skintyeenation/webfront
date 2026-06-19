@@ -39,6 +39,7 @@ export const routeConfig = {
   documents: { name: 'documents', options: { title: 'Documents', header: header('Documents') } },
   devices: { name: 'devices', options: { title: 'Devices', header: header('Devices') } },
   deviceDetail: { name: 'deviceDetail', options: { title: 'Device', header: header('Device') } },
+  configureNotifications: { name: 'configureNotifications', options: { title: 'Configure Notifications', header: header('Configure Notifications') } },
   documentCreate: { name: 'documentCreate', options: { title: 'Add document', header: header('Add Document') } },
   documentEdit: { name: 'documentEdit', options: { title: 'Edit document', header: header('Edit Document') } },
   tagManager: { name: 'tagManager', options: { title: 'Tag Manager', header: header('Tag Manager') } },
