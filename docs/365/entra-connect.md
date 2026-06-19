@@ -281,11 +281,13 @@ Access. No `@$22` Business Premium upgrade, no Intune license — those are
   (`XYNTAX-FMS2`, `ITG-LOANERPC`) in; verified both now resolve under the new OU and
   `CN=Computers` holds only the 9 stale objects. (`STFN-DC` stays in
   `OU=Domain Controllers`.)
-- **Remove the 9 stale objects** (`FS1`–`FS4`, `XYNTAX-FMS1`, `STFN2024-LT01/02/03`,
-  `STFN2022-LT01`) via
-  [`Phase3-RemoveStaleComputers.ps1`](../../stfn-setup/entra-connect/Phase3-RemoveStaleComputers.ps1):
-  `-Apply` to disable, then `-Apply -Delete` after a settling period. No point
-  Hybrid-joining ghosts.
+- **Mark the 9 stale objects** (`FS1`–`FS4`, `XYNTAX-FMS1`, `STFN2024-LT01/02/03`,
+  `STFN2022-LT01`) **stale + disabled — but KEEP them** (hardware audit trail) via
+  [`Phase3-MarkStaleComputers.ps1`](../../stfn-setup/entra-connect/Phase3-MarkStaleComputers.ps1)
+  `-Apply`: sets a `STALE retained <date> (last logon ...)` Description and disables
+  each. **Not deleted.** They stay in `CN=Computers` (outside the sync scope) so
+  they never reach Entra as Hybrid ghosts, and they surface in the app's **Devices**
+  screen greyed out (toggle to show/hide).
 - **Add a second finance machine.** `XYNTAX-FMS2` is the *only* live Xyntax box
   (single point of failure).
 

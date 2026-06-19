@@ -370,4 +370,71 @@ export const devices: Array<Omit<DeviceDetailDto, 'userCount'>> = [
       { id: 'm3', displayName: 'Sandra Williams', email: 'admin@skintyee.ca', accessType: 'owner' },
     ],
   },
+  // On-prem STALE machines — domain-joined boxes whose last logon was back in 2024.
+  // Retained in AD but marked stale + disabled (stfn-setup Phase3-MarkStaleComputers.ps1),
+  // mirrored here as enabled:false so they render greyed out and behind the
+  // "Show disabled" toggle on the Devices screen. No current users (decommissioned).
+  {
+    id: 'dev-xyntax-fms1', displayName: 'XYNTAX-FMS1',
+    operatingSystem: 'Windows', osVersion: '10.0.22631',
+    trustType: 'Hybrid', isCompliant: false, isManaged: true, enabled: false,
+    approximateLastSignInDateTime: daysFromNow(-585), registrationDateTime: daysFromNow(-675),
+    users: [],
+  },
+  {
+    id: 'dev-stfn2024-lt01', displayName: 'STFN2024-LT01',
+    operatingSystem: 'Windows', osVersion: '10.0.22631',
+    trustType: 'Hybrid', isCompliant: false, isManaged: true, enabled: false,
+    approximateLastSignInDateTime: daysFromNow(-638), registrationDateTime: daysFromNow(-681),
+    users: [],
+  },
+  {
+    id: 'dev-stfn2024-lt02', displayName: 'STFN2024-LT02',
+    operatingSystem: 'Windows', osVersion: '10.0.22631',
+    trustType: 'Hybrid', isCompliant: false, isManaged: true, enabled: false,
+    approximateLastSignInDateTime: daysFromNow(-572), registrationDateTime: daysFromNow(-681),
+    users: [],
+  },
+  {
+    id: 'dev-stfn2024-lt03', displayName: 'STFN2024-LT03',
+    operatingSystem: 'Windows', osVersion: '10.0.22631',
+    trustType: 'Hybrid', isCompliant: false, isManaged: true, enabled: false,
+    approximateLastSignInDateTime: daysFromNow(-611), registrationDateTime: daysFromNow(-675),
+    users: [],
+  },
+  {
+    id: 'dev-stfn2022-lt01', displayName: 'STFN2022-LT01',
+    operatingSystem: 'Windows', osVersion: '10.0.22631',
+    trustType: 'Hybrid', isCompliant: false, isManaged: true, enabled: false,
+    approximateLastSignInDateTime: daysFromNow(-668), registrationDateTime: daysFromNow(-668),
+    users: [],
+  },
+  {
+    id: 'dev-fs1', displayName: 'FS1',
+    operatingSystem: 'Windows', osVersion: '10.0.19045',
+    trustType: 'Hybrid', isCompliant: false, isManaged: true, enabled: false,
+    approximateLastSignInDateTime: daysFromNow(-680), registrationDateTime: daysFromNow(-762),
+    users: [],
+  },
+  {
+    id: 'dev-fs2', displayName: 'FS2',
+    operatingSystem: 'Windows', osVersion: '10.0.19045',
+    trustType: 'Hybrid', isCompliant: false, isManaged: true, enabled: false,
+    approximateLastSignInDateTime: daysFromNow(-680), registrationDateTime: daysFromNow(-762),
+    users: [],
+  },
+  {
+    id: 'dev-fs3', displayName: 'FS3',
+    operatingSystem: 'Windows', osVersion: '10.0.19045',
+    trustType: 'Hybrid', isCompliant: false, isManaged: true, enabled: false,
+    approximateLastSignInDateTime: daysFromNow(-680), registrationDateTime: daysFromNow(-758),
+    users: [],
+  },
+  {
+    id: 'dev-fs4', displayName: 'FS4',
+    operatingSystem: 'Windows', osVersion: '10.0.19045',
+    trustType: 'Hybrid', isCompliant: false, isManaged: true, enabled: false,
+    approximateLastSignInDateTime: daysFromNow(-680), registrationDateTime: daysFromNow(-758),
+    users: [],
+  },
 ];
