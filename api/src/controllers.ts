@@ -9,6 +9,52 @@ import { PrismaService } from './prisma.service';
 import { ExoService } from './exo.service';
 import { MailboxReconcileService } from './mailbox-reconcile.service';
 import { StaffAuthService } from './staff-auth.service';
+import { MailgunService } from './mailgun.service';
+import { renderStaffOtpEmail, renderNotificationEmail, renderTimesheetEventEmail, TimesheetEvent } from './email-template';
+
+// Band members in a given Entra group slug (e.g. 'admins', 'band-members') →
+// their emails. The slug-in-bandGroups check is the membership marker.
+async function groupMemberEmails(prisma: PrismaService, slug: string): Promise<string[]> {
+  if (!prisma.isAvailable) return [];
+  const members = await prisma.bandMember.findMany({
+    where: { enabled: true },
+    select: { email: true, bandGroups: true },
+  });
+  return members
+    .filter((m) => (m.bandGroups ?? '').split(',').map((s) => s.trim()).includes(slug))
+    .map((m) => m.email)
+    .filter((e): e is string => !!e);
+}
+
+// "What changed" between two timesheet snapshots (incl. per-day entry hours).
+function diffTimesheet(before: any, after: any): string[] {
+  const lines: string[] = [];
+  const num = (label: string, a: number, b: number) => {
+    if (Math.round((a ?? 0) * 100) !== Math.round((b ?? 0) * 100)) {
+      const d = Math.round(((b ?? 0) - (a ?? 0)) * 100) / 100;
+      lines.push(`${label}: ${a ?? 0}h → ${b ?? 0}h (${d >= 0 ? '+' : ''}${d}h)`);
+    }
+  };
+  num('Total hours', before.totalHours, after.totalHours);
+  num('Overtime', before.overtimeHours, after.overtimeHours);
+  num('Week 1', before.week1Hours, after.week1Hours);
+  num('Week 2', before.week2Hours, after.week2Hours);
+  if ((before.notes ?? '') !== (after.notes ?? '')) lines.push('Notes updated');
+  const byDate = (entries: any[]) => {
+    const m = new Map<string, number>();
+    for (const e of entries ?? []) m.set(e.date, (m.get(e.date) ?? 0) + (Number(e.hours) || 0));
+    return m;
+  };
+  const a = byDate(before.entries), b = byDate(after.entries);
+  for (const date of [...new Set([...a.keys(), ...b.keys()])].sort()) {
+    const av = a.get(date) ?? 0, bv = b.get(date) ?? 0;
+    if (Math.round(av * 100) === Math.round(bv * 100)) continue;
+    if (av === 0) lines.push(`${date}: added ${bv}h`);
+    else if (bv === 0) lines.push(`${date}: removed (was ${av}h)`);
+    else lines.push(`${date}: ${av}h → ${bv}h`);
+  }
+  return lines;
+}
 import { SKINTYEE_SECURITY_GROUPS, groupBySlug, isInvitableGroupBlacklisted } from './skintyee-groups';
 
 // Map a Prisma BandMember row → the BandMember shape the app expects.
@@ -313,6 +359,7 @@ export class AdminController implements OnApplicationBootstrap {
     private prisma: PrismaService,
     private reconcile: MailboxReconcileService,
     private staffAuth: StaffAuthService,
+    private mailgun: MailgunService,
   ) {}
 
   // NestJS lifecycle hook — fires once after the app starts listening.
@@ -667,11 +714,42 @@ export class AdminController implements OnApplicationBootstrap {
       });
     }
 
+    // 5. Staff onboarding email (Mailgun) — ONLY for staff (createPerson);
+    //    plain band-member adds don't get this. Best-effort: a mail failure
+    //    never fails the create — the admin still sees the OTP on-screen.
+    //    Recipient defaults to the new UPN; pass `notifyEmail` to send to a
+    //    personal address instead. `emailNote` is an optional admin message.
+    let emailed = false;
+    let emailError: string | undefined;
+    const emailTo = b.notifyEmail || upn;
+    if (b.createPerson && b.sendEmail !== false) {
+      try {
+        const note = b.emailNote
+          ? `<p style="margin:0 0 16px; font-size:14px; line-height:1.6;">${String(b.emailNote)
+              .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br/>')}</p>`
+          : undefined;
+        const mail = renderStaffOtpEmail({
+          displayName: b.displayName,
+          upn,
+          oneTimePassword: b.password,
+          signInUrl: process.env.APP_SIGNIN_URL ?? 'https://app.skintyee.ca',
+          extraHtml: note,
+        });
+        emailed = await this.mailgun.send({ to: emailTo, subject: mail.subject, html: mail.html, text: mail.text });
+      } catch (e: any) {
+        emailError = e?.message ?? String(e);
+        this.log.warn(`createUser: OTP email to ${emailTo} failed: ${emailError}`);
+      }
+    }
+
     return {
       bandMember: mapBandMember(bm),
       personId: person?.id,
       oneTimePassword: b.password,
       failedGroups,
+      emailed,
+      emailedTo: emailed ? emailTo : undefined,
+      emailError,
     };
   }
 
@@ -1088,7 +1166,37 @@ export class TimeKeepingController {
     private prisma: PrismaService,
     private reports: TimekeepingReportsService,
     private people: OnboardingService,
+    private mailgun: MailgunService,
   ) {}
+
+  // Notify the worker + the admins group of a timesheet lifecycle event, with
+  // a "what changed" summary. Best-effort — a mail failure never fails the API.
+  private async emailTimesheetEvent(
+    event: TimesheetEvent,
+    sheet: any,
+    changes: string[],
+    opts?: { actor?: string; reason?: string },
+  ): Promise<void> {
+    try {
+      const recipients = [...new Set([sheet.workerUpn, ...(await groupMemberEmails(this.prisma, 'admins'))].filter(Boolean))];
+      const mail = renderTimesheetEventEmail({
+        event,
+        workerName: sheet.workerName,
+        periodLabel: payPeriodFor(sheet.payPeriodId).label,
+        status: sheet.status,
+        totalHours: sheet.totalHours,
+        overtimeHours: sheet.overtimeHours,
+        week1Hours: sheet.week1Hours,
+        week2Hours: sheet.week2Hours,
+        changes,
+        actor: opts?.actor,
+        reason: opts?.reason,
+      });
+      await this.mailgun.sendBulk({ recipients, subject: mail.subject, html: mail.html, text: mail.text });
+    } catch (e: any) {
+      this.log.warn(`timesheet ${event} email failed: ${e?.message ?? e}`);
+    }
+  }
 
   // ---- Eligibility -----------------------------------------------------
   //
@@ -1317,11 +1425,16 @@ export class TimeKeepingController {
   async submit(@Param('periodId') periodId: string, @Body() b: SubmitBody, @Req() req: any) {
     // Reuse the draft path to materialize/refresh, then flip status.
     const sheet = await this.saveDraft(periodId, b, req);
-    return this.prisma.timesheet.update({
+    const updated = await this.prisma.timesheet.update({
       where: { id: sheet.id },
       data:  { status: 'submitted', submittedAt: new Date() },
       include: { entries: true },
     });
+    const n = updated.entries.length;
+    await this.emailTimesheetEvent('submitted', updated,
+      [`Submitted ${n} entr${n === 1 ? 'y' : 'ies'} for approval`, `Total ${updated.totalHours}h (overtime ${updated.overtimeHours}h)`],
+      { actor: callerUpn(req) });
+    return updated;
   }
 
   // ---- Approver view -----------------------------------------------------
@@ -1361,11 +1474,13 @@ export class TimeKeepingController {
     }
     await this.assertCanApprove(req, { requiresAdmin: sheet.requiresAdminApproval });
 
-    return this.prisma.timesheet.update({
+    const updated = await this.prisma.timesheet.update({
       where: { id },
       data:  { status: 'approved', approvedBy: approverUpn, approvedAt: new Date() },
       include: { entries: true },
     });
+    await this.emailTimesheetEvent('approved', updated, ['Status: submitted → approved'], { actor: approverUpn });
+    return updated;
   }
 
   // POST /v1/timekeeping/timesheets/:id/reject  body: { reason?: string }
@@ -1377,7 +1492,8 @@ export class TimeKeepingController {
     if (!sheet) throw new NotFoundException('Timesheet not found');
     await this.assertCanApprove(req, { requiresAdmin: sheet.requiresAdminApproval });
 
-    return this.prisma.timesheet.update({
+    const prevStatus = sheet.status;
+    const updated = await this.prisma.timesheet.update({
       where: { id },
       data:  {
         status: 'rejected',
@@ -1387,6 +1503,9 @@ export class TimeKeepingController {
       },
       include: { entries: true },
     });
+    await this.emailTimesheetEvent('rejected', updated, [`Status: ${prevStatus} → rejected`],
+      { actor: approverUpn, reason: b?.reason });
+    return updated;
   }
 
   // GET /v1/timekeeping/timesheets/admin/:id — admin only.
@@ -1407,9 +1526,9 @@ export class TimeKeepingController {
   // to re-submit). Recomputes totals + OT the same way the worker's
   // own saveDraft path does.
   @Patch('timesheets/admin/:id') @Roles('admin')
-  async adminEditTimesheet(@Param('id') id: string, @Body() body: any) {
+  async adminEditTimesheet(@Param('id') id: string, @Body() body: any, @Req() req: any) {
     if (!this.prisma.isAvailable) throw new NotFoundException('Prisma not connected');
-    const cur = await this.prisma.timesheet.findUnique({ where: { id } });
+    const cur = await this.prisma.timesheet.findUnique({ where: { id }, include: { entries: true } });
     if (!cur) throw new NotFoundException();
     if (cur.status === 'approved') {
       throw new ForbiddenException('Approved timesheets cannot be edited. Delete and have the worker re-submit.');
@@ -1428,7 +1547,7 @@ export class TimeKeepingController {
     const ot = Math.max(0, w1 - PAY_PERIOD_CONFIG.overtimeWeeklyHoursThreshold) +
                Math.max(0, w2 - PAY_PERIOD_CONFIG.overtimeWeeklyHoursThreshold);
     const total = Math.round((w1 + w2) * 100) / 100;
-    return this.prisma.$transaction(async (tx) => {
+    const updated = await this.prisma.$transaction(async (tx) => {
       await tx.timesheetEntry.deleteMany({ where: { timesheetId: id } });
       await tx.timesheetEntry.createMany({
         data: entries.map((e: any) => ({ ...e, timesheetId: id })),
@@ -1446,6 +1565,8 @@ export class TimeKeepingController {
         include: { entries: { orderBy: [{ date: 'asc' }] } },
       });
     });
+    await this.emailTimesheetEvent('edited', updated, diffTimesheet(cur, updated), { actor: callerUpn(req) });
+    return updated;
   }
 
   // DELETE /v1/timekeeping/timesheets/:id — admin only.
@@ -1521,12 +1642,49 @@ export class PollsController {
 // ---- Notifications --------------------------------------------------------
 @Controller('notifications')
 export class NotificationsController {
-  constructor(private data: DataService) {}
+  private readonly log = new Logger(NotificationsController.name);
+  constructor(
+    private data: DataService,
+    private prisma: PrismaService,
+    private mailgun: MailgunService,
+  ) {}
   @Get() list() { return this.data.notifications; }
-  @Post() @Roles('admin') create(@Body() b: any) {
+  @Post() @Roles('admin') async create(@Body() b: any) {
     const n = { _id: this.data.id('n'), createdAt: new Date().toISOString(), read: false, ...b };
     this.data.notifications.unshift(n);
-    return n;
+
+    // Email the notification to ALL BAND MEMBERS — i.e. everyone in the
+    // 'band-members' Entra group (band members who are also staff are in it;
+    // staff who are NOT band members are excluded). Best-effort: a mail error
+    // never fails the post. Opt out of a given blast with sendEmail:false.
+    let emailed = 0;
+    let emailError: string | undefined;
+    if (b.sendEmail !== false && this.prisma.isAvailable) {
+      try {
+        const recipients = await this.bandMemberEmails();
+        const mail = renderNotificationEmail({ title: n.title ?? 'Skin Tyee notification', body: n.body ?? '', category: n.category });
+        const r = await this.mailgun.sendBulk({ recipients, subject: mail.subject, html: mail.html, text: mail.text });
+        emailed = r.sent;
+      } catch (e: any) {
+        emailError = e?.message ?? String(e);
+        this.log.warn(`notification email failed: ${emailError}`);
+      }
+    }
+    return { ...n, emailed, emailError };
+  }
+
+  // Emails of enabled band members — membership in the 'band-members' group is
+  // the band-member marker (not appRole, since a band member who is also staff
+  // has appRole 'staff'). Excludes non-band-member staff.
+  private async bandMemberEmails(): Promise<string[]> {
+    const members = await this.prisma.bandMember.findMany({
+      where: { enabled: true },
+      select: { email: true, bandGroups: true },
+    });
+    return members
+      .filter((m) => (m.bandGroups ?? '').split(',').map((s) => s.trim()).includes('band-members'))
+      .map((m) => m.email)
+      .filter((e): e is string => !!e);
   }
   @Patch(':id') @Roles('admin') update(@Param('id') id: string, @Body() b: any) { return upsert(this.data.notifications, id, b); }
   @Delete(':id') @Roles('admin') @HttpCode(204) remove(@Param('id') id: string) { remove(this.data.notifications, id); }

@@ -389,6 +389,17 @@ groups, provisioning users, and offboarding.
 💲 **[1Password pricing & tax →](docs/1password/pricing.md)** — per-user cost,
 100% Canadian tax-deductibility, and immediate deprovisioning of departed staff.
 
+## Email
+
+Transactional email (staff sign-in OTPs, community notifications to band
+members, and timesheet submitted/edited/approved/rejected alerts) is sent from
+the **api/** via **Mailgun**, using one editable HTML letterhead with the band's
+logo + contact details. Teams/365 meetings & events are **not** emailed — Microsoft
+365 already handles those.
+
+📧 **[Email — triggers, recipients & setup →](api/README.md#-email)** — every
+email the system sends, who receives it, the template, and Mailgun config.
+
 ## Domains (GoDaddy)
 
 Domains are registered at **GoDaddy** — `skintyee.ca` (primary) plus

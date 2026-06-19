@@ -83,6 +83,7 @@ jobs:
           GRAPH_CLIENT_SECRET: $(GRAPH_CLIENT_SECRET)
           EXO_FUNCTION_KEY:    $(EXO_FUNCTION_KEY)
           PG_PASSWORD:         $(PG_PASSWORD)
+          MAILGUN_API_KEY:     $(MAILGUN_API_KEY)
         inputs:
           azureSubscription: skintyee-prod-azure
           scriptType: bash
@@ -100,9 +101,12 @@ jobs:
                 "graph-client-secret=$GRAPH_CLIENT_SECRET" \
                 "graph-tenant-id=$GRAPH_TENANT_ID" \
                 "exo-function-key=$EXO_FUNCTION_KEY" \
+                "mailgun-api-key=${MAILGUN_API_KEY:-disabled}" \
               --output none
 
             echo "▸ wiring env vars (plain + secretRef)…"
+            # Mailgun stays inert until MAILGUN_DOMAIN + a real MAILGUN_API_KEY
+            # are set in the variable group (empty domain ⇒ the api skips email).
             az containerapp update \
               --name "$AZURE_CONTAINERAPP" --resource-group "$AZURE_RG" \
               --set-env-vars \
@@ -112,6 +116,10 @@ jobs:
                 "GRAPH_TENANT_ID=secretref:graph-tenant-id" \
                 "EXO_FUNCTION_URL=$EXO_FUNCTION_URL" \
                 "EXO_FUNCTION_KEY=secretref:exo-function-key" \
+                "MAILGUN_API_KEY=secretref:mailgun-api-key" \
+                "MAILGUN_DOMAIN=${MAILGUN_DOMAIN:-}" \
+                "MAILGUN_FROM=${MAILGUN_FROM:-Skin Tyee First Nation <it@skintyee.ca>}" \
+                "APP_SIGNIN_URL=${APP_SIGNIN_URL:-https://app.skintyee.ca}" \
               --output none
 
       - task: AzureCLI@2

@@ -67,6 +67,15 @@ ADO_VG_NAME="${ADO_VG_NAME:-skintyee-prod-azure}"
 ADO_PIPELINE_NAME="${ADO_PIPELINE_NAME:-deploy-api}"
 ADO_PIPELINE_YAML="${ADO_PIPELINE_YAML:-azure-pipelines/Deployments/deploy-api.yml}"
 
+# Mailgun (transactional email — see api/README.md "Email"). Non-secret config
+# lands in the variable group; MAILGUN_API_KEY is stored as a secret var (pass
+# it via env to set it, else a placeholder is written and you fill it later).
+# MAILGUN_DOMAIN empty ⇒ the api keeps email OFF until you set the real domain.
+MAILGUN_DOMAIN="${MAILGUN_DOMAIN:-}"
+MAILGUN_FROM="${MAILGUN_FROM:-Skin Tyee First Nation <it@skintyee.ca>}"
+APP_SIGNIN_URL="${APP_SIGNIN_URL:-https://app.skintyee.ca}"
+MAILGUN_API_KEY="${MAILGUN_API_KEY:-}"
+
 PUBLISHER_APP_NAME="${PUBLISHER_APP_NAME:-skintyee-prod-deploy}"   # NEW Entra app for prod deploy
                                                                     # (separate from the SharePoint
                                                                     # publisher — different blast radius)
@@ -525,6 +534,9 @@ if [ -z "$VG_ID" ] || [ "$VG_ID" = "null" ]; then
       "PG_USER=$PG_ADMIN_USER" \
       "PG_DATABASE=$PG_DB_API" \
       "PG_SSL_MODE=require" \
+      "MAILGUN_DOMAIN=$MAILGUN_DOMAIN" \
+      "MAILGUN_FROM=$MAILGUN_FROM" \
+      "APP_SIGNIN_URL=$APP_SIGNIN_URL" \
     --query id -o tsv --only-show-errors >/dev/null
   VG_ID=$(az pipelines variable-group list --org "$ADO_ORG_URL" --project "$ADO_PROJECT" \
     --query "[?name=='$ADO_VG_NAME'].id | [0]" -o tsv)
@@ -545,6 +557,9 @@ if [ "$DRY_RUN" -eq 0 ] && [ -n "$VG_ID" ]; then
     "PG_USER=$PG_ADMIN_USER"
     "PG_DATABASE=$PG_DB_API"
     "PG_SSL_MODE=require"
+    "MAILGUN_DOMAIN=$MAILGUN_DOMAIN"
+    "MAILGUN_FROM=$MAILGUN_FROM"
+    "APP_SIGNIN_URL=$APP_SIGNIN_URL"
   )
   for kv in "${VG_VARS[@]}"; do
     name="${kv%%=*}"
@@ -584,6 +599,24 @@ if [ "$DRY_RUN" -eq 0 ] && [ -n "$VG_ID" ] && [ -n "${PG_PASSWORD:-}" ]; then
       --name PG_PASSWORD --secret true --value "$PG_PASSWORD" \
       --only-show-errors >/dev/null 2>&1 || true
   fi
+fi
+
+# Mailgun API key — secret var. Stores MAILGUN_API_KEY if you exported it,
+# otherwise writes a placeholder so the pipeline's $(MAILGUN_API_KEY) resolves.
+# Email stays OFF until this is a real key AND MAILGUN_DOMAIN is set.
+if [ "$DRY_RUN" -eq 0 ] && [ -n "$VG_ID" ]; then
+  az pipelines variable-group variable create \
+    --org "$ADO_ORG_URL" --project "$ADO_PROJECT" --group-id "$VG_ID" \
+    --name MAILGUN_API_KEY --secret true \
+    --value "${MAILGUN_API_KEY:-REPLACE_WITH_MAILGUN_KEY}" \
+    --only-show-errors >/dev/null 2>&1 || true
+  if [ -n "${MAILGUN_API_KEY:-}" ]; then
+    az pipelines variable-group variable update \
+      --org "$ADO_ORG_URL" --project "$ADO_PROJECT" --group-id "$VG_ID" \
+      --name MAILGUN_API_KEY --secret true --value "$MAILGUN_API_KEY" \
+      --only-show-errors >/dev/null 2>&1 || true
+  fi
+  ok "MAILGUN_API_KEY present in variable group (real key or placeholder)"
 fi
 
 # Authorize VG for all pipelines too.

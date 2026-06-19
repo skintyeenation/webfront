@@ -16,6 +16,7 @@ import { TimekeepingReportsService } from './timekeeping-reports.service';
 import { StaffAuthService } from './staff-auth.service';
 import { StaffAuthController } from './staff-auth.controller';
 import { DevicesController } from './devices.controller';
+import { MailgunService } from './mailgun.service';
 
 @Module({
   imports: [StorageModule],
@@ -36,6 +37,7 @@ import { DevicesController } from './devices.controller';
     OnboardingService, // Phase 2 Onboarding flows (uses the same storage adapter)
     TimekeepingReportsService, // Time Keeping > Reports — PDF + CSV per pay period
     StaffAuthService,  // Password hashing + JWT for the non-Entra sign-in path (docs/features/staff-auth.md)
+    MailgunService,    // Transactional email (staff OTP onboarding, band-member notifications)
     // Role guard runs on every route; handlers without @Roles are public.
     { provide: APP_GUARD, useClass: RolesGuard },
   ],

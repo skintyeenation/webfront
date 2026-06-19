@@ -34,6 +34,43 @@ Endpoints (see the spec for full detail): `/directory`, `/events`, `/meetings`,
 
 ---
 
+## 📧 Email
+
+Transactional email is sent via **Mailgun** ([`src/mailgun.service.ts`](./src/mailgun.service.ts)).
+Every message uses one **easily-editable HTML letterhead**
+([`src/email-template.ts`](./src/email-template.ts)) — edit `BRAND` (band name,
+address, phone, email) and the markup there; per-email content drops into the
+body slot. The Skin Tyee logo ([`src/email-logo.ts`](./src/email-logo.ts)) is
+attached inline (`cid:logo.png`) so it renders without external hosting.
+
+**All emails are best-effort:** a send failure (or Mailgun not configured)
+**never** fails the API call — it's logged and the action still succeeds.
+
+| Email | Trigger | Recipients | Contents |
+|---|---|---|---|
+| **Staff sign-in (OTP)** | `POST /v1/admin/users` with `createPerson:true` (adding a **staff** member) | the new staff member (`notifyEmail` overrides; defaults to their UPN) | username + one-time password + sign-in link + optional admin note. **Plain band-member adds do _not_ get this.** |
+| **Community notification** | `POST /v1/notifications` | **all band members** — everyone in the `band-members` Entra group (incl. band members who are also staff). **Non-band-member staff are excluded.** | the notification title + body + category |
+| **Timesheet — submitted / edited / approved / rejected** | the matching `/v1/timekeeping/timesheets/*` endpoints | the **worker** + the **`admins` group** | a per-event **"what changed"** summary (status, hour/OT/week diffs, per-day entry changes; rejection reason) + current totals |
+
+**Not emailed:** Teams / Microsoft 365 **meetings & events** — Microsoft 365
+already sends those calendar invites/notifications.
+
+**Config** (env; unset ⇒ emails skipped):
+
+| Var | Required | Notes |
+|---|---|---|
+| `MAILGUN_API_KEY` | ✅ | Mailgun private API key (Container App secret in prod) |
+| `MAILGUN_DOMAIN` | ✅ | verified sending domain, e.g. `mg.skintyee.ca` |
+| `MAILGUN_FROM` | — | default `Skin Tyee First Nation <it@skintyee.ca>` |
+| `MAILGUN_BASE_URL` | — | default `https://api.mailgun.net` (EU: `https://api.eu.mailgun.net`) |
+| `APP_SIGNIN_URL` | — | sign-in link in the OTP email (default `https://app.skintyee.ca`) |
+
+> **Setup:** create a Mailgun sending domain and add its DNS records (SPF/DKIM/
+> tracking) at the registrar, verify in Mailgun, then set `MAILGUN_API_KEY` +
+> `MAILGUN_DOMAIN`. Opt a single message out with `sendEmail:false` in the body.
+
+---
+
 ## Recommended implementation (proposed)
 
 > Decisive recommendation for the production API. See ADR-7 in
