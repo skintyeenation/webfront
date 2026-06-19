@@ -65,9 +65,11 @@ beside it). This is the linchpin — it can't be done from the cloud.*
 - **Wizard:** launch **Azure AD Connect** → *Configure* → *Customize
   synchronization options* → *Optional features* → tick ✅ **Password
   writeback** → Next → Finish, **or**
-- **PowerShell** on that server:
+- **PowerShell** on that server (the `-Connector` parameter is **mandatory** — it's
+  the AAD/cloud connector name; run `Get-ADSyncConnector | Select Name` to confirm
+  it):
   ```powershell
-  Set-ADSyncAADPasswordResetConfiguration -Enable $true
+  Set-ADSyncAADPasswordResetConfiguration -Connector "skintyeenation.onmicrosoft.com - AAD" -Enable $true
   ```
 - The AAD Connect **connector account** (`MSOL_f5db7948b14f`) needs *Reset
   Password* + *Change Password* + write to `lockoutTime` / `pwdLastSet` on the
