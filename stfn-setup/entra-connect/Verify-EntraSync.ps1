@@ -35,6 +35,13 @@ $expected = 'gabriel.tom','kim.pike','lucas.lopatka','melissa.dyck','niki.misfel
 if ($Cloud) {
   Write-Host ""
   Write-Host "=== Cloud (Entra): expect OnPremisesSyncEnabled=True, NO duplicates ===" -ForegroundColor Cyan
+  # This box's PSModulePath omits the user module dir, so the Graph cmdlets are
+  # installed but not auto-discoverable. Add it and import explicitly.
+  $userMods = Join-Path $HOME 'Documents\WindowsPowerShell\Modules'
+  if ((Test-Path $userMods) -and ($env:PSModulePath -notlike "*$userMods*")) {
+    $env:PSModulePath = "$userMods;" + $env:PSModulePath
+  }
+  Import-Module Microsoft.Graph.Authentication,Microsoft.Graph.Users -ErrorAction Stop
   if (-not (Get-MgContext -ErrorAction SilentlyContinue)) {
     Connect-MgGraph -Scopes 'User.Read.All' -UseDeviceCode -NoWelcome
   }

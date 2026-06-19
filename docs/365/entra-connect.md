@@ -299,6 +299,28 @@ CBS/Windows-Update reboot flags were clear.
   checkbox/option issue (all five "Install required components" boxes are correctly
   left unchecked).
 
+**Cloud verify shows the 8 users not synced (`OnPremisesSyncEnabled` blank, 3
+MISSING) right after install.** The initial sync may not have exported yet — the
+post-install verify (2026-06-18) found the 5 pre-existing accounts still
+cloud-only and the 3 new users absent. **Force a sync from an *elevated*
+PowerShell on `STFN-DC`** (the `ADSync` cmdlets require the ADSyncAdmins role,
+which a UAC-filtered token drops):
+
+```powershell
+Start-ADSyncSyncCycle -PolicyType Initial   # elevated; export to Entra
+Get-ADSyncScheduler                          # SyncCycleInProgress / last result
+```
+
+Then wait a few minutes and re-run `Verify-EntraSync.ps1 -Cloud`. Expect the 5 to
+flip to `OnPremisesSyncEnabled=True` (soft-match) and the 3 new users to appear.
+
+**`Get-MgUser` "not recognized" during the cloud verify.** This box's
+`PSModulePath` omits the user module dir (`Documents\WindowsPowerShell\Modules`),
+so the installed Graph cmdlets aren't auto-discovered. `Verify-EntraSync.ps1` now
+prepends that path and imports `Microsoft.Graph.Authentication` +
+`Microsoft.Graph.Users` itself, so this is handled — but note it if running Graph
+cmdlets ad hoc.
+
 ## Scripts (maintained)
 
 All operational scripts live in the repo at
