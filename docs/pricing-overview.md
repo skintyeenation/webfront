@@ -15,7 +15,9 @@ Canadian law (current expenses, not capital — see each doc; not tax advice).
 
 | Service | What it's for | Basis | Approx. cost (CAD) | Detail |
 |---|---|---|--:|---|
-| **Microsoft 365** Business Standard (w/ Teams) | Email, Teams, Office, shared mailboxes | per user / mo (annual) | **~$18.60 / user** | [`365/pricing.md`](365/pricing.md) |
+| **Microsoft 365** — Business **Premium** (managed staff) | Email/Teams/Office **+ Intune + Defender + Conditional Access** | per user / mo (annual) | **~$32.70 / user** | [`365/pricing.md`](365/pricing.md) |
+| **Microsoft 365** — Business **Standard** (basic staff) | Email, Teams, Office, shared mailboxes | per user / mo (annual) | **~$18.60 / user** | [`365/pricing.md`](365/pricing.md) |
+| **Microsoft 365** — contractors (BYOD, **app-only**) | Skin Tyee app only — no Microsoft license | per user / mo | **$0** (unlicensed / B2B guest) | [`365/pricing.md`](365/pricing.md) |
 | **1Password** Business | Password manager / shared secrets | per user / mo (annual) | **~$11 / user** | [`1password/pricing.md`](1password/pricing.md) |
 | **GoDaddy** domains (×4) | `skintyee.ca` + `.com/.org/.net` | per year (fixed) | **$122.96 / yr** (~$10/mo) | [`godaddy/pricing.md`](godaddy/pricing.md) |
 | **Azure** hosting | Website infrastructure (VM + managed MySQL + storage) | per month (fixed) | **~US $56/mo** (~CAD $76/mo, ~$915/yr) | [`hosting-costs.md`](hosting-costs.md) |
@@ -26,20 +28,23 @@ Canadian law (current expenses, not capital — see each doc; not tax advice).
 | **ImprovMX** | Email forwarding (aliases / secondary domains → M365) | per month | **$0** (Free) — or ~US $9/mo Premium | [`improvmx/`](improvmx/README.md) |
 | **Mailgun** | Transactional / app outbound email | usage-based | **$0** (free/low volume) — or ~US $15–35/mo | [`mailgun/`](mailgun/README.md) |
 
-## Worked example — 9 licensed users
+## Worked example — 9 staff (4 Premium + 5 Standard) + 3 app-only contractors
 
-Replace `9` with the actual count; domains + Azure are fixed regardless of headcount.
+Replace the counts with the actuals; domains + Azure are fixed regardless of headcount.
+Contractors are unlicensed (app-only) and add **$0**.
 
 | Service | Monthly (CAD) | Annual (CAD) |
 |---|--:|--:|
-| Microsoft 365 — 9 × ~$18.60 | ~$167 | ~$2,009 |
+| Microsoft 365 — managed staff 4 × ~$32.70 | ~$131 | ~$1,570 |
+| Microsoft 365 — basic staff 5 × ~$18.60 | ~$93 | ~$1,116 |
+| Microsoft 365 — contractors (app-only) × 3 | $0 | $0 |
 | 1Password — 9 × ~$11 | ~$99 | ~$1,188 |
 | GoDaddy domains | ~$10 | $122.96 |
 | Azure hosting (~US $56 → CAD) | ~$76 | ~$915 |
 | Apple Developer Program (~US $99/yr) | ~$11 | ~$135 |
 | IntelliJ IDEA Ultimate (1 seat) | ~$68 | ~$815 |
 | Claude Max (Claude Code, 1 seat) | ~$136 | ~$1,632 |
-| **Total (example)** | **~$567 / mo** | **~$6,817 / yr** |
+| **Total (example)** | **~$624 / mo** | **~$7,494 / yr** |
 
 Plus a **one-time** Google Play registration of ~CAD $34 at setup. Apple's
 ~$135/yr is **$0** if the non-profit fee waiver is approved. Developer tools
@@ -53,6 +58,12 @@ Plus a **one-time** Google Play registration of ~CAD $34 at setup. Apple's
   count to current, active people. **Remove licences/seats immediately when
   someone leaves** (cost + security): see the offboarding sections in
   [`365/pricing.md`](365/pricing.md) and [`1password/pricing.md`](1password/pricing.md).
+- **M365 is tiered to control cost** — only **managed staff** need Business
+  **Premium** (the Intune/Defender/Conditional-Access layer, ~$32.70); **basic
+  staff** stay on **Standard** (~$18.60); **contractors are app-only and
+  unlicensed ($0)** since signing into the Entra-gated app consumes no M365
+  licence. Right-size the tier per person — don't put everyone on Premium. See
+  [`365/entra-connect.md`](365/entra-connect.md) for the tier model.
 - **Fixed services (GoDaddy, Azure)** don't scale with headcount but are
   mission-critical — keep **domain auto-renew on** and Azure billing current.
 - **Currency:** Microsoft/1Password bill in USD-derived CAD (rate-dependent);
