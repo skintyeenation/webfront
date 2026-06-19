@@ -187,6 +187,9 @@ export interface ApiService {
     allTimesheets(period?: string, status?: string): Promise<Timesheet[]>;
     approve(id: string): Promise<Timesheet>;
     reject(id: string, reason?: string): Promise<Timesheet>;
+    /** Admin-only: unlock an approved timesheet for correction. Returns it to
+     *  'submitted' and clears the approval so it can be edited again. */
+    reopen(id: string): Promise<Timesheet>;
     /** Admin-only nuclear option — removes the timesheet + its entries.
      *  UI MUST confirm before calling. Used for duplicates, departures
      *  mid-period, or correcting a mis-attributed sheet. */

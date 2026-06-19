@@ -176,6 +176,7 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
         }),
       approve: (id: string)                  => post<any>(`/timekeeping/timesheets/${encodeURIComponent(id)}/approve`, {}),
       reject:  (id: string, reason?: string) => post<any>(`/timekeeping/timesheets/${encodeURIComponent(id)}/reject`,  { reason }),
+      reopen:  (id: string)                  => post<any>(`/timekeeping/timesheets/${encodeURIComponent(id)}/reopen`, {}),
       deleteTimesheet: async (id: string) => {
         const res = await fetch(api(`/timekeeping/timesheets/${encodeURIComponent(id)}`), {
           method: 'DELETE',

@@ -279,6 +279,10 @@ export default function AddTimesheet({ navigation, route }: any) {
     return out;
   }, [rows, overlapIds]);
 
+  // An approved sheet is locked for the worker (read-only) — an admin must
+  // reopen it. The api/ enforces this too; this is the UX layer.
+  const locked = !adminEditMode && existing?.status === 'approved';
+
   // Any touched row that fails its own validation (bad format, partial
   // fill, reversed span). Used to disable Submit and trip the inline
   // row errors. Untouched rows (empty across the board) are ignored.
@@ -496,11 +500,13 @@ export default function AddTimesheet({ navigation, route }: any) {
                             <TextInput
                               dense mode="outlined" label="Task" value={r.task}
                               onChangeText={(v) => updateRow(r.id, { task: v })}
+                              editable={!locked}
                               style={{ flex: 1, marginRight: 6 }}
                             />
                             <IconButton
                               icon="close" size={18}
                               iconColor={theme.colors.textDarker}
+                              disabled={locked}
                               onPress={() => removeRow(r.id)}
                             />
                           </View>
@@ -539,14 +545,16 @@ export default function AddTimesheet({ navigation, route }: any) {
                       })
                     )}
 
-                    <Button
-                      compact mode="text" icon="plus"
-                      textColor={theme.colors.primary}
-                      onPress={() => addRow(d.date)}
-                      style={{ alignSelf: 'flex-start' }}
-                    >
-                      Add entry
-                    </Button>
+                    {!locked ? (
+                      <Button
+                        compact mode="text" icon="plus"
+                        textColor={theme.colors.primary}
+                        onPress={() => addRow(d.date)}
+                        style={{ alignSelf: 'flex-start' }}
+                      >
+                        Add entry
+                      </Button>
+                    ) : null}
                   </Card.Content>
                 </Card>
                 );
@@ -606,6 +614,16 @@ export default function AddTimesheet({ navigation, route }: any) {
                   Save edits
                 </Button>
               </View>
+            );
+          }
+          // Approved sheets are locked — no Save/Submit for the worker. An
+          // admin must reopen it. (The api/ also rejects edits, so this is the
+          // UX layer over a hard backend guard.)
+          if (existing?.status === 'approved') {
+            return (
+              <HelperText type="info" visible style={{ marginLeft: -8, marginTop: 8 }}>
+                This timesheet is approved and locked. Ask an admin to reopen it if a change is needed.
+              </HelperText>
             );
           }
           return (

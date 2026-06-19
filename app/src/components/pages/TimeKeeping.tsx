@@ -183,6 +183,19 @@ export default function TimeKeeping({ navigation }: any) {
       setActingOn(undefined);
     }
   };
+  // Unlock an approved timesheet for correction (→ back to 'submitted').
+  const onReopen = async (id: string) => {
+    setActingOn(id);
+    setError(undefined);
+    try {
+      const updated = await apiFactory().timekeeping.reopen(id);
+      setAllTimesheets((prev) => prev.map((t) => (t.id === id ? updated : t)));
+    } catch (e: any) {
+      setError(e?.message ?? String(e));
+    } finally {
+      setActingOn(undefined);
+    }
+  };
 
   if (loading) {
     return (
@@ -293,6 +306,7 @@ export default function TimeKeeping({ navigation }: any) {
             actingOn={actingOn}
             onApprove={onApprove}
             onReject={onReject}
+            onReopen={onReopen}
             onDelete={onDelete}
             canDelete={role === 'admin'}
             navigation={navigation}
@@ -409,7 +423,7 @@ function MyTimesheetView({
 // ---- Approvals view --------------------------------------------------------
 
 function ApprovalsView({
-  timesheets, eligiblePeople, selectedPeriodId, actingOn, onApprove, onReject, onDelete, canDelete, navigation,
+  timesheets, eligiblePeople, selectedPeriodId, actingOn, onApprove, onReject, onReopen, onDelete, canDelete, navigation,
 }: {
   timesheets: Timesheet[];
   eligiblePeople: Array<{ personId: string; workerUpn: string; workerName: string; isBandMember: boolean }>;
@@ -417,6 +431,7 @@ function ApprovalsView({
   actingOn?: string;
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
+  onReopen: (id: string) => void;
   onDelete: (t: Timesheet) => void;
   canDelete: boolean;
   navigation: any;
@@ -572,6 +587,7 @@ function ApprovalsView({
               canDelete={canDelete}
               onEdit={() => openEdit(t)}
               onDelete={() => askDelete(t)}
+              onReopen={canDelete ? () => onReopen(t.id) : undefined}
             />
           ))}
         </>
@@ -587,7 +603,7 @@ function ApprovalsView({
 // edit / delete IconButtons stop propagation so a tap on those doesn't
 // also open the modal.
 function DecidedRow({
-  t, actingOn, canEdit, canDelete, onEdit, onDelete,
+  t, actingOn, canEdit, canDelete, onEdit, onDelete, onReopen,
 }: {
   t: Timesheet;
   actingOn?: string;
@@ -595,6 +611,7 @@ function DecidedRow({
   canDelete: boolean;
   onEdit: () => void;
   onDelete: () => void;
+  onReopen?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const busy = actingOn === t.id;
@@ -609,6 +626,15 @@ function DecidedRow({
               <Chip compact style={{ backgroundColor: statusColor(t.status) }} textStyle={{ color: '#000', fontSize: 10 }}>
                 {statusLabel(t.status)}
               </Chip>
+              {onReopen && t.status === 'approved' ? (
+                <IconButton
+                  icon="lock-open-variant" size={18}
+                  iconColor={theme.colors.accent}
+                  disabled={busy}
+                  onPress={(e: any) => { e?.stopPropagation?.(); onReopen(); }}
+                  accessibilityLabel="Reopen timesheet"
+                />
+              ) : null}
               {canEdit ? (
                 <IconButton
                   icon="pencil" size={18}

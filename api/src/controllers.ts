@@ -1374,6 +1374,18 @@ export class TimeKeepingController {
     const me = await this.prisma.bandMember.findUnique({ where: { upn } });
     const workerName = me?.name ?? upn;
 
+    // An APPROVED timesheet is locked — the worker can't reopen or overwrite
+    // it (this path would otherwise reset status back to 'draft' and replace
+    // entries). Draft / submitted / rejected stay editable. To change an
+    // approved sheet, an admin deletes it and the worker re-submits.
+    const existingSheet = await this.prisma.timesheet.findUnique({
+      where: { workerUpn_payPeriodId: { workerUpn: upn, payPeriodId: period.id } },
+      select: { status: true },
+    });
+    if (existingSheet?.status === 'approved') {
+      throw new ForbiddenException('This timesheet has been approved and can no longer be edited. Ask an admin to reopen it.');
+    }
+
     // Hours are recomputed from time-in/time-out whenever both are
     // present — the server is the authority. This runs before
     // summarize() so OT math reflects the canonical values.
@@ -1506,6 +1518,24 @@ export class TimeKeepingController {
     await this.emailTimesheetEvent('rejected', updated, [`Status: ${prevStatus} → rejected`],
       { actor: approverUpn, reason: b?.reason });
     return updated;
+  }
+
+  // POST /v1/timekeeping/timesheets/:id/reopen — admin unlocks an APPROVED
+  // timesheet for correction. Returns it to 'submitted' (back in the approval
+  // queue) and clears the approval, so the worker (or admin) can edit it again.
+  @Post('timesheets/:id/reopen') @Roles('admin')
+  async reopen(@Param('id') id: string) {
+    if (!this.prisma.isAvailable) throw new NotFoundException('Prisma not connected');
+    const sheet = await this.prisma.timesheet.findUnique({ where: { id } });
+    if (!sheet) throw new NotFoundException('Timesheet not found');
+    if (sheet.status !== 'approved') {
+      throw new ForbiddenException(`Only approved timesheets can be reopened (current: ${sheet.status}).`);
+    }
+    return this.prisma.timesheet.update({
+      where: { id },
+      data:  { status: 'submitted', approvedBy: null, approvedAt: null },
+      include: { entries: true },
+    });
   }
 
   // GET /v1/timekeeping/timesheets/admin/:id — admin only.
