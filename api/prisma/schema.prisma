@@ -25,6 +25,17 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ---- AppSetting -----------------------------------------------------------
+// Generic key/value store for admin-configurable runtime settings (e.g. the
+// notification-settings blob: per-category email toggles + sender/reply-to).
+// Value is a JSON string owned by SettingsService; degrades to in-memory in
+// that service when Prisma isn't connected.
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
 // ---- BandMember -----------------------------------------------------------
 // Seeded from Entra users in the skintyeenation tenant by
 // /v1/admin/seed-directory (calls GraphFeedService.getDirectory()).

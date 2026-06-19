@@ -17,6 +17,8 @@ import { StaffAuthService } from './staff-auth.service';
 import { StaffAuthController } from './staff-auth.controller';
 import { DevicesController } from './devices.controller';
 import { MailgunService } from './mailgun.service';
+import { SettingsService } from './settings.service';
+import { SettingsController } from './settings.controller';
 
 @Module({
   imports: [StorageModule],
@@ -25,10 +27,12 @@ import { MailgunService } from './mailgun.service';
     DocumentsController, DocumentTagsController,
     OnboardingController, OnboardingPublicController,
     StaffAuthController,  // staff-auth feature — public /v1/auth/staff/*
-    DevicesController,    // Assets → Devices (Entra devices, seeded; admin-only)
+    DevicesController,    // System → Devices (Entra devices, seeded; admin-only)
+    SettingsController,   // System → Configure Notifications (admin-only)
   ],
   providers: [
     DataService,
+    SettingsService,   // Admin-configurable email toggles + sender/reply-to
     GraphFeedService,  // ADR-14: Microsoft Graph reader for Planner + Teams meetings
     PrismaService,     // ADR-7:  Postgres data layer (degrades to in-memory if no DATABASE_URL)
     ExoService,        // ADR-15: Exchange Online PowerShell via Azure Function (shared mailbox perms)

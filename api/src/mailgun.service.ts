@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EMAIL_LOGO_PNG_B64 } from './email-logo';
+import { SettingsService } from './settings.service';
 
 // Transactional email via the Mailgun HTTP API. Zero deps — uses Node 20's
 // global fetch + FormData. Config (all via env; secrets live in Container App
@@ -19,13 +20,15 @@ const LOGO_CID = 'logo.png';
 export class MailgunService {
   private readonly log = new Logger(MailgunService.name);
 
+  constructor(private settings: SettingsService) {}
+
   get configured(): boolean {
     return !!(process.env.MAILGUN_API_KEY && process.env.MAILGUN_DOMAIN);
   }
 
-  private get from(): string {
-    return process.env.MAILGUN_FROM ?? 'Skin Tyee First Nation <it@skintyee.ca>';
-  }
+  // Sender ("Name <email>") + Reply-To come from the admin-configurable
+  // notification settings (SettingsService), which defaults to the
+  // MAILGUN_FROM / MAILGUN_REPLY_TO env values.
 
   /**
    * Send one email. Returns true if Mailgun accepted it, false if email is not
@@ -38,6 +41,7 @@ export class MailgunService {
     html: string;
     text?: string;
     from?: string;
+    replyTo?: string;
     /** Attach the letterhead logo inline (default true). */
     inlineLogo?: boolean;
   }): Promise<boolean> {
@@ -50,7 +54,9 @@ export class MailgunService {
     const apiKey = process.env.MAILGUN_API_KEY!;
 
     const form = new FormData();
-    form.append('from', opts.from ?? this.from);
+    form.append('from', opts.from ?? await this.settings.mailFrom());
+    const replyTo = opts.replyTo ?? await this.settings.replyTo();
+    if (replyTo) form.append('h:Reply-To', replyTo);
     form.append('to', opts.to);
     form.append('subject', opts.subject);
     form.append('html', opts.html);
@@ -85,6 +91,7 @@ export class MailgunService {
     html: string;
     text?: string;
     from?: string;
+    replyTo?: string;
     inlineLogo?: boolean;
   }): Promise<{ sent: number; configured: boolean }> {
     const recipients = [...new Set(opts.recipients.filter(Boolean))];
@@ -98,12 +105,15 @@ export class MailgunService {
     const domain = process.env.MAILGUN_DOMAIN!;
     const auth = 'Basic ' + Buffer.from(`api:${process.env.MAILGUN_API_KEY!}`).toString('base64');
     const logo = Buffer.from(EMAIL_LOGO_PNG_B64, 'base64');
+    const from = opts.from ?? await this.settings.mailFrom();
+    const replyTo = opts.replyTo ?? await this.settings.replyTo();
 
     let sent = 0;
     for (let i = 0; i < recipients.length; i += 1000) {
       const batch = recipients.slice(i, i + 1000);
       const form = new FormData();
-      form.append('from', opts.from ?? this.from);
+      form.append('from', from);
+      if (replyTo) form.append('h:Reply-To', replyTo);
       for (const r of batch) form.append('to', r);
       form.append('subject', opts.subject);
       form.append('html', opts.html);
