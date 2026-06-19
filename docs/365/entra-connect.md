@@ -248,7 +248,8 @@ present in `OU=SkinTyee Users` with matching UPN / mail / `SMTP:` proxy.
    `shaneika.mccorkell`) created by the first cycle.** Note: Graph can lag a few
    minutes behind the sync cycle — an immediate check may show `0/8`; re-run after
    the cycle settles.
-10. Assign M365 licenses to the 3 new users as needed.
+10. ~~Assign M365 licenses to the 3 new users.~~ **Not needed (decided
+    2026-06-18)** — the 3 new synced users don't require M365 licenses assigned.
 
 ### ⬜ Phase 3 — Devices & Intune (later)
 
