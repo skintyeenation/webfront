@@ -9,6 +9,7 @@ import { Roles, callerRole } from './roles';
 import { OnboardingService, StepCompletion } from './onboarding.service';
 import { PrismaService } from './prisma.service';
 import { MailgunService } from './mailgun.service';
+import { SettingsService } from './settings.service';
 import { renderAccountDeletedEmail } from './email-template';
 
 function readCallerUpn(req: any): string {
@@ -31,6 +32,7 @@ export class OnboardingController {
     private readonly svc: OnboardingService,
     private readonly prisma: PrismaService,
     private readonly mailgun: MailgunService,
+    private readonly settings: SettingsService,
   ) {}
 
   // ---- Flows -------------------------------------------------------------
@@ -144,7 +146,7 @@ export class OnboardingController {
     // Offboarding email — to the admins group (audit) + the person's
     // non-skintyee.ca email (their @skintyee.ca mailbox is being removed, so
     // it's no use sending there). Best-effort: never fails the delete.
-    if (person && this.prisma.isAvailable) {
+    if (person && this.prisma.isAvailable && (await this.settings.isEnabled('accountDeleted'))) {
       try {
         const members = await this.prisma.bandMember.findMany({
           where: { enabled: true },

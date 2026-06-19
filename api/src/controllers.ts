@@ -10,6 +10,7 @@ import { ExoService } from './exo.service';
 import { MailboxReconcileService } from './mailbox-reconcile.service';
 import { StaffAuthService } from './staff-auth.service';
 import { MailgunService } from './mailgun.service';
+import { SettingsService } from './settings.service';
 import { renderStaffOtpEmail, renderNotificationEmail, renderTimesheetEventEmail, TimesheetEvent } from './email-template';
 
 // Band members in a given Entra group slug (e.g. 'admins', 'band-members') →
@@ -360,6 +361,7 @@ export class AdminController implements OnApplicationBootstrap {
     private reconcile: MailboxReconcileService,
     private staffAuth: StaffAuthService,
     private mailgun: MailgunService,
+    private settings: SettingsService,
   ) {}
 
   // NestJS lifecycle hook — fires once after the app starts listening.
@@ -722,7 +724,7 @@ export class AdminController implements OnApplicationBootstrap {
     let emailed = false;
     let emailError: string | undefined;
     const emailTo = b.notifyEmail || upn;
-    if (b.createPerson && b.sendEmail !== false) {
+    if (b.createPerson && b.sendEmail !== false && (await this.settings.isEnabled('staffOtp'))) {
       try {
         const note = b.emailNote
           ? `<p style="margin:0 0 16px; font-size:14px; line-height:1.6;">${String(b.emailNote)
@@ -761,7 +763,25 @@ export class AdminController implements OnApplicationBootstrap {
   @Post('users/:id/rotate-password') @Roles('admin')
   async rotatePassword(@Param('id') id: string, @Body() b: { password?: string }) {
     const newPassword = b?.password ?? generateAdminPassword();
-    await this.graph.rotateUserPassword(id, newPassword);
+    try {
+      await this.graph.rotateUserPassword(id, newPassword);
+    } catch (e: any) {
+      const msg = e?.message ?? String(e);
+      // Graph allows User.ReadWrite.All to *create* users, but resetting an
+      // existing user's password additionally requires the app's service
+      // principal to hold a directory role (User Administrator for members;
+      // Privileged Authentication Administrator to reset admins). Surface
+      // that instead of a bare 500 so the admin knows it's a config issue.
+      if (/Authorization_RequestDenied|Insufficient privileges|\b403\b/i.test(msg)) {
+        throw new ForbiddenException(
+          'Microsoft Graph denied the password reset. The Graph app (skintyee-app-graph) ' +
+          'needs a directory role: "User Administrator" to reset staff/members, or ' +
+          '"Privileged Authentication Administrator" to reset users who hold admin roles. ' +
+          `Graph said: ${msg}`,
+        );
+      }
+      throw new ForbiddenException(`Password rotation via Microsoft Graph failed: ${msg}`);
+    }
     if (this.prisma.isAvailable) {
       await this.prisma.bandMember.update({
         where: { id },
@@ -820,17 +840,19 @@ export class AdminController implements OnApplicationBootstrap {
     // failure never fails the call (the OTP is still returned for the UI).
     let emailed = false;
     let emailError: string | undefined;
-    try {
-      const mail = renderStaffOtpEmail({
-        displayName: person.displayName,
-        upn: person.email,
-        oneTimePassword: newPassword,
-        signInUrl: process.env.APP_SIGNIN_URL ?? 'https://app.skintyee.ca',
-      });
-      emailed = await this.mailgun.send({ to: person.email, subject: mail.subject, html: mail.html, text: mail.text });
-    } catch (e: any) {
-      emailError = e?.message ?? String(e);
-      this.log.warn(`set-password: OTP email to ${person.email} failed: ${emailError}`);
+    if (await this.settings.isEnabled('staffOtp')) {
+      try {
+        const mail = renderStaffOtpEmail({
+          displayName: person.displayName,
+          upn: person.email,
+          oneTimePassword: newPassword,
+          signInUrl: process.env.APP_SIGNIN_URL ?? 'https://app.skintyee.ca',
+        });
+        emailed = await this.mailgun.send({ to: person.email, subject: mail.subject, html: mail.html, text: mail.text });
+      } catch (e: any) {
+        emailError = e?.message ?? String(e);
+        this.log.warn(`set-password: OTP email to ${person.email} failed: ${emailError}`);
+      }
     }
     return { password: newPassword, emailed, emailedTo: emailed ? person.email : undefined, emailError };
   }
@@ -1185,6 +1207,7 @@ export class TimeKeepingController {
     private reports: TimekeepingReportsService,
     private people: OnboardingService,
     private mailgun: MailgunService,
+    private settings: SettingsService,
   ) {}
 
   // Notify the worker + the admins group of a timesheet lifecycle event, with
@@ -1195,8 +1218,17 @@ export class TimeKeepingController {
     changes: string[],
     opts?: { actor?: string; reason?: string },
   ): Promise<void> {
+    // Global kill-switch for all timesheet emails (System → Configure Notifications).
+    if (!(await this.settings.isEnabled('timesheetEvents'))) return;
     try {
-      const recipients = [...new Set([sheet.workerUpn, ...(await groupMemberEmails(this.prisma, 'admins'))].filter(Boolean))];
+      // An admin edit notifies just the two parties involved: the worker
+      // (the user whose sheet changed) and the admin who made the edit.
+      // The lifecycle events (submitted / approved / rejected) instead fan
+      // out to the whole admins group so any approver can act.
+      const others = event === 'edited'
+        ? (opts?.actor ? [opts.actor] : [])
+        : await groupMemberEmails(this.prisma, 'admins');
+      const recipients = [...new Set([sheet.workerUpn, ...others].filter(Boolean))];
       const mail = renderTimesheetEventEmail({
         event,
         workerName: sheet.workerName,
@@ -1613,7 +1645,14 @@ export class TimeKeepingController {
         include: { entries: { orderBy: [{ date: 'asc' }] } },
       });
     });
-    await this.emailTimesheetEvent('edited', updated, diffTimesheet(cur, updated), { actor: callerUpn(req) });
+    // A draft that has never been submitted or approved isn't in the approval
+    // pipeline yet, so editing it shouldn't notify anyone. Only email an
+    // 'edited' event once the sheet has entered the workflow (submitted /
+    // rejected; 'approved' is already blocked above). cur.status is unchanged
+    // by this edit, so it reflects the pre-edit state.
+    if (cur.status !== 'draft') {
+      await this.emailTimesheetEvent('edited', updated, diffTimesheet(cur, updated), { actor: callerUpn(req) });
+    }
     return updated;
   }
 
@@ -1695,6 +1734,7 @@ export class NotificationsController {
     private data: DataService,
     private prisma: PrismaService,
     private mailgun: MailgunService,
+    private settings: SettingsService,
   ) {}
   @Get() list() { return this.data.notifications; }
   @Post() @Roles('admin') async create(@Body() b: any) {
@@ -1707,7 +1747,7 @@ export class NotificationsController {
     // never fails the post. Opt out of a given blast with sendEmail:false.
     let emailed = 0;
     let emailError: string | undefined;
-    if (b.sendEmail !== false && this.prisma.isAvailable) {
+    if (b.sendEmail !== false && this.prisma.isAvailable && (await this.settings.isEnabled('communityNotifications'))) {
       try {
         const recipients = await this.bandMemberEmails();
         const mail = renderNotificationEmail({ title: n.title ?? 'Skin Tyee notification', body: n.body ?? '', category: n.category });
