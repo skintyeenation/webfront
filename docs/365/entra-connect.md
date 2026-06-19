@@ -274,11 +274,13 @@ Access. No `@$22` Business Premium upgrade, no Intune license — those are
 > The OU created below is what those GPOs link to.
 
 **Step 1 — Cleanup prereqs (elevated on `STFN-DC`):**
-- **Computer OU.** All PCs sit in `CN=Computers` today (not a GPO link target and
-  awkward to scope for sync). Run
+- **Computer OU.** ✅ **Done 2026-06-18.** All PCs sat in `CN=Computers` (not a GPO
+  link target and awkward to scope for sync).
   [`Phase3-PrepComputerOU.ps1`](../../stfn-setup/entra-connect/Phase3-PrepComputerOU.ps1)
-  `-Apply` — creates `OU=SkinTyee Computers` and moves the live machines
-  (`XYNTAX-FMS2`, `ITG-LOANERPC`) in. (`STFN-DC` stays in `OU=Domain Controllers`.)
+  `-Apply` created `OU=SkinTyee Computers` (protected) and moved the live machines
+  (`XYNTAX-FMS2`, `ITG-LOANERPC`) in; verified both now resolve under the new OU and
+  `CN=Computers` holds only the 9 stale objects. (`STFN-DC` stays in
+  `OU=Domain Controllers`.)
 - **Remove the 9 stale objects** (`FS1`–`FS4`, `XYNTAX-FMS1`, `STFN2024-LT01/02/03`,
   `STFN2022-LT01`) via
   [`Phase3-RemoveStaleComputers.ps1`](../../stfn-setup/entra-connect/Phase3-RemoveStaleComputers.ps1):
