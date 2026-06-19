@@ -9,8 +9,9 @@
     - Write pwdLastSet    (attribute)  -- force-change-at-next-logon handling
 
   This is ONE of the three Step-1 pieces in docs/365/password-reset-sspr.md. The
-  other two are run separately on this same server (elevated):
-    Set-ADSyncAADPasswordResetConfiguration -Enable $true   # turn writeback on
+  other two are run separately on this same server (elevated). -Connector is
+  mandatory (the AAD/cloud connector; Get-ADSyncConnector | Select Name):
+    Set-ADSyncAADPasswordResetConfiguration -Connector "skintyeenation.onmicrosoft.com - AAD" -Enable $true
   then in Entra: Protection > Password reset > On-premises integration > Write
   back passwords = Yes.
 
@@ -57,7 +58,7 @@ foreach ($a in $aces) {
 }
 if ($Apply) {
   Set-Acl -Path "AD:\$ouDN" -AclObject $acl
-  Write-Host "Granted. Now run: Set-ADSyncAADPasswordResetConfiguration -Enable `$true" -ForegroundColor Green
+  Write-Host 'Granted. Now run: Set-ADSyncAADPasswordResetConfiguration -Connector "<AAD connector>" -Enable $true' -ForegroundColor Green
 } else {
   Write-Host "Re-run with -Apply to write these ACEs." -ForegroundColor Yellow
 }
