@@ -17,6 +17,8 @@ folder holds the **scripts those phases run**. Run them **on `STFN-DC`**.
 | [`Phase1-PrepUsers.ps1`](Phase1-PrepUsers.ps1) | 1 ✅ done | Adds the `skintyee.ca` UPN suffix, creates `OU=SkinTyee Users`, and normalizes the 8 scoped users (UPN + sAMAccountName → `first.last`, `mail`, primary `SMTP:` proxy) so the 5 existing cloud accounts **soft-match** instead of duplicating. **Preview by default; `-Apply` to write.** Keyed on immutable ObjectGUID. | **elevated** |
 | [`Set-TlsStrongCrypto.ps1`](Set-TlsStrongCrypto.ps1) | 2 prereq | Sets the .NET TLS 1.2 strong-crypto registry keys Entra Connect v2 requires. **Preview by default; `-Apply` to write.** New shell/reboot after. | **elevated** |
 | [`Verify-EntraSync.ps1`](Verify-EntraSync.ps1) | 2 verify | After the first sync: checks the ADSync service + scheduler; `-Cloud` also queries Graph to confirm the 8 users synced with **no duplicates**. | on DC (`-Cloud` prompts sign-in) |
+| [`Phase3-PrepComputerOU.ps1`](Phase3-PrepComputerOU.ps1) | 3 prereq | Creates `OU=SkinTyee Computers` and moves the live machines (`XYNTAX-FMS2`, `ITG-LOANERPC`) out of `CN=Computers` so they can be GPO-targeted and added to the sync scope for Hybrid Entra Join. **Preview by default; `-Apply` to write.** | **elevated** |
+| [`Phase3-RemoveStaleComputers.ps1`](Phase3-RemoveStaleComputers.ps1) | 3 prereq | Cleans up the 9 stale 2024 computer objects. **Preview by default; `-Apply` disables, `-Apply -Delete` removes.** | **elevated** |
 
 ## Phase 2 — install order (summary)
 

@@ -7,7 +7,8 @@ tenant. Companion to [`entra-id.md`](entra-id.md); the decision rationale is
 
 > **Status:** Phase 1 ✅ complete (2026-06-18) · Phase 2 ✅ complete + **verified
 > (2026-06-18): all 8 users `OnPremisesSyncEnabled=True`, no duplicates** · Phase 3
-> ⬜ later (Entra join + Intune for new devices).
+> 🔄 Hybrid Entra Join (domain PCs visible in Entra, **no Intune**; Intune/BYOD
+> deferred to contractors / Phase 4).
 
 ## The model — cloud-first coexistence
 
@@ -251,24 +252,61 @@ present in `OU=SkinTyee Users` with matching UPN / mail / `SMTP:` proxy.
 10. ~~Assign M365 licenses to the 3 new users.~~ **Not needed (decided
     2026-06-18)** — the 3 new synced users don't require M365 licenses assigned.
 
-### ⬜ Phase 3 — Devices & Intune (later)
+### 🔄 Phase 3 — Hybrid Entra Join (devices visible in Entra, no Intune)
 
-**Cleanup prerequisites (do first — surfaced by the 2026-06-18 inventory above):**
-- **Create a computer OU structure.** All PCs are in `CN=Computers` today, which
-  can't be a GPO link target. Make e.g. `OU=Workstations`, `OU=Finance` and move
-  the live machines in before relying on GPO / preparing Hybrid join.
-- **Disable then delete the 8 stale objects** (`FS1`–`FS4`, `XYNTAX-FMS1`,
-  `STFN2024-LT01/02/03`, `STFN2022-LT01`) — no point Hybrid-joining ghosts.
-  Disable first, confirm nothing breaks, then remove.
-- **Add a second finance machine.** `XYNTAX-FMS2` is currently the *only* live
-  Xyntax workstation (single point of failure).
+**Decision (2026-06-18): Hybrid Entra Join, NOT Intune.** All machines stay
+**domain-joined and Group-Policy-managed** on `STFN-DC`; we just *register* them up
+to Entra so they're visible in the cloud and usable for device-based Conditional
+Access. No `@$22` Business Premium upgrade, no Intune license — those are
+**deferred** (see below). Hybrid join is registration/visibility only; it does
+**not** manage the devices (GPO still does) and needs no per-user license.
 
-**Then:**
-- Entra-join new/replacement workstations; enroll in **Intune** (after the
-  Business Premium / Intune add-on licensing decision above).
-- Optionally enable **Hybrid Entra join** on the existing domain-joined PCs so
-  they also appear in Entra/Intune without re-joining.
-- Turn on **Conditional Access** (require MFA / compliant device).
+> **Intune / Entra-join / BYOD — deferred until contractors (Phase 4).** We have
+> no remote, cloud-only, or BYOD devices yet, so cloud device *management* isn't
+> needed. Revisit when **contractors / BYOD** arrive: that's when Intune (or the
+> AD-first bridge) and Conditional Access "require compliant device" earn their
+> cost. The licensing comparison (Business Premium vs Intune Plan 1 vs AD-first)
+> is preserved in **ADR-16** for that decision.
+
+> **Restricting which users log into which PCs does NOT need Intune.** It's
+> on-prem AD/GPO: per-user `Set-ADUser <u> -LogonWorkstations "PC1,PC2"`, or a GPO
+> on the computer OU using **User Rights Assignment** (Allow/Deny log on locally).
+> The OU created below is what those GPOs link to.
+
+**Step 1 — Cleanup prereqs (elevated on `STFN-DC`):**
+- **Computer OU.** All PCs sit in `CN=Computers` today (not a GPO link target and
+  awkward to scope for sync). Run
+  [`Phase3-PrepComputerOU.ps1`](../../stfn-setup/entra-connect/Phase3-PrepComputerOU.ps1)
+  `-Apply` — creates `OU=SkinTyee Computers` and moves the live machines
+  (`XYNTAX-FMS2`, `ITG-LOANERPC`) in. (`STFN-DC` stays in `OU=Domain Controllers`.)
+- **Remove the 9 stale objects** (`FS1`–`FS4`, `XYNTAX-FMS1`, `STFN2024-LT01/02/03`,
+  `STFN2022-LT01`) via
+  [`Phase3-RemoveStaleComputers.ps1`](../../stfn-setup/entra-connect/Phase3-RemoveStaleComputers.ps1):
+  `-Apply` to disable, then `-Apply -Delete` after a settling period. No point
+  Hybrid-joining ghosts.
+- **Add a second finance machine.** `XYNTAX-FMS2` is the *only* live Xyntax box
+  (single point of failure).
+
+**Step 2 — Add the computer OU to the Entra Connect sync scope.** Hybrid join needs
+the *computer objects* synced up (Entra confirms the device against its synced
+object). Re-run the wizard → **Customize synchronization options** → Domain/OU
+filtering → also check **`OU=SkinTyee Computers`** → finish + sync.
+
+**Step 3 — Configure the SCP (elevated wizard on `STFN-DC`).** Launch
+`AzureADConnect.exe` → **Configure device options** → **Configure Hybrid Azure AD
+join** → device OS = **"Windows 10 or later domain-joined"** → for forest
+`STFN.local` set the authentication service to **Azure Active Directory** (we're a
+managed / PHS domain — no AD FS) → supply **Enterprise Admin** `STFN\stfnadmin` to
+write the Service Connection Point → finish.
+
+**Step 4 — Register the devices.** On each live domain-joined PC the
+`\Microsoft\Windows\Workplace Join\Automatic-Device-Join` scheduled task registers
+it to Entra (runs at sign-in; force with `dsregcmd /join` as SYSTEM, or reboot +
+sign in). Check on the device: `dsregcmd /status` → **`AzureAdJoined : YES`** and
+**`DomainJoined : YES`** together = Hybrid joined.
+
+**Step 5 — Verify.** [entra.microsoft.com](https://entra.microsoft.com) → **Devices
+→ All devices**: the machines show **Join Type = "Microsoft Entra hybrid joined."**
 
 ## Troubleshooting
 
