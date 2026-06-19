@@ -189,6 +189,17 @@ export const mockApiService: ApiService = {
     update: () => delay({} as any),
     delete: () => delay(undefined as any),
   },
+  // Entra devices — served from fixtures so the Assets → Devices screens
+  // render realistically against the mock. userCount is derived from the
+  // embedded users; `get` returns the full detail (incl. the access list).
+  devices: {
+    list: () => delay(fixtures.devices.map(({ users, ...d }) => ({ ...d, userCount: users.length }))),
+    get: (id: string) => {
+      const d = fixtures.devices.find((x) => x.id === id);
+      if (!d) throw new Error(`Unknown device: ${id}`);
+      return delay({ ...d, userCount: d.users.length });
+    },
+  },
   onboarding: {
     // Empty stubs — Onboarding screens render against the live api/
     // when run in dev. Mock satisfies the ApiService contract.

@@ -279,6 +279,16 @@ export interface ApiService {
     update(id: string, patch: { slug?: string; displayName?: string }): Promise<DocumentTagDto>;
     delete(id: string): Promise<void>; // 409 if inUseCount > 0 on the server.
   };
+  // Assets — Entra-registered devices (Microsoft Graph /devices). Read-only
+  // admin inventory: list + per-device detail showing the registered owners
+  // and users (i.e. who can sign in to / access each device). When wired to
+  // the real api/ this maps to GET /v1/devices and
+  // GET /v1/devices/:id (which calls /devices, /registeredOwners,
+  // /registeredUsers via Graph — needs Device.Read.All). See STUBS.md.
+  devices: {
+    list(): Promise<DeviceDto[]>;
+    get(id: string): Promise<DeviceDetailDto>;
+  };
   // Phase 2 — Onboarding flows. Admin-only endpoints + a public tokenised
   // path for people. See docs/features/documents-and-onboarding.md.
   onboarding: {
@@ -439,4 +449,42 @@ export interface DocumentTagDto {
   /** Server-side count of documents using this tag. UI uses it to show
    *  an "in use (N)" badge and disable Delete when > 0. */
   inUseCount: number;
+}
+
+// ---- Devices (Entra) -------------------------------------------------------
+
+/** Entra join type — maps to Graph's device.trustType. */
+export type DeviceTrustType = 'AzureAd' | 'Hybrid' | 'Workplace';
+
+/** How a user is attached to a device: a registered *owner* vs a registered
+ *  *user* (Graph's registeredOwners vs registeredUsers). Both can sign in. */
+export type DeviceAccessType = 'owner' | 'user';
+
+export interface DeviceUserDto {
+  id: string;
+  displayName: string;
+  email: string;
+  accessType: DeviceAccessType;
+}
+
+export interface DeviceDto {
+  id: string;
+  displayName: string;
+  /** 'Windows' | 'Windows Server' | 'iOS' | 'iPadOS' | 'Android' | 'macOS'. */
+  operatingSystem: string;
+  osVersion: string;
+  trustType: DeviceTrustType;
+  isCompliant: boolean;
+  isManaged: boolean;
+  /** accountEnabled — a disabled device can't authenticate. */
+  enabled: boolean;
+  approximateLastSignInDateTime: string; // ISO 8601
+  registrationDateTime: string;          // ISO 8601
+  /** Count of registered owners + users — shown on the list row. */
+  userCount: number;
+}
+
+export interface DeviceDetailDto extends DeviceDto {
+  /** Registered owners + users — who can access this device. */
+  users: DeviceUserDto[];
 }

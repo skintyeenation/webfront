@@ -74,6 +74,21 @@ API Server for data.
 - **Replace with:** a feed driven by skintyee.ca WordPress posts in those
   categories (+ real push delivery — see §4). See ADR-6.
 
+## 2cc. Devices inventory — mocked (→ Microsoft Graph `/devices`)
+
+- **What:** the **Assets → Devices** admin screen — a list of Entra-registered
+  devices and a per-device detail view showing who can access each one
+  (registered owners + users).
+- **Where:** `services/api/ApiService.ts` (`devices` service, `DeviceDto` /
+  `DeviceDetailDto` / `DeviceUserDto`), `fixtures.ts` (`devices`),
+  `MockApiService.ts` (`devices`), `HttpApiService.ts` (`devices` → `/v1/devices`),
+  `components/pages/Devices.tsx` + `DeviceDetail.tsx`, menu entry in `MoreMenu.tsx`.
+- **STUB:** the mock serves hand-authored device fixtures. The real path expects
+  the api/ to expose `GET /v1/devices` and `GET /v1/devices/:id` backed by
+  Microsoft Graph (`/devices`, `/registeredOwners`, `/registeredUsers` —
+  `Device.Read.All`). **That api/ endpoint does not exist yet** — a follow-up to
+  wire to the live tenant (consistent with the other Graph-backed surfaces).
+
 ## 2d. Admin authoring (create/manage) — in-memory only
 
 - **What:** admins can **add / delete / cancel** content in-context:

@@ -1,4 +1,5 @@
 import { AppNotification, BandMember, BandMeeting, CommunityEvent, Expenditure, MajorProject, Poll, PublicRecord, TimeEntry } from 'skintyee/models';
+import type { DeviceDetailDto } from 'skintyee/services/api/ApiService';
 
 // STUB DATA. Hand-authored sample content so every screen renders realistically
 // without a backend. Replace with real API responses. See STUBS.md.
@@ -286,3 +287,87 @@ export function plannerRollup(): PlannerRollup {
     cacheAgeMs: 0,
   };
 }
+
+// ---- Entra devices (Assets → Devices) --------------------------------------
+// Stand-in for Microsoft Graph /devices + registeredOwners/registeredUsers.
+// userCount is derived by the mock from `users.length`. Mix of OS, join type,
+// compliance, and single- vs shared-access devices so the screens render
+// realistically. Users reference the named members above.
+export const devices: Array<Omit<DeviceDetailDto, 'userCount'>> = [
+  {
+    id: 'dev-srv01', displayName: 'STFN-SERVER01',
+    operatingSystem: 'Windows Server', osVersion: '10.0.20348',
+    trustType: 'Hybrid', isCompliant: true, isManaged: true, enabled: true,
+    approximateLastSignInDateTime: hoursAgo(3), registrationDateTime: daysFromNow(-540),
+    users: [
+      { id: 'm3', displayName: 'Sandra Williams', email: 'admin@skintyee.ca', accessType: 'owner' },
+    ],
+  },
+  {
+    id: 'dev-chief-surface', displayName: 'CHIEF-SURFACE',
+    operatingSystem: 'Windows', osVersion: '10.0.22631',
+    trustType: 'AzureAd', isCompliant: true, isManaged: true, enabled: true,
+    approximateLastSignInDateTime: hoursAgo(20), registrationDateTime: daysFromNow(-210),
+    users: [
+      { id: 'm1', displayName: 'Marie Joseph', email: 'chief@skintyee.ca', accessType: 'owner' },
+    ],
+  },
+  {
+    id: 'dev-reception', displayName: 'RECEPTION-PC',
+    operatingSystem: 'Windows', osVersion: '10.0.19045',
+    trustType: 'Hybrid', isCompliant: false, isManaged: true, enabled: true,
+    approximateLastSignInDateTime: hoursAgo(6), registrationDateTime: daysFromNow(-720),
+    users: [
+      { id: 'm3', displayName: 'Sandra Williams', email: 'admin@skintyee.ca', accessType: 'owner' },
+      { id: 'm5', displayName: 'Annie Michell', email: 'a.michell@skintyee.ca', accessType: 'user' },
+      { id: 'm2', displayName: 'Daniel Pierre', email: 'd.pierre@skintyee.ca', accessType: 'user' },
+    ],
+  },
+  {
+    id: 'dev-lands-laptop', displayName: 'LANDS-LAPTOP',
+    operatingSystem: 'Windows', osVersion: '10.0.22631',
+    trustType: 'Hybrid', isCompliant: true, isManaged: true, enabled: true,
+    approximateLastSignInDateTime: daysFromNow(-2), registrationDateTime: daysFromNow(-150),
+    users: [
+      { id: 'm4', displayName: 'Joseph Alec', email: 'lands@skintyee.ca', accessType: 'owner' },
+      { id: 'm3', displayName: 'Sandra Williams', email: 'admin@skintyee.ca', accessType: 'user' },
+    ],
+  },
+  {
+    id: 'dev-marie-iphone', displayName: 'Marie iPhone',
+    operatingSystem: 'iOS', osVersion: '17.5.1',
+    trustType: 'Workplace', isCompliant: true, isManaged: true, enabled: true,
+    approximateLastSignInDateTime: hoursAgo(1), registrationDateTime: daysFromNow(-95),
+    users: [
+      { id: 'm1', displayName: 'Marie Joseph', email: 'chief@skintyee.ca', accessType: 'owner' },
+    ],
+  },
+  {
+    id: 'dev-council-ipad', displayName: 'Council iPad',
+    operatingSystem: 'iPadOS', osVersion: '17.5',
+    trustType: 'Workplace', isCompliant: true, isManaged: true, enabled: true,
+    approximateLastSignInDateTime: daysFromNow(-5), registrationDateTime: daysFromNow(-120),
+    users: [
+      { id: 'm2', displayName: 'Daniel Pierre', email: 'd.pierre@skintyee.ca', accessType: 'user' },
+      { id: 'm5', displayName: 'Annie Michell', email: 'a.michell@skintyee.ca', accessType: 'user' },
+    ],
+  },
+  {
+    id: 'dev-daniel-pixel', displayName: 'Daniel Pixel 8',
+    operatingSystem: 'Android', osVersion: '14',
+    trustType: 'Workplace', isCompliant: false, isManaged: false, enabled: true,
+    approximateLastSignInDateTime: daysFromNow(-9), registrationDateTime: daysFromNow(-60),
+    users: [
+      { id: 'm2', displayName: 'Daniel Pierre', email: 'd.pierre@skintyee.ca', accessType: 'owner' },
+    ],
+  },
+  {
+    id: 'dev-old-laptop', displayName: 'BANDOFFICE-OLD',
+    operatingSystem: 'Windows', osVersion: '10.0.19044',
+    trustType: 'Hybrid', isCompliant: false, isManaged: true, enabled: false,
+    approximateLastSignInDateTime: daysFromNow(-140), registrationDateTime: daysFromNow(-900),
+    users: [
+      { id: 'm3', displayName: 'Sandra Williams', email: 'admin@skintyee.ca', accessType: 'owner' },
+    ],
+  },
+];

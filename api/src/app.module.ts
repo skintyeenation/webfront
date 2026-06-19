@@ -15,6 +15,7 @@ import { OnboardingController, OnboardingPublicController } from './onboarding.c
 import { TimekeepingReportsService } from './timekeeping-reports.service';
 import { StaffAuthService } from './staff-auth.service';
 import { StaffAuthController } from './staff-auth.controller';
+import { DevicesController } from './devices.controller';
 
 @Module({
   imports: [StorageModule],
@@ -23,6 +24,7 @@ import { StaffAuthController } from './staff-auth.controller';
     DocumentsController, DocumentTagsController,
     OnboardingController, OnboardingPublicController,
     StaffAuthController,  // staff-auth feature — public /v1/auth/staff/*
+    DevicesController,    // Assets → Devices (Entra devices, seeded; admin-only)
   ],
   providers: [
     DataService,

@@ -35,6 +35,14 @@ const ADMIN_ITEMS: MoreItem[] = [
   { route: 'documents',        label: 'Documents',         description: 'Forms, filings & PDFs by tag',                             icon: 'file-document-multiple',   roles: ['admin'] },
 ];
 
+// "Assets" — admin inventory of band-owned assets. First tile: Devices
+// (Entra-registered devices + who can access them). Sits in its own
+// section right below Admin tools so future asset types (equipment,
+// licenses) can slot in here.
+const ASSETS_ITEMS: MoreItem[] = [
+  { route: 'devices', label: 'Devices', description: 'Entra devices & who can access them', icon: 'devices', roles: ['admin'] },
+];
+
 // "Tools" — non-admin everyday operational tiles. Mirrors the admin
 // items 1:1 by route so a staff member's menu structure feels like a
 // subset of the admin's. Items here render in the Tools section above
@@ -143,7 +151,10 @@ export default function MoreMenu({ navigation }: any) {
           </View>
         ) : null}
         {isAdmin ? (
-          <Section title="Admin tools" items={ADMIN_ITEMS} role={role} navigation={navigation} />
+          <>
+            <Section title="Admin tools" items={ADMIN_ITEMS} role={role} navigation={navigation} />
+            <Section title="Assets" items={ASSETS_ITEMS} role={role} navigation={navigation} />
+          </>
         ) : (
           <Section title="Tools" items={TOOLS_ITEMS} role={role} navigation={navigation} />
         )}

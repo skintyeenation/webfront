@@ -23,6 +23,7 @@ import {
 import {
   ApiService, SecurityGroup, SharedMailbox, MailboxAccess,
   DocumentDto, DocumentTagDto,
+  DeviceDto, DeviceDetailDto,
   OnboardingFlowDto, OnboardingStepDto, OnboardingAssignmentDto, OnboardingStepStateDto,
   PersonDto,
 } from 'skintyee/services/api/ApiService';
@@ -300,6 +301,10 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
         });
         if (!res.ok) throw new Error(`DELETE /document-tags/${id} → ${res.status}: ${await res.text()}`);
       },
+    },
+    devices: {
+      list: () => get<DeviceDto[]>('/devices'),
+      get: (id: string) => get<DeviceDetailDto>(`/devices/${encodeURIComponent(id)}`),
     },
     onboarding: (() => {
       const uploadFile = async (path: string, file: { uri: string; name: string; mimeType: string }, withHeaders = true) => {

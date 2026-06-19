@@ -1216,4 +1216,78 @@ export class GraphFeedService {
     const contentType = res.headers.get('content-type') ?? 'image/jpeg';
     return { buffer, contentType };
   }
+
+  // ---- Devices (Assets → Devices) ------------------------------------------
+  // Entra-registered devices + their registered owners/users (who can access
+  // them). Needs Device.Read.All (application). NOTE: only Entra-joined /
+  // -registered devices appear here — on-prem AD computers show up only once
+  // Hybrid Entra Join syncs them into Entra (see docs/365/entra-connect.md).
+
+  private mapTrust(t?: string): 'AzureAd' | 'Hybrid' | 'Workplace' {
+    if (t === 'AzureAd') return 'AzureAd';
+    if (t === 'ServerAd') return 'Hybrid'; // Graph names Hybrid-join "ServerAd"
+    return 'Workplace';
+  }
+
+  // Merge registeredOwners + registeredUsers (Graph allows only ONE $expand
+  // per query, so the two collections are fetched separately) into one access
+  // list. Owners win when a principal appears in both.
+  private mapUsers(rawOwners: any[], rawUsers: any[]) {
+    const isUser = (o: any) => String(o?.['@odata.type'] ?? '').includes('user') || !!o?.userPrincipalName;
+    const mapU = (o: any, accessType: 'owner' | 'user') => ({
+      id: o.id,
+      displayName: o.displayName ?? o.userPrincipalName ?? o.id,
+      email: o.mail ?? o.userPrincipalName ?? '',
+      accessType,
+    });
+    const owners = (rawOwners ?? []).filter(isUser).map((o) => mapU(o, 'owner'));
+    const ownerIds = new Set(owners.map((o) => o.id));
+    const users = (rawUsers ?? [])
+      .filter(isUser)
+      .filter((u) => !ownerIds.has(u.id))
+      .map((u) => mapU(u, 'user'));
+    return [...owners, ...users];
+  }
+
+  private mapDeviceBase(d: any) {
+    return {
+      id: d.id,
+      displayName: d.displayName ?? '(unnamed device)',
+      operatingSystem: d.operatingSystem ?? 'Unknown',
+      osVersion: d.operatingSystemVersion ?? '',
+      trustType: this.mapTrust(d.trustType),
+      isCompliant: d.isCompliant === true,
+      isManaged: d.isManaged === true,
+      enabled: d.accountEnabled !== false,
+      approximateLastSignInDateTime:
+        d.approximateLastSignInDateTime ?? d.registrationDateTime ?? new Date(0).toISOString(),
+      registrationDateTime: d.registrationDateTime ?? '',
+    };
+  }
+
+  async listDevices(): Promise<any[]> {
+    // Two list queries (one $expand each), merged by device id — keeps it at a
+    // constant 2 Graph calls regardless of device count.
+    const [byOwners, byUsers] = await Promise.all([
+      this.graphPaged<any>('/devices?$expand=registeredOwners&$top=100'),
+      this.graphPaged<any>('/devices?$expand=registeredUsers&$top=100'),
+    ]);
+    const usersById = new Map<string, any[]>(byUsers.map((d) => [d.id, d.registeredUsers ?? []]));
+    return byOwners
+      .map((d) => {
+        const users = this.mapUsers(d.registeredOwners ?? [], usersById.get(d.id) ?? []);
+        return { ...this.mapDeviceBase(d), userCount: users.length };
+      })
+      .sort((a, b) => b.approximateLastSignInDateTime.localeCompare(a.approximateLastSignInDateTime));
+  }
+
+  async getDevice(id: string): Promise<any> {
+    const safeId = encodeURIComponent(id);
+    const [dOwners, dUsers] = await Promise.all([
+      this.graph<any>(`/devices/${safeId}?$expand=registeredOwners`),
+      this.graph<any>(`/devices/${safeId}?$expand=registeredUsers`),
+    ]);
+    const users = this.mapUsers(dOwners.registeredOwners ?? [], dUsers.registeredUsers ?? []);
+    return { ...this.mapDeviceBase(dOwners), users, userCount: users.length };
+  }
 }

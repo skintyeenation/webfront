@@ -37,6 +37,8 @@ export const routeConfig = {
   meetingCreate: { name: 'meetingCreate', options: { title: 'New meeting', header: header('Schedule Meeting') } },
   meetingEdit: { name: 'meetingEdit', options: { title: 'Edit meeting', header: header('Edit Meeting') } },
   documents: { name: 'documents', options: { title: 'Documents', header: header('Documents') } },
+  devices: { name: 'devices', options: { title: 'Devices', header: header('Devices') } },
+  deviceDetail: { name: 'deviceDetail', options: { title: 'Device', header: header('Device') } },
   documentCreate: { name: 'documentCreate', options: { title: 'Add document', header: header('Add Document') } },
   documentEdit: { name: 'documentEdit', options: { title: 'Edit document', header: header('Edit Document') } },
   tagManager: { name: 'tagManager', options: { title: 'Tag Manager', header: header('Tag Manager') } },
