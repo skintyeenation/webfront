@@ -39,6 +39,10 @@ $f = (Invoke-MgGraphRequest -Method GET `
 if ($f.passwordWritebackEnabled) {
   Write-Host "OK: password writeback is reported ENABLED in the cloud." -ForegroundColor Green
 } else {
-  Write-Host "Not yet: passwordWritebackEnabled=False." -ForegroundColor Yellow
-  Write-Host "  Config heartbeat can lag ~30 min. To force a re-report (elevated): Restart-Service ADSync" -ForegroundColor Yellow
+  Write-Host "Cloud flag passwordWritebackEnabled=False -- but this beta flag is an"  -ForegroundColor Yellow
+  Write-Host "UNRELIABLE / laggy indicator (seen False on STFN-DC even when writeback" -ForegroundColor Yellow
+  Write-Host "was fully enabled on-prem). Trust the on-prem state instead (elevated):" -ForegroundColor Yellow
+  Write-Host '  Get-ADSyncAADPasswordResetConfiguration -Connector "skintyeenation.onmicrosoft.com - AAD"' -ForegroundColor Yellow
+  Write-Host "  -> Enabled=True + ServiceStatus=Started means writeback IS on." -ForegroundColor Yellow
+  Write-Host "The definitive proof is an actual SSPR reset landing on a domain PC (Step 3)." -ForegroundColor Yellow
 }

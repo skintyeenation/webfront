@@ -96,11 +96,18 @@ reset**:
   directory* = **Yes** (this toggle only appears **after Step 1**) → *Allow
   users to unlock accounts* = **Yes**.
 
-> **Observed 2026-06-19:** after Step 1 (writeback enabled on-prem + a
-> `-PolicyType Delta` sync), the directory flag `passwordWritebackEnabled` still
-> read **False** via Graph. It does **not** flip until this **Step 2 cloud toggle**
-> is on (and can take a config heartbeat ~30 min after). So Step 1 alone won't
-> show `True` — Step 2 is the gating action. Re-check with the command below.
+> **Observed 2026-06-19 — don't trust the cloud Graph flag.** After writeback was
+> fully enabled on-prem, the directory flag `passwordWritebackEnabled` (Graph
+> `onPremisesSynchronization`) **stayed `False`** through a delta sync, an
+> `ADSync` service restart, and a wizard re-run. It is an **unreliable / laggy
+> beta indicator** — it does *not* reflect the live on-prem state. The
+> **authoritative** check is on-prem (elevated):
+> ```powershell
+> Get-ADSyncAADPasswordResetConfiguration -Connector "skintyeenation.onmicrosoft.com - AAD"
+> ```
+> which returned **`Enabled : True`, `ServiceStatus : Started`,
+> `OnboardingRequiredStatus : NotRequired`** — i.e. writeback **is on**. The only
+> definitive proof is an actual SSPR reset landing on a domain PC (Step 3).
 
 ### Step 3 — Register + test
 - Each user registers methods once at **`aka.ms/sspr`** (or is prompted at next
@@ -119,7 +126,10 @@ reset**:
       `Set-ADSyncAADPasswordResetConfiguration … -Enable $true` returning
       *"Password Reset Configuration … updated"*; connector account
       `MSOL_f5db7948b14f` granted Reset/Change Password + write
-      `lockoutTime`/`pwdLastSet` on `OU=SkinTyee Users` (verified).
+      `lockoutTime`/`pwdLastSet` on `OU=SkinTyee Users` (verified). **Authoritative
+      on-prem confirm:** `Get-ADSyncAADPasswordResetConfiguration` → `Enabled:True`,
+      `ServiceStatus:Started` (11:37 PM). (Ignore the cloud `passwordWritebackEnabled`
+      flag — see the note above; it stayed False despite this.)
 - [ ] **Step 2** — SSPR enabled + writeback toggled on in Entra ← **next**
 - [ ] **Step 3** — users registered + reset tested
 
