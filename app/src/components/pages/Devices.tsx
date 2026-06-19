@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { View } from 'react-native';
-import { ActivityIndicator, Card, Chip, HelperText, IconButton, List, Text } from 'react-native-paper';
+import { ActivityIndicator, Card, Chip, HelperText, IconButton, List, Switch, Text } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import dayjs from 'dayjs';
 import { PageContainer, PageContent, NoContent } from 'skintyee/components/layout';
@@ -40,6 +40,9 @@ export default function Devices({ navigation }: any) {
   const [devices, setDevices] = useState<DeviceDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>();
+  // Stale / decommissioned machines come back as enabled:false. Show them greyed
+  // out and let the admin toggle them out of the way.
+  const [showDisabled, setShowDisabled] = useState(true);
 
   const load = useCallback(async () => {
     setError(undefined);
@@ -54,6 +57,56 @@ export default function Devices({ navigation }: any) {
   }, []);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  // Disabled devices (stale / decommissioned) render greyed out via card opacity.
+  const renderCard = (d: DeviceDto) => (
+    <Card
+      key={d.id}
+      style={{ marginTop: 10, backgroundColor: theme.colors.darkDefault, opacity: d.enabled ? 1 : 0.5 }}
+      onPress={() => navigation.navigate('deviceDetail', { id: d.id })}
+    >
+      <Card.Content>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <List.Icon icon={osIcon(d.operatingSystem)} color={theme.colors.primary} />
+          <View style={{ flex: 1, marginLeft: 4 }}>
+            <Text style={{ color: theme.colors.text, fontSize: 15 }}>{d.displayName}</Text>
+            <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>
+              {d.operatingSystem} {d.osVersion}
+            </Text>
+          </View>
+          {!d.enabled ? (
+            <Chip compact style={{ backgroundColor: theme.colors.error }} textStyle={{ color: '#000', fontSize: 10 }}>
+              Disabled
+            </Chip>
+          ) : (
+            <Chip
+              compact
+              icon={d.isCompliant ? 'shield-check' : 'shield-alert'}
+              style={{ backgroundColor: d.isCompliant ? theme.colors.success : theme.colors.error }}
+              textStyle={{ color: '#000', fontSize: 10 }}
+            >
+              {d.isCompliant ? 'Compliant' : 'Non-compliant'}
+            </Chip>
+          )}
+        </View>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
+          <Chip compact style={{ marginRight: 6, backgroundColor: theme.colors.secondary }} textStyle={{ color: theme.colors.text, fontSize: 10 }}>
+            {TRUST_LABEL[d.trustType]}
+          </Chip>
+          <Chip compact icon="account-multiple" style={{ backgroundColor: theme.colors.secondary }} textStyle={{ color: theme.colors.text, fontSize: 10 }}>
+            {d.userCount} {d.userCount === 1 ? 'user' : 'users'}
+          </Chip>
+          <View style={{ flex: 1 }} />
+          <Text style={{ color: theme.colors.textDarker, fontSize: 10 }}>
+            Last seen {dayjs(d.approximateLastSignInDateTime).format('MMM D, YYYY')}
+          </Text>
+        </View>
+      </Card.Content>
+    </Card>
+  );
+
+  const active = devices.filter((d) => d.enabled);
+  const disabled = devices.filter((d) => !d.enabled);
 
   return (
     <PageContainer>
@@ -72,6 +125,15 @@ export default function Devices({ navigation }: any) {
           />
         </View>
 
+        {disabled.length > 0 ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+            <Switch value={showDisabled} onValueChange={setShowDisabled} color={theme.colors.primary} />
+            <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginLeft: 8 }}>
+              Show disabled ({disabled.length})
+            </Text>
+          </View>
+        ) : null}
+
         {error ? <HelperText type="error" visible>{error}</HelperText> : null}
 
         {loading ? (
@@ -79,51 +141,17 @@ export default function Devices({ navigation }: any) {
         ) : devices.length === 0 ? (
           <NoContent message="No devices registered." />
         ) : (
-          devices.map((d) => (
-            <Card
-              key={d.id}
-              style={{ marginTop: 10, backgroundColor: theme.colors.darkDefault }}
-              onPress={() => navigation.navigate('deviceDetail', { id: d.id })}
-            >
-              <Card.Content>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <List.Icon icon={osIcon(d.operatingSystem)} color={theme.colors.primary} />
-                  <View style={{ flex: 1, marginLeft: 4 }}>
-                    <Text style={{ color: theme.colors.text, fontSize: 15 }}>{d.displayName}</Text>
-                    <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>
-                      {d.operatingSystem} {d.osVersion}
-                    </Text>
-                  </View>
-                  {!d.enabled ? (
-                    <Chip compact style={{ backgroundColor: theme.colors.error }} textStyle={{ color: '#000', fontSize: 10 }}>
-                      Disabled
-                    </Chip>
-                  ) : (
-                    <Chip
-                      compact
-                      icon={d.isCompliant ? 'shield-check' : 'shield-alert'}
-                      style={{ backgroundColor: d.isCompliant ? theme.colors.success : theme.colors.error }}
-                      textStyle={{ color: '#000', fontSize: 10 }}
-                    >
-                      {d.isCompliant ? 'Compliant' : 'Non-compliant'}
-                    </Chip>
-                  )}
-                </View>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
-                  <Chip compact style={{ marginRight: 6, backgroundColor: theme.colors.secondary }} textStyle={{ color: theme.colors.text, fontSize: 10 }}>
-                    {TRUST_LABEL[d.trustType]}
-                  </Chip>
-                  <Chip compact icon="account-multiple" style={{ backgroundColor: theme.colors.secondary }} textStyle={{ color: theme.colors.text, fontSize: 10 }}>
-                    {d.userCount} {d.userCount === 1 ? 'user' : 'users'}
-                  </Chip>
-                  <View style={{ flex: 1 }} />
-                  <Text style={{ color: theme.colors.textDarker, fontSize: 10 }}>
-                    Last seen {dayjs(d.approximateLastSignInDateTime).format('MMM D, YYYY')}
-                  </Text>
-                </View>
-              </Card.Content>
-            </Card>
-          ))
+          <>
+            {active.map(renderCard)}
+            {showDisabled && disabled.length > 0 ? (
+              <>
+                <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginTop: 18, marginBottom: 2 }}>
+                  DISABLED / STALE
+                </Text>
+                {disabled.map(renderCard)}
+              </>
+            ) : null}
+          </>
         )}
       </PageContent>
     </PageContainer>
