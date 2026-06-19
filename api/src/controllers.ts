@@ -814,7 +814,25 @@ export class AdminController implements OnApplicationBootstrap {
     });
     this.staffAuth.clearFailures(person.email.toLowerCase());
     this.log.log(`set-password: Person ${id} (${person.email})`);
-    return { password: newPassword };
+
+    // Email the sign-in details to the person — their email IS their login
+    // identifier, so it's always a reachable address. Best-effort: a mail
+    // failure never fails the call (the OTP is still returned for the UI).
+    let emailed = false;
+    let emailError: string | undefined;
+    try {
+      const mail = renderStaffOtpEmail({
+        displayName: person.displayName,
+        upn: person.email,
+        oneTimePassword: newPassword,
+        signInUrl: process.env.APP_SIGNIN_URL ?? 'https://app.skintyee.ca',
+      });
+      emailed = await this.mailgun.send({ to: person.email, subject: mail.subject, html: mail.html, text: mail.text });
+    } catch (e: any) {
+      emailError = e?.message ?? String(e);
+      this.log.warn(`set-password: OTP email to ${person.email} failed: ${emailError}`);
+    }
+    return { password: newPassword, emailed, emailedTo: emailed ? person.email : undefined, emailError };
   }
 
   // DELETE /v1/admin/people/:id/password — revoke app access without

@@ -62,7 +62,7 @@ export function renderEmail({ title, bodyHtml, preheader = '' }: EmailParts): st
         <tr><td style="padding:20px 24px; border-bottom:3px solid ${c.accent}; background:${c.panel};">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
             <td valign="middle" style="width:84px;">
-              <img src="cid:logo" width="72" alt="${esc(BRAND.name)}" style="display:block; border:0; width:72px; height:auto;" />
+              <img src="${process.env.EMAIL_LOGO_URL ?? 'https://api.skintyee.ca/v1/assets/skintyee-logo.png'}" width="72" alt="${esc(BRAND.name)}" style="display:block; border:0; width:72px; height:auto;" />
             </td>
             <td valign="middle" style="padding-left:14px;">
               <div style="font-size:18px; font-weight:700; color:${c.ink}; line-height:1.2;">${esc(BRAND.name)}</div>

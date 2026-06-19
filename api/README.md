@@ -41,7 +41,9 @@ Every message uses one **easily-editable HTML letterhead**
 ([`src/email-template.ts`](./src/email-template.ts)) — edit `BRAND` (band name,
 address, phone, email) and the markup there; per-email content drops into the
 body slot. The Skin Tyee logo ([`src/email-logo.ts`](./src/email-logo.ts)) is
-attached inline (`cid:logo.png`) so it renders without external hosting.
+served by the api at **`/v1/assets/skintyee-logo.png`** and referenced by https
+URL in the letterhead (override with `EMAIL_LOGO_URL`) — more reliable across
+email clients than an inline `cid:` attachment.
 
 **All emails are best-effort:** a send failure (or Mailgun not configured)
 **never** fails the API call — it's logged and the action still succeeds.

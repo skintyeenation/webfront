@@ -55,7 +55,7 @@ export class MailgunService {
     form.append('subject', opts.subject);
     form.append('html', opts.html);
     if (opts.text) form.append('text', opts.text);
-    if (opts.inlineLogo !== false) {
+    if (opts.inlineLogo === true) {
       const logo = Buffer.from(EMAIL_LOGO_PNG_B64, 'base64');
       form.append('inline', new Blob([logo], { type: 'image/png' }), LOGO_CID);
     }
@@ -110,7 +110,7 @@ export class MailgunService {
       if (opts.text) form.append('text', opts.text);
       // Empty per-recipient vars still triggers individualised delivery.
       form.append('recipient-variables', JSON.stringify(Object.fromEntries(batch.map((r) => [r, {}]))));
-      if (opts.inlineLogo !== false) {
+      if (opts.inlineLogo === true) {
         form.append('inline', new Blob([logo], { type: 'image/png' }), LOGO_CID);
       }
       const res = await fetch(`${base}/v3/${domain}/messages`, {

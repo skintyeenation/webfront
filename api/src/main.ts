@@ -66,6 +66,16 @@ async function bootstrap() {
   const spec = yaml.load(fs.readFileSync(path.join(__dirname, '..', 'openapi.yaml'), 'utf8')) as any;
   const http = app.getHttpAdapter().getInstance();
   http.get('/openapi.json', (_req: any, res: any) => res.json(spec));
+
+  // Public Skin Tyee logo for email letterheads — emails reference it by https
+  // URL (more reliable across clients than an inline cid: attachment).
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const logoPng = Buffer.from(require('./email-logo').EMAIL_LOGO_PNG_B64, 'base64');
+  http.get('/v1/assets/skintyee-logo.png', (_req: any, res: any) => {
+    res.set('Content-Type', 'image/png');
+    res.set('Cache-Control', 'public, max-age=604800');
+    res.send(logoPng);
+  });
   http.use('/docs', swaggerUi.serve, swaggerUi.setup(spec));
   http.get('/', (_req: any, res: any) => res.redirect('/docs'));
 
