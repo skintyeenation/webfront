@@ -213,8 +213,10 @@ if ($az) {
     $azMsi = Join-Path $env:TEMP 'AzureCLI.msi'
     Write-Host "  downloading installer..."
     Invoke-WebRequest -Uri 'https://aka.ms/installazurecliwindows' -OutFile $azMsi -UseBasicParsing
-    Write-Host "  running msiexec /quiet (this can take a few minutes)"
-    $p = Start-Process msiexec.exe -ArgumentList "/i `"$azMsi`" /quiet /norestart" -Wait -PassThru
+    # Machine-wide MSI needs admin; this setup shell is non-elevated, so self-elevate
+    # via -Verb RunAs (pops a UAC prompt). /quiet keeps the elevated install silent.
+    Write-Host "  running msiexec elevated - APPROVE THE UAC PROMPT (takes a few minutes)"
+    $p = Start-Process msiexec.exe -ArgumentList "/i `"$azMsi`" /quiet /norestart" -Verb RunAs -Wait -PassThru
     Remove-Item $azMsi -ErrorAction SilentlyContinue
     if ($p.ExitCode -eq 0) {
         Write-Host "  installed - reopen PowerShell so PATH refresh takes effect"

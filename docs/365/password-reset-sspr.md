@@ -96,6 +96,12 @@ reset**:
   directory* = **Yes** (this toggle only appears **after Step 1**) → *Allow
   users to unlock accounts* = **Yes**.
 
+> **Observed 2026-06-19:** after Step 1 (writeback enabled on-prem + a
+> `-PolicyType Delta` sync), the directory flag `passwordWritebackEnabled` still
+> read **False** via Graph. It does **not** flip until this **Step 2 cloud toggle**
+> is on (and can take a config heartbeat ~30 min after). So Step 1 alone won't
+> show `True` — Step 2 is the gating action. Re-check with the command below.
+
 ### Step 3 — Register + test
 - Each user registers methods once at **`aka.ms/sspr`** (or is prompted at next
   sign-in).
@@ -123,6 +129,21 @@ reset**:
 ---
 
 ## Verify (live tenant is the truth)
+
+**Graph PowerShell (no `az` needed)** — works silently on `STFN-DC` via the WAM
+token broker (no device-code prompt), needs `OnPremDirectorySynchronization.Read.All`:
+
+```powershell
+Connect-MgGraph -Scopes OnPremDirectorySynchronization.Read.All -NoWelcome
+(Invoke-MgGraphRequest -Method GET `
+  -Uri 'https://graph.microsoft.com/beta/directory/onPremisesSynchronization').value[0].features |
+  Select-Object passwordWritebackEnabled, passwordSyncEnabled
+```
+> Note: `Connect-MgGraph -UseDeviceCode` fails in a **non-interactive/background**
+> shell with *"An error occurred when writing to a listener"* — run the above in an
+> interactive session (WAM brokers it silently) instead.
+
+**Azure CLI** (installed by `stfn-setup/setup-stfn-tools.ps1` step 8):
 
 ```bash
 # Is writeback on yet?
