@@ -3,9 +3,9 @@ import { ActivityIndicator, View } from 'react-native';
 import { Button, Card, Chip, HelperText, IconButton, Snackbar, Text, TextInput } from 'react-native-paper';
 import { PageContainer, PageContent, NoContent, useConfirm } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
-import { loadDirectory, loadMember, setMemberGroups, setMemberMailboxes, updateMember } from 'skintyee/store/modules/directory';
+import { loadDirectory, loadMember, setMemberGroups, setMemberMailboxes, setMemberLicenses, updateMember } from 'skintyee/store/modules/directory';
 import { BandMember } from 'skintyee/models';
-import { SecurityGroup, SharedMailbox } from 'skintyee/services/api/ApiService';
+import { SecurityGroup, SharedMailbox, LicenseSku } from 'skintyee/services/api/ApiService';
 import { apiFactory } from 'skintyee/store/apis';
 import { theme } from 'skintyee/styles';
 
@@ -92,6 +92,15 @@ export default function EditMember({ route, navigation }: any) {
   );
   const isShared = member?.accountType === 'shared-inbox';
 
+  // License catalog (Business Standard, Entra ID P1) + selected. Selected is
+  // tracked by skuPartNumber (matches BandMember.licenses); mapped to skuIds
+  // on save via the catalog. Only meaningful for licensed users.
+  const [licenseCatalog, setLicenseCatalog] = useState<LicenseSku[]>([]);
+  const [licenseCatalogError, setLicenseCatalogError] = useState<string | undefined>();
+  const [selectedLicenses, setSelectedLicenses] = useState<Set<string>>(
+    new Set(member?.licenses ?? [])
+  );
+
   // Key the effect on the SERIALIZED bandGroups so it only fires when the
   // content actually changes (not on every render where the array identity
   // is fresh). Without this we'd clobber user toggles every render.
@@ -160,6 +169,28 @@ export default function EditMember({ route, navigation }: any) {
     return () => { cancelled = true; };
   }, [isShared]);
 
+  // Fetch the licence catalog (Business Standard, Entra ID P1)
+  useEffect(() => {
+    if (isShared) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await apiFactory().admin.licenseCatalog();
+        if (!cancelled) setLicenseCatalog(list);
+      } catch (e: any) {
+        if (!cancelled) setLicenseCatalogError(e?.message ?? String(e));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isShared]);
+
+  // Re-sync selected licences when the member row updates.
+  const licensesKey = (member?.licenses ?? []).join(',');
+  useEffect(() => {
+    setSelectedLicenses(new Set(member?.licenses ?? []));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [licensesKey]);
+
   const byKind = useMemo(() => {
     const out: Record<SecurityGroup['kind'], SecurityGroup[]> = { entra: [], m365: [] };
     for (const g of catalog) out[g.kind].push(g);
@@ -214,6 +245,23 @@ export default function EditMember({ route, navigation }: any) {
     });
   };
 
+  // Licences — selection diverged from the member's current licences?
+  const initialLicenses = useMemo(() => new Set(member.licenses ?? []), [member.licenses]);
+  const licensesDirty = useMemo(() => {
+    if (initialLicenses.size !== selectedLicenses.size) return true;
+    for (const s of selectedLicenses) if (!initialLicenses.has(s)) return true;
+    return false;
+  }, [initialLicenses, selectedLicenses]);
+
+  const toggleLicense = (partNumber: string) => {
+    setSelectedLicenses((prev) => {
+      const next = new Set(prev);
+      if (next.has(partNumber)) next.delete(partNumber);
+      else next.add(partNumber);
+      return next;
+    });
+  };
+
   const save = async () => {
     if (!name.trim()) return;
     setSaveError(undefined);
@@ -235,7 +283,8 @@ export default function EditMember({ route, navigation }: any) {
     );
 
     // Role chips — write back to Entra. Mailbox chips — write back to EXO.
-    if (dirty || mailboxesDirty) {
+    // Licence chips — write back to Entra via Graph assignLicense.
+    if (dirty || mailboxesDirty || licensesDirty) {
       setSaving(true);
       try {
         if (dirty) {
@@ -243,6 +292,13 @@ export default function EditMember({ route, navigation }: any) {
         }
         if (mailboxesDirty) {
           await dispatch(setMemberMailboxes({ id: member._id, mailboxes: Array.from(selectedMailboxes) })).unwrap();
+        }
+        if (licensesDirty) {
+          // Map selected skuPartNumbers → skuIds via the catalog.
+          const skuIds = licenseCatalog
+            .filter((l) => selectedLicenses.has(l.partNumber))
+            .map((l) => l.skuId);
+          await dispatch(setMemberLicenses({ id: member._id, skuIds })).unwrap();
         }
       } catch (e: any) {
         setSaveError(e?.message ?? String(e));
@@ -367,6 +423,62 @@ export default function EditMember({ route, navigation }: any) {
                     textStyle={{ color: on ? '#000' : theme.colors.text, fontSize: 12 }}
                   >
                     {local}@
+                  </Chip>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {/* Microsoft licences — Business Standard + Entra ID P1. Toggling
+            calls Graph assignLicense on save. Greyed out when the tenant
+            owns no free seats of that SKU. */}
+        {!isShared && (
+          <View style={{ marginTop: 8 }}>
+            <Text style={{ color: theme.colors.text, fontSize: 16, fontWeight: '600', marginBottom: 4 }}>
+              Microsoft licences
+            </Text>
+            <HelperText type="info" visible style={{ marginLeft: -8, marginBottom: 8 }}>
+              Microsoft 365 + Entra ID P1. Saving assigns/removes them in Entra directly.
+              {' '}Entra ID P1 also lets the member reset their own password (self-service
+              password reset).
+            </HelperText>
+
+            {licenseCatalogError && (
+              <HelperText type="error" visible>
+                Couldn't load licences: {licenseCatalogError}
+              </HelperText>
+            )}
+            {licenseCatalog.length === 0 && !licenseCatalogError && (
+              <ActivityIndicator style={{ marginVertical: 16 }} />
+            )}
+
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+              {licenseCatalog.map((lic) => {
+                const on = selectedLicenses.has(lic.partNumber);
+                const unavailable = !on && (!lic.owned || lic.available <= 0);
+                const seats = lic.owned ? `${lic.available} free` : 'none owned';
+                return (
+                  <Chip
+                    key={lic.skuId}
+                    selected={on}
+                    showSelectedCheck
+                    icon={lic.paid ? 'star-circle' : 'microsoft-office'}
+                    onPress={() => { if (!unavailable) toggleLicense(lic.partNumber); }}
+                    style={{
+                      marginRight: 8,
+                      marginBottom: 8,
+                      backgroundColor: on ? theme.colors.primary : theme.colors.secondary,
+                    }}
+                    // Blue (primary) highlight when assigned — matches the other
+                    // selected chips. Text is white when the licence is available
+                    // to assign (owned + free seats), grey when it isn't.
+                    textStyle={{
+                      color: on ? '#000' : (unavailable ? theme.colors.textDarker : theme.colors.text),
+                      fontSize: 12,
+                    }}
+                  >
+                    {lic.label.replace(/^Microsoft /, '')} · {seats}
                   </Chip>
                 );
               })}

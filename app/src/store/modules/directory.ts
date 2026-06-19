@@ -4,7 +4,7 @@ import { ApiService } from 'skintyee/store/apis';
 import { reduceFulfilledState, reducePendingState, reduceRejectedState, thunkApiWithState } from 'skintyee/store/helpers';
 import { BandMember } from 'skintyee/models';
 
-const directoryActionNames = ['load_directory', 'load_member', 'set_member_groups', 'set_member_mailboxes'] as const;
+const directoryActionNames = ['load_directory', 'load_member', 'set_member_groups', 'set_member_mailboxes', 'set_member_licenses'] as const;
 export const directoryActions = makeActions(directoryActionNames);
 
 export const loadDirectory = createAsyncThunk(directoryActions.loadDirectory.type, async (_opts = undefined, thunkApi) => {
@@ -36,6 +36,17 @@ export const setMemberMailboxes = createAsyncThunk(
   async (args: { id: string; mailboxes: string[] }, thunkApi) => {
     const { api } = thunkApiWithState(thunkApi);
     return await (api as ApiService).directory.setMailboxes(args.id, args.mailboxes);
+  }
+);
+
+// Write-back a member's managed Microsoft licences (Business Standard,
+// Entra ID P1). The api/ diffs vs Entra + calls Graph assignLicense and
+// returns the updated BandMember.
+export const setMemberLicenses = createAsyncThunk(
+  directoryActions.setMemberLicenses.type,
+  async (args: { id: string; skuIds: string[] }, thunkApi) => {
+    const { api } = thunkApiWithState(thunkApi);
+    return await (api as ApiService).directory.setLicenses(args.id, args.skuIds);
   }
 );
 
@@ -89,6 +100,16 @@ const directorySlice = createSlice({
     builder.addCase(setMemberMailboxes.pending, reducePendingState());
     builder.addCase(setMemberMailboxes.rejected, reduceRejectedState());
     builder.addCase(setMemberMailboxes.fulfilled, reduceFulfilledState((state, action) => {
+      const updated = action.payload as BandMember;
+      return {
+        ...state,
+        entities: state.entities.map((m) => (m._id === updated._id ? { ...m, ...updated } : m)),
+        selected: state.selected?._id === updated._id ? { ...state.selected, ...updated } : state.selected,
+      };
+    }));
+    builder.addCase(setMemberLicenses.pending, reducePendingState());
+    builder.addCase(setMemberLicenses.rejected, reduceRejectedState());
+    builder.addCase(setMemberLicenses.fulfilled, reduceFulfilledState((state, action) => {
       const updated = action.payload as BandMember;
       return {
         ...state,

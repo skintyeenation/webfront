@@ -30,6 +30,10 @@ export interface BandMember {
   // Source of truth: Entra. EditMember screen edits these and writes back
   // via PATCH /v1/directory/:id/groups → Graph add/remove members.
   bandGroups?: string[];
+  // Managed Microsoft licences the user holds — skuPartNumbers from the
+  // api's LICENSE_CATALOG, e.g. ['O365_BUSINESS_PREMIUM','AAD_PREMIUM'].
+  // EditMember toggles these; the directory shows an "Entra P1 / paid" badge.
+  licenses?: string[];
   // Manager — the user's manager from Entra's /users/{id}/manager.
   // Nullable: not everyone has a manager set.
   managerId?: string;

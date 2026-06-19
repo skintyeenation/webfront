@@ -21,7 +21,7 @@ import {
   PublicRecord, Role, TimeEntry,
 } from 'skintyee/models';
 import {
-  ApiService, SecurityGroup, SharedMailbox, MailboxAccess, NotificationSettings,
+  ApiService, SecurityGroup, SharedMailbox, MailboxAccess, NotificationSettings, LicenseSku,
   DocumentDto, DocumentTagDto,
   DeviceDto, DeviceDetailDto,
   OnboardingFlowDto, OnboardingStepDto, OnboardingAssignmentDto, OnboardingStepStateDto,
@@ -136,9 +136,11 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
       get: (id: string) => get<BandMember | undefined>(`/directory/${id}`).catch(() => undefined),
       setGroups: (id: string, groups: string[]) => patch<BandMember>(`/directory/${id}/groups`, { groups }),
       setMailboxes: (id: string, mailboxes: string[]) => patch<BandMember>(`/directory/${id}/mailbox-access`, { mailboxes }),
+      setLicenses: (id: string, skuIds: string[]) => patch<BandMember>(`/directory/${id}/licenses`, { licenses: skuIds }),
     },
     admin: {
       securityGroups: () => get<SecurityGroup[]>('/admin/security-groups'),
+      licenseCatalog: () => get<LicenseSku[]>('/admin/licenses'),
       sharedMailboxes: () => get<SharedMailbox[]>('/admin/shared-mailboxes'),
       mailboxAccess: (mailboxUpn: string) => get<MailboxAccess>(`/admin/shared-mailboxes/${encodeURIComponent(mailboxUpn)}/access`),
       setMailboxAccess: (mailboxUpn: string, users: string[]) =>

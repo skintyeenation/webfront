@@ -225,6 +225,12 @@ export default function MemberDetail({ route, navigation }: any) {
                 {m.appRole}
               </Chip>
             ) : null}
+            {/* Entra paid-licence badge — flags users on a premium (P1) SKU. */}
+            {(m.licenses ?? []).includes('AAD_PREMIUM') ? (
+              <Chip compact icon="star-circle" style={{ marginLeft: 6, backgroundColor: theme.colors.success }} textStyle={{ fontSize: 11, color: '#000' }}>
+                Entra P1
+              </Chip>
+            ) : null}
           </View>
         </View>
 
@@ -317,6 +323,37 @@ export default function MemberDetail({ route, navigation }: any) {
                   </>
                 );
               })()}
+            </Card.Content>
+          </Card>
+        ) : null}
+
+        {/* Microsoft licences — Entra ID P1 (highlighted, paid) + Microsoft
+            365 Business Standard. Mirrors the directory card chips. */}
+        {!isShared && (m.licenses?.length ?? 0) > 0 ? (
+          <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
+            <Card.Content>
+              <Text style={{ color: theme.colors.text, fontSize: 14, marginBottom: 8 }}>
+                Microsoft licences
+              </Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                {(m.licenses ?? []).map((p) => {
+                  const paid = p === 'AAD_PREMIUM';
+                  const label = paid ? 'Entra ID P1'
+                    : p === 'O365_BUSINESS_PREMIUM' ? 'Microsoft 365 Business Standard'
+                    : p;
+                  return (
+                    <Chip
+                      key={p}
+                      compact
+                      icon={paid ? 'star-circle' : 'microsoft-office'}
+                      style={{ marginRight: 4, marginTop: 2, backgroundColor: paid ? theme.colors.success : theme.colors.secondary }}
+                      textStyle={{ fontSize: 11, color: paid ? '#000' : theme.colors.text }}
+                    >
+                      {label}
+                    </Chip>
+                  );
+                })}
+              </View>
             </Card.Content>
           </Card>
         ) : null}

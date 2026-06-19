@@ -33,9 +33,11 @@ export const mockApiService: ApiService = {
     // real api/.
     setGroups:    () => { throw new Error('directory.setGroups requires the real api/ (Entra write-back).'); },
     setMailboxes: () => { throw new Error('directory.setMailboxes requires the real api/ (Exchange Online write-back).'); },
+    setLicenses:  () => { throw new Error('directory.setLicenses requires the real api/ (Entra licence assignment).'); },
   },
   admin: {
     securityGroups:   () => { throw new Error('admin.securityGroups requires the real api/'); },
+    licenseCatalog:   () => { throw new Error('admin.licenseCatalog requires the real api/'); },
     sharedMailboxes:  () => { throw new Error('admin.sharedMailboxes requires the real api/ (EXO function)'); },
     mailboxAccess:    () => { throw new Error('admin.mailboxAccess requires the real api/ (EXO function)'); },
     setMailboxAccess: () => { throw new Error('admin.setMailboxAccess requires the real api/ (EXO function)'); },

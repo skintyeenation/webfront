@@ -33,6 +33,18 @@ export interface SharedMailbox {
   alias: string;
 }
 
+// An assignable Microsoft licence SKU from GET /v1/admin/licenses, enriched
+// with live seat availability. `paid` flags premium licences (Entra P1) the
+// directory highlights.
+export interface LicenseSku {
+  skuId: string;
+  partNumber: string;   // e.g. 'AAD_PREMIUM', 'O365_BUSINESS_PREMIUM'
+  label: string;        // e.g. 'Microsoft Entra ID P1'
+  paid: boolean;
+  owned: boolean;       // tenant actually has a subscription for it
+  available: number;    // free seats (enabled − consumed)
+}
+
 // Who has FullAccess / SendAs on a shared mailbox.
 export interface MailboxAccess {
   mailbox: string;
@@ -66,6 +78,10 @@ export interface ApiService {
     // diffs vs DB-tracked current and calls EXO PowerShell via the
     // Azure Function for each grant/revoke.
     setMailboxes(id: string, mailboxes: string[]): Promise<BandMember>;
+    // Set the member's managed Microsoft licences (Business Standard,
+    // Entra ID P1). `skuIds` from admin.licenseCatalog(). Diffs vs Entra +
+    // calls Graph assignLicense, returns the updated member.
+    setLicenses(id: string, skuIds: string[]): Promise<BandMember>;
   };
   admin: {
     // Catalog of the 13 Entra security groups (Skin Tyee Admins, IT, etc.).
@@ -73,6 +89,9 @@ export interface ApiService {
     securityGroups(): Promise<SecurityGroup[]>;
     // All shared mailboxes in the tenant (5 min cache on api/).
     sharedMailboxes(): Promise<SharedMailbox[]>;
+    // Assignable Microsoft licence catalog (Business Standard, Entra ID P1)
+    // with live seat availability. Drives the EditMember "Licenses" section.
+    licenseCatalog(): Promise<LicenseSku[]>;
     // Who currently has FullAccess + SendAs on a mailbox (real-time from EXO).
     mailboxAccess(mailboxUpn: string): Promise<MailboxAccess>;
     // Set the list of users who have access; diff + grant/revoke via EXO.

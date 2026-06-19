@@ -367,6 +367,27 @@ export default function Directory({ navigation }: any) {
                               ) : null}
                             </View>
                           ) : null}
+
+                          {/* Microsoft licences — Entra ID P1 (star) +
+                              Microsoft 365 Business Standard (office). */}
+                          {!isShared && (item.licenses?.length ?? 0) > 0 ? (
+                            <View style={chipRowStyle}>
+                              {(item.licenses as string[]).map((p) => (
+                                <Chip
+                                  key={`lic-${p}`}
+                                  compact
+                                  icon={p === 'AAD_PREMIUM' ? 'star-circle' : 'microsoft-office'}
+                                  style={chipStyle}
+                                  contentStyle={chipContentStyle}
+                                  textStyle={chipTextStyle}
+                                >
+                                  {p === 'AAD_PREMIUM' ? 'Entra P1'
+                                    : p === 'O365_BUSINESS_PREMIUM' ? 'M365 Business'
+                                    : p}
+                                </Chip>
+                              ))}
+                            </View>
+                          ) : null}
                         </View>
                       );
                     }}
