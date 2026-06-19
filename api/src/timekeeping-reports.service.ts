@@ -301,10 +301,12 @@ export class TimekeepingReportsService {
     const { PAGE_W, PAGE_H, PAGE_MARGIN } = PDF_CONST;
     const TOP_Y = PAGE_H - PAGE_MARGIN;
     const LINE_H = 14;
-    const ENTRIES_PER_PAGE = 24;   // leaves room above the signature block
     const NOTE_LH = 12;
     const NOTE_MAX_CHARS = 96;     // wrap width for notes at size 9
     const CONTENT_FLOOR = 196;     // entries/notes must stay above signatures
+    const TASK_X = PAGE_MARGIN + 90;
+    const TASK_MAX_CHARS = 40;     // ~fits the 210pt TASK column at size 10
+    const ENTRY_FLOOR = 70;        // entries flow down to here before a page break
 
     type Page = { lines: PdfLine[]; rects: PdfRect[]; images: PdfImage[] };
     const pages: Page[] = [];
@@ -364,71 +366,84 @@ export class TimekeepingReportsService {
       const X = PAGE_MARGIN, sigW = 250, dateX = PAGE_MARGIN + 300, dateW = 120;
       page.lines.push({ size: 11, y: 176, text: 'Signatures' });
       page.lines.push({ size: 7.5, y: 162, text: 'Electronic signatures may replace handwritten signatures in future.' });
-      // Employee / Contractor
+      // Employee / Contractor — Date auto-fills with the submission date.
       page.rects.push({ x: X, y: 124, w: sigW, h: 0.8 });
       page.rects.push({ x: dateX, y: 124, w: dateW, h: 0.8 });
       page.lines.push({ size: 9, y: 112, text: 'Employee / Contractor signature' });
       if (t.workerName) page.lines.push({ size: 8, y: 101, text: t.workerName });
+      if (t.submittedAt) page.lines.push({ size: 9, x: dateX + 4, y: 128, text: dayjs(t.submittedAt).format('MMM D, YYYY') });
       page.lines.push({ size: 9, x: dateX, y: 112, text: 'Date' });
-      // Manager
+      // Manager — Date auto-fills with the approval date.
       page.rects.push({ x: X, y: 72, w: sigW, h: 0.8 });
       page.rects.push({ x: dateX, y: 72, w: dateW, h: 0.8 });
       page.lines.push({ size: 9, y: 60, text: 'Manager signature' });
       if (t.approvedBy) page.lines.push({ size: 8, y: 49, text: `Approved in app by ${t.approvedBy}` });
+      if (t.approvedAt) page.lines.push({ size: 9, x: dateX + 4, y: 76, text: dayjs(t.approvedAt).format('MMM D, YYYY') });
       page.lines.push({ size: 9, x: dateX, y: 60, text: 'Date' });
     };
 
-    // Per-worker pages
+    // Table header (reused on every continuation page).
+    const tableHeader = (page: Page, y: number): number => {
+      page.lines.push({ size: 9, x: PAGE_MARGIN,       y, text: 'DATE' });
+      page.lines.push({ size: 9, x: TASK_X,            y, text: 'TASK' });
+      page.lines.push({ size: 9, x: PAGE_MARGIN + 300, y, text: 'IN' });
+      page.lines.push({ size: 9, x: PAGE_MARGIN + 350, y, text: 'OUT' });
+      page.lines.push({ size: 9, x: PAGE_MARGIN + 420, y, text: 'HOURS' });
+      return y - 14;
+    };
+
+    // Per-worker pages. Entries flow across pages; the TASK column WRAPS (never
+    // truncated) so long descriptions stay intact; notes + signatures follow.
     for (const t of timesheets) {
       const all = (t.entries ?? []) as Array<any>;
-      const chunks: any[][] = [];
-      for (let i = 0; i < Math.max(1, all.length); i += ENTRIES_PER_PAGE) {
-        chunks.push(all.slice(i, i + ENTRIES_PER_PAGE));
+      let { page, y } = newWorkerPage(t.workerName, { t });
+      y = tableHeader(page, y);
+
+      if (all.length === 0) {
+        page.lines.push({ size: 10, y, text: '(no entries)' });
+        y -= LINE_H;
+      } else {
+        for (const e of all) {
+          const taskLines = wrapText(String(e.task ?? ''), TASK_MAX_CHARS);
+          if (taskLines.length === 0) taskLines.push('-');
+          const rowH = taskLines.length * LINE_H;
+          // Break to a continuation page if this (variable-height) row won't fit.
+          if (y - rowH < ENTRY_FLOOR) {
+            pages.push(page);
+            ({ page, y } = newWorkerPage(`${t.workerName} (cont.)`));
+            y = tableHeader(page, y);
+          }
+          page.lines.push({ size: 10, x: PAGE_MARGIN,       y, text: e.date });
+          page.lines.push({ size: 10, x: PAGE_MARGIN + 300, y, text: e.timeIn ?? '-' });
+          page.lines.push({ size: 10, x: PAGE_MARGIN + 350, y, text: e.timeOut ?? '-' });
+          page.lines.push({ size: 10, x: PAGE_MARGIN + 420, y, text: String(e.hours) });
+          taskLines.forEach((tl, i) => {
+            page.lines.push({ size: 10, x: TASK_X, y: y - i * LINE_H, text: tl });
+          });
+          y -= rowH;
+        }
       }
-      chunks.forEach((entries, idx) => {
-        const title = `${t.workerName}${idx > 0 ? ` (cont. ${idx + 1})` : ''}`;
-        let { page, y } = newWorkerPage(title, idx === 0 ? { t } : undefined);
 
-        // Table header
-        page.lines.push({ size: 9, x: PAGE_MARGIN,       y, text: `DATE` });
-        page.lines.push({ size: 9, x: PAGE_MARGIN + 90,  y, text: `TASK` });
-        page.lines.push({ size: 9, x: PAGE_MARGIN + 300, y, text: `IN` });
-        page.lines.push({ size: 9, x: PAGE_MARGIN + 350, y, text: `OUT` });
-        page.lines.push({ size: 9, x: PAGE_MARGIN + 420, y, text: `HOURS` });
-        y -= 14;
-        if (entries.length === 0) {
-          page.lines.push({ size: 10, y, text: '(no entries)' });
-          y -= LINE_H;
-        } else {
-          for (const e of entries) {
-            page.lines.push({ size: 10, x: PAGE_MARGIN,       y, text: e.date });
-            page.lines.push({ size: 10, x: PAGE_MARGIN + 90,  y, text: (e.task ?? '').slice(0, 40) });
-            page.lines.push({ size: 10, x: PAGE_MARGIN + 300, y, text: e.timeIn ?? '-' });
-            page.lines.push({ size: 10, x: PAGE_MARGIN + 350, y, text: e.timeOut ?? '-' });
-            page.lines.push({ size: 10, x: PAGE_MARGIN + 420, y, text: String(e.hours) });
-            y -= LINE_H;
+      // Notes — wrapped, never truncated; overflow flows to a fresh page.
+      if (t.notes) {
+        y -= 8;
+        for (const ln of wrapText(`Notes: ${t.notes}`, NOTE_MAX_CHARS)) {
+          if (y < CONTENT_FLOOR) {
+            pages.push(page);
+            ({ page, y } = newWorkerPage(`${t.workerName} (notes cont.)`));
           }
+          page.lines.push({ size: 9, y, text: ln });
+          y -= NOTE_LH;
         }
+      }
 
-        if (idx === chunks.length - 1) {
-          // Notes — wrapped, never truncated; overflow flows to a fresh page.
-          if (t.notes) {
-            y -= 8;
-            for (const ln of wrapText(`Notes: ${t.notes}`, NOTE_MAX_CHARS)) {
-              if (y < CONTENT_FLOOR) {
-                pages.push(page);
-                ({ page, y } = newWorkerPage(`${t.workerName} (notes cont.)`));
-              }
-              page.lines.push({ size: 9, y, text: ln });
-              y -= NOTE_LH;
-            }
-          }
-          // Signatures live at a fixed bottom band on the worker's last page.
-          signatureBlock(page, t);
-        }
-
+      // The signature band sits at a fixed bottom position — give it clearance.
+      if (y < CONTENT_FLOOR) {
         pages.push(page);
-      });
+        ({ page, y } = newWorkerPage(`${t.workerName} (cont.)`));
+      }
+      signatureBlock(page, t);
+      pages.push(page);
     }
 
     return buildPdf(pages);
