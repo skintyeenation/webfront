@@ -66,6 +66,23 @@ export interface BandMeetingFromGraph {
 export type FeedSource = 'app-event' | 'teams-meeting' | 'planner-task' | 'notification';
 export type AppRole = 'public' | 'member' | 'staff' | 'admin';
 
+// Assignable license SKUs surfaced in the EditMember "Licenses" section.
+// skuId values are GLOBAL product GUIDs (identical across tenants), so the
+// catalog is a static list; subscribedSkus only adds live seat counts.
+// `paid` flags premium licences worth highlighting in the directory (the
+// "Entra paid users" badge keys off this).
+export interface LicenseSku {
+  skuId: string;
+  partNumber: string;
+  label: string;
+  paid: boolean;
+}
+export const LICENSE_CATALOG: LicenseSku[] = [
+  { skuId: 'f245ecc8-75af-4f8e-b61f-27d8114de5f3', partNumber: 'O365_BUSINESS_PREMIUM', label: 'Microsoft 365 Business Standard', paid: false },
+  { skuId: '078d2b04-f1bd-4111-bbd4-b4b1b354cef4', partNumber: 'AAD_PREMIUM',           label: 'Microsoft Entra ID P1',         paid: true  },
+];
+const SKU_BY_ID = new Map(LICENSE_CATALOG.map((s) => [s.skuId, s]));
+
 export interface FeedItem {
   id: string;
   source: FeedSource;
@@ -536,6 +553,7 @@ export class GraphFeedService {
     appRole: string; accountType: 'licensed-user' | 'shared-inbox';
     mailboxMemberships: string[];
     bandGroups: string[];
+    licenses: string[];
     managerId?: string; managerName?: string; managerUpn?: string;
     hasPhoto: boolean;
     enabled: boolean;
@@ -702,6 +720,12 @@ export class GraphFeedService {
 
         const mgr = managerByUser.get(u.id);
         const bandGroups = Array.from(bandGroupsByUser.get(u.id) ?? new Set<string>()).sort();
+        // Managed-catalog licences this user holds (skuPartNumbers), e.g.
+        // ['O365_BUSINESS_PREMIUM','AAD_PREMIUM']. Drives the EditMember
+        // toggles + the directory "paid" badge.
+        const licenses = assignedLicenses
+          .map((l: any) => SKU_BY_ID.get(l.skuId)?.partNumber)
+          .filter((p: string | undefined): p is string => !!p);
 
         return {
           id: u.id,
@@ -722,8 +746,63 @@ export class GraphFeedService {
           managerUpn:  mgr?.upn,
           hasPhoto:    hasPhotoByUser.get(u.id) ?? false,
           enabled: !!u.accountEnabled,
+          licenses,
         };
       });
+  }
+
+  // License catalog (assignable SKUs) for the EditMember "Licenses" section,
+  // enriched with live seat availability from /subscribedSkus. SKUs the
+  // tenant doesn't own are still returned (available:0, owned:false) so the
+  // UI can grey them out. Requires Organization.Read.All.
+  async getLicenseCatalog(): Promise<Array<LicenseSku & { owned: boolean; available: number }>> {
+    let subs: any[] = [];
+    try {
+      const r = await this.graph<{ value: any[] }>('/subscribedSkus?$select=skuId,skuPartNumber,consumedUnits,prepaidUnits');
+      subs = r.value ?? [];
+    } catch (e: any) {
+      this.log.warn(`getLicenseCatalog: subscribedSkus read failed (${e?.message ?? e}); returning static catalog`);
+    }
+    const byId = new Map(subs.map((s) => [s.skuId, s]));
+    return LICENSE_CATALOG.map((sku) => {
+      const s = byId.get(sku.skuId);
+      const enabled = s?.prepaidUnits?.enabled ?? 0;
+      const consumed = s?.consumedUnits ?? 0;
+      return { ...sku, owned: !!s, available: Math.max(0, enabled - consumed) };
+    });
+  }
+
+  // Set a user's managed-catalog licences to exactly `desiredSkuIds`. Only
+  // touches SKUs in LICENSE_CATALOG — any other licence the user holds is
+  // left alone. Diffs against current assignedLicenses and calls the Graph
+  // assignLicense action. Requires LicenseAssignment.ReadWrite.All.
+  // Returns the resulting managed skuPartNumbers.
+  async setUserLicenses(userId: string, desiredSkuIds: string[]): Promise<string[]> {
+    const managed = new Set(LICENSE_CATALOG.map((s) => s.skuId));
+    const desired = new Set(desiredSkuIds.filter((id) => managed.has(id)));
+
+    const cur = await this.graph<{ assignedLicenses: Array<{ skuId: string }> }>(
+      `/users/${userId}?$select=assignedLicenses`,
+    );
+    const current = new Set((cur.assignedLicenses ?? []).map((l) => l.skuId).filter((id) => managed.has(id)));
+
+    const addLicenses = [...desired].filter((id) => !current.has(id)).map((skuId) => ({ skuId, disabledPlans: [] as string[] }));
+    const removeLicenses = [...current].filter((id) => !desired.has(id));
+
+    if (addLicenses.length || removeLicenses.length) {
+      const tok = await this.getToken();
+      const res = await fetch(`https://graph.microsoft.com/v1.0/users/${userId}/assignLicense`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tok}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ addLicenses, removeLicenses }),
+      });
+      if (!res.ok) {
+        throw new Error(`assignLicense failed ${res.status}: ${await res.text()}`);
+      }
+      this.log.log(`setUserLicenses ${userId}: +[${addLicenses.map((a) => a.skuId).join(',')}] -[${removeLicenses.join(',')}]`);
+    }
+    // Return the final managed set as partNumbers.
+    return LICENSE_CATALOG.filter((s) => desired.has(s.skuId)).map((s) => s.partNumber);
   }
 
   // Set a user's catalog security-group memberships in Entra. `desired` is

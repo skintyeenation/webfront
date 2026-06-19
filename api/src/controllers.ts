@@ -81,6 +81,9 @@ function mapBandMember(r: any) {
     bandGroups: r.bandGroups
       ? r.bandGroups.split(',').filter(Boolean)
       : [],
+    licenses: r.licenses
+      ? r.licenses.split(',').filter(Boolean)
+      : [],
     managerId:   r.managerId   ?? undefined,
     managerName: r.managerName ?? undefined,
     managerUpn:  r.managerUpn  ?? undefined,
@@ -151,6 +154,7 @@ export class DirectoryController {
               accountType: u.accountType,
               mailboxMemberships: u.mailboxMemberships.join(','),
               bandGroups: u.bandGroups.join(','),
+              licenses: u.licenses.join(','),
               managerId: u.managerId, managerName: u.managerName, managerUpn: u.managerUpn,
               hasPhoto: u.hasPhoto,
               enabled: u.enabled,
@@ -162,6 +166,7 @@ export class DirectoryController {
               accountType: u.accountType,
               mailboxMemberships: u.mailboxMemberships.join(','),
               bandGroups: u.bandGroups.join(','),
+              licenses: u.licenses.join(','),
               managerId: u.managerId, managerName: u.managerName, managerUpn: u.managerUpn,
               hasPhoto: u.hasPhoto,
               enabled: u.enabled, syncedAt: new Date(),
@@ -309,6 +314,46 @@ export class DirectoryController {
     return mapBandMember(updated);
   }
 
+  // PATCH /v1/directory/:id/licenses — set the user's managed-catalog
+  // Microsoft licences (Business Standard, Entra ID P1). Body:
+  //   { licenses: string[] }   // skuIds from GET /v1/admin/licenses
+  // Diffs against Entra + calls Graph assignLicense, then persists the
+  // resulting skuPartNumbers. Only touches catalog SKUs — other licences
+  // the user holds are left alone. admin-only; requires
+  // LicenseAssignment.ReadWrite.All.
+  @Patch(':id/licenses') @Roles('admin') async setLicenses(
+    @Param('id') id: string,
+    @Body() b: { licenses?: string[] },
+  ) {
+    if (!this.prisma.isAvailable) {
+      throw new NotFoundException('Prisma not connected — set DATABASE_URL and re-deploy');
+    }
+    const r = await this.prisma.bandMember.findUnique({ where: { id } });
+    if (!r) throw new NotFoundException('Not found');
+
+    const requested = Array.isArray(b?.licenses) ? b.licenses : [];
+    let partNumbers: string[];
+    try {
+      partNumbers = await this.graph.setUserLicenses(id, requested);
+    } catch (e: any) {
+      const msg = e?.message ?? String(e);
+      if (/\b403\b|Authorization_RequestDenied|Insufficient privileges/i.test(msg)) {
+        throw new ForbiddenException(
+          `Microsoft Graph denied the licence change (the app needs LicenseAssignment.ReadWrite.All). ${msg}`,
+        );
+      }
+      // e.g. CountViolation — not enough seats of the SKU available.
+      throw new ForbiddenException(`Licence assignment failed: ${msg}`);
+    }
+
+    const updated = await this.prisma.bandMember.update({
+      where: { id },
+      data: { licenses: partNumbers.join(','), syncedAt: new Date() },
+    });
+    this.log.log(`PATCH /directory/${id}/licenses: now ${partNumbers.join(',') || '(none)'}`);
+    return mapBandMember(updated);
+  }
+
   // GET /v1/directory/:id/photo — proxy the user's Entra profile photo
   // binary from Microsoft Graph. The api/ has the app-only credential;
   // the app/ just hits this URL as <Avatar.Image source={…} />.
@@ -435,6 +480,7 @@ export class AdminController implements OnApplicationBootstrap {
           accountType: u.accountType,
           mailboxMemberships: merged.join(','),
           bandGroups: u.bandGroups.join(','),
+          licenses: u.licenses.join(','),
           managerId: u.managerId, managerName: u.managerName, managerUpn: u.managerUpn,
           hasPhoto: u.hasPhoto,
           enabled: u.enabled,
@@ -446,6 +492,7 @@ export class AdminController implements OnApplicationBootstrap {
           accountType: u.accountType,
           mailboxMemberships: merged.join(','),
           bandGroups: u.bandGroups.join(','),
+          licenses: u.licenses.join(','),
           managerId: u.managerId, managerName: u.managerName, managerUpn: u.managerUpn,
           hasPhoto: u.hasPhoto,
           enabled: u.enabled, syncedAt: new Date(),
@@ -598,6 +645,15 @@ export class AdminController implements OnApplicationBootstrap {
       description: g.description,
       kind: g.kind,
     }));
+  }
+
+  // GET /v1/admin/licenses — assignable Microsoft licence catalog (Business
+  // Standard, Entra ID P1) with live seat availability from subscribedSkus.
+  // Drives the EditMember "Licenses" section. admin-only; requires
+  // Organization.Read.All.
+  @Get('licenses') @Roles('admin')
+  licenseCatalog() {
+    return this.graph.getLicenseCatalog();
   }
 
   // POST /v1/admin/users — Slice 1 + 4 of the member-provisioning

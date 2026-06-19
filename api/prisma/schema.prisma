@@ -71,6 +71,14 @@ model BandMember {
   //      Admins set these via POST /v1/admin/users/{id}/mailbox-memberships.
   mailboxMemberships String  @default("")
 
+  // Managed-catalog Microsoft licences the user holds. Comma-separated
+  // skuPartNumbers from GraphFeedService.LICENSE_CATALOG, e.g.:
+  //   "O365_BUSINESS_PREMIUM,AAD_PREMIUM"
+  // Seeded from the user's Entra assignedLicenses; admins toggle these via
+  // PATCH /v1/directory/:id/licenses. Drives the EditMember "Licenses"
+  // section + the directory "Entra P1 / paid" badge.
+  licenses           String  @default("")
+
   // Skin Tyee Entra security-group memberships. Comma-separated slugs
   // from src/skintyee-groups.ts (SKINTYEE_SECURITY_GROUPS), e.g.:
   //   "admins,management,it"
