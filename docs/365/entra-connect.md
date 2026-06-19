@@ -234,9 +234,16 @@ present in `OU=SkinTyee Users` with matching UPN / mail / `SMTP:` proxy.
    **"Synchronize all users and devices"** — "all" means all objects **within the
    OU already selected** in step 5, not the whole directory; that page is just an
    optional group-based pilot filter we don't need.)*
-7. **Optional features** → leave **everything unchecked**. In particular **no
-   password writeback and no group writeback** — the design is **one-way PHS,
-   AD→cloud** (ADR-16); writeback would contradict it. → **Next**.
+7. **Optional features** → leave **everything unchecked** at install time. **no
+   group writeback / no object writeback** — ADR-16 keeps user/group provisioning
+   one-way (cloud users are never written into AD). → **Next**.
+   > **Exception added later — password writeback for SSPR.** *Password* writeback
+   > (≠ object writeback) is being enabled so synced users can self-reset at
+   > `aka.ms/sspr` and the new password lands back in `STFN.local`. It only carries
+   > password changes up-stream's reverse, not user objects, so it doesn't violate
+   > ADR-16's "don't write cloud users into AD" rule. See
+   > [`password-reset-sspr.md`](password-reset-sspr.md) +
+   > [`Enable-PasswordWritebackPermissions.ps1`](../../stfn-setup/entra-connect/Enable-PasswordWritebackPermissions.ps1).
 8. **Ready to configure** → keep **"Start the synchronization process when
    configuration completes"** checked → **Install**.
 9. When it finishes, run
