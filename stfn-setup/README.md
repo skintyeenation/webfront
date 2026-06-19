@@ -56,7 +56,7 @@ Currently installed: 2.37.0 (Authentication submodule confirmed).
 ## 7. Entra Connect MSI
 - File: `C:\Users\stfnadmin\Downloads\AzureADConnect.msi` (145.7 MB)
 - Authenticode signature: Valid (CN=Microsoft Corporation)
-- **Not installed on this machine** — Entra Connect requires Windows Server 2016+ on a domain member server (not a DC, not Win10).
+- **Not installed on *this* machine** (this README documents the Win10 workstation). The MSI is **installed on `STFN-DC`** (Server 2022) — installing on the DC is supported and chosen for this size (ADR-16). See the maintained scripts + runbook below.
 
 ## Quick verification commands
 ```powershell

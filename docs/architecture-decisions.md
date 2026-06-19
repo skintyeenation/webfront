@@ -475,6 +475,78 @@ Decision record for the Skin Tyee app (`@skintyee/app`, in `app/`). Lives in the
   derivation helper this ADR extracts is the same logic that
   drives the role chip on Account).
 
+### ADR-16 — Identity topology: cloud-first coexistence (keep on-prem AD, sync up, don't write back)
+
+- **Decision:** keep the existing on-prem **`STFN.local`** Active Directory and
+  all current accounts, sync them **up** to Entra with **Entra Connect**
+  (Password Hash Sync), and go **cloud-first for everything new** — new staff are
+  created as **cloud users by the app** (ADR-15) and live on **Entra-joined +
+  Intune** workstations. Existing domain-joined PCs and the DC are unchanged.
+- **Two classes of identity, by design:**
+  - **Existing staff = hybrid** — mastered on-prem, projected to cloud. Work on
+    both domain-joined PCs *and* the cloud.
+  - **New app-created staff = cloud-only** — work on Entra-joined PCs + M365 + the
+    app, but **not** the legacy domain.
+- **Why this shape:**
+  - **Matches the app.** ADR-15 provisions via Graph `POST /users` (cloud). In
+    the cloud-first model that's correct as-is — **no re-architecture, no on-prem
+    bridge to build.**
+  - **Honours a hard Microsoft limit.** Entra Connect / Entra Cloud Sync are
+    **`AD → cloud` only**; cloud-only users **cannot** be written back into
+    on-prem AD ([documented design limitation](https://learn.microsoft.com/en-us/entra/identity/hybrid/group-writeback-cloud-sync) —
+    only *groups* can be provisioned cloud→AD). So "create in the app → log into a
+    domain PC" is **not achievable** without flipping provisioning direction.
+  - **Keeps what must stay on-prem.** **Xyntax** (First Nations finance/ERP,
+    ADR-5 neighbourhood) and the file server authenticate against `STFN.local`;
+    those machines + the DC remain.
+- **The accepted trade-off:** a **new** finance/admin hire who needs **Xyntax** or
+  a domain-joined machine still needs an **on-prem AD account** created manually
+  (a small number of people). General staff (council, programs) are fully served
+  by the cloud-only app flow.
+- **Deferred fallback — "AD-first: app provisions into AD, then syncs up":** the
+  app creates the user **in on-prem AD** (`New-ADUser`) via an **on-prem
+  provisioning bridge** (Azure Automation Hybrid Runbook Worker, or a Service
+  Bus/Storage queue + an on-prem worker), and Entra Connect carries them **up** to
+  the cloud. App-created users would then be **real domain accounts** that log into
+  domain-joined PCs and Xyntax. **Not built today**, but kept as the explicit
+  **cost-saving alternative**:
+  - **Why it's cheaper:** domain-joined PCs are managed by **Group Policy on the
+    DC we already own — no Intune, so no Business Premium upgrade / Intune add-on**
+    (saves ~$8–9.50/user/mo, recurring, for every managed user). The cost moves
+    from an **ongoing per-user license** to a **one-time engineering build** (the
+    bridge + amending ADR-15 to write to AD).
+  - **The trade-off it re-incurs:** building/maintaining the bridge, and keeping
+    on-prem AD as the long-term identity master (more on-prem surface to run,
+    patch, and back up) instead of trending toward cloud.
+  - **Pick this if:** device-management licensing cost is the binding constraint,
+    the org is comfortable staying on-prem-centric, and/or the count of staff who
+    need domain/Xyntax access is high enough that per-user Intune licensing exceeds
+    the one-time bridge cost.
+- **Rejected — "cloud-only, decommission the DC":** simplest long-term, but Xyntax
+  / the file server / the active domain-joined machines still need the local
+  domain today. Coexistence defers this without foreclosing it.
+- **Device management:** **Intune** for Entra-joined machines (GPO replacement);
+  Group Policy still runs the legacy domain PCs. Intune is **not** in Business
+  Standard — needs **Business Premium** or an **Intune Plan 1** add-on (a budget
+  item, opt-in when the first PC is Entra-joined).
+- **Three access tiers, one tenant (per-user) — no second tenant needed:**
+  **managed staff** (Business Premium + Intune), **basic staff** (Business
+  Standard, no Intune), and **contractors** — BYOD, **app-only**, **unlicensed or
+  B2B guest at $0**. Contractors just need the Skin Tyee app; signing into the
+  Entra-gated app (ADR-1) consumes **no M365 license**, so they're provisioned via
+  ADR-15's no-license path or a guest invite, get no Intune/email/on-prem account,
+  and Conditional Access requires a compliant device only for the managed-staff
+  group (contractor BYOD is never enrolled). Mixing license tiers is a per-user
+  choice within the one tenant; separate tenants are only for genuinely separate
+  organizations.
+- **Status:** **in progress.** Phase 1 (on-prem account normalization) **done**
+  2026-06-18; Entra Connect install (Phase 2) next; devices/Intune (Phase 3)
+  later. Full progress doc + runbook:
+  [`docs/365/entra-connect.md`](365/entra-connect.md).
+- **What it relates to:** ADR-1 (Entra ID as IdP), ADR-15 (app member
+  provisioning — stays cloud-native), ADR-5 (Ferrus/Xyntax finance systems — the
+  on-prem anchor), [`docs/365/entra-id.md`](365/entra-id.md).
+
 ## Summary: ppt → Skin Tyee service swaps
 
 | Concern | ppt (AWS) | Skin Tyee (Azure) | Status |

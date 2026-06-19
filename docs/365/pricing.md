@@ -3,7 +3,7 @@
 **Prepared:** 2026-05-22
 **Purpose:** Cost basis for the Microsoft 365 subscription, kept as supporting
 documentation for business-expense / tax substantiation.
-**Plan:** Microsoft 365 **Business Standard** (with Microsoft Teams)
+**Plans:** Microsoft 365 **Business Premium** (managed staff) + **Business Standard** (basic staff); **contractors are unlicensed** (app-only, $0)
 **Provider:** Microsoft · **Billing:** per user / month
 
 > **Note on evidence:** the figures below are the cost basis. The authoritative
@@ -21,14 +21,30 @@ SharePoint, and OneDrive. It also underpins the **shared mailboxes**
 (`info@`, `admin@`, `chief@skintyee.ca`, …) staff work from — see
 [`shared-mailboxes.md`](shared-mailboxes.md).
 
-## Plan & per-user price
+## Plans & per-user price — tiered
 
-**Microsoft 365 Business Standard (with Teams)** — per user, per month:
+We license **per user, by tier**, all in one tenant. The services are largely
+identical; the real difference is the **device-management + advanced-security
+layer (Intune, Defender for Business, Conditional Access)**, which **only Business
+Premium** includes. **Intune is per-device opt-in**, so this is a per-user choice
+— not all-or-nothing.
 
-| Commitment | Approx. price (CAD) | USD reference |
-|---|--:|--:|
-| **Annual** (paid monthly, 1-yr term) | **≈ CAD $18.60 / user / mo** | US $12.50 |
-| **Monthly** (no commitment) | **≈ CAD $22.40 / user / mo** | US $15.00 |
+| Tier | Plan | Approx. CAD / user / mo (annual) | USD ref | Who |
+|---|---|--:|--:|---|
+| **Managed staff** | Business **Premium** | **≈ CAD $32.70** | US $22.00 | Org-owned devices needing Intune + Defender + Conditional Access (compliant-device) |
+| **Basic staff** | Business **Standard** | **≈ CAD $18.60** | US $12.50 | Org-owned / domain-joined devices, no Intune needed |
+| **Contractors (BYOD, app-only)** | **none** — unlicensed Entra user or B2B guest | **$0** | — | Use **only the Skin Tyee app** from their own devices |
+
+> Monthly (no-commitment) pricing is higher: Business Premium ≈ US $26.40, Business
+> Standard ≈ US $15.00 (≈ CAD $22.40) per user / mo.
+
+**Why contractors are $0:** the Skin Tyee app is gated by **Entra app roles**, and
+signing into *our own* registered app does **not** consume a Microsoft 365 license.
+A contractor is just an Entra identity in the right app group — provisioned via the
+app's no-license path (ADR-15) or invited as a **B2B guest** (free up to 50,000
+monthly active users). No Intune, no email/Office, no on-prem account. (If a
+contractor ever needs `@skintyee.ca` email, that's a Business Standard seat — the
+exception, not the norm.)
 
 > ⚠️ **Confirm the current price** before relying on it — Microsoft adjusts
 > pricing and the CAD figure depends on the exchange rate and any
@@ -46,26 +62,42 @@ SharePoint, and OneDrive. It also underpins the **shared mailboxes**
 - **SharePoint** + **OneDrive** (1 TB/user) for files.
 - Web/mobile apps and standard support.
 
+### What Business Premium adds (managed-staff tier)
+
+Everything in Standard, **plus** the device-management + security layer the
+cloud-first model needs (see [`entra-connect.md`](entra-connect.md)):
+
+- **Microsoft Intune** — manage Entra-joined devices (BitLocker, Defender
+  baselines, app deployment, compliance, remote wipe).
+- **Microsoft Defender for Business** — endpoint protection.
+- **Entra ID P1** — **Conditional Access** (incl. require-compliant-device),
+  group-based licensing, password write-back.
+
+Assign Premium **only** to staff who need managed devices / Conditional Access;
+basic staff stay on Standard and contractors stay unlicensed.
+
 > **Shared mailboxes are free** (no licence) up to 50 GB — only the individual
 > staff who access them need a licence. See [`shared-mailboxes.md`](shared-mailboxes.md).
 
-## Cost basis (fill in the licensed-user count)
+## Cost basis (fill in the per-tier counts)
 
-| | |
-|---|--:|
-| Licensed users | **_N_** (see Users → Active users) |
-| Per user / month (annual term, approx.) | CAD $18.60 |
-| **Monthly total** | CAD $18.60 × _N_ |
-| **Annual total** | CAD $223.20 × _N_ |
+| Tier | Plan | CAD / user / mo | Count | Monthly (CAD) |
+|---|---|--:|:--:|--:|
+| Managed staff | Business Premium | $32.70 | **_P_** | $32.70 × P |
+| Basic staff | Business Standard | $18.60 | **_S_** | $18.60 × S |
+| Contractors (app-only) | none / B2B guest | $0 | **_C_** | $0 |
 
-*Example: 9 licensed users → ≈ CAD $167/month, ≈ CAD $2,009/year (before any
-non-profit discount). Replace with the actual count and the price confirmed on
-Microsoft's pricing page.*
+**Monthly total** = $32.70·P + $18.60·S **·** **Annual total** = ×12.
+
+*Example: 4 managed (Premium) + 5 basic (Standard) + 3 app-only contractors →
+≈ CAD $131 + $93 + $0 = **~$224/month**, **~$2,690/year** (before any non-profit
+discount). Replace with the actual counts and the prices confirmed on Microsoft's
+pricing page.*
 
 ## ⚠️ Offboarding — unlicense departed staff immediately
 
 Microsoft 365 is billed **per assigned licence**, so a licence left on someone
-who has left or been terminated keeps **costing ≈ CAD $18.60/month for nothing**
+who has left or been terminated keeps **costing ≈ CAD $18.60–32.70/month (by tier) for nothing**
 — and leaves their account able to sign in. **As soon as an employee leaves or
 is terminated, do this same day:**
 
