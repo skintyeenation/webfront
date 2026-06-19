@@ -56,10 +56,14 @@ to Entra ID:
 If we go **cloud-only** (no on-prem AD), we skip Connect entirely — identities
 live directly in Entra ID and devices are **Entra-joined**.
 
-> Decision point: we have an **onsite server** (per `docs/SkinTyee.drawio.pdf`).
-> Choose **cloud-only** (simplest — Entra join + Intune) unless workstations/
-> servers must domain-join a local AD, in which case run **Entra Connect** for
-> hybrid identity.
+> **Decided (ADR-16): cloud-first coexistence.** We keep the on-prem `STFN.local`
+> AD + existing accounts and sync them **up** with Entra Connect (PHS), while
+> going **cloud-first for everything new** (app-created cloud users + Entra-joined
+> machines). Existing accounts/PCs/Xyntax stay on the domain; we just stop growing
+> the on-prem side. Note the hard limit: Entra Connect is **AD → cloud only** —
+> cloud-only users **cannot** be written back to AD, so app-created users can't log
+> into domain-joined PCs (the few Xyntax/finance users still need a manual AD
+> account). Full progress + runbook: [`entra-connect.md`](entra-connect.md).
 
 ## Single sign-on (SSO)
 

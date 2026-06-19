@@ -256,6 +256,48 @@ with the full **13-mailbox inventory** (`it`, `bandmanager`, `chief`,
 `landresources`, `gis`, `media`, `referrals`) and the PowerShell one-liner
 to audit who has access to what.
 
+### Staff accounts (named users)
+
+Distinct from the shared mailboxes above, these are the **per-person** logins —
+each a `firstname.lastname@skintyee.ca` identity used to sign in to Microsoft 365
+(and, Phase 2, the app). The login name **equals** the email address. Accounts
+come from one of two places:
+
+- **Hybrid** — mastered in the on-prem **`STFN.local`** Active Directory on the
+  `STFN-DC` domain controller and projected into Entra ID by **Entra Connect**
+  (Password Hash Sync). Same password on the workstation and in the cloud;
+  source of authority is on-prem. Down-level logon is `STFN\firstname.lastname`.
+- **Cloud-only** — created directly in Entra ID; no on-prem account.
+
+| Person | Login = email (`@skintyee.ca`) | Origin |
+|---|---|---|
+| Gabriel Tom | `gabriel.tom` | Hybrid |
+| Kim Pike | `kim.pike` | Hybrid |
+| Lucas Lopatka | `lucas.lopatka` | Hybrid |
+| Melissa Dyck | `melissa.dyck` | Hybrid |
+| Niki Misfeldt | `niki.misfeldt` | Hybrid |
+| Nathan Michaluk | `nathan.michaluk` | Hybrid (new — created on first sync) |
+| Shaneika McCorkell | `shaneika.mccorkell` | Hybrid (new — created on first sync) |
+| Jason Wiebe | `jason.wiebe` | Hybrid (new — created on first sync) |
+| Betty Cardinal | `betty.cardinal` | Cloud-only |
+| Destiney Michelle | `destiney.michelle` | Cloud-only |
+| Helen Michelle | `helen.michelle` | Cloud-only |
+| Martin Tom | `martin.tom` | Cloud-only |
+| Shirley Wilson | `shirley.wilson` | Cloud-only |
+
+The break-glass `admin@skintyeenation.onmicrosoft.com` account (see
+[Where things live](#where-things-live)) is separate and intentionally cloud-only.
+
+> **Hybrid linking — in progress.** ✅ **Phase 1 done (2026-06-18):** the 8
+> on-prem accounts were normalized (UPN + `sAMAccountName` → `firstname.lastname`,
+> primary SMTP `…@skintyee.ca`, moved into a `SkinTyee Users` OU) so the 5 who
+> **already exist** in the cloud will *soft-match* instead of duplicating, and the
+> 3 on-prem-only staff get fresh cloud accounts. ⬜ **Next:** install Entra Connect
+> (PHS) on `STFN-DC` and run the first sync — until then the 5 cloud accounts and
+> their `STFN.local` counterparts are still **separate, unlinked** identities.
+> Full progress + runbook + the cloud-first coexistence model (ADR-16):
+> [`docs/365/entra-connect.md`](docs/365/entra-connect.md).
+
 👥 **[Microsoft 365 Groups vs Security Groups →](docs/365/groups.md)** —
 when to use which (the trap: don't pick M365 Group for everything — it drags
 an unused shared mailbox + SharePoint site along). Reference table + concrete
@@ -366,6 +408,21 @@ Tooling used to build/maintain the software: **JetBrains IntelliJ IDEA Ultimate*
 
 🛠️ **[Developer tools & cost →](docs/developer-tools.md)** — IDE + AI assistant,
 pricing, and 100% Canadian tax-deductibility.
+
+## Server provisioning
+
+A new Skin Tyee Windows Server gets its full software baseline from a single
+one-shot, idempotent script —
+[`stfn-setup/provision-stfn-server.ps1`](stfn-setup/provision-stfn-server.ps1).
+Run it once on a freshly-built box and it installs **dev tooling** (delegated to
+`setup-stfn-tools.ps1` — Claude Code CLI, the Microsoft.Graph/Entra modules,
+Azure CLI), **1Password** (machine-wide), **Microsoft 365 Apps** (Click-to-Run),
+and stages the **Entra Connect** sync tool. It self-elevates via UAC and is
+safe to re-run (every step checks current state).
+
+🖥️ **[Server provisioning →](docs/devops/server-provisioning.md)** — what gets
+installed, the full parameter table (skip flags, M365 product/channel, RDS host,
+the Entra-Connect-on-a-DC guardrail), usage examples, and caveats.
 
 ## Pricing & costs
 
@@ -647,6 +704,7 @@ backup to walk every existing message.
 - [`docs/website-walkthrough.md`](docs/website-walkthrough.md) — website (skintyee.ca) page-by-page screenshots
 - [`docs/wordpress-runbook.md`](docs/wordpress-runbook.md) — run / recover / back up the WordPress site
 - [`docs/365/entra-id.md`](docs/365/entra-id.md) — Entra ID, the admin account, Entra Connect, SSO + device/server access
+- [`docs/365/entra-connect.md`](docs/365/entra-connect.md) — **hybrid identity setup & progress** — the cloud-first coexistence model (ADR-16), the Intune/licensing note, and the phased runbook for syncing `STFN.local` → `skintyee.ca` (Phase 1 ✅ on-prem accounts normalized; Phase 2 ⬜ install Entra Connect)
 - [`docs/365/entra-usage.md`](docs/365/entra-usage.md) — what we actually use Entra for: services today, apps in Phase 2, the two app registrations + their permissions, what's deliberately not on Entra
 - [`docs/365/shared-mailboxes.md`](docs/365/shared-mailboxes.md) — Microsoft 365 shared mailbox setup + adding users; the full 13-mailbox inventory (`it@`, `bandmanager@`, `chief@`, `councillor1@`/`councillor2@`, `finance@`, `firechief@`, `forestry@`, `housing@`, `landresources@`, `gis@`, `media@`, `referrals@`) + PowerShell audit one-liner for "who has access to what"
 - [`docs/365/groups.md`](docs/365/groups.md) — Microsoft 365 Groups vs Security Groups (when to use which, with concrete examples mapped to our tenant)
@@ -665,6 +723,7 @@ backup to walk every existing message.
 - [`docs/devops/azure-primary-github-mirror.md`](docs/devops/azure-primary-github-mirror.md) — wire the Azure-to-GitHub read-only mirror push
 - [`docs/devops/migrate-ci-workflows.md`](docs/devops/migrate-ci-workflows.md) — port the SharePoint publisher from GitHub Actions to Azure Pipelines with federated credentials
 - [`docs/devops/agents.md`](docs/devops/agents.md) — self-hosted ADO agent guidance
+- [`docs/devops/server-provisioning.md`](docs/devops/server-provisioning.md) — one-shot, idempotent Skin Tyee Windows Server baseline (`stfn-setup/provision-stfn-server.ps1`): dev tooling (via `setup-stfn-tools.ps1`), 1Password, Microsoft 365 Apps (Click-to-Run), and the Entra Connect sync tool (DC-aware, opt-in install). Self-elevates via UAC; full parameter table + caveats
 - [`azure-pipelines/README.md`](azure-pipelines/README.md) — Azure Pipelines YAML pipeline definitions (CI/CD on the `skintyeenation`/`devops` ADO project)
 - [`azure-pipelines/publish-docs-to-sharepoint.yml`](azure-pipelines/publish-docs-to-sharepoint.yml) — Azure Pipeline that publishes `docs/` to SharePoint via workload identity federation (replaces the legacy GitHub Actions workflow once verified)
 - [`scripts/setup-sharepoint-pipeline.sh`](scripts/setup-sharepoint-pipeline.sh) — idempotent setup script that wires the federated credential + ADO service connection + variable group + pipeline registration so the YAML above can actually run (automates four of the five admin steps; see `--help` for what stays manual)
