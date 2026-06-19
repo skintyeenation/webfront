@@ -5,9 +5,9 @@ Directory (on the `STFN-DC` domain controller) to the **`skintyee.ca`** Entra
 tenant. Companion to [`entra-id.md`](entra-id.md); the decision rationale is
 **ADR-16** in [`../architecture-decisions.md`](../architecture-decisions.md).
 
-> **Status:** Phase 1 ✅ complete (2026-06-18) · Phase 2 🔄 in progress — binaries
-> installed but **configuration unfinished (no connectors yet)**; re-run the
-> wizard to completion · Phase 3 ⬜ later (Entra join + Intune for new devices).
+> **Status:** Phase 1 ✅ complete (2026-06-18) · Phase 2 ✅ complete + **verified
+> (2026-06-18): all 8 users `OnPremisesSyncEnabled=True`, no duplicates** · Phase 3
+> ⬜ later (Entra join + Intune for new devices).
 
 ## The model — cloud-first coexistence
 
@@ -112,7 +112,8 @@ norm.)
 | On-prem forest/domain | `STFN.local` (non-routable) |
 | Entra tenant | `skintyeenation.onmicrosoft.com`; **`skintyee.ca`** verified + default |
 | Sign-in method | **Password Hash Sync (PHS)** |
-| Entra Connect | ⚠️ binaries installed **v2.4.129.0** (2026-06-18), ADSync service running, **but configuration incomplete — no connectors created yet** (re-run wizard to finish; see Troubleshooting) |
+| Entra Connect | ✅ installed + configured **v2.4.129.0** (2026-06-18), PHS syncing; first config attempt left no connectors (see Troubleshooting), fixed by re-running the wizard to completion |
+| Sync verified | ✅ 2026-06-18 — 8/8 users `OnPremisesSyncEnabled=True`, anchored, **no duplicates** (5 soft-matched, 3 created). Cloud sync account `Sync_STFN-DC_*` auto-created |
 | Domain-joined computers | 12 objects (DC + 11) — see inventory below; only 3 live in 2026 |
 
 ### Domain-joined computer inventory (2026-06-18)
@@ -173,7 +174,7 @@ present in `OU=SkinTyee Users` with matching UPN / mail / `SMTP:` proxy.
 > ⚠️ The run changed these users' logon names (UPN + down-level). Affected staff
 > should **sign out and back in** on their PCs.
 
-### ⬜ Phase 2 — Install Entra Connect (next)
+### ✅ Phase 2 — Install Entra Connect (done + verified 2026-06-18)
 
 **Prereqs verified (2026-06-18):** Server 2022, DC, .NET 4.8, PS 5.1, 15.6 GB RAM,
 947 GB free, Entra endpoints reachable. MSI downloaded + signature-valid at
@@ -242,6 +243,11 @@ present in `OU=SkinTyee Users` with matching UPN / mail / `SMTP:` proxy.
    `-Cloud`: **the 5 "merge" users show `OnPremisesSyncEnabled = True` on their
    *existing* cloud account (no duplicates)** and the 3 "new" users were created.
    Cross-check in the [Entra admin center](https://entra.microsoft.com) → Users.
+   **✅ Verified 2026-06-18: 8/8 `OnPremisesSyncEnabled=True`, all anchored, no
+   duplicates — 5 soft-matched, 3 (`nathan.michaluk`, `jason.wiebe`,
+   `shaneika.mccorkell`) created by the first cycle.** Note: Graph can lag a few
+   minutes behind the sync cycle — an immediate check may show `0/8`; re-run after
+   the cycle settles.
 10. Assign M365 licenses to the 3 new users as needed.
 
 ### ⬜ Phase 3 — Devices & Intune (later)
