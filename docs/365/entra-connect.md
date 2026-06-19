@@ -5,8 +5,9 @@ Directory (on the `STFN-DC` domain controller) to the **`skintyee.ca`** Entra
 tenant. Companion to [`entra-id.md`](entra-id.md); the decision rationale is
 **ADR-16** in [`../architecture-decisions.md`](../architecture-decisions.md).
 
-> **Status:** Phase 1 ✅ complete (2026-06-18) · Phase 2 ⬜ next (install Entra
-> Connect) · Phase 3 ⬜ later (Entra join + Intune for new devices).
+> **Status:** Phase 1 ✅ complete (2026-06-18) · Phase 2 🔄 in progress — binaries
+> installed but **configuration unfinished (no connectors yet)**; re-run the
+> wizard to completion · Phase 3 ⬜ later (Entra join + Intune for new devices).
 
 ## The model — cloud-first coexistence
 
@@ -111,7 +112,7 @@ norm.)
 | On-prem forest/domain | `STFN.local` (non-routable) |
 | Entra tenant | `skintyeenation.onmicrosoft.com`; **`skintyee.ca`** verified + default |
 | Sign-in method | **Password Hash Sync (PHS)** |
-| Entra Connect | ✅ installed **v2.4.129.0** (2026-06-18), ADSync service running, first cycle started at install |
+| Entra Connect | ⚠️ binaries installed **v2.4.129.0** (2026-06-18), ADSync service running, **but configuration incomplete — no connectors created yet** (re-run wizard to finish; see Troubleshooting) |
 | Domain-joined computers | 12 objects (DC + 11) — see inventory below; only 3 live in 2026 |
 
 ### Domain-joined computer inventory (2026-06-18)
@@ -299,20 +300,36 @@ CBS/Windows-Update reboot flags were clear.
   checkbox/option issue (all five "Install required components" boxes are correctly
   left unchecked).
 
-**Cloud verify shows the 8 users not synced (`OnPremisesSyncEnabled` blank, 3
-MISSING) right after install.** The initial sync may not have exported yet — the
-post-install verify (2026-06-18) found the 5 pre-existing accounts still
-cloud-only and the 3 new users absent. **Force a sync from an *elevated*
-PowerShell on `STFN-DC`** (the `ADSync` cmdlets require the ADSyncAdmins role,
-which a UAC-filtered token drops):
+**`Start-ADSyncSyncCycle` fails with `0x80230613` "the specified management agent
+could not be found", and `Get-ADSyncConnector` returns nothing.** **Root cause
+(confirmed 2026-06-18):** the Entra Connect **configuration never completed** —
+the installer laid down the binaries and started the `ADSync` service, but the
+final *Configure* step that creates the two **management agents / connectors**
+(the `STFN.local` AD connector + the `…onmicrosoft.com - AAD` connector) didn't
+finish. With no connectors there is no sync, which is why the post-install cloud
+verify found the 5 pre-existing users still cloud-only and the 3 new users
+absent.
 
-```powershell
-Start-ADSyncSyncCycle -PolicyType Initial   # elevated; export to Entra
-Get-ADSyncScheduler                          # SyncCycleInProgress / last result
-```
+- **Confirm:** elevated `Get-ADSyncConnector | Select Name,Type` — a healthy
+  install shows **two** connectors; an incomplete one shows **none**.
+- **Fix — re-run the wizard to completion:** launch
+  `C:\Program Files\Microsoft Azure Active Directory Connect\AzureADConnect.exe`
+  (or Start → "Microsoft Entra Connect") → **Customize** → PHS → Entra sign-in +
+  AD ("Create new AD account", `STFN\stfnadmin`) → OU filter `SkinTyee Users` →
+  **Configure**, and **watch it reach the green "Configuration complete" screen**
+  (the step that writes the connectors — last time it was abandoned/errored
+  before this, likely behind the OLE DB / pending-reboot issue below).
+- **Then:** elevated on `STFN-DC` (the `ADSync` cmdlets need the ADSyncAdmins
+  role a UAC-filtered token drops):
 
-Then wait a few minutes and re-run `Verify-EntraSync.ps1 -Cloud`. Expect the 5 to
-flip to `OnPremisesSyncEnabled=True` (soft-match) and the 3 new users to appear.
+  ```powershell
+  Get-ADSyncConnector | Select Name,Type      # now shows 2
+  Start-ADSyncSyncCycle -PolicyType Initial    # export to Entra
+  Get-ADSyncScheduler                          # SyncCycleInProgress / last result
+  ```
+
+  Wait a few minutes, then re-run `Verify-EntraSync.ps1 -Cloud`: the 5 flip to
+  `OnPremisesSyncEnabled=True` (soft-match) and the 3 new users appear.
 
 **`Get-MgUser` "not recognized" during the cloud verify.** This box's
 `PSModulePath` omits the user module dir (`Documents\WindowsPowerShell\Modules`),
