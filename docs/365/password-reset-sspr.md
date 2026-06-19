@@ -69,8 +69,13 @@ beside it). This is the linchpin — it can't be done from the cloud.*
   ```powershell
   Set-ADSyncAADPasswordResetConfiguration -Enable $true
   ```
-- The AAD Connect **service account** needs *Reset Password* + *Change
-  Password* + write to `lockoutTime` / `pwdLastSet` on the *SkinTyee Users* OU.
+- The AAD Connect **connector account** (`MSOL_f5db7948b14f`) needs *Reset
+  Password* + *Change Password* + write to `lockoutTime` / `pwdLastSet` on the
+  *SkinTyee Users* OU. Grant them with
+  [`stfn-setup/entra-connect/Enable-PasswordWritebackPermissions.ps1`](../../stfn-setup/entra-connect/Enable-PasswordWritebackPermissions.ps1)
+  `-Apply` (elevated; finds the `MSOL_*` account and scopes the ACEs to descendant
+  user objects). Order: grant permissions → `Set-ADSyncAADPasswordResetConfiguration
+  -Enable $true` → toggle writeback on in Entra (Step 2).
 
 ### Step 2 — Turn on SSPR in Entra
 [entra.microsoft.com](https://entra.microsoft.com) → **Protection → Password
