@@ -12,6 +12,7 @@ import { MailgunService } from './mailgun.service';
 import { SettingsService } from './settings.service';
 import { renderExpenseEventEmail, ExpenseEvent } from './email-template';
 import { expensePeriodFor, recentExpensePeriods, EXPENSE_PERIOD_CONFIG } from './skintyee-expense-periods';
+import { FX_TO_CAD, SUPPORTED_CURRENCIES, BASE_CURRENCY } from './expense-fx';
 
 // Expenses module — mirrors TimeKeeping. Staff submit expense claims (a batch of
 // receipt items) for reimbursement; finance (BandMember.bandGroups includes
@@ -107,7 +108,14 @@ export class ExpensesController {
   @Get('periods') @Roles('member', 'staff', 'admin')
   periods(@Query('count') count?: string) {
     const n = Math.min(24, Math.max(1, parseInt(count ?? '12', 10) || 12));
-    return { current: expensePeriodFor(), recent: recentExpensePeriods(n), config: EXPENSE_PERIOD_CONFIG };
+    return {
+      current: expensePeriodFor(),
+      recent: recentExpensePeriods(n),
+      config: EXPENSE_PERIOD_CONFIG,
+      // Currency support — base + the fixed FX table so the app can show foreign
+      // receipts in their own currency and convert claim totals to CAD live.
+      fx: { base: BASE_CURRENCY, supported: SUPPORTED_CURRENCIES, toCad: FX_TO_CAD },
+    };
   }
 
   // ---- Tags (editable expense-category catalog) --------------------------

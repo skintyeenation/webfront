@@ -3,6 +3,7 @@ import { PrismaService } from './prisma.service';
 import { DOCUMENT_STORAGE } from './storage/storage.module';
 import { DocumentStorageAdapter } from './storage/document-storage';
 import { recentExpensePeriods, expensePeriodFor, ExpensePeriod } from './skintyee-expense-periods';
+import { toCad } from './expense-fx';
 import { buildPdf, PdfLine, PdfRect, PdfImage, PDF_CONST } from './pdf-builder';
 import { TIMESHEET_LOGO } from './timesheet-logo';
 import { BRAND } from './email-template';
@@ -174,7 +175,6 @@ export class ExpenseReportsService {
   // One submitter section: each receipt = line items (left) + image (right).
   private async userReceiptPages(pages: Page[], period: ExpensePeriod, claim: any, tagLabels: Map<string, { label: string; gl: string | null }>) {
     const { PAGE_W, PAGE_MARGIN } = PDF_CONST;
-    const cur = claim.currency ?? 'CAD';
     const LEFT_X = PAGE_MARGIN;
     const AMT_X = PAGE_MARGIN + 250;                 // right edge of the left column's numbers
     const IMG_X = PAGE_MARGIN + 330;                 // right-column receipt image
@@ -206,31 +206,34 @@ export class ExpenseReportsService {
         page.lines.push({ size: 8, x: IMG_X, y: topY - 10, text: it.mimeType?.includes('pdf') ? '[PDF receipt — see attachment]' : (it.fileName ? '[image receipt]' : '[no image]') });
       }
 
-      // Left column: receipt header + line items.
+      // Left column: receipt header + line items — all in the RECEIPT's currency
+      // (a "USD" prefix flags a foreign bill).
+      const icur = it.currency ?? 'CAD';
       let ly = topY;
       const meta = tagLabels.get(it.tagSlug ?? '');
       const tagCell = `${meta?.gl ? meta.gl + ' ' : ''}${meta?.label ?? it.tagSlug ?? '-'}`;
       page.lines.push({ size: 11, x: LEFT_X, y: ly, text: (it.vendor || 'Receipt').slice(0, 34) });
-      page.lines.push({ size: 10, x: AMT_X - 6, y: ly, text: money(it.amount ?? 0, cur) });
+      page.lines.push({ size: 10, x: AMT_X - 6, y: ly, text: money(it.amount ?? 0, icur) });
       ly -= 13;
       page.lines.push({ size: 8.5, x: LEFT_X, y: ly, text: `${it.date ?? '-'}  ·  ${tagCell}`.slice(0, 46) }); ly -= 14;
       for (const li of lineRows) {
         const isSub = isSubtotalLine(li);
         const label = isSub ? 'Subtotal' : `${li.qty && li.qty > 1 ? `${li.qty}× ` : ''}${li.description ?? ''}`;
         page.lines.push({ size: 9, x: LEFT_X + 10, y: ly, text: `${isSub ? '' : '· '}${label}${li.excluded ? ' (excluded)' : ''}`.slice(0, 38) });
-        if (li.amount != null) page.lines.push({ size: 9, x: AMT_X - 6, y: ly, text: money(li.amount, cur) });
+        if (li.amount != null) page.lines.push({ size: 9, x: AMT_X - 6, y: ly, text: money(li.amount, icur) });
         ly -= 12;
       }
-      if (it.taxAmount != null) { page.lines.push({ size: 9, x: LEFT_X + 10, y: ly, text: 'Tax' }); page.lines.push({ size: 9, x: AMT_X - 6, y: ly, text: money(it.taxAmount, cur) }); ly -= 12; }
-      page.lines.push({ size: 9.5, x: LEFT_X + 10, y: ly, text: 'Total' }); page.lines.push({ size: 9.5, x: AMT_X - 6, y: ly, text: money(it.amount ?? 0, cur) });
+      if (it.taxAmount != null) { page.lines.push({ size: 9, x: LEFT_X + 10, y: ly, text: 'Tax' }); page.lines.push({ size: 9, x: AMT_X - 6, y: ly, text: money(it.taxAmount, icur) }); ly -= 12; }
+      page.lines.push({ size: 9.5, x: LEFT_X + 10, y: ly, text: 'Total' }); page.lines.push({ size: 9.5, x: AMT_X - 6, y: ly, text: money(it.amount ?? 0, icur) });
+      if (icur !== 'CAD') { ly -= 12; page.lines.push({ size: 8, x: LEFT_X + 10, y: ly, text: `≈ ${money(toCad(it.amount ?? 0, icur), 'CAD')} converted` }); }
 
       y = topY - blockH;
       page.rects.push({ x: LEFT_X, y: y + 8, w: PAGE_W - 2 * PAGE_MARGIN, h: 0.4 });
     }
 
     if (y - 26 < FLOOR) { pages.push(page); ({ page, y } = newClaimPage(period, `${claim.submitterName} (cont.)`)); }
-    page.lines.push({ size: 11, x: LEFT_X, y: y - 8, text: 'Claim total' });
-    page.lines.push({ size: 11, x: AMT_X - 6, y: y - 8, text: money(claim.totalAmount ?? 0, cur) });
+    page.lines.push({ size: 11, x: LEFT_X, y: y - 8, text: 'Claim total (CAD)' });
+    page.lines.push({ size: 11, x: AMT_X - 6, y: y - 8, text: money(claim.totalAmount ?? 0, 'CAD') });
     pages.push(page);
   }
 
@@ -263,15 +266,16 @@ export class ExpenseReportsService {
     const tagLabels = await this.tagLabelMap();
     const tagText = (slug?: string | null) => tagLabels.get(slug ?? '')?.label ?? slug ?? '';
     const glOf = (slug?: string | null) => tagLabels.get(slug ?? '')?.gl ?? '';
-    const header = ['submitterUpn', 'submitterName', 'submitterEmail', 'claimStatus', 'claimCurrency', 'date', 'vendor', 'tag', 'glAccount', 'amount', 'tax', 'currency', 'description', 'submittedAt', 'approvedBy', 'approvedAt', 'rejectedReason'];
+    const header = ['submitterUpn', 'submitterName', 'submitterEmail', 'claimStatus', 'date', 'vendor', 'tag', 'glAccount', 'amount', 'tax', 'currency', 'amountCAD', 'description', 'submittedAt', 'approvedBy', 'approvedAt', 'rejectedReason'];
     const esc = (v: any): string => { if (v == null) return ''; const s = String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
     const lines = [header.join(',')];
     for (const c of claims) {
-      const base = [c.submitterUpn, c.submitterName, (c as any).submitterEmail ?? '', c.status, c.currency];
+      const base = [c.submitterUpn, c.submitterName, (c as any).submitterEmail ?? '', c.status];
       const tail = [c.submittedAt?.toISOString() ?? '', c.approvedBy ?? '', c.approvedAt?.toISOString() ?? '', c.rejectedReason ?? ''];
-      if (c.items.length === 0) { lines.push([...base, '', '', '', '', '', '', '', '', ...tail].map(esc).join(',')); continue; }
+      if (c.items.length === 0) { lines.push([...base, '', '', '', '', '', '', '', '', '', ...tail].map(esc).join(',')); continue; }
       for (const it of c.items) {
-        lines.push([...base, it.date ?? '', it.vendor ?? '', tagText(it.tagSlug), glOf(it.tagSlug), it.amount, (it as any).taxAmount ?? '', (it as any).currency ?? '', it.description ?? '', ...tail].map(esc).join(','));
+        const icur = (it as any).currency ?? 'CAD';
+        lines.push([...base, it.date ?? '', it.vendor ?? '', tagText(it.tagSlug), glOf(it.tagSlug), it.amount, (it as any).taxAmount ?? '', icur, toCad(it.amount, icur), it.description ?? '', ...tail].map(esc).join(','));
       }
     }
     return { filename: `expenses-${payPeriodId}.csv`, csv: lines.join('\n') + '\n' };
@@ -286,20 +290,22 @@ export class ExpenseReportsService {
   // ---- PDF rendering (mirrors timekeeping-reports.service.ts) -------------
   private buildPeriodPdf(period: ExpensePeriod, claims: any[], tagLabels: Map<string, { label: string; gl: string | null }>): Buffer {
     const pages: Page[] = [];
+    // Claim totals are already converted to CAD (the base), so the period total
+    // is a straight CAD sum.
     const totalAmount = claims.reduce((s, c) => s + (c.totalAmount ?? 0), 0);
-    const currency = claims[0]?.currency ?? 'CAD';
-    coverPage(pages, period, { claimCount: claims.length, totalAmount, currency });
+    coverPage(pages, period, { claimCount: claims.length, totalAmount, currency: 'CAD' });
     for (const c of claims) this.claimPages(pages, period, c, tagLabels, /*cover*/ false);
     return buildPdf(pages as any);
   }
 
   // Render a claim's page(s): letterhead, header, items table, notes, signatures.
   private claimPages(pages: Page[], period: ExpensePeriod, claim: any, tagLabels: Map<string, { label: string; gl: string | null }>, cover: boolean) {
-    if (cover) coverPage(pages, period, { claimCount: 1, totalAmount: claim.totalAmount ?? 0, currency: claim.currency ?? 'CAD', single: claim });
+    if (cover) coverPage(pages, period, { claimCount: 1, totalAmount: claim.totalAmount ?? 0, currency: 'CAD', single: claim });
     const { PAGE_W, PAGE_MARGIN } = PDF_CONST;
     const TAG_X = PAGE_MARGIN + 70, VENDOR_X = PAGE_MARGIN + 190, AMT_X = PAGE_MARGIN + 420;
     const LINE_H = 14, ENTRY_FLOOR = 70, CONTENT_FLOOR = 196;
-    const cur = claim.currency ?? 'CAD';
+    const items0 = (claim.items ?? []) as any[];
+    const hasForeign = items0.some((it) => (it.currency ?? 'CAD') !== 'CAD');
 
     const tableHeader = (page: Page, y: number): number => {
       page.lines.push({ size: 9, x: PAGE_MARGIN, y, text: 'DATE' });
@@ -322,14 +328,18 @@ export class ExpenseReportsService {
         const tagCell = `${meta?.gl ? meta.gl + ' ' : ''}${meta?.label ?? it.tagSlug ?? '-'}`.slice(0, 20);
         page.lines.push({ size: 10, x: PAGE_MARGIN, y, text: it.date ?? '-' });
         page.lines.push({ size: 10, x: TAG_X, y, text: tagCell });
-        page.lines.push({ size: 10, x: AMT_X, y, text: money(it.amount ?? 0, cur) });
+        // Show each receipt in its OWN currency (the "USD" prefix flags foreign).
+        page.lines.push({ size: 10, x: AMT_X, y, text: money(it.amount ?? 0, it.currency ?? 'CAD') });
         vendorLines.forEach((vl, i) => page.lines.push({ size: 10, x: VENDOR_X, y: y - i * LINE_H, text: vl }));
         y -= rowH;
       }
     }
     y -= 6;
-    page.lines.push({ size: 11, x: AMT_X - 60, y, text: `Total: ${money(claim.totalAmount ?? 0, cur)}` });
-    y -= 16;
+    // Claim total is the CAD-converted sum.
+    page.lines.push({ size: 11, x: AMT_X - 60, y, text: `Total (CAD): ${money(claim.totalAmount ?? 0, 'CAD')}` });
+    y -= 14;
+    if (hasForeign) { page.lines.push({ size: 8, x: PAGE_MARGIN, y, text: 'Includes foreign-currency receipts — total converted to CAD.' }); y -= 12; }
+    y -= 4;
 
     if (claim.notes) {
       y -= 4;

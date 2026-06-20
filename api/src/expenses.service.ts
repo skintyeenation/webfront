@@ -5,6 +5,7 @@ import { DOCUMENT_STORAGE } from './storage/storage.module';
 import { DocumentStorageAdapter } from './storage/document-storage';
 import { EXPENSE_TAG_SEED } from './expense-tags.seed';
 import { expensePeriodFor } from './skintyee-expense-periods';
+import { toCad, normalizeCurrency } from './expense-fx';
 
 // Data layer for the Expenses module — claims (per submitter+period), receipt
 // items (uploaded via the pluggable storage adapter + AI-prefilled by Claude),
@@ -292,7 +293,7 @@ export class ExpensesService implements OnModuleInit {
         vendor: fields.vendor ?? ai.vendor ?? null,
         amount,
         taxAmount,
-        currency: 'CAD', // forced CAD for now — multi-currency entry disabled, ignore AI-detected currency
+        currency: normalizeCurrency(ai.currency), // CAD/USD supported; defaults CAD
         tagSlug: fields.tagSlug ?? ai.suggestedTagSlug ?? null,
         description: fields.description ?? null,
         submitterUpn: claim.submitterUpn,
@@ -319,7 +320,7 @@ export class ExpensesService implements OnModuleInit {
         vendor: patch.vendor ?? undefined,
         amount: typeof patch.amount === 'number' ? round2(patch.amount) : undefined,
         taxAmount: patch.taxAmount === undefined ? undefined : (patch.taxAmount === null ? null : round2(patch.taxAmount)),
-        currency: patch.currency === undefined ? undefined : (patch.currency || null),
+        currency: patch.currency === undefined ? undefined : normalizeCurrency(patch.currency),
         tagSlug: patch.tagSlug ?? undefined,
         description: patch.description ?? undefined,
         lineItems: patch.lineItems === undefined ? undefined : (patch.lineItems as any),
@@ -359,8 +360,10 @@ export class ExpensesService implements OnModuleInit {
     return { bytes: r.bytes, mimeType: it.mimeType ?? r.mimeType, fileName: it.fileName ?? 'receipt' };
   }
 
+  // Claim total is in CAD (base): convert each receipt from its own currency.
   private async recomputeTotal(claimId: string) {
-    const agg = await this.prisma.expenseItem.aggregate({ where: { claimId }, _sum: { amount: true } });
-    await this.prisma.expenseClaim.update({ where: { id: claimId }, data: { totalAmount: round2(agg._sum.amount ?? 0) } });
+    const items = await this.prisma.expenseItem.findMany({ where: { claimId }, select: { amount: true, currency: true } });
+    const total = items.reduce((s, it) => s + toCad(it.amount, (it as any).currency), 0);
+    await this.prisma.expenseClaim.update({ where: { id: claimId }, data: { totalAmount: round2(total) } });
   }
 }

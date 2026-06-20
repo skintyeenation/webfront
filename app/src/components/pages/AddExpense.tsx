@@ -41,6 +41,9 @@ export default function AddExpense({ navigation, route }: any) {
   const [claim, setClaim] = useState<ExpenseClaim | null>(null);
   const [items, setItems] = useState<ExpenseItem[]>([]);
   const [tags, setTags] = useState<ExpenseTag[]>([]);
+  // Currency support — base + FX table from the api (defaults if not loaded).
+  const [fx, setFx] = useState<{ base: string; supported: string[]; toCad: Record<string, number> }>({ base: 'CAD', supported: ['CAD', 'USD'], toCad: { CAD: 1, USD: 1.45 } });
+  const toCad = (amt: number, cur?: string | null) => (Number(amt) || 0) * (fx.toCad[(cur || 'CAD').toUpperCase()] ?? 1);
   const [notes, setNotes] = useState('');
   const [eligible, setEligible] = useState<boolean | null>(null);
   const [eligibleUpn, setEligibleUpn] = useState('');
@@ -72,6 +75,7 @@ export default function AddExpense({ navigation, route }: any) {
           setEligible(true); // admin-edit bypasses the worker gate
           const [periods, c] = await Promise.all([api.expenses.periods(), api.expenses.adminGetClaim(adminEditId)]);
           if (cancelled) return;
+          if ((periods as any).fx) setFx((periods as any).fx);
           setPeriod(periods.recent.find((p) => p.id === c.payPeriodId) ?? periods.current);
           setClaim(c); setItems(c.items ?? []); setNotes(c.notes ?? '');
         } else {
@@ -87,6 +91,7 @@ export default function AddExpense({ navigation, route }: any) {
           const c = await api.expenses.start(targetPeriodId);
           const periods = await api.expenses.periods();
           if (cancelled) return;
+          if ((periods as any).fx) setFx((periods as any).fx);
           setPeriod(periods.recent.find((p) => p.id === c.payPeriodId) ?? periods.current);
           setClaim(c); setItems(c.items ?? []); setNotes(c.notes ?? '');
         }
@@ -100,7 +105,9 @@ export default function AddExpense({ navigation, route }: any) {
   }, [targetPeriodId, adminEditMode, adminEditId]);
 
   const locked = !adminEditMode && claim?.status === 'approved';
-  const total = useMemo(() => items.reduce((s, it) => s + (Number(it.amount) || 0), 0), [items]);
+  // Claim total in CAD (base): convert each receipt from its own currency.
+  const total = useMemo(() => items.reduce((s, it) => s + toCad(it.amount, it.currency), 0), [items, fx]);
+  const hasForeign = useMemo(() => items.some((it) => (it.currency || 'CAD').toUpperCase() !== 'CAD'), [items]);
 
   const addReceipt = async (pick: () => Promise<PickedReceipt | null>) => {
     setAddMenuOpen(false);
@@ -322,6 +329,7 @@ export default function AddExpense({ navigation, route }: any) {
           items.map((it) => (
             <ReceiptRow
               key={it.id} item={it} tags={tags} currency={claim.currency} locked={locked}
+              currencies={fx.supported}
               onPatch={(p) => patchItem(it.id, p)}
               onPersist={(p) => persistItem(it.id, p)}
               onRemove={() => askRemoveItem(it)}
@@ -340,11 +348,14 @@ export default function AddExpense({ navigation, route }: any) {
           style={{ marginTop: 12, marginBottom: 12 }}
         />
 
-        {/* Total */}
+        {/* Total — always in CAD (foreign receipts converted). */}
         <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
           <Card.Content>
-            <Text style={{ color: theme.colors.primary, fontSize: 24 }}>{money(total, claim.currency)}</Text>
-            <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Claim total · {items.length} receipt{items.length === 1 ? '' : 's'}</Text>
+            <Text style={{ color: theme.colors.primary, fontSize: 24 }}>{money(total, 'CAD')}</Text>
+            <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>
+              Claim total (CAD) · {items.length} receipt{items.length === 1 ? '' : 's'}
+              {hasForeign ? ' · foreign receipts converted' : ''}
+            </Text>
           </Card.Content>
         </Card>
 
@@ -393,11 +404,12 @@ export default function AddExpense({ navigation, route }: any) {
 
 // ---- One receipt line — editable fields persisted on blur ------------------
 function ReceiptRow({
-  item, tags, currency, locked, onPatch, onPersist, onRemove,
+  item, tags, currency, currencies, locked, onPatch, onPersist, onRemove,
 }: {
   item: ExpenseItem;
   tags: ExpenseTag[];
   currency: string;
+  currencies: string[];
   locked: boolean;
   onPatch: (patch: Partial<ExpenseItem>) => void;
   onPersist: (patch: { date?: string; vendor?: string; amount?: number; taxAmount?: number | null; currency?: string | null; tagSlug?: string; description?: string; lineItems?: ExpenseItem['lineItems'] }) => void;
@@ -405,10 +417,11 @@ function ReceiptRow({
 }) {
   const [tagPicker, setTagPicker] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [curMenu, setCurMenu] = useState(false);
   const tagLabel = tags.find((t) => t.slug === item.tagSlug)?.label;
   const hasReceipt = !!(item.fileUrl || item.fileName || item.mimeType);
-  // CAD-only for now — ignore any AI-detected currency (e.g. USD) on display.
-  const cur = 'CAD';
+  // This receipt's own currency (CAD or USD).
+  const cur = (item.currency || 'CAD').toUpperCase();
 
   // Amount/tax are edited as raw text so a trailing/partial decimal ("12." →
   // "12.5") survives keystrokes — parsing to a Number on every change stripped
@@ -546,14 +559,32 @@ function ReceiptRow({
             onEndEditing={() => onPersist({ taxAmount: taxText === '' ? null : (Number(taxText) || 0) })}
             style={{ flex: 1, marginRight: 6 }}
           />
-          {/* Currency is fixed to CAD for now — multi-currency entry is
-              disabled until we support FX. Always show CAD regardless of any
-              AI-detected currency on the receipt. */}
-          <TextInput
-            dense mode="outlined" label="Currency" value="CAD"
-            editable={false}
-            style={{ flex: 1 }}
-          />
+          {/* Currency dropdown (CAD / USD). USD receipts convert to CAD in the
+              claim total + reports. */}
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginBottom: 2 }}>Currency</Text>
+            <Menu
+              visible={curMenu}
+              onDismiss={() => setCurMenu(false)}
+              anchor={
+                <Button
+                  mode="outlined" compact icon="cash" textColor={theme.colors.text}
+                  onPress={() => setCurMenu(true)} disabled={locked}
+                  style={{ borderColor: theme.colors.secondary }}
+                  contentStyle={{ justifyContent: 'flex-start' }}
+                >
+                  {cur}
+                </Button>
+              }
+            >
+              {currencies.map((c) => (
+                <Menu.Item
+                  key={c} title={c}
+                  onPress={() => { setCurMenu(false); onPatch({ currency: c }); onPersist({ currency: c }); }}
+                />
+              ))}
+            </Menu>
+          </View>
         </View>
 
         <View style={{ flexDirection: 'row', marginTop: 6, alignItems: 'flex-start' }}>
