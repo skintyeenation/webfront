@@ -22,6 +22,69 @@ export interface PickedReceipt {
   mimeType: string;
 }
 
+// Web webcam capture via getUserMedia — a real live-camera overlay, because
+// desktop browsers IGNORE the <input capture> hint (it's a mobile-only thing,
+// so on a laptop it just opens the file picker). Builds a vanilla-DOM overlay
+// (react-native-web can't render a <video>), streams the camera into it, and
+// resolves a JPEG data URL on capture. Falls back to the file <input> when
+// getUserMedia is unavailable or permission is denied.
+function webcamCapture(): Promise<PickedReceipt | null> {
+  const md: any = typeof navigator !== 'undefined' ? (navigator as any).mediaDevices : undefined;
+  if (!md?.getUserMedia) return webPick('image/*', true);
+
+  return new Promise<PickedReceipt | null>((resolve) => {
+    let stream: MediaStream | null = null;
+    const overlay = document.createElement('div');
+    overlay.style.cssText =
+      'position:fixed;inset:0;z-index:99999;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;';
+
+    const video = document.createElement('video');
+    video.setAttribute('playsinline', 'true');
+    video.muted = true;
+    video.style.cssText = 'max-width:100%;max-height:80%;object-fit:contain;background:#000;';
+
+    const bar = document.createElement('div');
+    bar.style.cssText = 'position:absolute;bottom:0;left:0;right:0;display:flex;gap:16px;justify-content:center;padding:20px;';
+
+    const mkBtn = (label: string, bg: string, fg: string) => {
+      const b = document.createElement('button');
+      b.textContent = label;
+      b.style.cssText =
+        `font:600 15px sans-serif;padding:12px 22px;border:0;border-radius:8px;cursor:pointer;background:${bg};color:${fg};`;
+      return b;
+    };
+    const capBtn = mkBtn('● Capture', '#00bcd4', '#000');
+    const cancelBtn = mkBtn('Cancel', 'rgba(255,255,255,0.15)', '#fff');
+
+    const cleanup = () => {
+      try { stream?.getTracks().forEach((t) => t.stop()); } catch {}
+      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    };
+    const finish = (result: PickedReceipt | null) => { cleanup(); resolve(result); };
+
+    cancelBtn.onclick = () => finish(null);
+    capBtn.onclick = () => {
+      try {
+        const w = video.videoWidth || 1280, h = video.videoHeight || 720;
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return finish(null);
+        ctx.drawImage(video, 0, 0, w, h);
+        finish({ uri: canvas.toDataURL('image/jpeg', 0.8), name: `receipt-${w}x${h}.jpg`, mimeType: 'image/jpeg' });
+      } catch { finish(null); }
+    };
+
+    bar.appendChild(cancelBtn); bar.appendChild(capBtn);
+    overlay.appendChild(video); overlay.appendChild(bar);
+    document.body.appendChild(overlay);
+
+    md.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
+      .then((s: MediaStream) => { stream = s; video.srcObject = s; return video.play(); })
+      .catch(() => { cleanup(); resolve(webPick('image/*', true)); });
+  });
+}
+
 // Web: spin up a throwaway <input>, optionally with the camera hint, and
 // resolve the chosen file as a data URL.
 function webPick(accept: string, capture?: boolean): Promise<PickedReceipt | null> {
@@ -54,7 +117,7 @@ function fromImageAsset(a: { uri: string; fileName?: string | null; mimeType?: s
 }
 
 export async function takePhoto(): Promise<PickedReceipt | null> {
-  if (Platform.OS === 'web') return webPick('image/*', true);
+  if (Platform.OS === 'web') return webcamCapture();
   const ImagePicker = await import('expo-image-picker');
   const perm = await ImagePicker.requestCameraPermissionsAsync();
   if (!perm.granted) throw new Error('Camera permission denied. Enable it in Settings to photograph receipts.');
