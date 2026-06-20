@@ -235,7 +235,8 @@ function StaffSignInCard() {
             <Button
               mode="text"
               compact
-              textColor={theme.colors.textDarker}
+              icon="lock-reset"
+              textColor={theme.colors.primary}
               onPress={() => {
                 // Pre-fill the forgot-email field if the user already typed
                 // an address in the sign-in form — saves a re-type.
@@ -244,7 +245,7 @@ function StaffSignInCard() {
                 setForgotSent(false);
                 setPanel('forgot');
               }}
-              style={{ alignSelf: 'flex-start', marginTop: 6 }}
+              style={{ alignSelf: 'center', marginTop: 6 }}
             >
               Forgot Password
             </Button>
