@@ -548,7 +548,7 @@ export default function EditMember({ route, navigation }: any) {
               ) : null}
               {protectedAdmin ? (
                 <HelperText type="error" visible style={{ marginLeft: -8 }}>
-                  Break-glass tenant admin — Lock and Force reset are disabled to protect organization access.
+                  Break-glass tenant admin — Lock and Force reset are unavailable to protect organization access.
                 </HelperText>
               ) : null}
               <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
@@ -576,10 +576,12 @@ export default function EditMember({ route, navigation }: any) {
                     Reset password
                   </Button>
                 ) : null}
+                {!protectedAdmin ? (
+                <>
                 <Button
                   mode="outlined" icon="lock-reset"
                   textColor={theme.colors.primary}
-                  loading={forcing} disabled={forcing || blocking || protectedAdmin}
+                  loading={forcing} disabled={forcing || blocking}
                   onPress={() => confirm({
                     title: 'Force a password reset?',
                     message: `${name} will be signed out everywhere. They then reset their own password at aka.ms/sspr using their registered phone or personal email.`,
@@ -604,7 +606,7 @@ export default function EditMember({ route, navigation }: any) {
                 <Button
                   mode="outlined" icon={locked ? 'lock-open-variant' : 'lock'}
                   textColor={locked ? theme.colors.success : theme.colors.error}
-                  loading={blocking} disabled={forcing || blocking || (protectedAdmin && !locked)}
+                  loading={blocking} disabled={forcing || blocking}
                   onPress={() => confirm({
                     title: locked ? 'Unlock account?' : 'Lock account?',
                     message: locked
@@ -625,6 +627,8 @@ export default function EditMember({ route, navigation }: any) {
                 >
                   {locked ? 'Unlock account' : 'Lock account'}
                 </Button>
+                </>
+                ) : null}
               </View>
             </Card.Content>
           </Card>
