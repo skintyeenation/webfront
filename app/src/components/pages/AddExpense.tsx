@@ -593,14 +593,14 @@ function ReceiptRow({
                   key={i}
                   onPress={() => setEditorIdx(i)}
                   disabled={locked}
-                  style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 3, marginTop: sub ? 2 : 0, opacity: ex ? 0.5 : 1 }}
+                  style={{ flexDirection: 'row', alignItems: 'center', minHeight: 44, paddingVertical: 10, marginTop: sub ? 2 : 0, opacity: ex ? 0.5 : 1, borderTopWidth: sub ? 1 : 0, borderTopColor: 'rgba(255,255,255,0.06)' }}
                 >
                   {!locked && !sub ? (
                     <MaterialCommunityIcons
                       name={ex ? 'checkbox-blank-circle-outline' : 'check-circle'}
-                      size={18}
+                      size={20}
                       color={ex ? theme.colors.textDarker : theme.colors.success}
-                      style={{ marginRight: 6 }}
+                      style={{ marginRight: 10 }}
                     />
                   ) : null}
                   <Text
@@ -615,7 +615,7 @@ function ReceiptRow({
                     </Text>
                   ) : null}
                   {!locked ? (
-                    <MaterialCommunityIcons name="pencil" size={13} color={theme.colors.textDarker} style={{ marginLeft: 6 }} />
+                    <MaterialCommunityIcons name="pencil" size={16} color={theme.colors.textDarker} style={{ marginLeft: 10 }} />
                   ) : null}
                 </TouchableOpacity>
               );
@@ -629,11 +629,11 @@ function ReceiptRow({
             ) : null}
 
             {/* Tax + Total from the form fields (single source of truth). */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 2, marginTop: 4, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)', paddingTop: 4 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 7, marginTop: 4, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' }}>
               <Text style={{ color: theme.colors.textDarker, fontSize: 13, flex: 1 }}>Tax</Text>
               <Text style={{ color: theme.colors.textDarker, fontSize: 13 }}>{money(item.taxAmount ?? 0, cur)}</Text>
             </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 2 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 7, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' }}>
               <Text style={{ color: theme.colors.text, fontSize: 14, flex: 1, fontWeight: '700' }}>Total</Text>
               <Text style={{ color: theme.colors.text, fontSize: 14, fontWeight: '700' }}>{money(item.amount, cur)}</Text>
             </View>
