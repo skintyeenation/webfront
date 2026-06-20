@@ -16,6 +16,10 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 @Injectable()
 export class ExpensesService implements OnModuleInit {
   private readonly log = new Logger(ExpensesService.name);
+  // Self-heal guard: if the boot seed didn't run (e.g. the table wasn't ready
+  // yet at onModuleInit), seed once on the first empty tag read so a fresh DB
+  // recovers without a manual step. One attempt per process.
+  private autoSeedTried = false;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -63,10 +67,18 @@ export class ExpensesService implements OnModuleInit {
 
   async listTags(activeOnly = false) {
     this.requireDb();
-    return this.prisma.expenseTag.findMany({
+    const query = () => this.prisma.expenseTag.findMany({
       where: activeOnly ? { active: true } : undefined,
       orderBy: { label: 'asc' },
     });
+    let rows = await query();
+    // Empty catalog on first read → the boot seed never landed; seed now.
+    if (rows.length === 0 && !this.autoSeedTried) {
+      this.autoSeedTried = true;
+      await this.seedTagsIfNeeded();
+      rows = await query();
+    }
+    return rows;
   }
 
   async createTag(slug: string, label: string, glAccount?: string) {
