@@ -77,7 +77,7 @@ model BandMember {
   // Seeded from the user's Entra assignedLicenses; admins toggle these via
   // PATCH /v1/directory/:id/licenses. Drives the EditMember "Licenses"
   // section + the directory "Entra P1 / paid" badge.
-  licenses           String  @default("")
+  licenses String @default("")
 
   // Skin Tyee Entra security-group memberships. Comma-separated slugs
   // from src/skintyee-groups.ts (SKINTYEE_SECURITY_GROUPS), e.g.:
@@ -201,6 +201,67 @@ model TimesheetEntry {
   task    String
 
   @@index([timesheetId, date])
+}
+
+// ---- Expenses --------------------------------------------------------------
+// Staff submit expense claims (a batch of receipt items) for reimbursement;
+// finance (BandMember.bandGroups contains 'finance') or admins approve. Mirrors
+// the Timesheet lifecycle: draft → submitted → approved | rejected (+ reopen).
+model ExpenseClaim {
+  id            String  @id // <submitterUpn>:<payPeriodId>
+  submitterUpn  String
+  submitterName String
+  payPeriodId   String // YYYY-MM-DD cutoff Friday — SAME pay periods as timesheets
+  title         String?
+  status        String  @default("draft") // draft | submitted | approved | rejected
+  notes         String?
+  // Snapshot total of the items, recomputed on each edit.
+  totalAmount   Float   @default(0)
+  currency      String  @default("CAD")
+
+  submittedAt    DateTime?
+  approvedBy     String? // approver's UPN
+  approvedAt     DateTime?
+  rejectedReason String?
+
+  items     ExpenseItem[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@unique([submitterUpn, payPeriodId])
+  @@index([payPeriodId, status])
+  @@index([submitterUpn])
+}
+
+model ExpenseItem {
+  id          String       @id @default(cuid())
+  claimId     String
+  claim       ExpenseClaim @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  date        String? // YYYY-MM-DD receipt date
+  vendor      String?
+  amount      Float        @default(0)
+  tagSlug     String? // → ExpenseTag.slug (the expense category)
+  description String?
+  aiExtracted Boolean      @default(false) // amount/vendor/date were AI-prefilled
+
+  // Receipt file — same storage shape as Document / TimesheetReport.
+  storage   String? // 'blob' | 'sharepoint'
+  fileKey   String?
+  fileUrl   String?
+  fileName  String?
+  mimeType  String?
+  sizeBytes Int?
+
+  @@index([claimId])
+}
+
+// Admin-editable "tags" catalog (the expense categories) — managed like the
+// Document Tag Manager, seeded with standard expense items (expense-tags.seed.ts).
+model ExpenseTag {
+  slug      String   @id
+  label     String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
 }
 
 // ---- Documents ------------------------------------------------------------
@@ -391,6 +452,8 @@ model Person {
   // so existing contractor records (added before the feature) don't
   // suddenly appear in the Approvals roster.
   timesheetsEnabled Boolean                @default(false)
+  // Same gate for the Expenses module — who can submit expense claims.
+  expensesEnabled   Boolean                @default(false)
   // ---- Password-auth (staff-auth feature) -----------------------------
   // Only populated for Persons WITHOUT a bandMemberId. Setting any of
   // these on a Person with a linked BandMember is rejected at the
