@@ -1,6 +1,6 @@
 # STFN Workstation Setup — Session Summary (2026-05-24)
 
-Covers Microsoft Entra tooling plus baseline workstation setup (`~/.local/bin`, `cc` alias, Claude Code).
+Covers Microsoft Entra tooling plus baseline workstation setup (`~/.local/bin`, `cc` alias, Claude Code), and Docker (`setup-docker-wsl.ps1`).
 
 ## Environment
 - Machine: Windows 10 Pro, PowerShell 5.1, domain-joined
@@ -84,6 +84,63 @@ Connect-Entra -Scopes "User.Read.All"
    - **Express settings** — password hash sync (default, easiest)
    - **Customize** — pass-through auth, federation, OU filtering, etc.
 
+## Docker (`setup-docker-wsl.ps1`)
+
+**Docker Desktop is NOT supported on Windows Server (2019/2022).** On the STFN
+Server 2022 box it refuses to start and reports *"Virtualization support not
+detected"* — even though virtualization is fine. This is a Docker Desktop
+limitation, not a wrong installer or an arm-vs-amd mistake (the box is **AMD64**,
+an Intel Xeon E-2378G, running as a Hyper-V guest VM — use amd64 installers).
+
+So we do **not** use Docker Desktop. `setup-docker-wsl.ps1` (idempotent,
+self-elevating) sets up the supported engines:
+
+- **Linux containers (default, recommended):** Docker **CE** (open-source, free)
+  installed **inside a WSL2 Ubuntu distro** — runs the standard Linux images
+  (~95% of Docker Hub). The script enables the `VirtualMachinePlatform` + WSL
+  features, installs Ubuntu with `--no-launch`, then provisions Docker CE inside
+  it (systemd enabled, a non-root `stfn` user in the `docker` group, `docker`
+  service enabled).
+  **⚠ Requires nested virtualization** exposed to this guest VM. On **STFN-DC
+  this is currently NOT the case** — WSL2 cannot boot a VM and fails with
+  `HCS_E_HYPERV_NOT_INSTALLED` (even though the WSL features show *Enabled*). The
+  script's boot test detects this and stops with the host-side fix. To unblock,
+  on the **Hyper-V host** with the VM stopped:
+  ```powershell
+  Set-VMProcessor -VMName STFN-DC -ExposeVirtualizationExtensions $true
+  Get-VMNetworkAdapter -VMName STFN-DC | Set-VMNetworkAdapter -MacAddressSpoofing On
+  ```
+  then restart the VM and re-run the script. **Note:** STFN-DC is a Domain
+  Controller — running containers on a DC is poor practice; prefer a separate
+  member/Linux VM for Docker.
+- **Windows containers (`-WindowsContainers`, opt-in):** native Docker **Engine**
+  via `DockerMsftProvider`. Runs Windows base images only — only needed if you
+  specifically require Windows containers.
+
+**Performance / reliability — keep code on the Linux filesystem.** Bind-mounting
+Windows files into containers over `/mnt/c` uses WSL2's 9P layer: I/O is **5–20×
+slower** and `inotify` file-watchers don't fire (broken HMR/hot-reload, missed
+rebuilds). Clone the repo **inside** Ubuntu (e.g. `~/webfront` on ext4) for
+native-speed I/O; edit it from Windows via `\\wsl$\Ubuntu\...` or an IDE's
+WSL-remote mode (IntelliJ / VS Code).
+
+Run standalone, or via the provisioner (step 4):
+
+```powershell
+# standalone (Linux containers only)
+powershell -ExecutionPolicy Bypass -File .\setup-docker-wsl.ps1
+
+# also native Windows-container engine
+.\setup-docker-wsl.ps1 -WindowsContainers
+
+# via the full provisioner
+.\provision-stfn-server.ps1                       # includes Docker
+.\provision-stfn-server.ps1 -SkipDocker           # skip it
+.\provision-stfn-server.ps1 -DockerWindowsContainers
+```
+
+Use it: `wsl -d Ubuntu -- docker run hello-world`.
+
 ## Rollback
 - Modules: `Uninstall-Module Microsoft.Graph.* -AllVersions; Uninstall-Module Microsoft.Entra -AllVersions`
 - MSI: delete `C:\Users\stfnadmin\Downloads\AzureADConnect.msi`
@@ -91,3 +148,5 @@ Connect-Entra -Scopes "User.Read.All"
 - `cc` alias: remove the `function cc { ... }` line from `$PROFILE`
 - `~/.local/bin` on PATH: remove via `[Environment]::SetEnvironmentVariable('Path', <new value>, 'User')` after stripping the entry
 - Claude Code: uninstall via whatever mechanism the native installer registered (or just delete `C:\Users\stfnadmin\.local\bin\claude.exe`)
+- Docker (Linux): `wsl --unregister Ubuntu` removes the distro + its Docker CE. The `VirtualMachinePlatform`/WSL features can be left on (harmless) or removed via `Disable-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform`.
+- Docker (Windows containers): `Uninstall-Package docker -ProviderName DockerMsftProvider; Uninstall-Module DockerMsftProvider`

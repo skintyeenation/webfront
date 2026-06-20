@@ -14,7 +14,10 @@
                                    modules, Azure CLI, Entra Connect MSI download)
     2. 1Password                 - machine-wide MSI (all users)
     3. Microsoft 365 Apps        - Click-to-Run (Business Standard by default)
-    4. Entra Connect sync tool   - DC-aware: staged everywhere, installed only
+    4. Docker                    - delegated to setup-docker-wsl.ps1: Docker CE
+                                   in WSL2 for Linux containers (Docker Desktop
+                                   is unsupported on Windows Server)
+    5. Entra Connect sync tool   - DC-aware: staged everywhere, installed only
                                    on a domain-member server (opt-in)
 
   Machine-wide installs require elevation; the script self-elevates via UAC if
@@ -28,6 +31,13 @@
 
 .PARAMETER SkipM365
   Skip the Microsoft 365 Apps install.
+
+.PARAMETER SkipDocker
+  Skip the Docker setup (setup-docker-wsl.ps1).
+
+.PARAMETER DockerWindowsContainers
+  Also install the native Windows-container Docker Engine (passed through to
+  setup-docker-wsl.ps1 -WindowsContainers). Off by default.
 
 .PARAMETER SkipEntraConnect
   Skip staging/installing the Entra Connect sync tool entirely.
@@ -68,6 +78,8 @@ param(
     [switch]$SkipDevTools,
     [switch]$Skip1Password,
     [switch]$SkipM365,
+    [switch]$SkipDocker,
+    [switch]$DockerWindowsContainers,
     [switch]$SkipEntraConnect,
     [switch]$InstallEntraConnect,
     [switch]$ForceEntraConnectOnDC,
@@ -192,7 +204,20 @@ if (-not $SkipM365) {
     }
 }
 
-# ---------- 4. Entra Connect (Azure AD Connect) sync tool ----------
+# ---------- 4. Docker (WSL2 + Docker CE; Desktop is unsupported on Server) ----------
+if (-not $SkipDocker) {
+    Write-Step 'Docker (setup-docker-wsl.ps1)'
+    $docker = Join-Path $PSScriptRoot 'setup-docker-wsl.ps1'
+    if (Test-Path $docker) {
+        Write-Info "running $docker"
+        # Already elevated here, so the child script's self-elevation is a no-op.
+        if ($DockerWindowsContainers) { & $docker -WindowsContainers } else { & $docker }
+    } else {
+        Write-Warn2 "setup-docker-wsl.ps1 not found alongside this script - skipping Docker."
+    }
+}
+
+# ---------- 5. Entra Connect (Azure AD Connect) sync tool ----------
 if (-not $SkipEntraConnect) {
     Write-Step 'Entra Connect (Azure AD Connect) sync tool'
     $dir = Join-Path $CacheDir 'EntraConnect'; New-Item -ItemType Directory -Force $dir | Out-Null
