@@ -162,3 +162,58 @@ Best-effort — a mail failure never fails the request.
 
 Tiles: admin **Expenses**, staff **My Expenses** (`MoreMenu.tsx`); finance-group
 staff reach the approval queue through the same screen.
+
+## Receipt totals — tax, subtotal & line-item math
+
+A receipt item carries `amount` (the claimed total), `taxAmount`, `currency`,
+and optional AI `lineItems` (`{description, amount, qty, excluded, isSummary}`).
+The numbers relate as **subtotal + tax = total**, with these rules:
+
+### Summary vs real lines
+A line is a **summary** row when the AI set `isSummary` **or** its label matches
+`subtotal | total | balance | amount due | change | tax | gst/hst/pst/qst | tip |
+gratuity | rounding | cash | visa | mastercard | debit | credit | payment | due`
+(checked both server-side in `anthropic.service.ts` and client-side in
+`AddExpense.tsx` `isSummaryLine()`, so old/mislabelled data is still caught).
+
+- **Summary rows never count** toward the claimed amount and are **not
+  user-toggleable**.
+- The **Subtotal** line is shown and its price is editable.
+- The **Tax** and **Total** rows in DETAILS are rendered from the item's form
+  fields (`taxAmount`, `amount`) — the AI's own tax/total summary lines are
+  **hidden** so they don't duplicate (this fixed a double tax line).
+
+### Tax derivation (at scan time — `ExpensesService.addItem`)
+When a scanned receipt is itemised, tax is derived rather than trusting the AI's
+tax read:
+
+```
+subtotal = Σ(real, non-summary line item amounts)
+tax      = round2(grandTotal − subtotal)      // only if subtotal > 0 and tax ≥ 0
+```
+
+If that guard fails (no items / negative), it falls back to the AI's `tax`. The
+submitter can always override the **Tax** field afterward.
+
+### Claimed amount (`item.amount`)
+- On scan: `amount = AI grand total` (or a caller-supplied value).
+- On include/exclude or a line-item price edit:
+  `amount = Σ(included, non-summary line amounts) + taxAmount`.
+- The claim's `totalAmount = Σ(item.amount)` (`recomputeTotal`).
+
+### Tax recompute on a Total edit (app)
+Editing the **Total** (amount) field on an itemised receipt recalculates
+`tax = max(0, round2(total − subtotal))` live and on blur, keeping
+**subtotal + tax = total** consistent.
+
+### Subtotal validation (app)
+The DETAILS section shows a warning when the **sum of all (non-summary) line
+items ≠ the printed Subtotal line** (±$0.01) — a data-quality check that the AI
+read the items and subtotal consistently. It uses *all* items (ignores
+exclusions, since excluding is a claim choice, not a misread).
+
+### Currency
+Forced to **CAD** for now (multi-currency entry disabled): the api stores
+`currency: 'CAD'` on every item and the UI always displays CAD, ignoring any
+AI-detected currency. Re-enable by removing the override in `addItem` + the
+fixed CAD field in `AddExpense.tsx`.

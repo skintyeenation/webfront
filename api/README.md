@@ -93,6 +93,33 @@ persisted in the `AppSetting` table; in-memory fallback when Prisma is down):
 
 ---
 
+## Expense receipt math — tax, subtotal & line items
+
+How an expense receipt's numbers are derived and validated (full detail in
+[`../docs/features/expenses.md`](../docs/features/expenses.md) §"Receipt totals"):
+
+- **Relation:** `subtotal + tax = total`. An item stores `amount` (claimed
+  total), `taxAmount`, `currency` (forced **CAD** for now), and AI `lineItems`
+  (`{description, amount, qty, excluded, isSummary}`).
+- **Summary rows** (subtotal/total/tax/balance/change/payment… — by the
+  `isSummary` flag **or** a label regex, in both `anthropic.service.ts` and the
+  app's `isSummaryLine()`) **never count** toward the claimed amount and aren't
+  toggleable. Tax + Total in the UI come from the form fields, so the AI's own
+  tax/total lines are hidden (no duplicate tax line). The Subtotal line shows +
+  is price-editable.
+- **Tax derivation (scan, `ExpensesService.addItem`):** when itemised,
+  `tax = round2(grandTotal − Σ real line items)` if `subtotal > 0 && tax ≥ 0`,
+  else fall back to the AI's tax. User can override.
+- **Claimed amount:** on scan `= grand total`; on include/exclude or a line
+  price edit `= Σ(included non-summary lines) + taxAmount`; claim
+  `totalAmount = Σ(item.amount)`.
+- **Tax recompute (app):** editing the Total recalculates
+  `tax = max(0, round2(total − subtotal))`, keeping `subtotal + tax = total`.
+- **Subtotal validation (app):** warns when `Σ all (non-summary) line items ≠`
+  the printed Subtotal line (±$0.01) — a read-quality check, ignoring exclusions.
+
+---
+
 ## Recommended implementation (proposed)
 
 > Decisive recommendation for the production API. See ADR-7 in
