@@ -15,6 +15,12 @@ import { Injectable, Logger } from '@nestjs/common';
 // WHY a receipt didn't auto-fill (not just silently nothing).
 export type ExtractStatus = 'extracted' | 'unconfigured' | 'unsupported' | 'failed';
 
+export interface ReceiptLineItem {
+  description: string;
+  amount: number | null;
+  qty: number | null;
+}
+
 export interface ReceiptExtraction {
   amount: number | null;
   vendor: string | null;
@@ -22,12 +28,14 @@ export interface ReceiptExtraction {
   currency: string | null; // ISO, e.g. CAD
   suggestedTagSlug: string | null;
   confidence: number | null; // 0..1
+  // Itemised lines when the photo is legible enough; empty otherwise.
+  lineItems: ReceiptLineItem[];
   status: ExtractStatus;
   message: string | null; // human-readable note when status != 'extracted'
 }
 
 const empty = (status: ExtractStatus, message: string | null = null): ReceiptExtraction => ({
-  amount: null, vendor: null, date: null, currency: null, suggestedTagSlug: null, confidence: null, status, message,
+  amount: null, vendor: null, date: null, currency: null, suggestedTagSlug: null, confidence: null, lineItems: [], status, message,
 });
 
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -79,14 +87,29 @@ export class AnthropicService {
           currency:   { type: ['string', 'null'], description: 'ISO currency code (e.g. CAD, USD). Default CAD if unclear.' },
           tagSlug:    { type: ['string', 'null'], description: `Best-matching expense tag slug from: ${slugs.join(', ')}` },
           confidence: { type: ['number', 'null'], description: 'Confidence 0..1 in this extraction.' },
+          lineItems: {
+            type: 'array',
+            description: 'Individual purchased line items, IF the photo is clear enough to read them. Leave empty ([]) if blurry/illegible or the receipt has no itemisation.',
+            items: {
+              type: 'object',
+              properties: {
+                description: { type: 'string', description: 'Item name / description.' },
+                amount:      { type: ['number', 'null'], description: 'Line total (price × qty).' },
+                qty:         { type: ['number', 'null'], description: 'Quantity, if shown.' },
+              },
+              required: ['description', 'amount', 'qty'],
+            },
+          },
         },
-        required: ['amount', 'vendor', 'date', 'currency', 'tagSlug', 'confidence'],
+        required: ['amount', 'vendor', 'date', 'currency', 'tagSlug', 'confidence', 'lineItems'],
       },
     };
 
     const prompt =
       `Extract the expense details from this receipt. Pick the single best expense tag (by slug) from this catalog: ${tagList}. ` +
-      `If the image is not a readable receipt, set every field to null. Respond by calling the record_receipt tool.`;
+      `If the photo is clear enough, also itemise the purchased line items into lineItems (description + amount, and qty when shown); ` +
+      `if it's too blurry to read them, leave lineItems empty. ` +
+      `If the image is not a readable receipt, set every field to null and lineItems to []. Respond by calling the record_receipt tool.`;
 
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -127,10 +150,19 @@ export class AnthropicService {
         currency: typeof inp.currency === 'string' && inp.currency.trim() ? inp.currency.trim().toUpperCase() : null,
         suggestedTagSlug: typeof inp.tagSlug === 'string' && slugs.includes(inp.tagSlug) ? inp.tagSlug : null,
         confidence: typeof inp.confidence === 'number' ? inp.confidence : null,
+        lineItems: Array.isArray(inp.lineItems)
+          ? inp.lineItems
+              .filter((li: any) => li && typeof li.description === 'string' && li.description.trim())
+              .map((li: any) => ({
+                description: li.description.trim(),
+                amount: typeof li.amount === 'number' ? li.amount : null,
+                qty: typeof li.qty === 'number' ? li.qty : null,
+              }))
+          : [],
         status: 'extracted',
         message: null,
       };
-      this.log.log(`extractReceipt: ${out.vendor ?? '?'} ${out.amount ?? '?'} → tag ${out.suggestedTagSlug ?? '∅'}`);
+      this.log.log(`extractReceipt: ${out.vendor ?? '?'} ${out.amount ?? '?'} → tag ${out.suggestedTagSlug ?? '∅'} (${out.lineItems.length} line items)`);
       return out;
     } catch (e: any) {
       this.log.warn(`extractReceipt failed: ${e?.message ?? e}`);

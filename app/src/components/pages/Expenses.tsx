@@ -602,18 +602,34 @@ function ClaimDetailModal({
             <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>No receipts.</Text>
           ) : (
             items.map((it) => (
-              <View key={it.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: theme.colors.text, fontSize: 13 }}>
-                    {it.vendor || 'Unknown vendor'}
-                    {it.aiExtracted ? '  ✨' : ''}
-                  </Text>
-                  <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>
-                    {it.date ? dayjs(it.date).format('MMM D') : 'No date'} · {tagLabel(it.tagSlug)}
-                    {it.description ? ` · ${it.description}` : ''}
-                  </Text>
+              <View key={it.id} style={{ paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: theme.colors.text, fontSize: 13 }}>
+                      {it.vendor || 'Unknown vendor'}
+                      {it.aiExtracted ? '  ✨' : ''}
+                    </Text>
+                    <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>
+                      {it.date ? dayjs(it.date).format('MMM D') : 'No date'} · {tagLabel(it.tagSlug)}
+                      {it.description ? ` · ${it.description}` : ''}
+                    </Text>
+                  </View>
+                  <Text style={{ color: theme.colors.text, fontSize: 13 }}>{money(it.amount, claim.currency)}</Text>
                 </View>
-                <Text style={{ color: theme.colors.text, fontSize: 13 }}>{money(it.amount, claim.currency)}</Text>
+                {it.lineItems && it.lineItems.length > 0 ? (
+                  <View style={{ marginTop: 4, paddingLeft: 10 }}>
+                    {it.lineItems.map((li, i) => (
+                      <View key={i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 1 }}>
+                        <Text style={{ color: theme.colors.textDarker, fontSize: 11, flex: 1 }} numberOfLines={1}>
+                          · {li.qty && li.qty > 1 ? `${li.qty}× ` : ''}{li.description}
+                        </Text>
+                        {li.amount != null ? (
+                          <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>{money(li.amount, claim.currency)}</Text>
+                        ) : null}
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
               </View>
             ))
           )}

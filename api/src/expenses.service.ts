@@ -238,7 +238,7 @@ export class ExpensesService implements OnModuleInit {
     let storageDriver: string | null = null;
     let fileKey: string | null = null, fileUrl: string | null = null;
     let fileName: string | null = null, mimeType: string | null = null, sizeBytes: number | null = null;
-    let ai: ReceiptExtraction = { amount: null, vendor: null, date: null, currency: null, suggestedTagSlug: null, confidence: null, status: 'extracted', message: null };
+    let ai: ReceiptExtraction = { amount: null, vendor: null, date: null, currency: null, suggestedTagSlug: null, confidence: null, lineItems: [], status: 'extracted', message: null };
 
     if (file) {
       const up = await this.storage.upload({ fileName: file.fileName, mimeType: file.mimeType, bytes: file.bytes });
@@ -260,6 +260,7 @@ export class ExpensesService implements OnModuleInit {
         tagSlug: fields.tagSlug ?? ai.suggestedTagSlug ?? null,
         description: fields.description ?? null,
         aiExtracted: !!file && (ai.amount != null || ai.vendor != null || ai.date != null),
+        lineItems: ai.lineItems && ai.lineItems.length ? (ai.lineItems as any) : undefined,
         storage: storageDriver, fileKey, fileUrl, fileName, mimeType, sizeBytes,
       },
     });

@@ -505,6 +505,25 @@ function ReceiptRow({
           onEndEditing={() => onPersist({ description: item.description ?? '' })}
           style={{ marginTop: 6 }}
         />
+
+        {/* AI-itemised line items (when the photo was legible). Read-only. */}
+        {item.lineItems && item.lineItems.length > 0 ? (
+          <View style={{ marginTop: 8, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', paddingTop: 6 }}>
+            <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginBottom: 4 }}>
+              DETAILS · ✨ {item.lineItems.length} line item{item.lineItems.length === 1 ? '' : 's'}
+            </Text>
+            {item.lineItems.map((li, i) => (
+              <View key={i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 2 }}>
+                <Text style={{ color: theme.colors.text, fontSize: 12, flex: 1 }} numberOfLines={2}>
+                  {li.qty && li.qty > 1 ? `${li.qty}× ` : ''}{li.description}
+                </Text>
+                {li.amount != null ? (
+                  <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginLeft: 8 }}>{money(li.amount, currency)}</Text>
+                ) : null}
+              </View>
+            ))}
+          </View>
+        ) : null}
       </Card.Content>
     </Card>
   );

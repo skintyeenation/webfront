@@ -227,6 +227,12 @@ export interface ExpenseTag {
   active: boolean;
 }
 
+export interface ExpenseLineItem {
+  description: string;
+  amount?: number | null;
+  qty?: number | null;
+}
+
 export interface ExpenseItem {
   id: string;
   claimId: string;
@@ -236,6 +242,8 @@ export interface ExpenseItem {
   tagSlug?: string | null;
   description?: string | null;
   aiExtracted?: boolean;
+  // AI-itemised receipt lines (when the photo was legible).
+  lineItems?: ExpenseLineItem[] | null;
   fileName?: string | null;
   mimeType?: string | null;
   fileUrl?: string | null;

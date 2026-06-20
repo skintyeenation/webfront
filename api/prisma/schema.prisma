@@ -243,6 +243,8 @@ model ExpenseItem {
   tagSlug     String? // → ExpenseTag.slug (the expense category)
   description String?
   aiExtracted Boolean      @default(false) // amount/vendor/date were AI-prefilled
+  // AI-itemised receipt lines when the photo was legible: [{description, amount, qty}]
+  lineItems   Json?
 
   // Receipt file — same storage shape as Document / TimesheetReport.
   storage   String? // 'blob' | 'sharepoint'
