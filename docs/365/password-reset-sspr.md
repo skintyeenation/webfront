@@ -200,3 +200,74 @@ az rest --method GET \
 # Who holds the Entra ID P1 (AAD_PREMIUM) licence?
 az rest --method GET --url "https://graph.microsoft.com/v1.0/subscribedSkus?\$select=skuPartNumber,consumedUnits,prepaidUnits"
 ```
+
+---
+
+## In-app password reset — design (the app's UX) 
+
+Two distinct flows, mapped to the synced-account reality. **Constraint:** no
+trips to the `STFN.local` DC, and regular users never open the 365/Entra portal.
+
+### Flow 1 — user resets their OWN password (self-serve) ✅ shipped
+- **Account screen** (`app/src/components/pages/Account.tsx`): **"Reset my
+  password"** (signed in) + **"Forgot your password?"** (signed out) open
+  **`aka.ms/sspr`** in an in-app browser tab (`expo-web-browser` — a raw
+  `<WebView>` gets blocked by Microsoft for sign-in).
+- The user verifies with their **registered phone / personal email /
+  authenticator** — *not* their `@skintyee.ca` mailbox — then sets a new
+  password; **writeback lands it on `STFN.local`**.
+- **Hard prerequisite:** users must **register SSPR methods BEFORE** they're
+  locked out (at `aka.ms/sspr` while they can still sign in). Until they do,
+  self-serve can't verify them and the flow is dead in an emergency.
+
+### Flow 2 — admin resets ANOTHER user (EditMember → "Password & access")
+**Shipped, app-only** (no DC, no delegated auth):
+- **Force password reset** — `POST /v1/directory/:id/force-password-reset`:
+  revokes the user's sessions, shows the admin **relay instructions**, and
+  emails **only a personal (non-`@skintyee.ca`) address** if one's on file —
+  *never* the locked work mailbox (the user can't read it, and the "link" is
+  just the public `aka.ms/sspr` page). The user then self-serves.
+- **Lock / Unlock** — `POST /v1/directory/:id/block { blocked }`:
+  `accountEnabled` toggle + `revokeSignInSessions`.
+  - ⚠️ For synced users a later on-prem sync can flip `accountEnabled` back —
+    for a guaranteed lock use a **Conditional Access "block" group** (app
+    already has `Group.ReadWrite.All`; needs a one-time CA policy).
+  - ⚠️ Locked users (`enabled:false`) drop out of the directory list (filtered
+    `enabled:true`) — an admin "show locked" view is a TODO to unlock later.
+
+**NOT possible app-only — admin SETTING a temp password for a synced user:**
+- The removed **"Rotate password"** button used `PATCH /users/{id}`
+  `passwordProfile`, which only sets the **cloud** password — PHS overwrites it,
+  so it **never reached the domain**. It 403'd for every synced user once
+  guarded; removed.
+- A real admin reset must use Graph's **admin SSPR reset**
+  (`POST /users/{id}/authentication/methods/{methodId}/resetPassword`), which
+  routes through writeback. Two ways to get there:
+
+| Route | Auth | Works? | Effort |
+|---|---|---|---|
+| **A — app-only resetPassword** | app-only credential + `UserAuthenticationMethod.ReadWrite.All` | **UNVERIFIED** — `resetPassword` has historically needed a delegated MFA token; may be rejected app-only | small *if* it works |
+| **B — MSAL delegated admin** | admin signs into the app (MSAL) → API calls `resetPassword` **as them** | **YES, definitively** — it's exactly what the Entra portal does, moved in-app | larger — wires real Entra auth, replaces the `x-role` stub app-wide |
+
+**Recommendation:** test **Route A** first (quick; also unblocks a real locked-out
+user). If app-only `resetPassword` writes back to `STFN.local`, restore a working
+**"Reset password"** button in EditMember (admin → hands a temp password). If it's
+rejected, **Route B (MSAL)** is required — and it's the same delegated sign-in
+that would replace the `x-role` stub everywhere, so it's worth doing for the
+broader auth story regardless.
+
+### Intended UX split
+- **Own account → SSPR self-serve** (`aka.ms/sspr`).
+- **Admin editing a user →** admin-initiated:
+  - **Reset password** (hand a temp password) — *pending Route A/B*.
+  - **Force reset** (push the user to self-serve) — shipped.
+  - **Lock / Unlock** — shipped.
+
+### Code
+- `api/src/graph-feed.service.ts` — `setAccountEnabled`, `revokeSignInSessions`
+  (+ `rotateUserPassword` now refuses synced users).
+- `api/src/controllers.ts` (`DirectoryController`) — `block`,
+  `force-password-reset`.
+- `api/src/email-template.ts` — `renderPasswordResetEmail`.
+- `app/src/components/pages/Account.tsx` — self-serve buttons.
+- `app/src/components/pages/EditMember.tsx` — "Password & access" panel.
