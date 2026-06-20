@@ -44,6 +44,21 @@ function initialsOf(name?: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
+// Security-group slug → label (mirrors MemberDetail's chip labels).
+const GROUP_LABELS: Record<string, string> = {
+  'public': 'Public', 'band-members': 'Band Members', 'contractors': 'Contractors',
+  'chief': 'Chief', 'council': 'Council', 'band-manager': 'Band Manager',
+  'management': 'Management', 'admins': 'Admins', 'system-admin': 'System Admin',
+  'it': 'IT', 'finance': 'Finance', 'forestry': 'Forestry',
+  'land-resources': 'Land Resources', 'housing': 'Housing', 'fire-chief': 'Fire Chief',
+  'it-project-docs': 'IT Project Docs', 'band-members-m365': 'Band Members (M365)',
+  'council-m365': 'Council (M365)', 'management-m365': 'Management (M365)',
+};
+const licenceLabel = (p: string) =>
+  p === 'AAD_PREMIUM' ? 'Entra ID P1'
+  : p === 'O365_BUSINESS_PREMIUM' ? 'Microsoft 365 Business Standard'
+  : p;
+
 // Build the api/ photo proxy URL when we have a real (non-mock) backend.
 function photoUrl(memberId: string): string | undefined {
   if (!Config.apiServer || Config.apiServer === 'mock' || !/^https?:\/\//.test(Config.apiServer)) {
@@ -522,6 +537,61 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
             {signedIn ? `ROLE: ${role.toUpperCase()}` : 'NOT SIGNED IN'}
           </Chip>
         </View>
+
+        {/* My profile — same card layout as the Member-detail page, for the
+            signed-in user's own directory record. */}
+        {signedIn && me ? (
+          <>
+            <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
+              <Card.Content>
+                <MemberDetailRow icon="email-outline"      label="Email"      value={me.email ?? user?.upn} />
+                <MemberDetailRow icon="at"                 label="UPN"        value={me.upn ?? user?.upn} />
+                <MemberDetailRow icon="phone-outline"      label="Phone"      value={me.phone} />
+                <MemberDetailRow icon="briefcase-outline"  label="Title"      value={me.title} />
+                <MemberDetailRow icon="domain"             label="Department" value={me.department} />
+                <MemberDetailRow icon="account-key-outline" label="Account type"
+                  value={me.accountType === 'shared-inbox' ? 'Shared inbox' : 'Licensed user'} />
+              </Card.Content>
+            </Card>
+
+            {(me.licenses?.length ?? 0) > 0 ? (
+              <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
+                <Card.Content>
+                  <Text style={{ color: theme.colors.text, fontSize: 14, marginBottom: 8 }}>Microsoft licences</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                    {(me.licenses as string[]).map((p) => {
+                      const paid = p === 'AAD_PREMIUM';
+                      return (
+                        <Chip key={p} compact icon={paid ? 'star-circle' : 'microsoft-office'}
+                          style={{ marginRight: 4, marginTop: 2, backgroundColor: paid ? theme.colors.success : theme.colors.secondary }}
+                          textStyle={{ fontSize: 11, color: paid ? '#000' : theme.colors.text }}>
+                          {licenceLabel(p)}
+                        </Chip>
+                      );
+                    })}
+                  </View>
+                </Card.Content>
+              </Card>
+            ) : null}
+
+            {(me.bandGroups?.length ?? 0) > 0 ? (
+              <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
+                <Card.Content>
+                  <Text style={{ color: theme.colors.text, fontSize: 14, marginBottom: 8 }}>Group memberships</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                    {(me.bandGroups as string[]).map((slug) => (
+                      <Chip key={slug} compact icon="shield-account"
+                        style={{ marginRight: 4, marginTop: 2, backgroundColor: theme.colors.secondary }}
+                        textStyle={{ fontSize: 11 }}>
+                        {GROUP_LABELS[slug] ?? slug}
+                      </Chip>
+                    ))}
+                  </View>
+                </Card.Content>
+              </Card>
+            ) : null}
+          </>
+        ) : null}
 
         {/* Sign-in / sign-out -------------------------------------------- */}
         {!signedIn ? (
