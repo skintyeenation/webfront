@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
-import { ActivityIndicator as Spinner, Button, Card, Chip, HelperText, IconButton, Menu, Snackbar, Text, TextInput } from 'react-native-paper';
+import { ActivityIndicator, Image, Linking, Platform, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator as Spinner, Button, Card, Chip, HelperText, IconButton, Menu, Modal, Portal, Snackbar, Text, TextInput } from 'react-native-paper';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import dayjs from 'dayjs';
 import { PageContainer, PageContent } from 'skintyee/components/layout';
 import { useAppSelector } from 'skintyee/store';
@@ -51,6 +52,10 @@ export default function AddExpense({ navigation, route }: any) {
   const [submittedMode, setSubmittedMode] = useState<'draft' | 'submit' | null>(null);
   const [error, setError] = useState<string | undefined>();
   const [toast, setToast] = useState<string | null>(null);
+  // Receipts uploaded this session but not yet committed via Save/Submit.
+  // If the user leaves without saving, these (file + row) are purged so we
+  // never leave orphaned uploads behind. Cleared on a successful Save/Submit.
+  const uncommittedRef = React.useRef<Set<string>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -105,6 +110,7 @@ export default function AddExpense({ navigation, route }: any) {
       if (!file) return;
       setUploading(true);
       const { item } = await apiFactory().expenses.addReceipt(claim.id, file, {});
+      uncommittedRef.current.add(item.id);
       setItems((prev) => [...prev, item]);
       setToast(item.aiExtracted ? 'Receipt read by AI — review the details' : 'Receipt added');
     } catch (e: any) {
@@ -122,6 +128,7 @@ export default function AddExpense({ navigation, route }: any) {
     try {
       setUploading(true);
       const { item } = await apiFactory().expenses.addReceipt(claim.id, null, { amount: 0 });
+      uncommittedRef.current.add(item.id);
       setItems((prev) => [...prev, item]);
     } catch (e: any) {
       setError(e?.message ?? String(e));
@@ -146,11 +153,24 @@ export default function AddExpense({ navigation, route }: any) {
     setError(undefined);
     try {
       await apiFactory().expenses.deleteItem(id);
+      uncommittedRef.current.delete(id);
       setItems((prev) => prev.filter((it) => it.id !== id));
     } catch (e: any) {
       setError(e?.message ?? String(e));
     }
   };
+
+  // Purge uncommitted uploads when leaving the screen without saving. Runs on
+  // unmount; reads the ref so it always sees the latest set. Fire-and-forget —
+  // deleteItem also removes the stored file, so nothing is left orphaned.
+  useEffect(() => {
+    return () => {
+      const ids = Array.from(uncommittedRef.current);
+      if (ids.length === 0) return;
+      const api = apiFactory();
+      for (const id of ids) api.expenses.deleteItem(id).catch(() => {});
+    };
+  }, []);
 
   const persist = async (mode: 'draft' | 'submit') => {
     if (!claim) return;
@@ -159,6 +179,8 @@ export default function AddExpense({ navigation, route }: any) {
       const api = apiFactory();
       const updated = await api.expenses.updateClaim(claim.id, { notes: notes.trim() || undefined });
       setClaim(updated);
+      // Saved/submitted → these receipts are now committed; don't purge them.
+      uncommittedRef.current.clear();
       if (mode === 'submit' && !adminEditMode) {
         if (items.length === 0) throw new Error('Add at least one receipt before submitting.');
         const submitted = await api.expenses.submit(claim.id);
@@ -255,6 +277,16 @@ export default function AddExpense({ navigation, route }: any) {
                 <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginLeft: 6 }}>Reading receipt…</Text>
               </View>
             ) : null}
+          </View>
+        ) : null}
+
+        {!locked ? (
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12, paddingLeft: 2 }}>
+            <MaterialCommunityIcons name="information-outline" size={14} color={theme.colors.textDarker} style={{ marginTop: 1, marginRight: 6 }} />
+            <Text style={{ color: theme.colors.textDarker, fontSize: 11, flex: 1 }}>
+              Got several items to claim on one receipt? Add a separate line for each and attach a photo of the
+              same receipt to each — that way every amount maps to its own tag / GL account.
+            </Text>
           </View>
         ) : null}
 
@@ -358,6 +390,7 @@ function ReceiptRow({
   const [tagMenu, setTagMenu] = useState(false);
   const tagLabel = tags.find((t) => t.slug === item.tagSlug)?.label;
   const amountStr = item.amount != null ? String(item.amount) : '';
+  const hasReceipt = !!(item.fileUrl || item.fileName || item.mimeType);
 
   return (
     <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 8 }}>
@@ -366,11 +399,7 @@ function ReceiptRow({
           <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, flex: 1 }}>
             RECEIPT{item.aiExtracted ? ' · ✨ AI-read' : ''}
           </Text>
-          {item.fileUrl ? (
-            <Chip compact icon="paperclip" style={{ backgroundColor: theme.colors.secondary, marginRight: 4 }} textStyle={{ color: theme.colors.text, fontSize: 10 }}>
-              {item.mimeType?.includes('pdf') ? 'PDF' : 'Image'}
-            </Chip>
-          ) : null}
+          {hasReceipt ? <ReceiptAttachment item={item} /> : null}
           {!locked ? (
             <IconButton icon="delete" size={18} iconColor={theme.colors.textDarker} onPress={onRemove} accessibilityLabel="Remove receipt" />
           ) : null}
@@ -385,9 +414,10 @@ function ReceiptRow({
             style={{ flex: 2, marginRight: 6 }}
           />
           <TextInput
-            dense mode="outlined" label={`Amount (${currency})`} value={amountStr}
+            dense mode="outlined" label="Amount" value={amountStr}
             editable={!locked}
             keyboardType="decimal-pad"
+            left={<TextInput.Affix text={currencySymbol(currency)} />}
             onChangeText={(v) => onPatch({ amount: Number(v.replace(/[^0-9.]/g, '')) || 0 })}
             onEndEditing={() => onPersist({ amount: Number(item.amount) || 0 })}
             style={{ flex: 1 }}
@@ -434,5 +464,95 @@ function ReceiptRow({
         />
       </Card.Content>
     </Card>
+  );
+}
+
+function currencySymbol(cur?: string): string {
+  switch ((cur ?? 'CAD').toUpperCase()) {
+    case 'CAD': case 'USD': case 'AUD': return '$';
+    case 'EUR': return '€';
+    case 'GBP': return '£';
+    default: return (cur ?? '') + ' ';
+  }
+}
+
+// ---- Receipt attachment — thumbnail chip + full-screen lightbox ------------
+// The thumbnail/preview bytes are streamed from the api/ with auth (the stored
+// URL can be a non-loadable mem:// in dev or a presigned URL <img> can't carry
+// headers to), turned into an object URL on web. Tapping opens the full image;
+// PDFs open in a new tab / external viewer.
+function ReceiptAttachment({ item }: { item: ExpenseItem }) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const isPdf = !!item.mimeType?.includes('pdf');
+
+  useEffect(() => {
+    let url: string | null = null;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { blob } = await apiFactory().expenses.fetchReceipt(item.id);
+        if (cancelled) return;
+        if (typeof URL !== 'undefined' && URL.createObjectURL) {
+          url = URL.createObjectURL(blob);
+          setSrc(url);
+        } else if (item.fileUrl) {
+          setSrc(item.fileUrl); // native fallback: a real presigned URL
+        }
+      } catch {
+        if (!cancelled && item.fileUrl) setSrc(item.fileUrl);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      if (url && typeof URL !== 'undefined' && URL.revokeObjectURL) URL.revokeObjectURL(url);
+    };
+  }, [item.id]);
+
+  const onPress = () => {
+    if (isPdf) {
+      if (Platform.OS === 'web' && src) window.open(src, '_blank');
+      else if (src) Linking.openURL(src).catch(() => {});
+    } else {
+      setOpen(true);
+    }
+  };
+
+  return (
+    <>
+      {/* Same badge holds the thumbnail + paperclip + label, and is tappable. */}
+      <TouchableOpacity
+        onPress={onPress}
+        style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.secondary, borderRadius: 14, paddingRight: 8, paddingLeft: src && !isPdf ? 2 : 8, paddingVertical: 2, marginRight: 4 }}
+        accessibilityLabel="View receipt"
+      >
+        {src && !isPdf ? (
+          <Image source={{ uri: src }} style={{ width: 24, height: 24, borderRadius: 12, marginRight: 5 }} resizeMode="cover" />
+        ) : null}
+        <MaterialCommunityIcons name="paperclip" size={12} color={theme.colors.text} style={{ marginRight: 3 }} />
+        <Text style={{ color: theme.colors.text, fontSize: 10 }}>{isPdf ? 'PDF' : 'Image'}</Text>
+      </TouchableOpacity>
+
+      <Portal>
+        <Modal
+          visible={open}
+          onDismiss={() => setOpen(false)}
+          contentContainerStyle={{ backgroundColor: '#000', margin: 0, flex: 1, width: '100%', height: '100%' }}
+          style={{ margin: 0 }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', padding: 8 }}>
+            <Text style={{ color: '#fff', flex: 1, marginLeft: 8 }} numberOfLines={1}>{item.vendor || item.fileName || 'Receipt'}</Text>
+            <IconButton icon="close" size={24} iconColor="#fff" onPress={() => setOpen(false)} />
+          </View>
+          {src ? (
+            <Image source={{ uri: src }} style={{ flex: 1, width: '100%' }} resizeMode="contain" />
+          ) : (
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+              <Spinner />
+            </View>
+          )}
+        </Modal>
+      </Portal>
+    </>
   );
 }
