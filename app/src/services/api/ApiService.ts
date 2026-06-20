@@ -1,4 +1,4 @@
-import { AppNotification, BandMember, BandMeeting, CommunityEvent, Expenditure, FeedItem, MajorProject, PayPeriod, PayPeriodConfig, PlannerPlanSummary, PlannerRollup, PlannerTask, Poll, PublicRecord, Role, TimeEntry, Timesheet, ExpenseClaim, ExpenseItem, ExpenseTag, ExpensePeriod } from 'skintyee/models';
+import { AppNotification, BandMember, BandMeeting, CommunityEvent, Expenditure, FeedItem, MajorProject, PayPeriod, PayPeriodConfig, PlannerPlanSummary, PlannerRollup, PlannerTask, Poll, PublicRecord, Role, TimeEntry, Timesheet, ExpenseClaim, ExpenseItem, ExpenseTag, ExpensePeriod, ExpenseFx } from 'skintyee/models';
 
 // Expense report row (mirrors TimesheetReportSummary). Returned by the api/'s
 // GET /v1/expenses/reports.
@@ -284,7 +284,7 @@ export interface ApiService {
   // Expenses — claims (a batch of receipts) per submitter per period; finance
   // approves. Mirrors the timekeeping surface. Receipts are AI-prefilled by Claude.
   expenses: {
-    periods(count?: number): Promise<{ current: ExpensePeriod; recent: ExpensePeriod[]; config: any }>;
+    periods(count?: number): Promise<{ current: ExpensePeriod; recent: ExpensePeriod[]; config: any; fx: ExpenseFx }>;
     meEligible(): Promise<{ eligible: boolean; upn: string }>;
     eligiblePeople(): Promise<Array<{ personId: string; workerUpn: string; workerName: string; isBandMember: boolean }>>;
     // Tag catalog (editable, like Document Tag Manager).

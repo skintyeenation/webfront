@@ -43,7 +43,12 @@ export default function AddExpense({ navigation, route }: any) {
   const [tags, setTags] = useState<ExpenseTag[]>([]);
   // Currency support — base + FX table from the api (defaults if not loaded).
   const [fx, setFx] = useState<{ base: string; supported: string[]; toCad: Record<string, number> }>({ base: 'CAD', supported: ['CAD', 'USD'], toCad: { CAD: 1, USD: 1.45 } });
-  const toCad = (amt: number, cur?: string | null) => (Number(amt) || 0) * (fx.toCad[(cur || 'CAD').toUpperCase()] ?? 1);
+  // Convert a receipt to CAD using its STORED rate snapshot when present, else
+  // the current fx table — so a UI total matches what the api stored.
+  const itemCad = (it: ExpenseItem) => {
+    const rate = (typeof it.fxRate === 'number' && it.fxRate > 0) ? it.fxRate : (fx.toCad[(it.currency || 'CAD').toUpperCase()] ?? 1);
+    return (Number(it.amount) || 0) * rate;
+  };
   const [notes, setNotes] = useState('');
   const [eligible, setEligible] = useState<boolean | null>(null);
   const [eligibleUpn, setEligibleUpn] = useState('');
@@ -106,7 +111,7 @@ export default function AddExpense({ navigation, route }: any) {
 
   const locked = !adminEditMode && claim?.status === 'approved';
   // Claim total in CAD (base): convert each receipt from its own currency.
-  const total = useMemo(() => items.reduce((s, it) => s + toCad(it.amount, it.currency), 0), [items, fx]);
+  const total = useMemo(() => items.reduce((s, it) => s + itemCad(it), 0), [items, fx]);
   const hasForeign = useMemo(() => items.some((it) => (it.currency || 'CAD').toUpperCase() !== 'CAD'), [items]);
 
   const addReceipt = async (pick: () => Promise<PickedReceipt | null>) => {

@@ -5,7 +5,7 @@ import { DOCUMENT_STORAGE } from './storage/storage.module';
 import { DocumentStorageAdapter } from './storage/document-storage';
 import { EXPENSE_TAG_SEED } from './expense-tags.seed';
 import { expensePeriodFor } from './skintyee-expense-periods';
-import { toCad, normalizeCurrency } from './expense-fx';
+import { toCadAt, normalizeCurrency, rateFor } from './expense-fx';
 
 // Data layer for the Expenses module — claims (per submitter+period), receipt
 // items (uploaded via the pluggable storage adapter + AI-prefilled by Claude),
@@ -286,14 +286,16 @@ export class ExpensesService implements OnModuleInit {
       if (subtotal > 0 && derived >= 0) taxAmount = derived;
     }
 
+    const curCode = normalizeCurrency(ai.currency); // CAD/USD supported; defaults CAD
     const item = await this.prisma.expenseItem.create({
       data: {
         claimId,
         date: fields.date ?? ai.date ?? null,
         vendor: fields.vendor ?? ai.vendor ?? null,
-        amount,
+        amount, // stored in the receipt's OWN currency (not pre-converted)
         taxAmount,
-        currency: normalizeCurrency(ai.currency), // CAD/USD supported; defaults CAD
+        currency: curCode,
+        fxRate: rateFor(curCode), // snapshot today's CAD rate for reproducible totals
         tagSlug: fields.tagSlug ?? ai.suggestedTagSlug ?? null,
         description: fields.description ?? null,
         submitterUpn: claim.submitterUpn,
@@ -321,6 +323,8 @@ export class ExpensesService implements OnModuleInit {
         amount: typeof patch.amount === 'number' ? round2(patch.amount) : undefined,
         taxAmount: patch.taxAmount === undefined ? undefined : (patch.taxAmount === null ? null : round2(patch.taxAmount)),
         currency: patch.currency === undefined ? undefined : normalizeCurrency(patch.currency),
+        // Re-snapshot the rate whenever the currency is (re)set.
+        fxRate: patch.currency === undefined ? undefined : rateFor(patch.currency),
         tagSlug: patch.tagSlug ?? undefined,
         description: patch.description ?? undefined,
         lineItems: patch.lineItems === undefined ? undefined : (patch.lineItems as any),
@@ -360,10 +364,11 @@ export class ExpensesService implements OnModuleInit {
     return { bytes: r.bytes, mimeType: it.mimeType ?? r.mimeType, fileName: it.fileName ?? 'receipt' };
   }
 
-  // Claim total is in CAD (base): convert each receipt from its own currency.
+  // Claim total is in CAD (base): convert each receipt with its STORED rate
+  // snapshot (falls back to the current rate for legacy rows without one).
   private async recomputeTotal(claimId: string) {
-    const items = await this.prisma.expenseItem.findMany({ where: { claimId }, select: { amount: true, currency: true } });
-    const total = items.reduce((s, it) => s + toCad(it.amount, (it as any).currency), 0);
+    const items = await this.prisma.expenseItem.findMany({ where: { claimId }, select: { amount: true, currency: true, fxRate: true } });
+    const total = items.reduce((s, it) => s + toCadAt(it.amount, (it as any).fxRate ?? rateFor((it as any).currency)), 0);
     await this.prisma.expenseClaim.update({ where: { id: claimId }, data: { totalAmount: round2(total) } });
   }
 }

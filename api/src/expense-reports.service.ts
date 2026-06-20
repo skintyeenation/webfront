@@ -3,7 +3,7 @@ import { PrismaService } from './prisma.service';
 import { DOCUMENT_STORAGE } from './storage/storage.module';
 import { DocumentStorageAdapter } from './storage/document-storage';
 import { recentExpensePeriods, expensePeriodFor, ExpensePeriod } from './skintyee-expense-periods';
-import { toCad } from './expense-fx';
+import { toCadAt, rateFor } from './expense-fx';
 import { buildPdf, PdfLine, PdfRect, PdfImage, PDF_CONST } from './pdf-builder';
 import { TIMESHEET_LOGO } from './timesheet-logo';
 import { BRAND } from './email-template';
@@ -225,7 +225,7 @@ export class ExpenseReportsService {
       }
       if (it.taxAmount != null) { page.lines.push({ size: 9, x: LEFT_X + 10, y: ly, text: 'Tax' }); page.lines.push({ size: 9, x: AMT_X - 6, y: ly, text: money(it.taxAmount, icur) }); ly -= 12; }
       page.lines.push({ size: 9.5, x: LEFT_X + 10, y: ly, text: 'Total' }); page.lines.push({ size: 9.5, x: AMT_X - 6, y: ly, text: money(it.amount ?? 0, icur) });
-      if (icur !== 'CAD') { ly -= 12; page.lines.push({ size: 8, x: LEFT_X + 10, y: ly, text: `≈ ${money(toCad(it.amount ?? 0, icur), 'CAD')} converted` }); }
+      if (icur !== 'CAD') { ly -= 12; page.lines.push({ size: 8, x: LEFT_X + 10, y: ly, text: `≈ ${money(toCadAt(it.amount ?? 0, (it as any).fxRate ?? rateFor(icur)), 'CAD')} converted @ ${((it as any).fxRate ?? rateFor(icur))}` }); }
 
       y = topY - blockH;
       page.rects.push({ x: LEFT_X, y: y + 8, w: PAGE_W - 2 * PAGE_MARGIN, h: 0.4 });
@@ -266,16 +266,17 @@ export class ExpenseReportsService {
     const tagLabels = await this.tagLabelMap();
     const tagText = (slug?: string | null) => tagLabels.get(slug ?? '')?.label ?? slug ?? '';
     const glOf = (slug?: string | null) => tagLabels.get(slug ?? '')?.gl ?? '';
-    const header = ['submitterUpn', 'submitterName', 'submitterEmail', 'claimStatus', 'date', 'vendor', 'tag', 'glAccount', 'amount', 'tax', 'currency', 'amountCAD', 'description', 'submittedAt', 'approvedBy', 'approvedAt', 'rejectedReason'];
+    const header = ['submitterUpn', 'submitterName', 'submitterEmail', 'claimStatus', 'date', 'vendor', 'tag', 'glAccount', 'amount', 'tax', 'currency', 'fxRate', 'amountCAD', 'description', 'submittedAt', 'approvedBy', 'approvedAt', 'rejectedReason'];
     const esc = (v: any): string => { if (v == null) return ''; const s = String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
     const lines = [header.join(',')];
     for (const c of claims) {
       const base = [c.submitterUpn, c.submitterName, (c as any).submitterEmail ?? '', c.status];
       const tail = [c.submittedAt?.toISOString() ?? '', c.approvedBy ?? '', c.approvedAt?.toISOString() ?? '', c.rejectedReason ?? ''];
-      if (c.items.length === 0) { lines.push([...base, '', '', '', '', '', '', '', '', '', ...tail].map(esc).join(',')); continue; }
+      if (c.items.length === 0) { lines.push([...base, '', '', '', '', '', '', '', '', '', '', ...tail].map(esc).join(',')); continue; }
       for (const it of c.items) {
         const icur = (it as any).currency ?? 'CAD';
-        lines.push([...base, it.date ?? '', it.vendor ?? '', tagText(it.tagSlug), glOf(it.tagSlug), it.amount, (it as any).taxAmount ?? '', icur, toCad(it.amount, icur), it.description ?? '', ...tail].map(esc).join(','));
+        const rate = (it as any).fxRate ?? rateFor(icur);
+        lines.push([...base, it.date ?? '', it.vendor ?? '', tagText(it.tagSlug), glOf(it.tagSlug), it.amount, (it as any).taxAmount ?? '', icur, rate, toCadAt(it.amount, rate), it.description ?? '', ...tail].map(esc).join(','));
       }
     }
     return { filename: `expenses-${payPeriodId}.csv`, csv: lines.join('\n') + '\n' };

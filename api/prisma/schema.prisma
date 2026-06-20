@@ -247,6 +247,9 @@ model ExpenseItem {
   amount      Float        @default(0) // claimed amount (sum of included line items + tax when itemised)
   taxAmount   Float? // tax portion (GST/PST/HST) of the receipt
   currency    String? // per-receipt ISO currency; falls back to the claim currency
+  // Exchange rate to CAD captured WHEN the currency was set, so the converted
+  // claim total is reproducible even if the FX table changes later. 1 for CAD.
+  fxRate      Float? @default(1)
   tagSlug     String? // → ExpenseTag.slug (the expense category)
   description String?
   // Who submitted/uploaded this receipt (from the claim's submitter). Stored on

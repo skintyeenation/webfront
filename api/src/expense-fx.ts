@@ -25,8 +25,18 @@ export function normalizeCurrency(c?: string | null): SupportedCurrency {
   return (SUPPORTED_CURRENCIES as readonly string[]).includes(up) ? (up as SupportedCurrency) : 'CAD';
 }
 
+/** The current CAD rate for a currency (1 for CAD / unknown). */
+export function rateFor(currency?: string | null): number {
+  return FX_TO_CAD[normalizeCurrency(currency)] ?? 1;
+}
+
 /** Convert an amount in `currency` to CAD (rounded to cents). */
 export function toCad(amount: number, currency?: string | null): number {
-  const rate = FX_TO_CAD[normalizeCurrency(currency)] ?? 1;
-  return Math.round((Number(amount) || 0) * rate * 100) / 100;
+  return Math.round((Number(amount) || 0) * rateFor(currency) * 100) / 100;
+}
+
+/** Convert with an EXPLICIT (stored) rate snapshot — for reproducible totals. */
+export function toCadAt(amount: number, fxRate?: number | null): number {
+  const r = typeof fxRate === 'number' && fxRate > 0 ? fxRate : 1;
+  return Math.round((Number(amount) || 0) * r * 100) / 100;
 }

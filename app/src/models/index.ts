@@ -238,14 +238,23 @@ export interface ExpenseLineItem {
   isSummary?: boolean;
 }
 
+// Currency support exposed by the api (GET /expenses/periods.fx) so the UI can
+// convert foreign receipts to CAD in its own decision-making.
+export interface ExpenseFx {
+  base: string;                       // 'CAD'
+  supported: string[];                // ['CAD','USD']
+  toCad: Record<string, number>;      // { CAD: 1, USD: 1.45 }
+}
+
 export interface ExpenseItem {
   id: string;
   claimId: string;
   date?: string | null;
   vendor?: string | null;
-  amount: number;
+  amount: number;                     // in the receipt's OWN currency (not converted)
   taxAmount?: number | null;
-  currency?: string | null; // per-receipt; falls back to the claim currency
+  currency?: string | null;           // per-receipt; falls back to the claim currency
+  fxRate?: number | null;             // CAD rate snapshot captured when currency was set
   tagSlug?: string | null;
   description?: string | null;
   aiExtracted?: boolean;
