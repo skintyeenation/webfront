@@ -141,6 +141,80 @@ powershell -ExecutionPolicy Bypass -File .\setup-docker-wsl.ps1
 
 Use it: `wsl -d Ubuntu -- docker run hello-world`.
 
+## App deployment to domain PCs (`deploy-office-gpo.ps1`)
+
+Deploys a standard app set to domain workstations, **machine-wide (all users of
+the PC)**, via a **Group Policy computer Startup script**. Idempotent +
+self-elevating; run on the DC.
+
+**Two scripts:** `deploy-office-gpo.ps1` is what *you* run on the DC — it stages
+the payload, creates/wires the GPO, and **generates `Install-Apps.ps1`**, the
+actual per-PC installer. `Install-Apps.ps1` is what runs **on each target PC as
+SYSTEM** (from the GPO's startup-script slot, or manually from NETLOGON); it does
+the real Office/Teams/Chrome installs + desktop shortcuts and is fully
+self-contained + idempotent. You normally never edit `Install-Apps.ps1` directly —
+change `deploy-office-gpo.ps1` and re-run it to regenerate the deployed copies.
+
+**Why a startup script and not GPO Software Installation?** Microsoft 365 Apps is
+**Click-to-Run, not an MSI**, so the usual GPO *Software Installation* (MSI-only)
+can't deploy it. The supported pattern is a computer **Startup script** that runs
+the Office Deployment Tool (`setup.exe /configure`) as SYSTEM at boot — a
+machine-wide install before any user logs on.
+
+**What it installs** (only what's missing; each app detected independently):
+
+| App | Mechanism |
+|---|---|
+| Word, Excel, PowerPoint, Outlook | Office Deployment Tool (`setup.exe /configure configuration.xml`) |
+| new Microsoft **Teams** | Teams bootstrapper (`teamsbootstrapper.exe -p`) |
+| **Planner** | *not installable* — lives inside Teams + at `planner.cloud.microsoft` |
+| Google **Chrome** | enterprise MSI (`msiexec /qn`) |
+| Desktop shortcuts | `.lnk` files on the **Public Desktop** for each installed app |
+
+The payload (setup.exe + configuration.xml + `teamsbootstrapper.exe` + Chrome MSI
++ `Install-Apps.ps1`) is staged in `\\<domain>\NETLOGON\OfficeDeploy`. Each PC's
+install log is `C:\Windows\Temp\office-deploy.log`. Office/Teams **stream from the
+Microsoft CDN**, so targets need outbound internet (use `-PreDownload` to cache an
+offline Office source — note that puts more in SYSVOL).
+
+**Targeting — `-TargetComputers` (one or many machines):** the GPO links at the
+**domain root** (so it has scope over every computer, *including* the default
+`CN=Computers` container) and is **security-filtered** so it *applies* to only the
+named machines — `Authenticated Users` is dropped to read-only (still satisfies
+MS16-072 so clients can read the GPO) and Apply is granted to just those computer
+accounts. **No computers are moved.** `-TargetOU` is the alternative for
+whole-OU targeting.
+
+**Forcing without a reboot — `-InvokeNow`:** startup scripts only run at boot, so
+`-InvokeNow` instead triggers `Install-Apps.ps1` on each target *as SYSTEM* via a
+transient scheduled task over **WinRM** (SYSTEM/the computer account can read
+NETLOGON, dodging the Kerberos double-hop). Targets that are offline or have WinRM
+blocked are skipped — they install at next boot anyway. (Note: a locked-down
+Windows 11 firewall that blocks WinRM/SMB/DCOM can't be pushed to remotely; reboot
+the box or run `Install-Apps.ps1` locally on it instead.)
+
+```powershell
+# one machine
+.\deploy-office-gpo.ps1 -TargetComputers XYNTAX-FMS2
+
+# several machines, and force the install now (no reboot)
+.\deploy-office-gpo.ps1 -TargetComputers LT01,LT02,LT03 -InvokeNow
+
+# stage payload + create the GPO unlinked (safe dry run)
+.\deploy-office-gpo.ps1
+
+# whole-OU targeting instead of per-machine
+.\deploy-office-gpo.ps1 -TargetOU 'OU=SkinTyee Computers,DC=STFN,DC=local'
+
+# run the install manually on a target (e.g. firewall blocks remoting), elevated:
+powershell -ExecutionPolicy Bypass -File "\\STFN.local\NETLOGON\OfficeDeploy\Install-Apps.ps1"
+```
+
+**Currently live:** GPO `Deploy M365 Apps`, linked at the domain root,
+security-filtered to **XYNTAX-FMS2** only. Add machines by re-running with more
+`-TargetComputers`; remove one by clearing its Apply permission in the GPO's
+security filtering.
+
 ## Rollback
 - Modules: `Uninstall-Module Microsoft.Graph.* -AllVersions; Uninstall-Module Microsoft.Entra -AllVersions`
 - MSI: delete `C:\Users\stfnadmin\Downloads\AzureADConnect.msi`
@@ -150,3 +224,4 @@ Use it: `wsl -d Ubuntu -- docker run hello-world`.
 - Claude Code: uninstall via whatever mechanism the native installer registered (or just delete `C:\Users\stfnadmin\.local\bin\claude.exe`)
 - Docker (Linux): `wsl --unregister Ubuntu` removes the distro + its Docker CE. The `VirtualMachinePlatform`/WSL features can be left on (harmless) or removed via `Disable-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform`.
 - Docker (Windows containers): `Uninstall-Package docker -ProviderName DockerMsftProvider; Uninstall-Module DockerMsftProvider`
+- App deployment GPO: unlink/remove the GPO — `Remove-GPLink -Name 'Deploy M365 Apps' -Target 'DC=STFN,DC=local'` then `Remove-GPO -Name 'Deploy M365 Apps'`; optionally delete the payload `\\STFN.local\NETLOGON\OfficeDeploy`. (Removing the GPO does not uninstall apps already deployed.)
