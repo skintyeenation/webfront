@@ -242,7 +242,7 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
       meEligible: () => get<any>('/expenses/me/eligible'),
       eligiblePeople: () => get<any[]>('/expenses/eligible-people'),
       tags: (activeOnly?: boolean) => get<any[]>('/expenses/tags', activeOnly ? { active: '1' } : undefined),
-      createTag: (slug: string, label: string) => post<any>('/expenses/tags', { slug, label }),
+      createTag: (slug: string, label: string, glAccount?: string) => post<any>('/expenses/tags', { slug, label, glAccount }),
       updateTag: (slug: string, p: any) => patch<any>(`/expenses/tags/${encodeURIComponent(slug)}`, p),
       deleteTag: async (slug: string) => {
         const res = await fetch(api(`/expenses/tags/${encodeURIComponent(slug)}`), { method: 'DELETE', headers: headers() });

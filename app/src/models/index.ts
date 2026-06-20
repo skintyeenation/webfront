@@ -221,6 +221,9 @@ export interface ExpensePeriod {
 export interface ExpenseTag {
   slug: string;
   label: string;
+  // General Ledger account number this category posts to — the accounting key
+  // finance maps a tagged receipt into Adagio / Sage 300 (ASAP) with.
+  glAccount?: string | null;
   active: boolean;
 }
 

@@ -288,8 +288,8 @@ export interface ApiService {
     eligiblePeople(): Promise<Array<{ personId: string; workerUpn: string; workerName: string; isBandMember: boolean }>>;
     // Tag catalog (editable, like Document Tag Manager).
     tags(activeOnly?: boolean): Promise<ExpenseTag[]>;
-    createTag(slug: string, label: string): Promise<ExpenseTag>;
-    updateTag(slug: string, patch: { label?: string; active?: boolean }): Promise<ExpenseTag>;
+    createTag(slug: string, label: string, glAccount?: string): Promise<ExpenseTag>;
+    updateTag(slug: string, patch: { label?: string; active?: boolean; glAccount?: string | null }): Promise<ExpenseTag>;
     deleteTag(slug: string): Promise<void>;
     // Claims
     myClaims(period?: string): Promise<{ period: ExpensePeriod; current: ExpenseClaim | null; history: ExpenseClaim[] }>;

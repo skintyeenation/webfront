@@ -23,7 +23,7 @@ export default function ExpenseTagManager() {
   const [toast, setToast] = useState<string | null>(null);
   const { confirm, ConfirmHost } = useConfirm();
 
-  const [editing, setEditing] = useState<{ slug: string; label: string; isNew: boolean } | null>(null);
+  const [editing, setEditing] = useState<{ slug: string; label: string; glAccount: string; isNew: boolean } | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
 
@@ -40,8 +40,8 @@ export default function ExpenseTagManager() {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  const openCreate = () => { setEditing({ slug: '', label: '', isNew: true }); setFormError(undefined); };
-  const openEdit = (t: ExpenseTag) => { setEditing({ slug: t.slug, label: t.label, isNew: false }); setFormError(undefined); };
+  const openCreate = () => { setEditing({ slug: '', label: '', glAccount: '', isNew: true }); setFormError(undefined); };
+  const openEdit = (t: ExpenseTag) => { setEditing({ slug: t.slug, label: t.label, glAccount: t.glAccount ?? '', isNew: false }); setFormError(undefined); };
 
   const submit = async () => {
     if (!editing) return;
@@ -49,12 +49,13 @@ export default function ExpenseTagManager() {
     setSaving(true); setFormError(undefined);
     try {
       const api = apiFactory();
+      const gl = editing.glAccount.trim();
       if (editing.isNew) {
         const slug = editing.slug.trim() || slugify(editing.label);
-        await api.expenses.createTag(slug, editing.label.trim());
+        await api.expenses.createTag(slug, editing.label.trim(), gl || undefined);
         setToast('Tag added');
       } else {
-        await api.expenses.updateTag(editing.slug, { label: editing.label.trim() });
+        await api.expenses.updateTag(editing.slug, { label: editing.label.trim(), glAccount: gl || null });
         setToast('Tag updated');
       }
       setEditing(null);
@@ -120,6 +121,11 @@ export default function ExpenseTagManager() {
                       <View style={{ flex: 1 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                           <Text style={{ color: t.active ? theme.colors.text : theme.colors.textDarker, fontSize: 13 }}>{t.label}</Text>
+                          {t.glAccount ? (
+                            <Chip compact icon="book-account" style={{ marginLeft: 8, backgroundColor: theme.colors.secondary }} textStyle={{ color: theme.colors.text, fontSize: 10 }}>
+                              GL {t.glAccount}
+                            </Chip>
+                          ) : null}
                           {!t.active ? (
                             <Chip compact style={{ marginLeft: 8, backgroundColor: 'rgba(255,255,255,0.06)' }} textStyle={{ color: theme.colors.textDarker, fontSize: 10 }}>
                               hidden
@@ -152,6 +158,12 @@ export default function ExpenseTagManager() {
               label="Label" value={editing?.label ?? ''}
               onChangeText={(v) => setEditing((cur) => (cur ? { ...cur, label: v } : cur))}
               mode="outlined" style={{ marginTop: 12 }}
+            />
+            <TextInput
+              label="GL account number" value={editing?.glAccount ?? ''}
+              onChangeText={(v) => setEditing((cur) => (cur ? { ...cur, glAccount: v } : cur))}
+              mode="outlined" autoCapitalize="characters" style={{ marginTop: 8 }}
+              placeholder="e.g. 5010 — the ledger account this category posts to"
             />
             {editing?.isNew ? (
               <TextInput

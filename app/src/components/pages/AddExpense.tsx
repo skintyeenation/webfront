@@ -418,7 +418,7 @@ function ReceiptRow({
           >
             {tags.map((t) => (
               <Menu.Item
-                key={t.slug} title={t.label}
+                key={t.slug} title={t.glAccount ? `${t.label}  ·  GL ${t.glAccount}` : t.label}
                 onPress={() => { setTagMenu(false); onPatch({ tagSlug: t.slug }); onPersist({ tagSlug: t.slug }); }}
               />
             ))}

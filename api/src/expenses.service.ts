@@ -54,14 +54,21 @@ export class ExpensesService implements OnModuleInit {
     });
   }
 
-  async createTag(slug: string, label: string) {
+  async createTag(slug: string, label: string, glAccount?: string) {
     this.requireDb();
-    return this.prisma.expenseTag.create({ data: { slug, label } });
+    return this.prisma.expenseTag.create({ data: { slug, label, glAccount: glAccount || null } });
   }
 
-  async updateTag(slug: string, patch: { label?: string; active?: boolean }) {
+  async updateTag(slug: string, patch: { label?: string; active?: boolean; glAccount?: string | null }) {
     this.requireDb();
-    return this.prisma.expenseTag.update({ where: { slug }, data: patch });
+    return this.prisma.expenseTag.update({
+      where: { slug },
+      data: {
+        label: patch.label,
+        active: patch.active,
+        glAccount: patch.glAccount === undefined ? undefined : (patch.glAccount || null),
+      },
+    });
   }
 
   async deleteTag(slug: string) {

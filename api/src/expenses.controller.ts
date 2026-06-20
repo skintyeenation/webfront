@@ -117,13 +117,13 @@ export class ExpensesController {
   }
 
   @Post('tags') @Roles('admin')
-  createTag(@Body() b: { slug?: string; label?: string }) {
+  createTag(@Body() b: { slug?: string; label?: string; glAccount?: string }) {
     if (!b?.slug || !b?.label) throw new BadRequestException('slug + label required');
-    return this.svc.createTag(b.slug, b.label);
+    return this.svc.createTag(b.slug, b.label, b.glAccount);
   }
 
   @Patch('tags/:slug') @Roles('admin')
-  updateTag(@Param('slug') slug: string, @Body() b: { label?: string; active?: boolean }) {
+  updateTag(@Param('slug') slug: string, @Body() b: { label?: string; active?: boolean; glAccount?: string | null }) {
     return this.svc.updateTag(slug, b ?? {});
   }
 

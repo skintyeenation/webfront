@@ -123,28 +123,30 @@ export class ExpenseReportsService {
       where: { payPeriodId }, include: { items: { orderBy: [{ date: 'asc' }] } }, orderBy: [{ submitterName: 'asc' }],
     });
     const tagLabels = await this.tagLabelMap();
-    const header = ['submitterUpn', 'submitterName', 'claimStatus', 'currency', 'date', 'vendor', 'tag', 'amount', 'description', 'submittedAt', 'approvedBy', 'approvedAt', 'rejectedReason'];
+    const tagText = (slug?: string | null) => tagLabels.get(slug ?? '')?.label ?? slug ?? '';
+    const glOf = (slug?: string | null) => tagLabels.get(slug ?? '')?.gl ?? '';
+    const header = ['submitterUpn', 'submitterName', 'claimStatus', 'currency', 'date', 'vendor', 'tag', 'glAccount', 'amount', 'description', 'submittedAt', 'approvedBy', 'approvedAt', 'rejectedReason'];
     const esc = (v: any): string => { if (v == null) return ''; const s = String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
     const lines = [header.join(',')];
     for (const c of claims) {
       const base = [c.submitterUpn, c.submitterName, c.status, c.currency];
       const tail = [c.submittedAt?.toISOString() ?? '', c.approvedBy ?? '', c.approvedAt?.toISOString() ?? '', c.rejectedReason ?? ''];
-      if (c.items.length === 0) { lines.push([...base, '', '', '', '', '', ...tail].map(esc).join(',')); continue; }
+      if (c.items.length === 0) { lines.push([...base, '', '', '', '', '', '', ...tail].map(esc).join(',')); continue; }
       for (const it of c.items) {
-        lines.push([...base, it.date ?? '', it.vendor ?? '', tagLabels.get(it.tagSlug ?? '') ?? it.tagSlug ?? '', it.amount, it.description ?? '', ...tail].map(esc).join(','));
+        lines.push([...base, it.date ?? '', it.vendor ?? '', tagText(it.tagSlug), glOf(it.tagSlug), it.amount, it.description ?? '', ...tail].map(esc).join(','));
       }
     }
     return { filename: `expenses-${payPeriodId}.csv`, csv: lines.join('\n') + '\n' };
   }
 
-  private async tagLabelMap(): Promise<Map<string, string>> {
+  private async tagLabelMap(): Promise<Map<string, { label: string; gl: string | null }>> {
     if (!this.prisma.isAvailable) return new Map();
     const tags = await this.prisma.expenseTag.findMany();
-    return new Map(tags.map((t) => [t.slug, t.label]));
+    return new Map(tags.map((t) => [t.slug, { label: t.label, gl: (t as any).glAccount ?? null }]));
   }
 
   // ---- PDF rendering (mirrors timekeeping-reports.service.ts) -------------
-  private buildPeriodPdf(period: ExpensePeriod, claims: any[], tagLabels: Map<string, string>): Buffer {
+  private buildPeriodPdf(period: ExpensePeriod, claims: any[], tagLabels: Map<string, { label: string; gl: string | null }>): Buffer {
     const pages: Page[] = [];
     const totalAmount = claims.reduce((s, c) => s + (c.totalAmount ?? 0), 0);
     const currency = claims[0]?.currency ?? 'CAD';
@@ -154,7 +156,7 @@ export class ExpenseReportsService {
   }
 
   // Render a claim's page(s): letterhead, header, items table, notes, signatures.
-  private claimPages(pages: Page[], period: ExpensePeriod, claim: any, tagLabels: Map<string, string>, cover: boolean) {
+  private claimPages(pages: Page[], period: ExpensePeriod, claim: any, tagLabels: Map<string, { label: string; gl: string | null }>, cover: boolean) {
     if (cover) coverPage(pages, period, { claimCount: 1, totalAmount: claim.totalAmount ?? 0, currency: claim.currency ?? 'CAD', single: claim });
     const { PAGE_W, PAGE_MARGIN } = PDF_CONST;
     const TAG_X = PAGE_MARGIN + 70, VENDOR_X = PAGE_MARGIN + 190, AMT_X = PAGE_MARGIN + 420;
@@ -163,7 +165,7 @@ export class ExpenseReportsService {
 
     const tableHeader = (page: Page, y: number): number => {
       page.lines.push({ size: 9, x: PAGE_MARGIN, y, text: 'DATE' });
-      page.lines.push({ size: 9, x: TAG_X, y, text: 'TAG' });
+      page.lines.push({ size: 9, x: TAG_X, y, text: 'GL · TAG' });
       page.lines.push({ size: 9, x: VENDOR_X, y, text: 'VENDOR' });
       page.lines.push({ size: 9, x: AMT_X, y, text: 'AMOUNT' });
       return y - 14;
@@ -178,8 +180,10 @@ export class ExpenseReportsService {
         const vendorLines = wrapText(String(it.vendor ?? '-'), 36);
         const rowH = Math.max(1, vendorLines.length) * LINE_H;
         if (y - rowH < ENTRY_FLOOR) { pages.push(page); ({ page, y } = newClaimPage(period, `${claim.submitterName} (cont.)`)); y = tableHeader(page, y); }
+        const meta = tagLabels.get(it.tagSlug ?? '');
+        const tagCell = `${meta?.gl ? meta.gl + ' ' : ''}${meta?.label ?? it.tagSlug ?? '-'}`.slice(0, 20);
         page.lines.push({ size: 10, x: PAGE_MARGIN, y, text: it.date ?? '-' });
-        page.lines.push({ size: 10, x: TAG_X, y, text: (tagLabels.get(it.tagSlug ?? '') ?? it.tagSlug ?? '-').slice(0, 18) });
+        page.lines.push({ size: 10, x: TAG_X, y, text: tagCell });
         page.lines.push({ size: 10, x: AMT_X, y, text: money(it.amount ?? 0, cur) });
         vendorLines.forEach((vl, i) => page.lines.push({ size: 10, x: VENDOR_X, y: y - i * LINE_H, text: vl }));
         y -= rowH;

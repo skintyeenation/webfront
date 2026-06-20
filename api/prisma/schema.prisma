@@ -260,6 +260,9 @@ model ExpenseItem {
 model ExpenseTag {
   slug      String   @id
   label     String
+  // General Ledger account number this category posts to — the accounting
+  // key finance uses to map a tagged receipt into Adagio / Sage 300 (ASAP).
+  glAccount String?
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
 }
