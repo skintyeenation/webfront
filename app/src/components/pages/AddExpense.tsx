@@ -483,13 +483,11 @@ function ReceiptRow({
             onEndEditing={() => onPersist({ taxAmount: taxText === '' ? null : (Number(taxText) || 0) })}
             style={{ flex: 1, marginRight: 6 }}
           />
+          {/* Currency is fixed to CAD for now — multi-currency entry is
+              disabled until we support FX. The field shows the default. */}
           <TextInput
-            dense mode="outlined" label="Currency" value={item.currency ?? ''}
-            editable={!locked}
-            autoCapitalize="characters" maxLength={3}
-            placeholder={currency}
-            onChangeText={(v) => onPatch({ currency: v.toUpperCase() })}
-            onEndEditing={() => onPersist({ currency: (item.currency || '').toUpperCase() || null })}
+            dense mode="outlined" label="Currency" value={item.currency || 'CAD'}
+            editable={false}
             style={{ flex: 1 }}
           />
         </View>
@@ -618,7 +616,10 @@ function ReceiptRow({
 function DateField({ value, disabled, onChange, style }: { value: string; disabled?: boolean; onChange: (d: string) => void; style?: any }) {
   if (Platform.OS === 'web') {
     return (
-      <View style={style}>
+      // minWidth:0 lets this flex child shrink below the date input's intrinsic
+      // min-content width — without it the input overflowed and overlapped the
+      // Tag on narrow screens.
+      <View style={[style, { minWidth: 0 }]}>
         <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginBottom: 2 }}>Date</Text>
         {React.createElement('input', {
           type: 'date',
@@ -630,10 +631,17 @@ function DateField({ value, disabled, onChange, style }: { value: string; disabl
             color: theme.colors.text,
             border: '1px solid rgba(255,255,255,0.29)',
             borderRadius: 4,
-            padding: '9px',
+            // Fixed height to match the compact Tag button beside it; horizontal
+            // padding only since height centers the value.
+            height: 36,
+            paddingTop: 0,
+            paddingBottom: 0,
+            paddingLeft: 9,
+            paddingRight: 9,
             fontSize: 14,
             fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
             width: '100%',
+            minWidth: 0,
             boxSizing: 'border-box',
           },
           onChange: (e: any) => onChange(e.target.value),
