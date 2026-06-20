@@ -823,6 +823,11 @@ export class AdminController implements OnApplicationBootstrap {
       await this.graph.rotateUserPassword(id, newPassword);
     } catch (e: any) {
       const msg = e?.message ?? String(e);
+      // Synced (on-prem mastered) account — cloud rotation doesn't write back.
+      // Refused up front in GraphFeedService; relay the SSPR/on-prem guidance.
+      if (msg.includes('SYNCED_USER')) {
+        throw new ForbiddenException(msg.replace(/^.*?SYNCED_USER:\s*/, ''));
+      }
       // Graph allows User.ReadWrite.All to *create* users, but resetting an
       // existing user's password additionally requires the app's service
       // principal to hold a directory role (User Administrator for members;

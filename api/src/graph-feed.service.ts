@@ -917,7 +917,28 @@ export class GraphFeedService {
   // Authentication Administrator" (also admins) — assigned in
   // scripts/setup-app-graph.sh. Without it Graph returns 403
   // Authorization_RequestDenied.
+  //
+  // IMPORTANT — synced users: `passwordProfile` writes ONLY the cloud
+  // password. For accounts mastered in on-prem AD (onPremisesSyncEnabled,
+  // e.g. STFN.local) Password Hash Sync overwrites it on the next cycle, so
+  // it never reaches the domain — and the forceChange flag becomes a wall the
+  // user can't clear in the cloud (see docs/365/password-reset-sspr.md). The
+  // correct writeback path (admin SSPR reset via /authentication/methods/.../
+  // resetPassword) needs an MFA-fresh DELEGATED token, which our app-only
+  // credential can't mint. So we REFUSE synced users here and point them at
+  // SSPR self-service (now enabled) or an on-prem reset.
   async rotateUserPassword(userId: string, newPassword: string): Promise<void> {
+    const who = await this.graph<{ onPremisesSyncEnabled?: boolean }>(
+      `/users/${userId}?$select=onPremisesSyncEnabled`,
+    );
+    if (who.onPremisesSyncEnabled) {
+      throw new Error(
+        'SYNCED_USER: this account is synced from on-premises Active Directory, so a ' +
+        'cloud password rotation does not reach the domain (Password Hash Sync overwrites ' +
+        'it). The user can self-reset at https://aka.ms/sspr (Entra ID P1 + writeback are ' +
+        'enabled), or an admin resets it in on-prem AD (STFN.local).',
+      );
+    }
     const tok = await this.getToken();
     const res = await fetch(`https://graph.microsoft.com/v1.0/users/${userId}`, {
       method: 'PATCH',
