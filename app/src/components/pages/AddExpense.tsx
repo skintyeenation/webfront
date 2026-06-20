@@ -489,7 +489,7 @@ function ReceiptRow({
                 <Text style={{ color: theme.colors.text, fontSize: 14, flex: 1 }} numberOfLines={1}>
                   {item.vendor || 'Receipt'}{item.aiExtracted ? '  ✨' : ''}
                 </Text>
-                <Text style={{ color: theme.colors.text, fontSize: 14, fontWeight: '600', marginLeft: 8, marginRight: 4 }}>
+                <Text style={{ color: theme.colors.text, fontSize: 14, fontWeight: '600', marginLeft: 8, marginRight: 14 }}>
                   {money(item.amount, cur)}
                 </Text>
               </>
