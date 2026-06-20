@@ -157,7 +157,7 @@ export default function ExpenseTagManager() {
             <TextInput
               label="Label" value={editing?.label ?? ''}
               onChangeText={(v) => setEditing((cur) => (cur ? { ...cur, label: v } : cur))}
-              mode="outlined" style={{ marginTop: 12 }}
+              mode="outlined" autoCapitalize="none" style={{ marginTop: 12 }}
             />
             <TextInput
               label="GL account number" value={editing?.glAccount ?? ''}

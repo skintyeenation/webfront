@@ -424,7 +424,21 @@ function ReceiptRow({
     if (dot !== -1) c = c.slice(0, dot + 1) + c.slice(dot + 1).replace(/\./g, '');
     return c;
   };
-  const onAmountChange = (v: string) => { const c = cleanDecimal(v); setAmountText(c); onPatch({ amount: Number(c) || 0 }); };
+  // Subtotal = sum of the real (non-summary) line items.
+  const lineSubtotal = () => Math.round(lineItems.filter((l) => !isSummaryLine(l)).reduce((s, l) => s + (Number(l.amount) || 0), 0) * 100) / 100;
+  const onAmountChange = (v: string) => {
+    const c = cleanDecimal(v);
+    setAmountText(c);
+    const amt = Number(c) || 0;
+    const patch: Partial<ExpenseItem> = { amount: amt };
+    // When itemised, editing the total recalculates tax = total − subtotal.
+    if (hasLines) {
+      const tax = Math.max(0, Math.round((amt - lineSubtotal()) * 100) / 100);
+      setTaxText(String(tax));
+      patch.taxAmount = tax;
+    }
+    onPatch(patch);
+  };
   const onTaxChange = (v: string) => { const c = cleanDecimal(v); setTaxText(c); onPatch({ taxAmount: c === '' ? null : (Number(c) || 0) }); };
 
   // The claimed amount = sum of INCLUDED line items (real, non-summary, non-
@@ -507,7 +521,16 @@ function ReceiptRow({
             keyboardType="decimal-pad"
             left={<TextInput.Affix text={currencySymbol(cur)} />}
             onChangeText={onAmountChange}
-            onEndEditing={() => onPersist({ amount: Number(amountText) || 0 })}
+            onEndEditing={() => {
+              const amt = Number(amountText) || 0;
+              // Persist the recalculated tax alongside the amount when itemised.
+              if (hasLines) {
+                const tax = Math.max(0, Math.round((amt - lineSubtotal()) * 100) / 100);
+                onPersist({ amount: amt, taxAmount: tax });
+              } else {
+                onPersist({ amount: amt });
+              }
+            }}
             style={{ flex: 1 }}
           />
         </View>
