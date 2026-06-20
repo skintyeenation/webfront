@@ -687,10 +687,10 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
           <View style={{ marginBottom: 16 }}>
             {me && isAdmin ? (
               <Button
-                mode="outlined" icon="pencil"
-                textColor={theme.colors.primary}
+                mode="contained" icon="pencil"
+                buttonColor={theme.colors.primary} textColor="#000"
                 onPress={() => (navigation as any)?.navigate?.('Admin', { screen: 'memberEdit', params: { id: me._id } })}
-                style={{ borderColor: theme.colors.primary, marginBottom: 8 }}
+                style={{ marginBottom: 8 }}
               >
                 Edit Account
               </Button>
