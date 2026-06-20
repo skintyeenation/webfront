@@ -426,22 +426,37 @@ function ReceiptRow({
   const onAmountChange = (v: string) => { const c = cleanDecimal(v); setAmountText(c); onPatch({ amount: Number(c) || 0 }); };
   const onTaxChange = (v: string) => { const c = cleanDecimal(v); setTaxText(c); onPatch({ taxAmount: c === '' ? null : (Number(c) || 0) }); };
 
-  // When the receipt is itemised, the claimed amount = sum of INCLUDED, non-
-  // summary lines + tax. Summary rows (subtotal/total/tax/…) NEVER count toward
-  // the total. Toggling a line's exclusion recomputes + persists the amount.
+  // The claimed amount = sum of INCLUDED line items (real, non-summary, non-
+  // subtotal) + tax (from the Tax form field). Summary rows never count.
   const recomputeFromLines = (lines: NonNullable<ExpenseItem['lineItems']>): number => {
     const sub = lines.filter((l) => !l.excluded && !isSummaryLine(l)).reduce((s, l) => s + (Number(l.amount) || 0), 0);
     return Math.round((sub + (Number(item.taxAmount) || 0)) * 100) / 100;
   };
-  const toggleLineExcluded = (idx: number) => {
+  // Apply a line edit (include/exclude and/or price), recompute the claimed
+  // total from the included items + tax, and persist.
+  const applyLineEdit = (idx: number, patch: { excluded?: boolean; amount?: number | null }) => {
     if (locked) return;
-    if (isSummaryLine(lineItems[idx])) return; // summary rows aren't toggleable
-    const lines = lineItems.map((l, i) => (i === idx ? { ...l, excluded: !l.excluded } : l));
+    const lines = lineItems.map((l, i) => (i === idx ? { ...l, ...patch } : l));
     const newAmount = recomputeFromLines(lines);
     setAmountText(String(newAmount));
     onPatch({ lineItems: lines, amount: newAmount });
     onPersist({ lineItems: lines, amount: newAmount });
   };
+
+  // Line-item editor modal: which line index is open (null = closed).
+  const [editorIdx, setEditorIdx] = useState<number | null>(null);
+
+  // Categorise: subtotal line(s) are shown + price-editable; tax/total summary
+  // rows from the AI are HIDDEN (we render tax + total from the form fields, so
+  // they don't duplicate). Real items are tappable to include/exclude/adjust.
+  const isSubtotal = (li?: { description?: string } | null) => !!li && /sub[\s-]*total/i.test(li.description ?? '');
+  const isHiddenSummary = (li?: { description?: string; isSummary?: boolean } | null) => isSummaryLine(li) && !isSubtotal(li);
+
+  // Validation: the line items (as read) should add up to the subtotal line.
+  const subtotalLine = lineItems.find((l) => isSubtotal(l));
+  const itemsSum = Math.round(lineItems.filter((l) => !isSummaryLine(l)).reduce((s, l) => s + (Number(l.amount) || 0), 0) * 100) / 100;
+  const subtotalMismatch = subtotalLine && subtotalLine.amount != null
+    && Math.abs(itemsSum - (Number(subtotalLine.amount) || 0)) > 0.01;
 
   return (
     <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 8 }}>
@@ -561,38 +576,26 @@ function ReceiptRow({
           style={{ marginTop: 6 }}
         />
 
-        {/* AI-itemised line items (when the photo was legible). Tap a line to
-            exclude it (struck through + dropped from the claimed amount). */}
+        {/* AI-itemised line items. Tap a line to include/exclude or adjust its
+            price. Tax + total come from the form fields above (not duplicated). */}
         {hasLines ? (
           <View style={{ marginTop: 8, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', paddingTop: 6 }}>
             <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginBottom: 4 }}>
-              DETAILS · ✨ {lineItems.length} line item{lineItems.length === 1 ? '' : 's'}
-              {!locked ? '  ·  tap to exclude' : ''}
+              DETAILS · ✨ {lineItems.filter((l) => !isHiddenSummary(l)).length} line{lineItems.filter((l) => !isHiddenSummary(l)).length === 1 ? '' : 's'}
+              {!locked ? '  ·  tap to edit' : ''}
             </Text>
             {lineItems.map((li, i) => {
+              if (isHiddenSummary(li)) return null; // tax/total shown from form fields below
               const ex = !!li.excluded;
-              // Summary rows (subtotal/total/tax) render read-only — no toggle,
-              // muted, slightly set apart — like the tax row.
-              if (isSummaryLine(li)) {
-                return (
-                  <View key={i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 3, marginTop: 2 }}>
-                    <Text style={{ color: theme.colors.textDarker, fontSize: 13, flex: 1, fontWeight: '600' }} numberOfLines={1}>
-                      {li.description}
-                    </Text>
-                    {li.amount != null ? (
-                      <Text style={{ color: theme.colors.textDarker, fontSize: 13, fontWeight: '600' }}>{money(li.amount, cur)}</Text>
-                    ) : null}
-                  </View>
-                );
-              }
+              const sub = isSubtotal(li);
               return (
                 <TouchableOpacity
                   key={i}
-                  onPress={() => toggleLineExcluded(i)}
+                  onPress={() => setEditorIdx(i)}
                   disabled={locked}
-                  style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 3, opacity: ex ? 0.5 : 1 }}
+                  style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 3, marginTop: sub ? 2 : 0, opacity: ex ? 0.5 : 1 }}
                 >
-                  {!locked ? (
+                  {!locked && !sub ? (
                     <MaterialCommunityIcons
                       name={ex ? 'checkbox-blank-circle-outline' : 'check-circle'}
                       size={18}
@@ -601,29 +604,133 @@ function ReceiptRow({
                     />
                   ) : null}
                   <Text
-                    style={{ color: theme.colors.text, fontSize: 14, flex: 1, textDecorationLine: ex ? 'line-through' : 'none' }}
+                    style={{ color: sub ? theme.colors.textDarker : theme.colors.text, fontSize: sub ? 13 : 14, fontWeight: sub ? '600' : '400', flex: 1, textDecorationLine: ex ? 'line-through' : 'none' }}
                     numberOfLines={2}
                   >
-                    {li.qty && li.qty > 1 ? `${li.qty}× ` : ''}{li.description}
+                    {sub ? 'Subtotal' : `${li.qty && li.qty > 1 ? `${li.qty}× ` : ''}${li.description}`}
                   </Text>
                   {li.amount != null ? (
-                    <Text style={{ color: theme.colors.textDarker, fontSize: 14, marginLeft: 8, textDecorationLine: ex ? 'line-through' : 'none' }}>
+                    <Text style={{ color: theme.colors.textDarker, fontSize: sub ? 13 : 14, fontWeight: sub ? '600' : '400', marginLeft: 8, textDecorationLine: ex ? 'line-through' : 'none' }}>
                       {money(li.amount, cur)}
                     </Text>
+                  ) : null}
+                  {!locked ? (
+                    <MaterialCommunityIcons name="pencil" size={13} color={theme.colors.textDarker} style={{ marginLeft: 6 }} />
                   ) : null}
                 </TouchableOpacity>
               );
             })}
-            {item.taxAmount != null ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 2, marginTop: 2 }}>
-                <Text style={{ color: theme.colors.textDarker, fontSize: 13, flex: 1 }}>Tax</Text>
-                <Text style={{ color: theme.colors.textDarker, fontSize: 13 }}>{money(item.taxAmount, cur)}</Text>
-              </View>
+
+            {/* Validation: line items should reconcile with the printed subtotal. */}
+            {subtotalMismatch ? (
+              <HelperText type="error" visible style={{ marginLeft: -8, marginTop: 2 }}>
+                Line items add up to {money(itemsSum, cur)} but the subtotal reads {money(Number(subtotalLine!.amount) || 0, cur)}. Adjust a line or the subtotal.
+              </HelperText>
             ) : null}
+
+            {/* Tax + Total from the form fields (single source of truth). */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 2, marginTop: 4, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)', paddingTop: 4 }}>
+              <Text style={{ color: theme.colors.textDarker, fontSize: 13, flex: 1 }}>Tax</Text>
+              <Text style={{ color: theme.colors.textDarker, fontSize: 13 }}>{money(item.taxAmount ?? 0, cur)}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 2 }}>
+              <Text style={{ color: theme.colors.text, fontSize: 14, flex: 1, fontWeight: '700' }}>Total</Text>
+              <Text style={{ color: theme.colors.text, fontSize: 14, fontWeight: '700' }}>{money(item.amount, cur)}</Text>
+            </View>
           </View>
+        ) : null}
+
+        {/* Line-item editor — include/exclude + adjust price. */}
+        {editorIdx != null && lineItems[editorIdx] ? (
+          <LineItemEditor
+            line={lineItems[editorIdx]}
+            isSubtotal={isSubtotal(lineItems[editorIdx])}
+            currency={cur}
+            onDismiss={() => setEditorIdx(null)}
+            onSave={(patch) => { applyLineEdit(editorIdx, patch); setEditorIdx(null); }}
+          />
         ) : null}
       </Card.Content>
     </Card>
+  );
+}
+
+// ---- Line-item editor modal — include/exclude + adjust price ---------------
+function LineItemEditor({
+  line, isSubtotal, currency, onDismiss, onSave,
+}: {
+  line: NonNullable<ExpenseItem['lineItems']>[number];
+  isSubtotal: boolean;
+  currency: string;
+  onDismiss: () => void;
+  onSave: (patch: { excluded?: boolean; amount?: number | null }) => void;
+}) {
+  const [excluded, setExcluded] = useState(!!line.excluded);
+  const [priceText, setPriceText] = useState(line.amount != null ? String(line.amount) : '');
+  const onPriceChange = (v: string) => {
+    let c = v.replace(/[^0-9.]/g, '');
+    const dot = c.indexOf('.');
+    if (dot !== -1) c = c.slice(0, dot + 1) + c.slice(dot + 1).replace(/\./g, '');
+    setPriceText(c);
+  };
+  return (
+    <Portal>
+      <Modal
+        visible
+        onDismiss={onDismiss}
+        contentContainerStyle={{ backgroundColor: theme.colors.darkDefault, marginHorizontal: 20, borderRadius: 8, alignSelf: 'center', width: '90%', maxWidth: 420, padding: 16 }}
+      >
+        <Text style={{ color: theme.colors.text, fontSize: 15, fontWeight: '700', marginBottom: 2 }} numberOfLines={2}>
+          {isSubtotal ? 'Subtotal' : (line.description || 'Line item')}
+        </Text>
+        {line.qty && line.qty > 1 ? (
+          <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Qty {line.qty}</Text>
+        ) : null}
+
+        {/* Include / Exclude — not for the subtotal row. */}
+        {!isSubtotal ? (
+          <View style={{ flexDirection: 'row', marginTop: 12 }}>
+            <Button
+              mode={excluded ? 'outlined' : 'contained'}
+              icon={excluded ? 'check-circle-outline' : 'check-circle'}
+              buttonColor={excluded ? undefined : theme.colors.success} textColor={excluded ? theme.colors.text : '#000'}
+              onPress={() => setExcluded(false)}
+              style={{ flex: 1, marginRight: 6, borderColor: theme.colors.secondary }}
+            >
+              Include
+            </Button>
+            <Button
+              mode={excluded ? 'contained' : 'outlined'}
+              icon={excluded ? 'close-circle' : 'close-circle-outline'}
+              buttonColor={excluded ? theme.colors.error : undefined} textColor={excluded ? '#fff' : theme.colors.text}
+              onPress={() => setExcluded(true)}
+              style={{ flex: 1, borderColor: theme.colors.secondary }}
+            >
+              Exclude
+            </Button>
+          </View>
+        ) : null}
+
+        {/* Adjust price */}
+        <TextInput
+          dense mode="outlined" label="Price" value={priceText}
+          keyboardType="decimal-pad"
+          left={<TextInput.Affix text={currencySymbol(currency)} />}
+          onChangeText={onPriceChange}
+          style={{ marginTop: 12 }}
+        />
+
+        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 14 }}>
+          <Button mode="text" textColor={theme.colors.textDarker} onPress={onDismiss}>Cancel</Button>
+          <Button
+            mode="contained" buttonColor={theme.colors.primary} textColor="#fff"
+            onPress={() => onSave({ excluded: isSubtotal ? undefined : excluded, amount: priceText === '' ? null : (Number(priceText) || 0) })}
+          >
+            Save
+          </Button>
+        </View>
+      </Modal>
+    </Portal>
   );
 }
 

@@ -619,14 +619,19 @@ function ClaimDetailModal({
                 {it.lineItems && it.lineItems.length > 0 ? (
                   <View style={{ marginTop: 4, paddingLeft: 10 }}>
                     {it.lineItems.map((li, i) => {
+                      // Hide AI tax/total summary rows — tax + total come from the
+                      // item fields below (no duplication). Keep subtotal + items.
+                      const isSub = /sub[\s-]*total/i.test(li.description ?? '');
+                      const isHiddenSummary = !isSub && /^\s*(total|balance(\s*due)?|amount\s*due|change|tax|gst|hst|pst|qst|tip|gratuity|rounding|cash|visa|mastercard|debit|credit|payment|due)\b/i.test(li.description ?? '');
+                      if (isHiddenSummary) return null;
                       const ex = !!li.excluded;
                       return (
                         <View key={i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 1, opacity: ex ? 0.5 : 1 }}>
-                          <Text style={{ color: theme.colors.textDarker, fontSize: 11, flex: 1, textDecorationLine: ex ? 'line-through' : 'none' }} numberOfLines={1}>
-                            · {li.qty && li.qty > 1 ? `${li.qty}× ` : ''}{li.description}{ex ? ' (excluded)' : ''}
+                          <Text style={{ color: theme.colors.textDarker, fontSize: 11, flex: 1, fontWeight: isSub ? '600' : '400', textDecorationLine: ex ? 'line-through' : 'none' }} numberOfLines={1}>
+                            · {isSub ? 'Subtotal' : `${li.qty && li.qty > 1 ? `${li.qty}× ` : ''}${li.description}`}{ex ? ' (excluded)' : ''}
                           </Text>
                           {li.amount != null ? (
-                            <Text style={{ color: theme.colors.textDarker, fontSize: 11, textDecorationLine: ex ? 'line-through' : 'none' }}>{money(li.amount, it.currency || claim.currency)}</Text>
+                            <Text style={{ color: theme.colors.textDarker, fontSize: 11, fontWeight: isSub ? '600' : '400', textDecorationLine: ex ? 'line-through' : 'none' }}>{money(li.amount, it.currency || claim.currency)}</Text>
                           ) : null}
                         </View>
                       );
