@@ -77,13 +77,13 @@ export default function EditMember({ route, navigation }: any) {
   // Rotate-password state — kept entirely separate from the main edit
   // save. `rotatedPassword` is the new password the admin needs to
   // copy / share with the user; clears when they navigate away.
-  const [rotating, setRotating] = useState(false);
-  const [rotatedPassword, setRotatedPassword] = useState<string | null>(null);
   const [rotateError, setRotateError] = useState<string | undefined>();
-  // Admin access actions — force a self-service reset (revoke + email SSPR
-  // link) and lock/unlock the account.
+  // Admin access actions — force a self-service reset (revoke sessions) and
+  // lock/unlock. `forcedInfo` holds the relay instructions to show the admin
+  // after a force-reset (the user can't read their own work mailbox).
   const [forcing, setForcing] = useState(false);
   const [blocking, setBlocking] = useState(false);
+  const [forcedInfo, setForcedInfo] = useState<string | null>(null);
   const locked = member?.enabled === false;
   const [toast, setToast] = useState<string | null>(null);
   const { confirm, ConfirmHost } = useConfirm();
@@ -498,89 +498,38 @@ export default function EditMember({ route, navigation }: any) {
             below. Only meaningful when the member has a real Entra id
             (seeded members do; old in-memory ones don't). */}
         {memberUpn ? (
-          <Card style={{ marginTop: 4, marginBottom: 14, backgroundColor: theme.colors.darkDefault, borderLeftWidth: 3, borderLeftColor: rotatedPassword ? theme.colors.success : theme.colors.accent }}>
+          <Card style={{ marginTop: 4, marginBottom: 14, backgroundColor: theme.colors.darkDefault, borderLeftWidth: 3, borderLeftColor: theme.colors.accent }}>
             <Card.Content>
-              <Text style={{ color: theme.colors.text, fontSize: 14, fontWeight: '600' }}>Password</Text>
-              {rotatedPassword ? (
-                <>
-                  <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginTop: 10 }}>
-                    NEW TEMPORARY PASSWORD
-                  </Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.04)', padding: 10, borderRadius: 4, marginTop: 4 }}>
-                    <Text style={{ color: theme.colors.text, fontSize: 16, fontFamily: 'monospace', flex: 1 }}>
-                      {rotatedPassword}
-                    </Text>
-                    <IconButton icon="content-copy" size={18} iconColor={theme.colors.textDarker} onPress={async () => {
-                      if (typeof navigator !== 'undefined' && (navigator as any).clipboard) {
-                        try { await (navigator as any).clipboard.writeText(rotatedPassword); setToast('Password copied'); return; } catch { /* fall through */ }
-                      }
-                      setToast(rotatedPassword);
-                    }} />
-                  </View>
-                  <HelperText type="info" visible style={{ marginLeft: -8 }}>
-                    Share this with {name} now — it isn't stored and won't appear again. They'll be required to change it on next sign-in.
-                  </HelperText>
-                </>
-              ) : (
-                <HelperText type="info" visible style={{ marginLeft: -8, marginTop: 4 }}>
-                  Use Rotate when the user forgot their password or you want to force a fresh one. Separate from the Save button below.
-                </HelperText>
-              )}
-              {rotateError ? <HelperText type="error" visible>{rotateError}</HelperText> : null}
-              <View style={{ flexDirection: 'row', marginTop: 6 }}>
-                <Button
-                  mode="outlined" icon="lock-reset"
-                  textColor={theme.colors.accent}
-                  loading={rotating}
-                  disabled={rotating}
-                  onPress={() => {
-                    confirm({
-                      title: 'Rotate password?',
-                      message: `Generates a new one-time password for ${name} and writes it to Entra. They'll be required to change it on next sign-in.`,
-                      confirmLabel: 'Rotate',
-                      destructive: true,
-                      onConfirm: async () => {
-                        setRotating(true);
-                        setRotateError(undefined);
-                        try {
-                          const r = await apiFactory().admin.rotatePassword(member!._id);
-                          setRotatedPassword(r.password);
-                        } catch (e: any) {
-                          setRotateError(e?.message ?? String(e));
-                        } finally {
-                          setRotating(false);
-                        }
-                      },
-                    });
-                  }}
-                  style={{ alignSelf: 'flex-start', borderColor: theme.colors.accent }}
-                >
-                  {rotatedPassword ? 'Rotate again' : 'Rotate password'}
-                </Button>
-              </View>
-
-              <Divider style={{ marginVertical: 12, backgroundColor: '#2A2A2A' }} />
-              <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginBottom: 2 }}>
-                ACCESS
-              </Text>
-              <HelperText type="info" visible style={{ marginLeft: -8, marginBottom: 4 }}>
-                For synced accounts, use these instead of Rotate: force the user through
-                self-service reset (aka.ms/sspr), or block their sign-in.
+              <Text style={{ color: theme.colors.text, fontSize: 14, fontWeight: '600' }}>Password & access</Text>
+              <HelperText type="info" visible style={{ marginLeft: -8, marginTop: 2, marginBottom: 8 }}>
+                These accounts sync from on-prem AD, so you can't set a password from the app.
+                {'\n'}• <Text style={{ color: theme.colors.text }}>Force password reset</Text> — signs {name} out, then they reset themselves at aka.ms/sspr.
+                {'\n'}• <Text style={{ color: theme.colors.text }}>Lock / Unlock</Text> — blocks or restores their sign-in.
               </HelperText>
+              {rotateError ? <HelperText type="error" visible>{rotateError}</HelperText> : null}
+              {forcedInfo ? (
+                <View style={{ backgroundColor: 'rgba(0,184,236,0.08)', borderRadius: 6, padding: 10, marginBottom: 8 }}>
+                  <Text style={{ color: theme.colors.text, fontSize: 13, lineHeight: 19 }}>{forcedInfo}</Text>
+                </View>
+              ) : null}
               <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
                 <Button
-                  mode="outlined" icon="email-lock"
+                  mode="outlined" icon="lock-reset"
                   textColor={theme.colors.primary}
                   loading={forcing} disabled={forcing || blocking}
                   onPress={() => confirm({
                     title: 'Force a password reset?',
-                    message: `${name} will be signed out everywhere and emailed a self-service reset link (aka.ms/sspr).`,
+                    message: `${name} will be signed out everywhere. They then reset their own password at aka.ms/sspr using their registered phone or personal email.`,
                     confirmLabel: 'Force reset',
                     onConfirm: async () => {
-                      setForcing(true); setRotateError(undefined);
+                      setForcing(true); setRotateError(undefined); setForcedInfo(null);
                       try {
                         const r = await apiFactory().directory.forcePasswordReset(member!._id);
-                        setToast(r.emailed ? `Reset link emailed to ${r.emailedTo}` : 'Signed out — no email on file to send the link');
+                        setForcedInfo(
+                          `${name} has been signed out everywhere.\n\n` +
+                          `Tell them to go to aka.ms/sspr and verify with their registered phone or personal email — NOT their @skintyee.ca inbox (they're locked out of it).` +
+                          (r.emailed ? `\n\nA reminder was also emailed to ${r.emailedTo}.` : ``),
+                        );
                       } catch (e: any) { setRotateError(e?.message ?? String(e)); }
                       finally { setForcing(false); }
                     },

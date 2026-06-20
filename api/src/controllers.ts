@@ -397,17 +397,22 @@ export class DirectoryController {
     } catch (e: any) {
       throw new ForbiddenException(`Couldn't start the reset (revoke sessions failed): ${e?.message ?? e}`);
     }
+    // Only email a NON-work address. The user is locked out of their own
+    // @skintyee.ca mailbox, so a reset reminder sent there is useless — and
+    // the link is just the public aka.ms/sspr page anyway. If we only have
+    // the work address, the admin relays the SSPR instructions out-of-band.
     let emailed = false;
-    if (r.email) {
+    const personal = r.email && !/@skintyee\.ca$/i.test(r.email) ? r.email : undefined;
+    if (personal) {
       try {
         const mail = renderPasswordResetEmail({ displayName: r.name, byAdmin: true });
-        emailed = await this.mailgun.send({ to: r.email, subject: mail.subject, html: mail.html, text: mail.text });
+        emailed = await this.mailgun.send({ to: personal, subject: mail.subject, html: mail.html, text: mail.text });
       } catch (e: any) {
-        this.log.warn(`force-password-reset: email to ${r.email} failed: ${e?.message ?? e}`);
+        this.log.warn(`force-password-reset: email to ${personal} failed: ${e?.message ?? e}`);
       }
     }
-    this.log.log(`POST /directory/${id}/force-password-reset: revoked${emailed ? ' + emailed' : ''}`);
-    return { ok: true, emailed, emailedTo: emailed ? r.email : undefined };
+    this.log.log(`POST /directory/${id}/force-password-reset: revoked${emailed ? ' + emailed personal' : ' (relay needed — no personal email)'}`);
+    return { ok: true, emailed, emailedTo: emailed ? personal : undefined, ssprUrl: 'https://aka.ms/sspr' };
   }
 
   // GET /v1/directory/:id/photo — proxy the user's Entra profile photo

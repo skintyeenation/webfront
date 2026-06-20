@@ -85,9 +85,11 @@ export interface ApiService {
     // Lock (blocked:true) or unlock (false) an account — blocks sign-in +
     // revokes live sessions. Returns the updated member.
     setBlocked(id: string, blocked: boolean): Promise<BandMember>;
-    // Admin force a password reset: revoke the user's sessions + email them
-    // the self-service reset link (aka.ms/sspr). Returns send status.
-    forcePasswordReset(id: string): Promise<{ ok: boolean; emailed: boolean; emailedTo?: string }>;
+    // Admin force a password reset: revoke the user's sessions. Emails a
+    // reminder ONLY to a personal (non-@skintyee.ca) address if on file — the
+    // user is locked out of their work mailbox. The admin relays the SSPR link
+    // (aka.ms/sspr) otherwise. Returns send status + the self-service URL.
+    forcePasswordReset(id: string): Promise<{ ok: boolean; emailed: boolean; emailedTo?: string; ssprUrl: string }>;
   };
   admin: {
     // Catalog of the 13 Entra security groups (Skin Tyee Admins, IT, etc.).

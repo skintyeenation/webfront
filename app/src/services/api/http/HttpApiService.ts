@@ -138,7 +138,7 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
       setMailboxes: (id: string, mailboxes: string[]) => patch<BandMember>(`/directory/${id}/mailbox-access`, { mailboxes }),
       setLicenses: (id: string, skuIds: string[]) => patch<BandMember>(`/directory/${id}/licenses`, { licenses: skuIds }),
       setBlocked: (id: string, blocked: boolean) => post<BandMember>(`/directory/${id}/block`, { blocked }),
-      forcePasswordReset: (id: string) => post<{ ok: boolean; emailed: boolean; emailedTo?: string }>(`/directory/${id}/force-password-reset`, {}),
+      forcePasswordReset: (id: string) => post<{ ok: boolean; emailed: boolean; emailedTo?: string; ssprUrl: string }>(`/directory/${id}/force-password-reset`, {}),
     },
     admin: {
       securityGroups: () => get<SecurityGroup[]>('/admin/security-groups'),
