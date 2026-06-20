@@ -519,7 +519,20 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
 
           <Text style={{ color: theme.colors.text, fontSize: 18, marginTop: 10 }}>{name}</Text>
           {user?.upn ? (
-            <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginTop: 2 }}>{user.upn}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+              <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>{user.upn}</Text>
+              {signedIn && me && isAdmin ? (
+                <Button
+                  compact mode="text" icon="pencil"
+                  textColor={theme.colors.primary}
+                  onPress={() => (navigation as any)?.navigate?.('Admin', { screen: 'memberEdit', params: { id: me._id } })}
+                  style={{ marginLeft: 2 }}
+                  labelStyle={{ fontSize: 12, marginVertical: 0 }}
+                >
+                  Edit
+                </Button>
+              ) : null}
+            </View>
           ) : null}
 
           {/* Role chip carries a tappable refresh icon — re-fetches
@@ -527,15 +540,37 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
               server-side change picks up without a separate button.
               Words are uppercased (ROLE: STAFF) to match the rest of
               the in-chip typography. */}
-          <Chip
-            compact
-            icon={signedIn ? 'refresh' : undefined}
-            onPress={signedIn ? () => dispatch(unspoof()) : undefined}
-            style={{ marginTop: 6, backgroundColor: isAdmin ? theme.colors.accent : theme.colors.secondary }}
-            textStyle={{ color: isAdmin ? '#000' : theme.colors.text, fontSize: 11 }}
-          >
-            {signedIn ? `ROLE: ${role.toUpperCase()}` : 'NOT SIGNED IN'}
-          </Chip>
+          {/* Same chip row as the Member page — role badge first (orange when
+              admin), then title + Entra P1. Role chip stays tappable to
+              refresh (unspoof). */}
+          <View style={{ flexDirection: 'row', marginTop: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+            {!signedIn ? (
+              <Chip compact style={{ backgroundColor: theme.colors.secondary }} textStyle={{ fontSize: 11 }}>
+                NOT SIGNED IN
+              </Chip>
+            ) : (
+              <>
+                {role && role !== 'public' ? (
+                  <Chip compact icon="shield-account"
+                    onPress={() => dispatch(unspoof())}
+                    style={{ marginRight: 6, marginBottom: 4, backgroundColor: isAdmin ? theme.colors.accent : theme.colors.secondary }}
+                    textStyle={{ fontSize: 11, color: isAdmin ? '#000' : theme.colors.text }}>
+                    {role.charAt(0).toUpperCase() + role.slice(1)}
+                  </Chip>
+                ) : null}
+                {me?.title ? (
+                  <Chip compact style={{ marginRight: 6, marginBottom: 4, backgroundColor: theme.colors.secondary }} textStyle={{ fontSize: 11 }}>
+                    {me.title}
+                  </Chip>
+                ) : null}
+                {(me?.licenses ?? []).includes('AAD_PREMIUM') ? (
+                  <Chip compact icon="star-circle" style={{ marginBottom: 4, backgroundColor: theme.colors.success }} textStyle={{ fontSize: 11, color: '#000' }}>
+                    Entra P1
+                  </Chip>
+                ) : null}
+              </>
+            )}
+          </View>
         </View>
 
         {/* My profile — same card layout as the Member-detail page, for the
@@ -706,56 +741,6 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
             </Card.Content>
           </Card>
         )}
-
-        {/* Member details — read-only mirror of what shows up on Edit
-            Member. Pulled from the directory slice (Entra-seeded) and
-            only renders for signed-in users with a matching directory
-            row. Gives the user (and admin) a quick "is my profile
-            correct?" view without bouncing through Band Management. */}
-        {signedIn && me ? (
-          <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 16 }}>
-            <Card.Content>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-                <MaterialCommunityIcons name="card-account-details-outline" size={20} color={theme.colors.primary} style={{ marginRight: 8 }} />
-                <Text style={{ color: theme.colors.text, fontSize: 15, flex: 1 }}>Member details</Text>
-                {isAdmin ? (
-                  <Button
-                    compact mode="text" icon="pencil"
-                    textColor={theme.colors.primary}
-                    onPress={() => (navigation as any)?.navigate?.('Admin', { screen: 'memberEdit', params: { id: me._id } })}
-                  >
-                    Edit
-                  </Button>
-                ) : null}
-              </View>
-              <MemberDetailRow icon="briefcase-outline" label="Job title" value={me.title} />
-              <MemberDetailRow icon="domain"             label="Department" value={(me as any).department} />
-              <MemberDetailRow icon="email-outline"      label="Email"      value={(me as any).email} />
-              <MemberDetailRow icon="phone-outline"      label="Phone"      value={me.phone} />
-              {me.managerName ? (
-                <MemberDetailRow icon="account-tie" label="Manager" value={me.managerName} />
-              ) : null}
-              {Array.isArray(me.bandGroups) && me.bandGroups.length > 0 ? (
-                <View style={{ marginTop: 8 }}>
-                  <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginBottom: 4 }}>
-                    SECURITY GROUPS
-                  </Text>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-                    {me.bandGroups.map((g: string) => (
-                      <Chip
-                        key={g} compact
-                        style={{ marginRight: 6, marginBottom: 4, backgroundColor: theme.colors.secondary }}
-                        textStyle={{ color: theme.colors.text, fontSize: 10 }}
-                      >
-                        {g}
-                      </Chip>
-                    ))}
-                  </View>
-                </View>
-              ) : null}
-            </Card.Content>
-          </Card>
-        ) : null}
 
         {/* Dev role switcher ---------------------------------------------
             Hidden in prod (Config.isProd resolves true when apiServer is
