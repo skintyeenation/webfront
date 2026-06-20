@@ -109,7 +109,10 @@ export default function AddExpense({ navigation, route }: any) {
     return () => { cancelled = true; };
   }, [targetPeriodId, adminEditMode, adminEditId]);
 
-  const locked = !adminEditMode && claim?.status === 'approved';
+  // Past the cutoff Friday the period is closed — the worker can no longer
+  // adjust it (admins still can via the Approvals tab). Approved is also locked.
+  const pastCutoff = !!period && dayjs().startOf('day').isAfter(dayjs(period.endISO).startOf('day'));
+  const locked = !adminEditMode && (claim?.status === 'approved' || pastCutoff);
   // Claim total in CAD (base): convert each receipt from its own currency.
   const total = useMemo(() => items.reduce((s, it) => s + itemCad(it), 0), [items, fx]);
   const hasForeign = useMemo(() => items.some((it) => (it.currency || 'CAD').toUpperCase() !== 'CAD'), [items]);
@@ -256,10 +259,13 @@ export default function AddExpense({ navigation, route }: any) {
     s === 'approved' ? theme.colors.success : s === 'rejected' ? theme.colors.error
     : s === 'submitted' ? theme.colors.accent : theme.colors.secondary;
 
-  // Submit opens on cutoff Friday or after (mirrors the timesheet gate).
-  const today = dayjs().startOf('day');
-  const cutoff = dayjs(period.endISO).startOf('day');
-  const submitOpen = today.isSame(cutoff) || today.isAfter(cutoff);
+  // Submit any time — confirm before locking the claim in for approval.
+  const confirmSubmit = () => confirm({
+    title: 'Submit expense claim?',
+    message: `Submit ${items.length} receipt${items.length === 1 ? '' : 's'} (${money(total, 'CAD')}) for ${period.label} to finance for approval? You won't be able to edit it once submitted (unless it's reopened).`,
+    confirmLabel: 'Submit',
+    onConfirm: () => persist('submit'),
+  });
 
   return (
     <PageContainer>
@@ -369,7 +375,9 @@ export default function AddExpense({ navigation, route }: any) {
         {/* Actions */}
         {locked ? (
           <HelperText type="info" visible style={{ marginLeft: -8, marginTop: 8 }}>
-            This claim is approved and locked. Ask finance/an admin to reopen it if a change is needed.
+            {claim?.status === 'approved'
+              ? 'This claim is approved and locked. Ask finance/an admin to reopen it if a change is needed.'
+              : `The cutoff (${dayjs(period.endISO).format('ddd MMM D')}) has passed — this period is closed and can no longer be adjusted. Ask an admin if you missed it.`}
           </HelperText>
         ) : adminEditMode ? (
           <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
@@ -380,19 +388,14 @@ export default function AddExpense({ navigation, route }: any) {
           </View>
         ) : (
           <>
-            {!submitOpen ? (
-              <HelperText type="info" visible style={{ marginLeft: -8 }}>
-                Submit opens on cutoff day · Fri {cutoff.format('MMM D')} ({cutoff.diff(today, 'day')} days away). Save your draft any time.
-              </HelperText>
-            ) : null}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, flexWrap: 'wrap' }}>
               <Button mode="outlined" icon="content-save-outline" onPress={() => persist('draft')}
                 disabled={saving} loading={saving && submittedMode === 'draft'} textColor={theme.colors.text} style={{ marginBottom: 6 }}>
                 Save
               </Button>
               <Button mode="contained" icon="send" buttonColor={theme.colors.primary} textColor="#000"
-                onPress={() => persist('submit')}
-                disabled={saving || items.length === 0 || !submitOpen}
+                onPress={confirmSubmit}
+                disabled={saving || items.length === 0}
                 loading={saving && submittedMode === 'submit'} style={{ marginBottom: 6 }}>
                 Submit
               </Button>

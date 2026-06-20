@@ -108,8 +108,34 @@ will default to time-in/out with a per-row "just enter hours" toggle.
    - Period total
 5. Worker can **Save draft** at any time without submitting.
 6. **Submit timesheet** sends to the api/; status flips to `submitted`.
-7. Submitting a draft past the cutoff is still allowed but flagged late
-   (cutoff is a target, not a hard wall) and approvers see the chip.
+
+## Submission & the cutoff deadline
+
+How submitting and the cutoff interact (this is the authoritative rule —
+mirrored exactly in **Expenses**, see [expenses.md](./expenses.md)):
+
+- **Submit any time** — a worker can submit **whenever they want**, including
+  early (well before the cutoff). There is **no "submit only opens on cutoff"**
+  gate. Submitting shows a **confirmation prompt** first ("Submit your Nh
+  timesheet … you won't be able to edit it once submitted unless an admin
+  reopens it").
+- **The cutoff Friday is a hard deadline.** **After** the period's cutoff
+  (`payPeriod.endISO`), the period is **closed**: the worker can **no longer
+  adjust or submit** it — the editor is locked read-only and shows
+  *"The cutoff (Ddd Mmm D) has passed — this period is closed and can no longer
+  be adjusted. Ask an admin if you missed it."*
+- **Approved** timesheets are also locked (unchanged) — an admin must **reopen**
+  to allow edits.
+- **Admins bypass both locks.** From **Approvals → edit**, an admin can still
+  adjust a worker's timesheet after the cutoff or after approval (admin-edit
+  mode). This is the escape hatch for "missed the cutoff".
+
+> **Enforcement boundary (current):** the **approved** lock is enforced by the
+> **api/** *and* the UI. The **cutoff** lock is currently **UI-enforced** (the
+> editor disables save/submit past the cutoff); the api/ does not yet hard-
+> reject a worker mutation past the cutoff. Admin-edit endpoints are intended to
+> stay open by design. Adding server-side cutoff enforcement for the worker
+> paths is a recommended follow-up if the deadline must be tamper-proof.
 
 ## Overtime — auto-flag for admin approval
 

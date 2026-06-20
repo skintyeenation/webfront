@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { Button, Card, Chip, HelperText, IconButton, Text, TextInput } from 'react-native-paper';
 import dayjs from 'dayjs';
-import { PageContainer, PageContent, TimeField, useToast } from 'skintyee/components/layout';
+import { PageContainer, PageContent, TimeField, useToast, useConfirm } from 'skintyee/components/layout';
 import { useAppSelector } from 'skintyee/store';
 import { apiFactory } from 'skintyee/store/apis';
 import { PayPeriod, PayPeriodConfig, Timesheet } from 'skintyee/models';
@@ -166,6 +166,7 @@ export default function AddTimesheet({ navigation, route }: any) {
   const [submittedMode, setSubmittedMode] = useState<'draft' | 'submit' | null>(null);
   const [error, setError] = useState<string | undefined>();
   const { showToast, toastNode } = useToast();
+  const { confirm, ConfirmHost } = useConfirm();
 
   useEffect(() => {
     let cancelled = false;
@@ -281,7 +282,10 @@ export default function AddTimesheet({ navigation, route }: any) {
 
   // An approved sheet is locked for the worker (read-only) — an admin must
   // reopen it. The api/ enforces this too; this is the UX layer.
-  const locked = !adminEditMode && existing?.status === 'approved';
+  // Past the cutoff Friday the period is closed — the worker can no longer
+  // adjust it (admins still can via the Approvals tab).
+  const pastCutoff = !!payPeriod && dayjs().startOf('day').isAfter(dayjs(payPeriod.endISO).startOf('day'));
+  const locked = !adminEditMode && (existing?.status === 'approved' || pastCutoff);
 
   // Any touched row that fails its own validation (bad format, partial
   // fill, reversed span). Used to disable Submit and trip the inline
@@ -593,14 +597,16 @@ export default function AddTimesheet({ navigation, route }: any) {
 
         {error ? <HelperText type="error" visible>{error}</HelperText> : null}
 
-        {/* Submit gate — only allowed on cutoff Friday or after. Draft can
-            be saved any time the worker wants to. */}
+        {/* Submit any time before the cutoff; after the cutoff the period is
+            locked (see `locked`). Confirm before submitting for approval. */}
         {(() => {
-          const today = dayjs().startOf('day');
-          const cutoff = dayjs(payPeriod.endISO).startOf('day');
-          const submitOpen = today.isSame(cutoff) || today.isAfter(cutoff);
-          // Admin-edit mode: no submit (the sheet is already past submit),
-          // and the "submit cutoff" hint doesn't apply.
+          const confirmSubmit = () => confirm({
+            title: 'Submit timesheet?',
+            message: `Submit your ${tallies?.total ?? 0}h timesheet for ${payPeriod.label} for approval? You won't be able to edit it once submitted (unless an admin reopens it).`,
+            confirmLabel: 'Submit',
+            onConfirm: () => persist('submit'),
+          });
+          // Admin-edit mode: no submit (the sheet is already past submit).
           if (adminEditMode) {
             return (
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
@@ -619,44 +625,39 @@ export default function AddTimesheet({ navigation, route }: any) {
           // Approved sheets are locked — no Save/Submit for the worker. An
           // admin must reopen it. (The api/ also rejects edits, so this is the
           // UX layer over a hard backend guard.)
-          if (existing?.status === 'approved') {
+          // Locked: approved, or the cutoff has passed (period closed).
+          if (locked) {
             return (
               <HelperText type="info" visible style={{ marginLeft: -8, marginTop: 8 }}>
-                This timesheet is approved and locked. Ask an admin to reopen it if a change is needed.
+                {existing?.status === 'approved'
+                  ? 'This timesheet is approved and locked. Ask an admin to reopen it if a change is needed.'
+                  : `The cutoff (${dayjs(payPeriod.endISO).format('ddd MMM D')}) has passed — this period is closed and can no longer be adjusted. Ask an admin if you missed it.`}
               </HelperText>
             );
           }
           return (
-            <>
-              {!submitOpen ? (
-                <HelperText type="info" visible style={{ marginLeft: -8 }}>
-                  Submit opens on cutoff day · Fri {cutoff.format('MMM D')} ({cutoff.diff(today, 'day')} days away). Save your draft any time.
-                </HelperText>
-              ) : null}
-
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, flexWrap: 'wrap' }}>
-                <Button
-                  mode="outlined" icon="content-save-outline"
-                  onPress={() => persist('draft')}
-                  disabled={saving}
-                  loading={saving && submittedMode === 'draft'}
-                  textColor={theme.colors.text}
-                  style={{ marginBottom: 6 }}
-                >
-                  Save
-                </Button>
-                <Button
-                  mode="contained" icon="send"
-                  buttonColor={theme.colors.primary} textColor="#000"
-                  onPress={() => persist('submit')}
-                  disabled={saving || rows.length === 0 || !submitOpen || daysWithOverlaps.size > 0 || hasRowErrors}
-                  loading={saving && submittedMode === 'submit'}
-                  style={{ marginBottom: 6 }}
-                >
-                  Submit
-                </Button>
-              </View>
-            </>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, flexWrap: 'wrap' }}>
+              <Button
+                mode="outlined" icon="content-save-outline"
+                onPress={() => persist('draft')}
+                disabled={saving}
+                loading={saving && submittedMode === 'draft'}
+                textColor={theme.colors.text}
+                style={{ marginBottom: 6 }}
+              >
+                Save
+              </Button>
+              <Button
+                mode="contained" icon="send"
+                buttonColor={theme.colors.primary} textColor="#000"
+                onPress={confirmSubmit}
+                disabled={saving || rows.length === 0 || daysWithOverlaps.size > 0 || hasRowErrors}
+                loading={saving && submittedMode === 'submit'}
+                style={{ marginBottom: 6 }}
+              >
+                Submit
+              </Button>
+            </View>
           );
         })()}
 
@@ -667,6 +668,7 @@ export default function AddTimesheet({ navigation, route }: any) {
             Inner card is width-bounded + alignSelf:center, and the
             message text is centred horizontally inside it. */}
         {toastNode}
+        <ConfirmHost />
       </PageContent>
     </PageContainer>
   );

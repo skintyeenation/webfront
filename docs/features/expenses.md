@@ -114,10 +114,32 @@ Workers attach a receipt three ways (`app/src/core/receiptCapture.ts`):
 ## Lifecycle & approval
 
 `draft → submitted → approved | rejected`, with admin/finance **reopen** back
-to `submitted`. Submission opens on the **cutoff Friday** (drafts save any
-time). Approval is gated by `assertCanApprove`: **admin OR the `finance`
-bandGroup**. The Approvals tab buckets claims into Pending / Drafts / Already
-decided / Not started (the roster of expenses-enabled people without a claim).
+to `submitted`. Approval is gated by `assertCanApprove`: **admin OR the
+`finance` bandGroup**. The Approvals tab buckets claims into Pending / Drafts /
+Already decided / Not started (the roster of expenses-enabled people without a
+claim).
+
+### Submission & the cutoff deadline
+
+Identical rule to [Timesheets](./timesheets.md#submission--the-cutoff-deadline):
+
+- **Submit any time** — workers submit **whenever they want** (early is fine);
+  there is **no "submit only after cutoff"** gate. A **confirmation prompt**
+  precedes submit ("Submit N receipts ($X) … you won't be able to edit it once
+  submitted unless it's reopened").
+- **The cutoff Friday is a hard deadline.** After the period's cutoff
+  (`period.endISO`) the claim is **closed** for the submitter — the editor locks
+  read-only ("The cutoff (Ddd Mmm D) has passed — this period is closed and can
+  no longer be adjusted").
+- **Approved** claims are also locked (reopen via finance/admin).
+- **Admins/finance bypass both** via Approvals → edit (admin-edit mode), the
+  escape hatch for a missed cutoff.
+
+> **Enforcement boundary (current):** the **approved** lock is enforced in the
+> **api/** + UI; the **cutoff** lock is currently **UI-enforced** (editor
+> disables add-receipt/edit/submit past the cutoff). Server-side cutoff
+> enforcement for the worker mutation endpoints is a recommended follow-up if
+> the deadline must be tamper-proof.
 
 ## Reports
 
