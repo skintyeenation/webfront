@@ -17,9 +17,9 @@ pr: none
 
 parameters:
   - name: buildMac
-    displayName: Also build macOS .dmg (needs a macOS agent/pool)
+    displayName: Also build macOS .dmg (Hosted macOS agent)
     type: boolean
-    default: false
+    default: true
 
 variables:
   - name: EXPO_PUBLIC_API_SERVER
