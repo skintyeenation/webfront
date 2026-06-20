@@ -449,7 +449,7 @@ function ReceiptRow({
   };
   // Apply a line edit (include/exclude and/or price), recompute the claimed
   // total from the included items + tax, and persist.
-  const applyLineEdit = (idx: number, patch: { excluded?: boolean; amount?: number | null }) => {
+  const applyLineEdit = (idx: number, patch: { excluded?: boolean; amount?: number | null; description?: string }) => {
     if (locked) return;
     const lines = lineItems.map((l, i) => (i === idx ? { ...l, ...patch } : l));
     const newAmount = recomputeFromLines(lines);
@@ -710,9 +710,10 @@ function LineItemEditor({
   isSubtotal: boolean;
   currency: string;
   onDismiss: () => void;
-  onSave: (patch: { excluded?: boolean; amount?: number | null }) => void;
+  onSave: (patch: { excluded?: boolean; amount?: number | null; description?: string }) => void;
 }) {
   const [excluded, setExcluded] = useState(!!line.excluded);
+  const [descText, setDescText] = useState(line.description ?? '');
   const [priceText, setPriceText] = useState(line.amount != null ? String(line.amount) : '');
   const onPriceChange = (v: string) => {
     let c = v.replace(/[^0-9.]/g, '');
@@ -758,20 +759,34 @@ function LineItemEditor({
           </View>
         ) : null}
 
+        {/* Edit the line text — not for the subtotal row (fixed label). */}
+        {!isSubtotal ? (
+          <TextInput
+            dense mode="outlined" label="Item" value={descText}
+            autoCapitalize="none"
+            onChangeText={setDescText}
+            style={{ marginTop: 12 }}
+          />
+        ) : null}
+
         {/* Adjust price */}
         <TextInput
           dense mode="outlined" label="Price" value={priceText}
           keyboardType="decimal-pad"
           left={<TextInput.Affix text={currencySymbol(currency)} />}
           onChangeText={onPriceChange}
-          style={{ marginTop: 12 }}
+          style={{ marginTop: isSubtotal ? 12 : 8 }}
         />
 
         <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 14 }}>
           <Button mode="text" textColor={theme.colors.textDarker} onPress={onDismiss}>Cancel</Button>
           <Button
             mode="contained" buttonColor={theme.colors.primary} textColor="#fff"
-            onPress={() => onSave({ excluded: isSubtotal ? undefined : excluded, amount: priceText === '' ? null : (Number(priceText) || 0) })}
+            onPress={() => onSave({
+              excluded: isSubtotal ? undefined : excluded,
+              amount: priceText === '' ? null : (Number(priceText) || 0),
+              description: isSubtotal ? undefined : (descText.trim() || line.description),
+            })}
           >
             Save
           </Button>
