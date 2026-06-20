@@ -34,6 +34,7 @@ steps:
       EXPO_PUBLIC_API_SERVER: $(EXPO_PUBLIC_API_SERVER)
 
   - bash: |
+      set -euo pipefail   # fail the job if electron-builder errors (don't mask)
       cd app
       npx electron-builder --${{ parameters.platform }} --publish never
       echo "--- desktop-dist (top level) ---"; ls -lh desktop-dist

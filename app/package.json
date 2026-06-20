@@ -76,7 +76,7 @@
     "extraMetadata": { "main": "electron/main.js" },
     "win": { "target": ["nsis"] },
     "nsis": { "oneClick": false, "perMachine": false, "allowToChangeInstallationDirectory": true },
-    "linux": { "target": ["AppImage", "deb"], "category": "Office" },
+    "linux": { "target": ["AppImage", "deb"], "category": "Office", "maintainer": "Skin Tyee First Nation <it@skintyee.ca>" },
     "mac": { "target": ["dmg"], "category": "public.app-category.business" }
   }
 }
