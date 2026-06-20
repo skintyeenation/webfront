@@ -17,6 +17,7 @@ let notificationSettings: NotificationSettings = {
   staffOtp: true,
   communityNotifications: true,
   timesheetEvents: true,
+  expenseEvents: true,
   accountDeleted: true,
   fromName: 'Skin Tyee First Nation',
   fromEmail: 'it@skintyee.ca',

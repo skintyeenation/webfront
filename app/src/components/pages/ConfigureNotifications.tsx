@@ -15,12 +15,13 @@ import { theme } from 'skintyee/styles';
 // MockApiService keeps the values in memory so the screen is fully usable.
 // ----------------------------------------------------------------------------
 
-type ToggleKey = 'staffOtp' | 'communityNotifications' | 'timesheetEvents' | 'accountDeleted';
+type ToggleKey = 'staffOtp' | 'communityNotifications' | 'timesheetEvents' | 'expenseEvents' | 'accountDeleted';
 
 const TOGGLES: Array<{ key: ToggleKey; label: string; description: string }> = [
   { key: 'staffOtp',               label: 'Staff sign-in (OTP)',    description: 'One-time password emails when a staff member is added or their password is reset.' },
   { key: 'communityNotifications', label: 'Community notifications', description: 'Band-member notification blasts (Health, Council, Events, News…).' },
   { key: 'timesheetEvents',        label: 'Timesheet updates',      description: 'Submitted, edited, approved and rejected timesheet emails.' },
+  { key: 'expenseEvents',          label: 'Expense claim updates',  description: 'Submitted, edited, approved and rejected expense-claim emails (to submitter + finance).' },
   { key: 'accountDeleted',         label: 'Staff offboarding',      description: 'Notice to admins when a staff account is removed.' },
 ];
 

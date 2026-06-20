@@ -8,6 +8,9 @@ import { PrismaService } from './prisma.service';
 import { ExpensesService } from './expenses.service';
 import { ExpenseReportsService } from './expense-reports.service';
 import { OnboardingService } from './onboarding.service';
+import { MailgunService } from './mailgun.service';
+import { SettingsService } from './settings.service';
+import { renderExpenseEventEmail, ExpenseEvent } from './email-template';
 import { expensePeriodFor, recentExpensePeriods, EXPENSE_PERIOD_CONFIG } from './skintyee-expense-periods';
 
 // Expenses module — mirrors TimeKeeping. Staff submit expense claims (a batch of
@@ -31,6 +34,8 @@ export class ExpensesController {
     private readonly reports: ExpenseReportsService,
     private readonly prisma: PrismaService,
     private readonly people: OnboardingService,
+    private readonly mailgun: MailgunService,
+    private readonly settings: SettingsService,
   ) {}
 
   // Approvers = admins OR members of the 'finance' Entra group.
@@ -43,6 +48,48 @@ export class ExpensesController {
       if (groups.includes('finance')) return;
     }
     throw new ForbiddenException('Approving expenses requires the Finance group (or admin).');
+  }
+
+  // Enabled BandMembers whose bandGroups include any of `slugs` (finance + admins).
+  private async groupEmails(slugs: string[]): Promise<string[]> {
+    if (!this.prisma.isAvailable) return [];
+    const members = await this.prisma.bandMember.findMany({ where: { enabled: true }, select: { email: true, bandGroups: true } });
+    return members
+      .filter((m) => (m.bandGroups ?? '').split(',').map((s) => s.trim()).some((g) => slugs.includes(g)))
+      .map((m) => m.email)
+      .filter((e): e is string => !!e);
+  }
+
+  // Notify the submitter + finance/admins of a claim lifecycle event. Best-effort
+  // — a mail failure never fails the request. Gated by the expenseEvents toggle.
+  private async emailExpenseEvent(event: ExpenseEvent, claim: any, opts?: { actor?: string; reason?: string }): Promise<void> {
+    try {
+      if (!(await this.settings.isEnabled('expenseEvents'))) return;
+      const others = event === 'edited'
+        ? (opts?.actor ? [opts.actor] : [])
+        : await this.groupEmails(['finance', 'admins']);
+      const recipients = [...new Set([claim.submitterUpn, ...others].filter(Boolean))];
+      if (recipients.length === 0) return;
+      const cur = claim.currency ?? 'CAD';
+      const m = (n: number) => `${cur === 'CAD' ? '$' : cur + ' '}${(Number(n) || 0).toFixed(2)}`;
+      const lines = (claim.items ?? []).map((it: any) =>
+        `${it.vendor || 'Unknown vendor'} — ${m(it.amount)}${it.tagSlug ? ` (${it.tagSlug})` : ''}${it.date ? ` · ${it.date}` : ''}`);
+      const mail = renderExpenseEventEmail({
+        event,
+        submitterName: claim.submitterName,
+        periodLabel: expensePeriodFor(claim.payPeriodId).label,
+        status: claim.status,
+        totalAmount: claim.totalAmount ?? 0,
+        currency: cur,
+        receiptCount: (claim.items ?? []).length,
+        lines,
+        actor: opts?.actor,
+        reason: opts?.reason,
+      });
+      await this.mailgun.sendBulk({ recipients, subject: mail.subject, html: mail.html, text: mail.text });
+    } catch (e: any) {
+      this.log.warn(`expense ${event} email failed: ${e?.message ?? e}`);
+    }
   }
 
   // ---- Eligibility + periods ---------------------------------------------
@@ -150,8 +197,10 @@ export class ExpensesController {
   }
 
   @Post('claims/:id/submit') @Roles('staff', 'admin')
-  submit(@Param('id') id: string) {
-    return this.svc.submit(id);
+  async submit(@Param('id') id: string) {
+    const claim = await this.svc.submit(id);
+    await this.emailExpenseEvent('submitted', claim);
+    return claim;
   }
 
   @Get('claims/all') @Roles('staff', 'admin')
@@ -163,13 +212,17 @@ export class ExpensesController {
   @Post('claims/:id/approve') @Roles('staff', 'admin')
   async approve(@Param('id') id: string, @Req() req: any) {
     await this.assertCanApprove(req);
-    return this.svc.approve(id, callerUpn(req));
+    const claim = await this.svc.approve(id, callerUpn(req));
+    await this.emailExpenseEvent('approved', claim, { actor: callerUpn(req) });
+    return claim;
   }
 
   @Post('claims/:id/reject') @Roles('staff', 'admin')
   async reject(@Param('id') id: string, @Req() req: any, @Body() b: { reason?: string }) {
     await this.assertCanApprove(req);
-    return this.svc.reject(id, b?.reason, callerUpn(req));
+    const claim = await this.svc.reject(id, b?.reason, callerUpn(req));
+    await this.emailExpenseEvent('rejected', claim, { actor: callerUpn(req), reason: b?.reason });
+    return claim;
   }
 
   @Post('claims/:id/reopen') @Roles('admin')
@@ -186,7 +239,9 @@ export class ExpensesController {
   @Patch('claims/admin/:id') @Roles('staff', 'admin')
   async adminUpdate(@Param('id') id: string, @Req() req: any, @Body() b: any) {
     await this.assertCanApprove(req);
-    return this.svc.updateClaim(id, b ?? {});
+    const claim = await this.svc.updateClaim(id, b ?? {});
+    await this.emailExpenseEvent('edited', claim, { actor: callerUpn(req) });
+    return claim;
   }
 
   @Delete('claims/:id') @Roles('admin') @HttpCode(204)

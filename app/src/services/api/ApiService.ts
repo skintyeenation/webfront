@@ -73,6 +73,7 @@ export interface NotificationSettings {
   staffOtp: boolean;               // staff sign-in OTP (on add / password set)
   communityNotifications: boolean; // band-member notification blasts
   timesheetEvents: boolean;        // timesheet submitted / edited / approved / rejected
+  expenseEvents: boolean;          // expense claim submitted / edited / approved / rejected
   accountDeleted: boolean;         // staff offboarding email
   fromName: string;                // sender display name
   fromEmail: string;               // sender address (e.g. it@skintyee.ca)

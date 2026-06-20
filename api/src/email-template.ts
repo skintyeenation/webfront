@@ -325,3 +325,70 @@ export function renderTimesheetEventEmail(opts: {
     text: toPlainText(html),
   };
 }
+
+export type ExpenseEvent = 'submitted' | 'edited' | 'approved' | 'rejected';
+
+/**
+ * Expense-claim lifecycle email — the reimbursement twin of the timesheet
+ * event email. Sent to the submitter + the finance group (admins on edits).
+ * `lines` is a pre-computed receipt breakdown (vendor · amount · tag).
+ */
+export function renderExpenseEventEmail(opts: {
+  event: ExpenseEvent;
+  submitterName: string;
+  periodLabel: string;
+  status: string;
+  totalAmount: number;
+  currency: string;
+  receiptCount: number;
+  lines: string[];
+  actor?: string;
+  reason?: string;
+}): { subject: string; html: string; text: string } {
+  const c = BRAND.colors;
+  const money = `${opts.currency === 'CAD' ? '$' : opts.currency + ' '}${(Number(opts.totalAmount) || 0).toFixed(2)}`;
+  const VERB: Record<ExpenseEvent, string> = {
+    submitted: 'submitted', edited: 'adjusted', approved: 'approved', rejected: 'rejected',
+  };
+  const intro: Record<ExpenseEvent, string> = {
+    submitted: `An expense claim has been <strong>submitted</strong> for reimbursement.`,
+    edited: `An expense claim has been <strong>adjusted by an administrator</strong>${opts.actor ? ` (${esc(opts.actor)})` : ''}.`,
+    approved: `An expense claim has been <strong>approved</strong>${opts.actor ? ` by ${esc(opts.actor)}` : ''} for reimbursement.`,
+    rejected: `An expense claim has been <strong>rejected</strong>${opts.actor ? ` by ${esc(opts.actor)}` : ''}.`,
+  };
+  const row = (label: string, val: string) =>
+    `<tr><td style="padding:5px 0; font-size:13px; color:${c.muted};">${esc(label)}</td><td style="padding:5px 0; font-size:13px; color:${c.ink}; text-align:right; font-weight:600;">${esc(val)}</td></tr>`;
+  const lineItems = (opts.lines.length ? opts.lines : ['No receipts recorded.'])
+    .map((ln) => `<li style="margin:0 0 5px; font-size:13px; line-height:1.5; color:${c.ink};">${esc(ln)}</li>`)
+    .join('');
+  const reasonBlock = opts.reason
+    ? `<p style="margin:0 0 16px; font-size:13px; color:${c.ink};"><strong>Reason:</strong> ${esc(opts.reason)}</p>`
+    : '';
+  const bodyHtml = `
+    <p style="margin:0 0 16px; font-size:14px; line-height:1.6;">${intro[opts.event]}</p>
+    ${reasonBlock}
+    <div style="font-size:12px; font-weight:700; color:${c.muted}; text-transform:uppercase; letter-spacing:1px; margin:0 0 6px;">Receipts</div>
+    <ul style="margin:0 0 18px; padding-left:18px;">${lineItems}</ul>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;">
+      <tr><td style="padding:16px 20px; background:${c.panel}; border:1px solid ${c.border}; border-radius:8px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          ${row('Submitter', opts.submitterName)}
+          ${row('Period', opts.periodLabel)}
+          ${row('Status', opts.status.toUpperCase())}
+          ${row('Receipts', String(opts.receiptCount))}
+          ${row('Total claimed', money)}
+        </table>
+      </td></tr>
+    </table>
+    <p style="margin:0; font-size:12px; color:${c.muted};">If this looks incorrect, contact the band office at ${esc(BRAND.phone)}.</p>`;
+  const html = renderEmail({
+    title: `Expense claim ${VERB[opts.event]}`,
+    bodyHtml,
+    preheader: `${opts.submitterName} — ${opts.periodLabel} · ${money}`,
+  });
+  return {
+    subject: `Expense claim ${VERB[opts.event]} — ${opts.submitterName} (${opts.periodLabel})`,
+    html,
+    text: toPlainText(html),
+  };
+}
