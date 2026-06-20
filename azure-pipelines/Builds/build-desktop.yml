@@ -1,0 +1,91 @@
+name: build-desktop
+
+# Builds the Skin Tyee desktop app (Electron wrapping the react-native-web
+# bundle) for Windows + Linux (+ optional macOS), then publishes the installers
+# to SharePoint with download links via scripts/publish-desktop-to-sharepoint.sh.
+#
+# Manual / tag-triggered — desktop builds are heavy, not every commit.
+#
+# Per-OS matrix (see azure-pipelines/README + docs/desktop-electron.md):
+#   • Linux agent  → AppImage + .deb       (also could do the .exe via Wine,
+#                                            but we use a native Windows agent)
+#   • Windows agent → NSIS .exe            (native; no Wine, easiest signing)
+#   • macOS agent   → .dmg                 (REQUIRED for mac; opt-in parameter)
+
+trigger: none
+pr: none
+
+parameters:
+  - name: buildMac
+    displayName: Also build macOS .dmg (needs a macOS agent/pool)
+    type: boolean
+    default: false
+
+variables:
+  - name: EXPO_PUBLIC_API_SERVER
+    value: 'https://api.skintyee.ca'
+
+stages:
+  - stage: build
+    displayName: Build installers
+    jobs:
+      - job: linux
+        displayName: Linux (AppImage + deb)
+        pool: { vmImage: ubuntu-latest }
+        steps:
+          - template: ../templates/desktop-build-steps.yml
+            parameters: { platform: linux }
+
+      - job: windows
+        displayName: Windows (.exe)
+        pool: { vmImage: windows-latest }
+        steps:
+          - template: ../templates/desktop-build-steps.yml
+            parameters: { platform: win }
+
+      - ${{ if eq(parameters.buildMac, true) }}:
+        - job: mac
+          displayName: macOS (.dmg)
+          pool: { vmImage: macOS-latest }
+          steps:
+            - template: ../templates/desktop-build-steps.yml
+              parameters: { platform: mac }
+
+  - stage: publish
+    displayName: Publish installers to SharePoint
+    dependsOn: build
+    condition: succeeded()
+    jobs:
+      - job: publish
+        pool: { vmImage: ubuntu-latest }
+        variables:
+          - group: sharepoint-docs           # SHAREPOINT_SITE_ID / _DRIVE_NAME (+ AZURE_* )
+        steps:
+          - checkout: self
+            fetchDepth: 1
+          - download: current                 # pull every build job's artifacts
+          - script: |
+              set -euo pipefail
+              mkdir -p app/desktop-dist
+              # Flatten all downloaded artifact folders into desktop-dist/.
+              find "$(Pipeline.Workspace)" -type f \
+                \( -iname '*.exe' -o -iname '*.dmg' -o -iname '*.AppImage' -o -iname '*.deb' \) \
+                -exec cp {} app/desktop-dist/ \;
+              ls -lh app/desktop-dist/
+            displayName: Collect installers
+          - task: AzureCLI@2
+            displayName: Mint Graph token + publish to SharePoint
+            inputs:
+              azureSubscription: sharepoint-docs-sc   # workload-identity-federation service connection
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                export GRAPH_TOKEN_PREACQUIRED="$(az account get-access-token \
+                  --resource https://graph.microsoft.com --query accessToken -o tsv)"
+                export SHAREPOINT_TARGET_PATH='webfront/desktop'
+                export ARTIFACT_VERSION="$(Build.BuildNumber)"
+                bash scripts/publish-desktop-to-sharepoint.sh
+            env:
+              SHAREPOINT_SITE_ID: $(SHAREPOINT_SITE_ID)
+              SHAREPOINT_DRIVE_NAME: $(SHAREPOINT_DRIVE_NAME)

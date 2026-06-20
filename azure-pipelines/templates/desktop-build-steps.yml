@@ -1,0 +1,42 @@
+# Shared desktop build steps — runs on each per-OS agent. Builds the web bundle
+# with relative asset paths (ELECTRON_BUILD=1) then packages it with
+# electron-builder for the given platform, and publishes the installers as a
+# pipeline artifact for the publish stage.
+parameters:
+  - name: platform        # 'win' | 'linux' | 'mac'
+    type: string
+
+steps:
+  - checkout: self
+    fetchDepth: 1
+
+  - task: NodeTool@0
+    inputs: { versionSpec: '22.x' }
+    displayName: Use Node 22
+
+  - bash: |
+      npm install -g pnpm@9
+      pnpm --version
+    displayName: Install pnpm
+
+  - bash: pnpm install --frozen-lockfile
+    displayName: pnpm install (workspace)
+
+  - bash: |
+      cd app
+      ELECTRON_BUILD=1 npx expo export:web
+    displayName: expo export:web (relative paths for Electron)
+    env:
+      EXPO_PUBLIC_API_SERVER: $(EXPO_PUBLIC_API_SERVER)
+
+  - bash: |
+      cd app
+      npx electron-builder --${{ parameters.platform }} --publish never
+      ls -lh desktop-dist || dir desktop-dist
+    displayName: electron-builder (${{ parameters.platform }})
+
+  - task: PublishPipelineArtifact@1
+    inputs:
+      targetPath: app/desktop-dist
+      artifact: desktop-${{ parameters.platform }}
+    displayName: Publish installers artifact

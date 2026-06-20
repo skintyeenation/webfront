@@ -47,5 +47,13 @@ module.exports = async function (env, argv) {
     /ENOENT: no such file or directory/,
   ];
 
+  // Electron build: emit RELATIVE asset paths so the bundle loads from
+  // web-build/index.html over file://. The normal web deploy (Azure Static Web
+  // Apps) keeps absolute paths, so this is gated behind ELECTRON_BUILD.
+  if (process.env.ELECTRON_BUILD === '1') {
+    config.output = config.output || {};
+    config.output.publicPath = './';
+  }
+
   return config;
 };
