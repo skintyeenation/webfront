@@ -274,13 +274,24 @@ export class ExpensesService implements OnModuleInit {
     const lineItems = ai.lineItems && ai.lineItems.length
       ? ai.lineItems.map((li) => ({ ...li, excluded: false }))
       : undefined;
+
+    // Tax at scan time: when the receipt itemised, derive tax = total − subtotal
+    // (subtotal = sum of the real, non-summary line items) instead of trusting
+    // the AI's own tax read. The user can override the Tax field afterward.
+    let taxAmount = ai.tax ?? null;
+    if (ai.lineItems && ai.lineItems.length && ai.amount != null) {
+      const subtotal = ai.lineItems.filter((li) => !li.isSummary).reduce((s, li) => s + (Number(li.amount) || 0), 0);
+      const derived = round2(ai.amount - subtotal);
+      if (subtotal > 0 && derived >= 0) taxAmount = derived;
+    }
+
     const item = await this.prisma.expenseItem.create({
       data: {
         claimId,
         date: fields.date ?? ai.date ?? null,
         vendor: fields.vendor ?? ai.vendor ?? null,
         amount,
-        taxAmount: ai.tax ?? null,
+        taxAmount,
         currency: 'CAD', // forced CAD for now — multi-currency entry disabled, ignore AI-detected currency
         tagSlug: fields.tagSlug ?? ai.suggestedTagSlug ?? null,
         description: fields.description ?? null,
