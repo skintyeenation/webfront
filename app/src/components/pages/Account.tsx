@@ -54,10 +54,6 @@ const GROUP_LABELS: Record<string, string> = {
   'it-project-docs': 'IT Project Docs', 'band-members-m365': 'Band Members (M365)',
   'council-m365': 'Council (M365)', 'management-m365': 'Management (M365)',
 };
-const licenceLabel = (p: string) =>
-  p === 'AAD_PREMIUM' ? 'Entra ID P1'
-  : p === 'O365_BUSINESS_PREMIUM' ? 'Microsoft 365 Business Standard'
-  : p;
 
 // Build the api/ photo proxy URL when we have a real (non-mock) backend.
 function photoUrl(memberId: string): string | undefined {
@@ -588,26 +584,6 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
                   value={me.accountType === 'shared-inbox' ? 'Shared inbox' : 'Licensed user'} />
               </Card.Content>
             </Card>
-
-            {(me.licenses?.length ?? 0) > 0 ? (
-              <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
-                <Card.Content>
-                  <Text style={{ color: theme.colors.text, fontSize: 14, marginBottom: 8 }}>Microsoft licences</Text>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-                    {(me.licenses as string[]).map((p) => {
-                      const paid = p === 'AAD_PREMIUM';
-                      return (
-                        <Chip key={p} compact icon={paid ? 'star-circle' : 'microsoft-office'}
-                          style={{ marginRight: 4, marginTop: 2, backgroundColor: paid ? theme.colors.success : theme.colors.secondary }}
-                          textStyle={{ fontSize: 11, color: paid ? '#000' : theme.colors.text }}>
-                          {licenceLabel(p)}
-                        </Chip>
-                      );
-                    })}
-                  </View>
-                </Card.Content>
-              </Card>
-            ) : null}
 
             {(me.bandGroups?.length ?? 0) > 0 ? (
               <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
