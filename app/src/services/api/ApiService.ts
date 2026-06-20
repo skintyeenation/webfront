@@ -138,6 +138,7 @@ export interface ApiService {
       bandGroups?: string[];
       createPerson?: boolean;
       timesheetsEnabled?: boolean;
+      expensesEnabled?: boolean;
     }): Promise<{
       bandMember: BandMember;
       personId?: string;

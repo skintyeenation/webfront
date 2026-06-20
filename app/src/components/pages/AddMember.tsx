@@ -58,6 +58,7 @@ export default function AddMember({ navigation }: any) {
   const [bandGroups, setBandGroups] = useState<Set<string>>(new Set());
   const [createPerson, setCreatePerson] = useState(false);
   const [timesheetsEnabled, setTimesheetsEnabled] = useState(true);
+  const [expensesEnabled, setExpensesEnabled] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | undefined>();
@@ -99,6 +100,7 @@ export default function AddMember({ navigation }: any) {
         bandGroups: Array.from(bandGroups),
         createPerson,
         timesheetsEnabled: createPerson && timesheetsEnabled,
+        expensesEnabled: createPerson && expensesEnabled,
       });
       // Mirror into Redux directory for instant render; canonical state
       // comes from the next loadDirectory(). _id maps to the Entra OID.
@@ -255,13 +257,22 @@ export default function AddMember({ navigation }: any) {
             </View>
           </View>
           {createPerson ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, marginLeft: 36 }}>
-              <Switch value={timesheetsEnabled} onValueChange={setTimesheetsEnabled} color={theme.colors.primary} />
-              <View style={{ marginLeft: 8, flex: 1 }}>
-                <Text style={{ color: theme.colors.text, fontSize: 13 }}>Enable timesheets</Text>
-                <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>Lets them save / submit hours.</Text>
+            <>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, marginLeft: 36 }}>
+                <Switch value={timesheetsEnabled} onValueChange={setTimesheetsEnabled} color={theme.colors.primary} />
+                <View style={{ marginLeft: 8, flex: 1 }}>
+                  <Text style={{ color: theme.colors.text, fontSize: 13 }}>Enable timesheets</Text>
+                  <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>Lets them save / submit hours.</Text>
+                </View>
               </View>
-            </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, marginLeft: 36 }}>
+                <Switch value={expensesEnabled} onValueChange={setExpensesEnabled} color={theme.colors.primary} />
+                <View style={{ marginLeft: 8, flex: 1 }}>
+                  <Text style={{ color: theme.colors.text, fontSize: 13 }}>Enable expenses</Text>
+                  <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>Lets them submit receipt claims.</Text>
+                </View>
+              </View>
+            </>
           ) : null}
 
           {error ? <HelperText type="error" visible>{error}</HelperText> : null}
