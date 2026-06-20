@@ -161,6 +161,48 @@ export function renderStaffOtpEmail(opts: {
 }
 
 /**
+ * Password reset prompt — sent when an admin forces a reset (or a user asks
+ * to reset). Points the user at the self-service reset URL (aka.ms/sspr).
+ * Their sign-in sessions are revoked alongside this, so they must reset.
+ */
+export function renderPasswordResetEmail(opts: {
+  displayName?: string;
+  resetUrl?: string;       // default https://aka.ms/sspr
+  byAdmin?: boolean;       // admin-initiated vs self-requested
+}): { subject: string; html: string; text: string } {
+  const c = BRAND.colors;
+  const url = opts.resetUrl ?? 'https://aka.ms/sspr';
+  const greeting = opts.displayName ? `Hi ${esc(opts.displayName)},` : 'Hello,';
+  const reason = opts.byAdmin
+    ? `An administrator at <strong>${esc(BRAND.name)}</strong> has requested that you reset your password.`
+    : `Here's how to reset your <strong>${esc(BRAND.name)}</strong> password.`;
+  const bodyHtml = `
+    <p style="margin:0 0 16px; font-size:14px; line-height:1.6;">${greeting}</p>
+    <p style="margin:0 0 16px; font-size:14px; line-height:1.6;">
+      ${reason} You've been signed out everywhere — set a new password using the
+      secure self-service link below, then sign back in.
+    </p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">
+      <tr><td align="center" style="padding:18px;">
+        <a href="${esc(url)}" style="display:inline-block; padding:12px 28px; background:${c.accent}; color:#fff; font-size:15px; font-weight:600; text-decoration:none; border-radius:8px;">Reset my password</a>
+      </td></tr>
+    </table>
+    <p style="margin:0 0 16px; font-size:13px; line-height:1.6; color:${c.muted};">
+      Or paste this into your browser: <a href="${esc(url)}" style="color:${c.accent};">${esc(url)}</a>
+    </p>
+    <p style="margin:0; font-size:12px; color:${c.muted}; line-height:1.6;">
+      You'll verify your identity, then choose a new password. If you didn't expect
+      this, contact the band office at ${esc(BRAND.phone)}.
+    </p>`;
+  const html = renderEmail({
+    title: `Reset your ${BRAND.name} password`,
+    bodyHtml,
+    preheader: 'Reset your password using the secure self-service link',
+  });
+  return { subject: `Reset your ${BRAND.name} password`, html, text: toPlainText(html) };
+}
+
+/**
  * Community notification → email blast to band members. Mirrors the in-app
  * notification (title + body + category). The body is split on blank/newlines
  * into paragraphs.

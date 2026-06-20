@@ -957,6 +957,34 @@ export class GraphFeedService {
     this.log.log(`rotateUserPassword: ${userId}`);
   }
 
+  // PATCH /users/{id} accountEnabled — block / unblock sign-in. Works app-only
+  // with User.ReadWrite.All and takes effect immediately for cloud auth. (For
+  // on-prem-synced users a later sync can flip it back if the on-prem account
+  // disagrees, but it blocks sign-in right away — pair with revokeSignInSessions.)
+  async setAccountEnabled(userId: string, enabled: boolean): Promise<void> {
+    const tok = await this.getToken();
+    const res = await fetch(`https://graph.microsoft.com/v1.0/users/${userId}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${tok}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accountEnabled: enabled }),
+    });
+    if (!res.ok) throw new Error(`setAccountEnabled(${enabled}) failed ${res.status}: ${await res.text()}`);
+    this.log.log(`setAccountEnabled: ${userId} → ${enabled}`);
+  }
+
+  // POST /users/{id}/revokeSignInSessions — invalidates all refresh tokens, so
+  // the user is forced to sign in again everywhere. Used when locking an
+  // account and when forcing a password reset. App-only, User.ReadWrite.All.
+  async revokeSignInSessions(userId: string): Promise<void> {
+    const tok = await this.getToken();
+    const res = await fetch(`https://graph.microsoft.com/v1.0/users/${userId}/revokeSignInSessions`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tok}`, 'Content-Type': 'application/json' },
+    });
+    if (!res.ok) throw new Error(`revokeSignInSessions failed ${res.status}: ${await res.text()}`);
+    this.log.log(`revokeSignInSessions: ${userId}`);
+  }
+
   // POST /v1/auth/staff/request-reset uses this to send the reset
   // link from info@skintyee.ca via Graph. App-only credential needs
   // the Mail.Send application permission (granted by

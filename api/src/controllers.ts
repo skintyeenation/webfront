@@ -11,7 +11,7 @@ import { MailboxReconcileService } from './mailbox-reconcile.service';
 import { StaffAuthService } from './staff-auth.service';
 import { MailgunService } from './mailgun.service';
 import { SettingsService } from './settings.service';
-import { renderStaffOtpEmail, renderNotificationEmail, renderTimesheetEventEmail, TimesheetEvent } from './email-template';
+import { renderStaffOtpEmail, renderNotificationEmail, renderTimesheetEventEmail, renderPasswordResetEmail, TimesheetEvent } from './email-template';
 
 // Band members in a given Entra group slug (e.g. 'admins', 'band-members') →
 // their emails. The slug-in-bandGroups check is the membership marker.
@@ -88,6 +88,7 @@ function mapBandMember(r: any) {
     managerName: r.managerName ?? undefined,
     managerUpn:  r.managerUpn  ?? undefined,
     hasPhoto:    r.hasPhoto,
+    enabled:     r.enabled !== false,
   };
 }
 
@@ -135,6 +136,7 @@ export class DirectoryController {
     private prisma: PrismaService,
     private graph: GraphFeedService,
     private exo: ExoService,
+    private mailgun: MailgunService,
   ) {}
 
   private async backgroundSeed(): Promise<void> {
@@ -352,6 +354,60 @@ export class DirectoryController {
     });
     this.log.log(`PATCH /directory/${id}/licenses: now ${partNumbers.join(',') || '(none)'}`);
     return mapBandMember(updated);
+  }
+
+  // POST /v1/directory/:id/block — lock / unlock an account. Body { blocked }.
+  // Blocks sign-in via accountEnabled + revokes live sessions so the lock bites
+  // immediately. admin-only. (App-only Graph; for synced users a later on-prem
+  // sync can flip enabled back — see docs/365/password-reset-sspr.md.)
+  @Post(':id/block') @Roles('admin') async setBlocked(
+    @Param('id') id: string,
+    @Body() b: { blocked?: boolean },
+  ) {
+    if (!this.prisma.isAvailable) throw new NotFoundException('Prisma not connected');
+    const r = await this.prisma.bandMember.findUnique({ where: { id } });
+    if (!r) throw new NotFoundException('Not found');
+    const blocked = b?.blocked === true;
+    try {
+      await this.graph.setAccountEnabled(id, !blocked);
+      if (blocked) await this.graph.revokeSignInSessions(id);
+    } catch (e: any) {
+      throw new ForbiddenException(`Couldn't ${blocked ? 'lock' : 'unlock'} the account: ${e?.message ?? e}`);
+    }
+    const updated = await this.prisma.bandMember.update({
+      where: { id },
+      data: { enabled: !blocked, syncedAt: new Date() },
+    });
+    this.log.log(`POST /directory/${id}/block: ${blocked ? 'LOCKED' : 'unlocked'}`);
+    return mapBandMember(updated);
+  }
+
+  // POST /v1/directory/:id/force-password-reset — revoke the user's sessions
+  // and email them the self-service reset link (aka.ms/sspr). The app's
+  // app-only credential can't set a synced user's password directly, so this
+  // forces them through self-service. admin-only. Returns { ok, emailed }.
+  @Post(':id/force-password-reset') @Roles('admin') async forcePasswordReset(
+    @Param('id') id: string,
+  ) {
+    if (!this.prisma.isAvailable) throw new NotFoundException('Prisma not connected');
+    const r = await this.prisma.bandMember.findUnique({ where: { id } });
+    if (!r) throw new NotFoundException('Not found');
+    try {
+      await this.graph.revokeSignInSessions(id);
+    } catch (e: any) {
+      throw new ForbiddenException(`Couldn't start the reset (revoke sessions failed): ${e?.message ?? e}`);
+    }
+    let emailed = false;
+    if (r.email) {
+      try {
+        const mail = renderPasswordResetEmail({ displayName: r.name, byAdmin: true });
+        emailed = await this.mailgun.send({ to: r.email, subject: mail.subject, html: mail.html, text: mail.text });
+      } catch (e: any) {
+        this.log.warn(`force-password-reset: email to ${r.email} failed: ${e?.message ?? e}`);
+      }
+    }
+    this.log.log(`POST /directory/${id}/force-password-reset: revoked${emailed ? ' + emailed' : ''}`);
+    return { ok: true, emailed, emailedTo: emailed ? r.email : undefined };
   }
 
   // GET /v1/directory/:id/photo — proxy the user's Entra profile photo
