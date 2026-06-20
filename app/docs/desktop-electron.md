@@ -25,10 +25,12 @@ scripts/
 
 ## Why the `ELECTRON_BUILD` flag
 
-`@expo/webpack-config` emits **absolute** asset paths (`/static/…`), which 404
-under Electron's `file://`. `webpack.config.js` sets `output.publicPath = './'`
-only when `ELECTRON_BUILD=1`, so the **Azure Static Web Apps** web deploy keeps
-absolute paths and is unaffected.
+`@expo/webpack-config` emits **absolute** asset paths (`/static/…`).
+`webpack.config.js` sets `output.publicPath = './'` (relative) only when
+`ELECTRON_BUILD=1`, so assets resolve whether the bundle is served from the
+loopback `http://localhost:8123/` server (see sign-in caveat) or a bare
+`file://` fallback. The **Azure Static Web Apps** web deploy keeps absolute
+paths and is unaffected.
 
 ## Run / build locally
 
@@ -83,11 +85,16 @@ bash scripts/publish-desktop-to-sharepoint.sh
 
 ## Known caveats / follow-ups
 
-- **Microsoft sign-in (MSAL/Entra).** Header-role + the prod HTTPS API work from
-  Electron. Interactive Entra sign-in uses redirect URIs tied to an origin;
-  under `file://` that needs a custom-scheme/loopback redirect registered on the
-  app registration. Not wired in this scaffold — a follow-up if desktop needs
-  full SSO. (Dev role-switcher + token-based flows are unaffected.)
+- **Microsoft sign-in (MSAL/Entra) — wired.** Interactive Entra sign-in builds
+  its `redirect_uri` from `window.location.origin`. Under `file://` that origin
+  is `"file://"`, which Entra rejects with **AADSTS500111** ("reply uri … has an
+  invalid scheme"). The packaged app therefore serves the web bundle over a
+  **loopback `http://localhost:8123/` server** in `electron/main.js` (not
+  `file://`), giving a valid origin. That exact URI is registered on the **SPA**
+  platform of the Entra app by `scripts/setup-app-signin.sh`. Keep the port in
+  `main.js` (`LOOPBACK_PORT`) and the registered redirect URI in sync. If the
+  loopback port is busy, `main.js` falls back to `file://` (app still opens;
+  Entra sign-in unavailable until the port frees).
 - **Code signing.** Unsigned Windows installers trip SmartScreen; macOS needs
   Apple notarization. Add an OV/EV cert (Windows) and an Apple Developer cert
   (mac) when distributing widely.
