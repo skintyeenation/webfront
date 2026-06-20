@@ -34,13 +34,28 @@ export class ExpensesService implements OnModuleInit {
   }
 
   // ---- Tags (the editable expense-category catalog) ----------------------
+  // Idempotent boot seed. On an empty table we insert the full standard
+  // catalog; on a populated one we leave admin customisations alone but
+  // backfill the GL account onto any standard tag that predates the
+  // glAccount field (only where it's still null — never clobbers an edit).
   private async seedTagsIfNeeded() {
     if (!this.prisma.isAvailable) return;
     try {
       const count = await this.prisma.expenseTag.count();
-      if (count > 0) return;
-      await this.prisma.expenseTag.createMany({ data: EXPENSE_TAG_SEED, skipDuplicates: true });
-      this.log.log(`seeded ${EXPENSE_TAG_SEED.length} expense tags`);
+      if (count === 0) {
+        await this.prisma.expenseTag.createMany({ data: EXPENSE_TAG_SEED, skipDuplicates: true });
+        this.log.log(`seeded ${EXPENSE_TAG_SEED.length} expense tags`);
+        return;
+      }
+      let filled = 0;
+      for (const t of EXPENSE_TAG_SEED) {
+        const r = await this.prisma.expenseTag.updateMany({
+          where: { slug: t.slug, glAccount: null },
+          data: { glAccount: t.glAccount },
+        });
+        filled += r.count;
+      }
+      if (filled) this.log.log(`backfilled GL account on ${filled} expense tags`);
     } catch (e: any) {
       this.log.warn(`expense tag seed skipped: ${e?.message ?? e}`);
     }
