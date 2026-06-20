@@ -19,6 +19,11 @@ function createWindow() {
     minWidth: 380,
     backgroundColor: '#0b0f14',
     title: 'Skin Tyee',
+    // Runtime window/taskbar icon (Linux + Windows + dev). macOS uses the
+    // bundled .icns from electron-builder for the dock instead. NB: kept outside
+    // electron/resources/ because electron-builder excludes buildResources from
+    // the packaged app, which would break this path in the installed build.
+    icon: path.join(__dirname, 'icon.png'),
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
