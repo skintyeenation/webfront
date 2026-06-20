@@ -278,6 +278,17 @@ export class ExpensesService implements OnModuleInit {
     return { url, mimeType: it.mimeType ?? 'application/octet-stream', fileName: it.fileName ?? 'receipt' };
   }
 
+  /** Raw receipt bytes streamed by the api/ itself (for in-app thumbnails +
+   *  previews that can't carry auth to a presigned URL). */
+  async getReceiptBytes(itemId: string): Promise<{ bytes: Buffer; mimeType: string; fileName: string } | null> {
+    this.requireDb();
+    const it = await this.prisma.expenseItem.findUnique({ where: { id: itemId } });
+    if (!it?.fileKey) return null;
+    const r = await this.storage.read(it.fileKey).catch(() => null);
+    if (!r) return null;
+    return { bytes: r.bytes, mimeType: it.mimeType ?? r.mimeType, fileName: it.fileName ?? 'receipt' };
+  }
+
   private async recomputeTotal(claimId: string) {
     const agg = await this.prisma.expenseItem.aggregate({ where: { claimId }, _sum: { amount: true } });
     await this.prisma.expenseClaim.update({ where: { id: claimId }, data: { totalAmount: round2(agg._sum.amount ?? 0) } });

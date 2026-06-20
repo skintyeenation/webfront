@@ -287,6 +287,13 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
         if (!res.ok && res.status !== 204) throw new Error(`DELETE /expenses/items/${id} → ${res.status}`);
       },
       receiptUrl: (itemId: string) => api(`/expenses/items/${encodeURIComponent(itemId)}/receipt`),
+      fetchReceipt: async (itemId: string) => {
+        const path = `/expenses/items/${encodeURIComponent(itemId)}/receipt/raw`;
+        const res = await fetch(api(path), { headers: headers() });
+        if (!res.ok) throw new Error(`GET ${path} → ${res.status}`);
+        const blob = await res.blob();
+        return { blob, mimeType: res.headers.get('content-type') ?? blob.type ?? 'application/octet-stream' };
+      },
       reports: {
         list: (count?: number) => get<any[]>('/expenses/reports', count ? { count: String(count) } : undefined),
         generate: (periodId: string) => post<any>(`/expenses/reports/${encodeURIComponent(periodId)}/generate`, {}),

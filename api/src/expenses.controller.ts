@@ -286,4 +286,16 @@ export class ExpensesController {
     const res = req.res;
     res.redirect(r.url);
   }
+
+  // Stream the raw receipt bytes (api/ reads them from storage) so the app can
+  // render an authenticated thumbnail/preview without a presigned URL.
+  @Get('items/:id/receipt/raw') @Roles('member', 'staff', 'admin')
+  async receiptRaw(@Param('id') id: string, @Res() res: any) {
+    const r = await this.svc.getReceiptBytes(id);
+    if (!r) throw new ForbiddenException('No receipt on this item.');
+    res.setHeader('Content-Type', r.mimeType);
+    res.setHeader('Content-Disposition', `inline; filename="${r.fileName}"`);
+    res.setHeader('Content-Length', String(r.bytes.length));
+    res.send(r.bytes);
+  }
 }

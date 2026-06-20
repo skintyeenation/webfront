@@ -122,6 +122,7 @@ export const mockApiService: ApiService = {
     updateItem:     () => { throw new Error('expenses.updateItem requires the real api/'); },
     deleteItem:     () => delay(undefined as any),
     receiptUrl:     () => '',
+    fetchReceipt:   () => { throw new Error('expenses.fetchReceipt requires the real api/'); },
     reports: {
       list:        () => delay([]),
       generate:    () => { throw new Error('expenses.reports.generate requires the real api/'); },

@@ -308,6 +308,7 @@ export interface ApiService {
     updateItem(id: string, patch: { date?: string; vendor?: string; amount?: number; tagSlug?: string; description?: string }): Promise<ExpenseItem>;
     deleteItem(id: string): Promise<void>;
     receiptUrl(itemId: string): string; // GET endpoint that redirects to the receipt
+    fetchReceipt(itemId: string): Promise<{ blob: Blob; mimeType: string }>; // raw bytes (authed) for thumbnails/preview
     reports: {
       list(count?: number): Promise<ExpenseReportSummary[]>;
       generate(periodId: string): Promise<ExpenseReportSummary>;

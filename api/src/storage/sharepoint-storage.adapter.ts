@@ -56,6 +56,11 @@ export class SharePointStorageAdapter implements DocumentStorageAdapter {
     throw new Error('SharePoint adapter not yet implemented — set STORAGE_DRIVER=blob');
   }
 
+  async read(_key: string): Promise<{ bytes: Buffer; mimeType: string } | null> {
+    // Would GET /drives/{driveId}/items/{key}/content. Stubbed for now.
+    return null;
+  }
+
   async delete(_key: string): Promise<void> {
     throw new Error('SharePoint adapter not yet implemented — set STORAGE_DRIVER=blob');
   }
