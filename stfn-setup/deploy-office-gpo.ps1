@@ -104,7 +104,13 @@ param(
     [ValidateSet('Current','MonthlyEnterprise','SemiAnnual','SemiAnnualPreview','CurrentPreview','BetaChannel')]
     [string]$Channel = 'Current',
     [string]$DeployFolder = 'OfficeDeploy',
-    [switch]$PreDownload
+    [switch]$PreDownload,
+    # Skin Tyee app: drop the installer exe into the NETLOGON deploy folder; each
+    # PC runs it machine-wide as SYSTEM. Args default to electron-builder NSIS
+    # machine-wide silent ('/S /allusers'); for Inno Setup use '/VERYSILENT /ALLUSERS'.
+    [string]$AppName = 'Skin Tyee',
+    [string]$AppSetupFile = 'SkinTyeeApp-Setup.exe',
+    [string]$AppInstallArgs = '/S /allusers'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -200,6 +206,14 @@ if (-not (Test-Path $chromeMsi)) {
     $ProgressPreference = $prev
 } else { Write-Info 'Chrome enterprise MSI already staged' }
 
+# Skin Tyee app icon (used for the app's desktop shortcut) - shipped from the repo.
+$icoRepo = Join-Path $PSScriptRoot 'skintyee.ico'
+if (Test-Path $icoRepo) {
+    Copy-Item $icoRepo (Join-Path $deployDir 'skintyee.ico') -Force; Write-Info 'skintyee.ico staged'
+} else {
+    Write-Warn2 'skintyee.ico not found next to this script - app shortcut will fall back to the exe icon'
+}
+
 # configuration.xml: install the suite but GUARANTEE Word/Excel/PowerPoint/Outlook
 # by NOT excluding them; trim apps most users here won't need. Teams is handled by
 # the bootstrapper (above); Planner is not an installable desktop app - it lives
@@ -286,9 +300,35 @@ else {
   } else { Log "Chrome MSI not found at $msi" }
 }
 
+# --- Skin Tyee app (machine-wide installer staged in NETLOGON by an admin) ---
+$appName  = '__APPNAME__'
+$appSetup = Join-Path $src '__APPSETUP__'
+function Get-AppInstall($displayLike) {
+  $keys = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*',
+          'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*'
+  Get-ItemProperty $keys -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like $displayLike } | Select-Object -First 1
+}
+$appReg = Get-AppInstall "*$appName*"
+if ($appReg) { Log "$appName already installed" }
+elseif (Test-Path $appSetup) {
+  Log "Installing $appName from $appSetup"
+  $p = Start-Process $appSetup -ArgumentList '__APPARGS__' -Wait -PassThru
+  Log ("$appName installer exit code: " + $p.ExitCode)
+  $appReg = Get-AppInstall "*$appName*"   # re-check so the shortcut can resolve its exe
+} else { Log "$appName setup not found at $appSetup (drop the exe into NETLOGON to enable)" }
+
 # --- Desktop shortcuts for ALL users (Public Desktop); only for apps present ---
 $desktop = Join-Path $env:PUBLIC 'Desktop'
-function New-AppShortcut($name, $target, $arguments) {
+# stage the Skin Tyee icon locally (from NETLOGON) so shortcuts have a stable path
+$brandIcon = ''
+$icoSrc = Join-Path $src 'skintyee.ico'
+if (Test-Path $icoSrc) {
+  $brandDir = 'C:\ProgramData\STFN'
+  if (-not (Test-Path $brandDir)) { New-Item -ItemType Directory -Force $brandDir | Out-Null }
+  $brandIcon = Join-Path $brandDir 'skintyee.ico'
+  Copy-Item $icoSrc $brandIcon -Force
+}
+function New-AppShortcut($name, $target, $arguments, $iconPath) {
   try {
     if ($target -and -not (Test-Path $target)) { return }   # skip if the app isn't installed
     $ws = New-Object -ComObject WScript.Shell
@@ -296,6 +336,7 @@ function New-AppShortcut($name, $target, $arguments) {
     $sc.TargetPath = $target
     if ($arguments) { $sc.Arguments = $arguments }
     if (Test-Path $target) { $sc.WorkingDirectory = (Split-Path $target) }
+    if ($iconPath -and (Test-Path $iconPath)) { $sc.IconLocation = "$iconPath,0" }
     $sc.Save()
     Log "shortcut: $name"
   } catch { Log "shortcut failed ($name): $($_.Exception.Message)" }
@@ -309,9 +350,22 @@ New-AppShortcut 'Google Chrome' $chromeExe
 if (Get-AppxProvisionedPackage -Online | Where-Object { $_.PackageName -like 'MSTeams*' }) {
   New-AppShortcut 'Microsoft Teams' (Join-Path $env:WINDIR 'explorer.exe') 'shell:AppsFolder\MSTeams_8wekyb3d8bbwe!MSTeams'
 }
+# Skin Tyee app shortcut - resolve its exe from the uninstall registry entry
+if ($appReg) {
+  $appExe = $null
+  if ($appReg.DisplayIcon) { $appExe = ($appReg.DisplayIcon -split ',')[0].Trim('"') }
+  if ((-not $appExe -or -not (Test-Path $appExe)) -and $appReg.InstallLocation) {
+    $appExe = Join-Path $appReg.InstallLocation ($appName + '.exe')
+    if (-not (Test-Path $appExe)) { $appExe = (Get-ChildItem $appReg.InstallLocation -Filter *.exe -ErrorAction SilentlyContinue | Select-Object -First 1).FullName }
+  }
+  if ($appExe -and (Test-Path $appExe)) { New-AppShortcut $appName $appExe $null $brandIcon }
+}
 Log 'startup script complete'
 '@
 $startup = $startup -replace '__SRC__', $deployDir
+$startup = $startup -replace '__APPNAME__', $AppName
+$startup = $startup -replace '__APPSETUP__', $AppSetupFile
+$startup = $startup -replace '__APPARGS__', $AppInstallArgs
 Set-Content -Path (Join-Path $deployDir 'Install-Apps.ps1') -Value $startup -Encoding UTF8
 Write-Info 'Install-Apps.ps1 written'
 
