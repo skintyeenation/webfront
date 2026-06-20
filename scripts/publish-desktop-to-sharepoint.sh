@@ -84,20 +84,23 @@ upload_one() {
     | jq -r '.uploadUrl')
   [ -n "$session" ] && [ "$session" != "null" ] || { echo "  ✗ $name: no upload session" >&2; return 1; }
 
-  # 10 MiB chunks (must be a multiple of 320 KiB per Graph).
-  chunk=$((10*1024*1024)); offset=0; local resp=""
+  # 10 MiB chunks (must be a multiple of 320 KiB per Graph). Read each chunk
+  # with a block-sized `dd` (skip in BLOCK units = idx) — avoids the
+  # `tail | head` SIGPIPE (exit 141) where head closes the pipe early. Don't use
+  # curl -f so an HTTP error doesn't trip pipefail; we inspect the response.
+  chunk=$((10*1024*1024)); offset=0; idx=0; local resp=""
   while [ "$offset" -lt "$size" ]; do
     end=$((offset+chunk)); [ "$end" -gt "$size" ] && end="$size"
-    # Portable efficient slice: skip to offset, take (end-offset) bytes.
-    resp=$(tail -c "+$((offset+1))" "$file" | head -c "$((end-offset))" | \
-      curl -sf -X PUT "$session" \
+    resp=$(dd if="$file" bs="$chunk" skip="$idx" count=1 2>/dev/null | \
+      curl -s -X PUT "$session" \
         -H "content-length: $((end-offset))" \
         -H "content-range: bytes ${offset}-$((end-1))/${size}" \
         --data-binary @-)
-    offset="$end"
+    idx=$((idx+1)); offset="$end"
   done
   local web; web=$(echo "$resp" | jq -r '.webUrl // empty')
-  echo "  ✓ $name  →  ${web:-uploaded}"
+  if [ -n "$web" ]; then echo "  ✓ $name  →  $web";
+  else echo "  ✗ $name: upload did not complete — $(echo "$resp" | jq -r '.error.message // .' 2>/dev/null | head -c 200)" >&2; return 1; fi
 }
 
 for f in "${FILES[@]}"; do upload_one "$f"; done
