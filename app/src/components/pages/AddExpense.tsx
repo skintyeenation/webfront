@@ -334,7 +334,7 @@ export default function AddExpense({ navigation, route }: any) {
           items.map((it) => (
             <ReceiptRow
               key={it.id} item={it} tags={tags} currency={claim.currency} locked={locked}
-              currencies={fx.supported}
+              currencies={fx.supported} cadAmount={itemCad(it)}
               onPatch={(p) => patchItem(it.id, p)}
               onPersist={(p) => persistItem(it.id, p)}
               onRemove={() => askRemoveItem(it)}
@@ -409,12 +409,13 @@ export default function AddExpense({ navigation, route }: any) {
 
 // ---- One receipt line — editable fields persisted on blur ------------------
 function ReceiptRow({
-  item, tags, currency, currencies, locked, onPatch, onPersist, onRemove,
+  item, tags, currency, currencies, cadAmount, locked, onPatch, onPersist, onRemove,
 }: {
   item: ExpenseItem;
   tags: ExpenseTag[];
   currency: string;
   currencies: string[];
+  cadAmount: number; // item.amount converted to CAD (for the foreign-currency note)
   locked: boolean;
   onPatch: (patch: Partial<ExpenseItem>) => void;
   onPersist: (patch: { date?: string; vendor?: string; amount?: number; taxAmount?: number | null; currency?: string | null; tagSlug?: string; description?: string; lineItems?: ExpenseItem['lineItems'] }) => void;
@@ -718,6 +719,13 @@ function ReceiptRow({
               <Text style={{ color: theme.colors.text, fontSize: 14, flex: 1, fontWeight: '700' }}>Total</Text>
               <Text style={{ color: theme.colors.text, fontSize: 14, fontWeight: '700' }}>{money(item.amount, cur)}</Text>
             </View>
+          </View>
+        ) : null}
+
+        {/* Foreign-currency receipt: show the CAD equivalent under the total. */}
+        {cur !== 'CAD' ? (
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: hasLines ? 2 : 6 }}>
+            <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>≈ {money(cadAmount, 'CAD')} CAD</Text>
           </View>
         ) : null}
         </>
