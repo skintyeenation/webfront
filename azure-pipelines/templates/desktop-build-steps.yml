@@ -1,0 +1,55 @@
+# Shared desktop build steps — runs on each per-OS agent. Builds the web bundle
+# with relative asset paths (ELECTRON_BUILD=1) then packages it with
+# electron-builder for the given platform, and publishes the installers as a
+# pipeline artifact for the publish stage.
+parameters:
+  - name: platform        # 'win' | 'linux' | 'mac'
+    type: string
+
+steps:
+  - checkout: self
+    fetchDepth: 1
+
+  - task: NodeTool@0
+    inputs: { versionSpec: '22.x' }
+    displayName: Use Node 22
+
+  - bash: |
+      npm install -g pnpm@9
+      pnpm --version
+    displayName: Install pnpm
+
+  - bash: pnpm install --frozen-lockfile
+    displayName: pnpm install (workspace)
+    env:
+      # electron-builder downloads its own electron dist via `electronVersion`,
+      # so skip the npm postinstall binary (faster + one fewer failure point).
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+
+  - bash: |
+      cd app
+      ELECTRON_BUILD=1 npx expo export:web
+    displayName: expo export:web (relative paths for Electron)
+    env:
+      EXPO_PUBLIC_API_SERVER: $(EXPO_PUBLIC_API_SERVER)
+
+  - bash: |
+      set -euo pipefail   # fail the job if electron-builder errors (don't mask)
+      cd app
+      npx electron-builder --${{ parameters.platform }} --publish never
+      echo "--- desktop-dist (top level) ---"; ls -lh desktop-dist
+      # Stage ONLY the real, top-level installers — electron-builder leaves
+      # helper exes (elevate.exe, the unpacked app exe, hermesc.exe) in
+      # subfolders (win-unpacked/, mac/, linux-unpacked/) which we must not ship.
+      mkdir -p installers
+      find desktop-dist -maxdepth 1 -type f \
+        \( -iname '*.exe' -o -iname '*.dmg' -o -iname '*.AppImage' -o -iname '*.deb' -o -iname '*.zip' \) \
+        -exec cp {} installers/ \;
+      echo "--- staged installers ---"; ls -lh installers
+    displayName: electron-builder (${{ parameters.platform }}) + stage installers
+
+  - task: PublishPipelineArtifact@1
+    inputs:
+      targetPath: app/installers
+      artifact: desktop-${{ parameters.platform }}
+    displayName: Publish installers artifact

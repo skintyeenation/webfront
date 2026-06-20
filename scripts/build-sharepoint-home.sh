@@ -177,6 +177,23 @@ m365 spo page text add \
 
 ok "updates section added"
 
+# ----- section 6 — desktop app downloads (its own section, after "how updates") --
+# Links point at the installers published by the build-desktop pipeline
+# (scripts/publish-desktop-to-sharepoint.sh → webfront/desktop/build-desktop/).
+DL_BASE="${SITE_URL}/Shared%20Documents/webfront/desktop/build-desktop"
+
+say "section 6 — desktop app downloads (one column, soft shading)…"
+m365 spo page section add \
+  --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
+  --sectionTemplate OneColumn --order 6 --zoneEmphasis Soft >/dev/null
+
+m365 spo page text add \
+  --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
+  --section 6 --column 1 --order 1 \
+  --text "<h2>💻 Desktop app downloads</h2><p>Install the Skin Tyee desktop app (the same app as the web version, packaged for desktop). Latest build:</p><ul><li>🪟 <a href=\"${DL_BASE}/SkinTyee-0.0.0-x64.exe\"><strong>Windows</strong></a> — installer (<code>.exe</code>)</li><li>🍎 <a href=\"${DL_BASE}/SkinTyee-0.0.0-x64.dmg\"><strong>macOS</strong></a> — disk image (<code>.dmg</code>)</li><li>🐧 <a href=\"${DL_BASE}/SkinTyee-0.0.0-x86_64.AppImage\"><strong>Linux</strong></a> — <code>AppImage</code> (portable) or <a href=\"${DL_BASE}/SkinTyee-0.0.0-amd64.deb\"><strong>.deb</strong></a> (Debian/Ubuntu)</li></ul><p style=\"font-size:12px;color:#666\">These builds aren't code-signed yet: on <strong>macOS</strong> right-click → Open the first time; on <strong>Windows</strong> choose &quot;More info → Run anyway&quot;. Rebuilt by the <a href=\"${ADO_BUILDS_URL}\">build-desktop</a> pipeline.</p>" >/dev/null
+
+ok "downloads section added"
+
 # ----- 3) publish -------------------------------------------------------------
 
 say "publishing the page…"

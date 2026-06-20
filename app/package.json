@@ -2,6 +2,9 @@
   "name": "@skintyee/app",
   "version": "0.0.0",
   "private": true,
+  "description": "Skin Tyee First Nation community app",
+  "author": "Skin Tyee First Nation",
+  "homepage": "https://skintyee.ca",
   "main": "index.js",
   "scripts": {
     "start": "expo start",
@@ -9,7 +12,13 @@
     "web": "expo start --web",
     "ios": "expo run:ios",
     "android": "expo run:android",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "web:export:electron": "ELECTRON_BUILD=1 expo export:web",
+    "desktop:dev": "ELECTRON_DEV=1 electron electron/main.js",
+    "desktop:build": "pnpm run web:export:electron && electron-builder",
+    "desktop:build:win": "pnpm run web:export:electron && electron-builder --win",
+    "desktop:build:linux": "pnpm run web:export:electron && electron-builder --linux",
+    "desktop:build:mac": "pnpm run web:export:electron && electron-builder --mac"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "~1.17.11",
@@ -52,7 +61,23 @@
     "babel-plugin-module-resolver": "~4.1.0",
     "babel-preset-expo": "~9.3.0",
     "dotenv": "^17.4.2",
+    "electron": "31.7.7",
+    "electron-builder": "^24.13.3",
     "metro-react-native-babel-preset": "~0.73.6",
     "typescript": "~5.4.5"
+  },
+  "build": {
+    "appId": "ca.skintyee.desktop",
+    "productName": "Skin Tyee",
+    "copyright": "© Skin Tyee First Nation",
+    "electronVersion": "31.7.7",
+    "artifactName": "SkinTyee-${version}-${arch}.${ext}",
+    "directories": { "output": "desktop-dist", "buildResources": "electron/resources" },
+    "files": ["electron/**/*", "web-build/**/*"],
+    "extraMetadata": { "main": "electron/main.js" },
+    "win": { "target": ["nsis"] },
+    "nsis": { "oneClick": false, "perMachine": false, "allowToChangeInstallationDirectory": true },
+    "linux": { "target": ["AppImage", "deb"], "category": "Office", "maintainer": "Skin Tyee First Nation <it@skintyee.ca>" },
+    "mac": { "target": ["dmg"], "category": "public.app-category.business" }
   }
 }
