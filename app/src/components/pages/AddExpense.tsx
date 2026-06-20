@@ -305,10 +305,10 @@ export default function AddExpense({ navigation, route }: any) {
 
         {!locked ? (
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12, paddingLeft: 2 }}>
-            <MaterialCommunityIcons name="information-outline" size={14} color={theme.colors.textDarker} style={{ marginTop: 1, marginRight: 6 }} />
+            <MaterialCommunityIcons name="camera-outline" size={14} color={theme.colors.textDarker} style={{ marginTop: 1, marginRight: 6 }} />
             <Text style={{ color: theme.colors.textDarker, fontSize: 11, flex: 1 }}>
-              Got several items to claim on one receipt? Add a separate line for each and attach a photo of the
-              same receipt to each — that way every amount maps to its own tag / GL account.
+              For best results, scan the receipt — the clearer the photo, the better the AI reads the
+              amount, tax, vendor, date and line items.
             </Text>
           </View>
         ) : null}
@@ -404,6 +404,7 @@ function ReceiptRow({
   onRemove: () => void;
 }) {
   const [tagPicker, setTagPicker] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const tagLabel = tags.find((t) => t.slug === item.tagSlug)?.label;
   const hasReceipt = !!(item.fileUrl || item.fileName || item.mimeType);
   // CAD-only for now — ignore any AI-detected currency (e.g. USD) on display.
@@ -461,16 +462,37 @@ function ReceiptRow({
   return (
     <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 8 }}>
       <Card.Content>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-          <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, flex: 1 }}>
-            RECEIPT{item.aiExtracted ? ' · ✨ AI-read' : ''}
-          </Text>
+        {/* Header — tap the chevron to collapse the card to just vendor + amount. */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: collapsed ? 0 : 4 }}>
+          <TouchableOpacity
+            onPress={() => setCollapsed((c) => !c)}
+            style={{ flexDirection: 'row', alignItems: 'center', flex: 1, minHeight: 32 }}
+            accessibilityLabel={collapsed ? 'Expand receipt' : 'Collapse receipt'}
+          >
+            <MaterialCommunityIcons name={collapsed ? 'chevron-right' : 'chevron-down'} size={22} color={theme.colors.textDarker} />
+            {collapsed ? (
+              <>
+                <Text style={{ color: theme.colors.text, fontSize: 14, flex: 1 }} numberOfLines={1}>
+                  {item.vendor || 'Receipt'}{item.aiExtracted ? '  ✨' : ''}
+                </Text>
+                <Text style={{ color: theme.colors.text, fontSize: 14, fontWeight: '600', marginLeft: 8, marginRight: 4 }}>
+                  {money(item.amount, cur)}
+                </Text>
+              </>
+            ) : (
+              <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, flex: 1 }}>
+                RECEIPT{item.aiExtracted ? ' · ✨ AI-read' : ''}
+              </Text>
+            )}
+          </TouchableOpacity>
           {hasReceipt ? <ReceiptAttachment item={item} /> : null}
           {!locked ? (
             <IconButton icon="delete" size={18} iconColor={theme.colors.textDarker} onPress={onRemove} accessibilityLabel="Remove receipt" />
           ) : null}
         </View>
 
+        {collapsed ? null : (
+        <>
         <View style={{ flexDirection: 'row' }}>
           <TextInput
             dense mode="outlined" label="Vendor" value={item.vendor ?? ''}
@@ -639,6 +661,8 @@ function ReceiptRow({
             </View>
           </View>
         ) : null}
+        </>
+        )}
 
         {/* Line-item editor — include/exclude + adjust price. */}
         {editorIdx != null && lineItems[editorIdx] ? (
