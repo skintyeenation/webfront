@@ -138,11 +138,33 @@ reset**. Each setting below is a **separate sub-page in that blade's left menu**
       on-prem confirm:** `Get-ADSyncAADPasswordResetConfiguration` → `Enabled:True`,
       `ServiceStatus:Started` (11:37 PM). (Ignore the cloud `passwordWritebackEnabled`
       flag — see the note above; it stayed False despite this.)
-- [ ] **Step 2** — SSPR enabled + writeback toggled on in Entra ← **next**
-- [ ] **Step 3** — users registered + reset tested
+- [x] **Step 2** — SSPR + writeback toggled on in Entra (**2026-06-19**, all four
+      sub-pages saved).
+- [x] **Step 3 — WRITEBACK PROVEN END-TO-END (2026-06-19).**
+      [`Test-PasswordWriteback.ps1`](../../stfn-setup/entra-connect/Test-PasswordWriteback.ps1)
+      reset `lucas.lopatka` in the cloud and the new password authenticated against
+      `STFN.local` in **~15 s**. Event `31042` (`PasswordResetService`): *"Password
+      writeback service is in a healthy state. All serviceHosts for service bus
+      endpoints are in running state."*
 
 > Access to the `STFN.local` Azure AD Connect / DC server is **confirmed** — Step 1
 > was completed on it. (`STFN-DC`, Entra Connect v2.4.129.0.)
+
+## ⭐ Key finding — which Graph API actually writes back
+
+For a **synced** user, the API matters:
+
+| Graph call | Writes back to `STFN.local`? |
+|---|---|
+| `PATCH /users/{id}` with **`passwordProfile`** | ❌ **No** — sets the *cloud* password only; PHS overwrites it. *(This is what the app's `rotateUserPassword` currently does — `graph-feed.service.ts`. It silently fails to reach the domain for the 8 synced users.)* |
+| `POST /users/{id}/authentication/methods/{id}/resetPassword` (**admin SSPR reset**) | ✅ **Yes** — routes through the writeback service; lands on-prem in ~15 s. Needs an **MFA-fresh** token + Authentication/Global Admin. |
+| `POST /me/changePassword` (self-service, needs current pw) | ✅ Yes — for the user's *own* password. |
+
+**App implication (rotate-password feature):** the admin "rotate" and a future
+user "rotate my own" must use the **`resetPassword` / `changePassword`** APIs, **not**
+`passwordProfile`, for synced users. See the conflict analysis in the staff-auth
+notes. The cloud `passwordWritebackEnabled` flag is unreliable — ignore it; the
+proof is the end-to-end test above.
 
 ---
 
