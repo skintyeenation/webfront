@@ -514,21 +514,16 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
           </View>
 
           <Text style={{ color: theme.colors.text, fontSize: 18, marginTop: 10 }}>{name}</Text>
-          {user?.upn ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-              <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>{user.upn}</Text>
-              {signedIn && me && isAdmin ? (
-                <Button
-                  compact mode="text" icon="pencil"
-                  textColor={theme.colors.primary}
-                  onPress={() => (navigation as any)?.navigate?.('Admin', { screen: 'memberEdit', params: { id: me._id } })}
-                  style={{ marginLeft: 2 }}
-                  labelStyle={{ fontSize: 12, marginVertical: 0 }}
-                >
-                  Edit
-                </Button>
-              ) : null}
-            </View>
+          {signedIn && me && isAdmin ? (
+            <Button
+              compact mode="text" icon="pencil"
+              textColor={theme.colors.primary}
+              onPress={() => (navigation as any)?.navigate?.('Admin', { screen: 'memberEdit', params: { id: me._id } })}
+              style={{ marginTop: 2 }}
+              labelStyle={{ fontSize: 12, marginVertical: 0 }}
+            >
+              Edit
+            </Button>
           ) : null}
 
           {/* Role chip carries a tappable refresh icon — re-fetches
