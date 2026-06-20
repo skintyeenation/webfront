@@ -559,7 +559,7 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
                   </Chip>
                 ) : null}
                 {me?.title ? (
-                  <Chip compact style={{ marginRight: 6, marginBottom: 4, backgroundColor: theme.colors.secondary }} textStyle={{ fontSize: 11 }}>
+                  <Chip compact icon="briefcase-outline" style={{ marginRight: 6, marginBottom: 4, backgroundColor: theme.colors.secondary }} textStyle={{ fontSize: 11 }}>
                     {me.title}
                   </Chip>
                 ) : null}

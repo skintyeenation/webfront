@@ -210,28 +210,22 @@ export default function MemberDetail({ route, navigation }: any) {
           )}
           <Text style={{ color: theme.colors.text, fontSize: 22, marginTop: 12 }}>{m.name}</Text>
           <View style={{ flexDirection: 'row', marginTop: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-            {/* Role badge FIRST — orange when admin. */}
-            {m.appRole && m.appRole !== 'member' && m.appRole !== 'public' ? (
+            {/* Role badge FIRST — shown for every role (icon), orange when admin. */}
+            {!isShared && m.appRole && m.appRole !== 'public' ? (
               <Chip compact icon="shield-account"
                 style={{ marginRight: 6, marginBottom: 4, backgroundColor: m.appRole === 'admin' ? theme.colors.accent : theme.colors.secondary }}
                 textStyle={{ fontSize: 11, color: m.appRole === 'admin' ? '#000' : theme.colors.text }}>
                 {m.appRole.charAt(0).toUpperCase() + m.appRole.slice(1)}
               </Chip>
             ) : null}
-            {m.title || m.role ? (
-              <Chip compact style={{ marginRight: 6, marginBottom: 4, backgroundColor: theme.colors.secondary }} textStyle={{ fontSize: 11 }}>
-                {m.title ?? m.role}
+            {m.title ? (
+              <Chip compact icon="briefcase-outline" style={{ marginRight: 6, marginBottom: 4, backgroundColor: theme.colors.secondary }} textStyle={{ fontSize: 11 }}>
+                {m.title}
               </Chip>
             ) : null}
             {isShared ? (
               <Chip compact icon="email-multiple-outline" style={{ marginRight: 6, marginBottom: 4, backgroundColor: theme.colors.secondary }} textStyle={{ fontSize: 11 }}>
                 Shared inbox
-              </Chip>
-            ) : null}
-            {/* Entra paid-licence badge — flags users on a premium (P1) SKU. */}
-            {(m.licenses ?? []).includes('AAD_PREMIUM') ? (
-              <Chip compact icon="star-circle" style={{ marginBottom: 4, backgroundColor: theme.colors.success }} textStyle={{ fontSize: 11, color: '#000' }}>
-                Entra P1
               </Chip>
             ) : null}
           </View>
