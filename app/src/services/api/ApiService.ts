@@ -1,4 +1,17 @@
-import { AppNotification, BandMember, BandMeeting, CommunityEvent, Expenditure, FeedItem, MajorProject, PayPeriod, PayPeriodConfig, PlannerPlanSummary, PlannerRollup, PlannerTask, Poll, PublicRecord, Role, TimeEntry, Timesheet } from 'skintyee/models';
+import { AppNotification, BandMember, BandMeeting, CommunityEvent, Expenditure, FeedItem, MajorProject, PayPeriod, PayPeriodConfig, PlannerPlanSummary, PlannerRollup, PlannerTask, Poll, PublicRecord, Role, TimeEntry, Timesheet, ExpenseClaim, ExpenseItem, ExpenseTag, ExpensePeriod } from 'skintyee/models';
+
+// Expense report row (mirrors TimesheetReportSummary). Returned by the api/'s
+// GET /v1/expenses/reports.
+export interface ExpenseReportSummary {
+  payPeriodId: string;
+  periodLabel: string;
+  startISO: string;
+  endISO: string;
+  payDateISO: string;
+  hasData: boolean;
+  claimCount: number;
+  totalAmount: number;
+}
 
 /**
  * ApiService is the single seam between the app and its backend.
@@ -264,6 +277,41 @@ export interface ApiService {
        *  is going to save it themselves but useful for headers). */
       fetchPdf(periodId: string, opts?: { download?: boolean }): Promise<{ blob: Blob; filename: string }>;
       fetchCsv(periodId: string): Promise<{ blob: Blob; filename: string }>;
+    };
+  };
+  // Expenses — claims (a batch of receipts) per submitter per period; finance
+  // approves. Mirrors the timekeeping surface. Receipts are AI-prefilled by Claude.
+  expenses: {
+    periods(count?: number): Promise<{ current: ExpensePeriod; recent: ExpensePeriod[]; config: any }>;
+    meEligible(): Promise<{ eligible: boolean; upn: string }>;
+    eligiblePeople(): Promise<Array<{ personId: string; workerUpn: string; workerName: string; isBandMember: boolean }>>;
+    // Tag catalog (editable, like Document Tag Manager).
+    tags(activeOnly?: boolean): Promise<ExpenseTag[]>;
+    createTag(slug: string, label: string): Promise<ExpenseTag>;
+    updateTag(slug: string, patch: { label?: string; active?: boolean }): Promise<ExpenseTag>;
+    deleteTag(slug: string): Promise<void>;
+    // Claims
+    myClaims(period?: string): Promise<{ period: ExpensePeriod; current: ExpenseClaim | null; history: ExpenseClaim[] }>;
+    start(periodId?: string): Promise<ExpenseClaim>; // idempotent draft for the period
+    updateClaim(id: string, patch: { title?: string; notes?: string; currency?: string }): Promise<ExpenseClaim>;
+    submit(id: string): Promise<ExpenseClaim>;
+    allClaims(period?: string, status?: string): Promise<ExpenseClaim[]>; // approval queue (finance/admin)
+    approve(id: string): Promise<ExpenseClaim>;
+    reject(id: string, reason?: string): Promise<ExpenseClaim>;
+    reopen(id: string): Promise<ExpenseClaim>;
+    adminGetClaim(id: string): Promise<ExpenseClaim>;
+    deleteClaim(id: string): Promise<void>;
+    // Receipt items. `file` (image/pdf) is optional; Claude prefills the rest.
+    addReceipt(claimId: string, file: { uri: string; name: string; mimeType: string } | null, fields: { date?: string; vendor?: string; amount?: number; tagSlug?: string; description?: string }): Promise<{ item: ExpenseItem; ai: any }>;
+    updateItem(id: string, patch: { date?: string; vendor?: string; amount?: number; tagSlug?: string; description?: string }): Promise<ExpenseItem>;
+    deleteItem(id: string): Promise<void>;
+    receiptUrl(itemId: string): string; // GET endpoint that redirects to the receipt
+    reports: {
+      list(count?: number): Promise<ExpenseReportSummary[]>;
+      generate(periodId: string): Promise<ExpenseReportSummary>;
+      fetchPdf(periodId: string, opts?: { download?: boolean }): Promise<{ blob: Blob; filename: string }>;
+      fetchCsv(periodId: string): Promise<{ blob: Blob; filename: string }>;
+      claimPdfUrl(claimId: string, opts?: { download?: boolean }): string;
     };
   };
   polls: {
