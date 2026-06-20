@@ -4,6 +4,7 @@
   "private": true,
   "description": "Skin Tyee First Nation community app",
   "author": "Skin Tyee First Nation",
+  "homepage": "https://skintyee.ca",
   "main": "index.js",
   "scripts": {
     "start": "expo start",
