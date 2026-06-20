@@ -1,11 +1,12 @@
 import {
   BadRequestException, Body, Controller, Delete, ForbiddenException, Get, HttpCode, Logger,
-  Param, Patch, Post, Query, Req, UploadedFile, UseInterceptors,
+  Param, Patch, Post, Query, Req, Res, UploadedFile, UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Roles } from './roles';
 import { PrismaService } from './prisma.service';
 import { ExpensesService } from './expenses.service';
+import { ExpenseReportsService } from './expense-reports.service';
 import { OnboardingService } from './onboarding.service';
 import { expensePeriodFor, recentExpensePeriods, EXPENSE_PERIOD_CONFIG } from './skintyee-expense-periods';
 
@@ -27,6 +28,7 @@ export class ExpensesController {
 
   constructor(
     private readonly svc: ExpensesService,
+    private readonly reports: ExpenseReportsService,
     private readonly prisma: PrismaService,
     private readonly people: OnboardingService,
   ) {}
@@ -81,6 +83,48 @@ export class ExpensesController {
   @Delete('tags/:slug') @Roles('admin') @HttpCode(204)
   async deleteTag(@Param('slug') slug: string) {
     await this.svc.deleteTag(slug);
+  }
+
+  // ---- Reports (PDF/CSV with band letterhead — like timesheets) ----------
+  @Get('reports') @Roles('staff', 'admin')
+  async listReports(@Req() req: any, @Query('count') count?: string) {
+    await this.assertCanApprove(req);
+    return this.reports.list(Math.max(1, Math.min(24, Number(count) || 12)));
+  }
+
+  @Post('reports/:periodId/generate') @Roles('staff', 'admin')
+  async generateReport(@Param('periodId') periodId: string, @Req() req: any) {
+    await this.assertCanApprove(req);
+    return this.reports.generate(periodId);
+  }
+
+  @Get('reports/:periodId/pdf') @Roles('staff', 'admin')
+  async reportPdf(@Param('periodId') periodId: string, @Query('download') download: string | undefined, @Req() req: any, @Res() res: any) {
+    await this.assertCanApprove(req);
+    const { bytes, fileName } = await this.reports.getPeriodPdf(periodId);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `${download === '1' ? 'attachment' : 'inline'}; filename="${fileName}"`);
+    res.setHeader('Content-Length', String(bytes.length));
+    res.send(bytes);
+  }
+
+  @Get('reports/:periodId/csv') @Roles('staff', 'admin')
+  async reportCsv(@Param('periodId') periodId: string, @Req() req: any, @Res() res: any) {
+    await this.assertCanApprove(req);
+    const { filename, csv } = await this.reports.csv(periodId);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csv);
+  }
+
+  // Single-claim printout — the submitter (own claim) or an approver.
+  @Get('claims/:id/pdf') @Roles('staff', 'admin')
+  async claimPdf(@Param('id') id: string, @Query('download') download: string | undefined, @Res() res: any) {
+    const { bytes, fileName } = await this.reports.getClaimPdf(id);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `${download === '1' ? 'attachment' : 'inline'}; filename="${fileName}"`);
+    res.setHeader('Content-Length', String(bytes.length));
+    res.send(bytes);
   }
 
   // ---- Claims ------------------------------------------------------------

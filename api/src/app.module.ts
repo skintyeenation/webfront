@@ -21,6 +21,7 @@ import { SettingsService } from './settings.service';
 import { SettingsController } from './settings.controller';
 import { ExpensesController } from './expenses.controller';
 import { ExpensesService } from './expenses.service';
+import { ExpenseReportsService } from './expense-reports.service';
 import { AnthropicService } from './anthropic.service';
 
 @Module({
@@ -38,6 +39,7 @@ import { AnthropicService } from './anthropic.service';
     DataService,
     SettingsService,   // Admin-configurable email toggles + sender/reply-to
     ExpensesService,   // Expense claims/items/tags + receipt upload + AI prefill
+    ExpenseReportsService, // Expense PDF/CSV reports (band letterhead, like timesheets)
     AnthropicService,  // Claude vision — receipt extraction + tag suggestion
     GraphFeedService,  // ADR-14: Microsoft Graph reader for Planner + Teams meetings
     PrismaService,     // ADR-7:  Postgres data layer (degrades to in-memory if no DATABASE_URL)
