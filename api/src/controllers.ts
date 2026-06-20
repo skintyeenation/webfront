@@ -843,12 +843,14 @@ export class AdminController implements OnApplicationBootstrap {
           phone: b.phone ?? null,
           bandMemberId: bm.id,
           timesheetsEnabled: b.timesheetsEnabled !== false,
+          expensesEnabled: !!b.expensesEnabled,
         },
         update: {
           displayName: b.displayName,
           email: upn,
           phone: b.phone ?? null,
           timesheetsEnabled: b.timesheetsEnabled !== false,
+          expensesEnabled: !!b.expensesEnabled,
         },
       });
     }

@@ -53,6 +53,7 @@ export default function People({ navigation }: any) {
   const [bandSearch, setBandSearch] = useState('');
   const [bandPickerOpen, setBandPickerOpen] = useState(false);
   const [timesheetsEnabled, setTimesheetsEnabled] = useState(false);
+  const [expensesEnabled, setExpensesEnabled] = useState(false);
   // staff-auth: when adding an external Person (no band-member link)
   // with an email, the admin can mint an app-sign-in account at the
   // same time. Mirrors the AddMember UX:
@@ -167,6 +168,7 @@ export default function People({ navigation }: any) {
     setBandMemberId(undefined); setBandSearch('');
     setBandPickerOpen(false);
     setTimesheetsEnabled(false);
+    setExpensesEnabled(false);
     setCreateAppSignIn(true);
     // Fresh password per add — avoids accidentally reusing a previous
     // one across modal opens.
@@ -187,6 +189,7 @@ export default function People({ navigation }: any) {
     setBandSearch('');
     setBandPickerOpen(false);
     setTimesheetsEnabled(!!p.timesheetsEnabled);
+    setExpensesEnabled(!!p.expensesEnabled);
     setResetting(false);
     setResetResult(null);
     setResetResultCopied(false);
@@ -258,6 +261,7 @@ export default function People({ navigation }: any) {
           phone: phone.trim() || null,
           bandMemberId: bandMemberId ?? null,
           timesheetsEnabled,
+          expensesEnabled,
         });
         setToast('Saved');
         setModalOpen(false);
@@ -270,6 +274,7 @@ export default function People({ navigation }: any) {
           phone: phone.trim() || undefined,
           bandMemberId,
           timesheetsEnabled,
+          expensesEnabled,
         });
 
         // staff-auth: optionally mint an app-sign-in password right
@@ -373,6 +378,15 @@ export default function People({ navigation }: any) {
                       Timesheets
                     </Chip>
                   ) : null}
+                  {p.expensesEnabled ? (
+                    <Chip
+                      compact icon="receipt"
+                      style={{ marginRight: 4, backgroundColor: theme.colors.success }}
+                      textStyle={{ color: '#000', fontSize: 10 }}
+                    >
+                      Expenses
+                    </Chip>
+                  ) : null}
                   <IconButton icon="pencil" size={18} iconColor={theme.colors.textDarker} onPress={() => openEdit(p)} />
                   <IconButton icon="delete" size={18} iconColor={theme.colors.textDarker} onPress={() => removePerson(p)} />
                 </View>
@@ -398,14 +412,30 @@ export default function People({ navigation }: any) {
               BAND MEMBER (OPTIONAL)
             </Text>
             {selectedMember ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 4, padding: 8, marginTop: 6 }}>
-                <MaterialCommunityIcons name="badge-account" size={18} color={theme.colors.primary} style={{ marginRight: 8 }} />
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: theme.colors.text, fontSize: 13 }}>{selectedMember.name}</Text>
-                  <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>{selectedMember.upn}</Text>
+              <View style={{ marginTop: 6 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 4, padding: 8 }}>
+                  <MaterialCommunityIcons name="badge-account" size={18} color={theme.colors.success} style={{ marginRight: 8 }} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: theme.colors.text, fontSize: 13 }}>{selectedMember.name}</Text>
+                    <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>{selectedMember.upn}</Text>
+                  </View>
                 </View>
-                <Button compact mode="text" textColor={theme.colors.textDarker} onPress={unlinkMember}>
-                  Unlink
+                {/* Linked state = a green "Band Member Linked" button. Tapping
+                    it confirms before unlinking (it's a destructive change —
+                    the Person reverts to manually-entered name/email/phone). */}
+                <Button
+                  mode="contained" icon="link-variant"
+                  buttonColor={theme.colors.success} textColor="#000"
+                  style={{ alignSelf: 'flex-start', marginTop: 6 }}
+                  onPress={() => confirm({
+                    title: 'Unlink band member?',
+                    message: `${selectedMember.name} (${selectedMember.upn}) will be unlinked. This Person reverts to manually-entered name, email and phone.`,
+                    confirmLabel: 'Unlink',
+                    destructive: true,
+                    onConfirm: unlinkMember,
+                  })}
+                >
+                  Band Member Linked
                 </Button>
               </View>
             ) : !bandPickerOpen ? (
@@ -563,6 +593,23 @@ export default function People({ navigation }: any) {
                 <Text style={{ color: theme.colors.text, fontSize: 13 }}>Enable Timesheets</Text>
                 <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>
                   Worker appears in Time Keeping approvals and can submit hours.
+                </Text>
+              </View>
+            </View>
+
+            {/* Expenses toggle — the reimbursement twin of the timesheet
+                toggle. When on, the person appears in the expense Approvals
+                roster and may start / submit expense claims. */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12 }}>
+              <Switch
+                value={expensesEnabled}
+                onValueChange={setExpensesEnabled}
+                color={theme.colors.primary}
+              />
+              <View style={{ marginLeft: 8, flex: 1 }}>
+                <Text style={{ color: theme.colors.text, fontSize: 13 }}>Enable Expenses</Text>
+                <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>
+                  Worker can submit receipt claims; appears in Expenses approvals.
                 </Text>
               </View>
             </View>

@@ -207,6 +207,57 @@ export interface Timesheet {
   updatedAt: string;
 }
 
+// ---- Expenses (mirrors the Timesheet lifecycle) -------------------------
+export type ExpenseStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
+
+export interface ExpensePeriod {
+  id: string;        // YYYY-MM-DD cutoff
+  startISO: string;
+  endISO: string;
+  payDateISO: string;
+  label: string;
+}
+
+export interface ExpenseTag {
+  slug: string;
+  label: string;
+  // General Ledger account number this category posts to — the accounting key
+  // finance maps a tagged receipt into Adagio / Sage 300 (ASAP) with.
+  glAccount?: string | null;
+  active: boolean;
+}
+
+export interface ExpenseItem {
+  id: string;
+  claimId: string;
+  date?: string | null;
+  vendor?: string | null;
+  amount: number;
+  tagSlug?: string | null;
+  description?: string | null;
+  aiExtracted?: boolean;
+  fileName?: string | null;
+  mimeType?: string | null;
+  fileUrl?: string | null;
+}
+
+export interface ExpenseClaim {
+  id: string;        // <submitterUpn>:<payPeriodId>
+  submitterUpn: string;
+  submitterName: string;
+  payPeriodId: string;
+  title?: string | null;
+  status: ExpenseStatus;
+  notes?: string | null;
+  totalAmount: number;
+  currency: string;
+  submittedAt?: string | null;
+  approvedBy?: string | null;
+  approvedAt?: string | null;
+  rejectedReason?: string | null;
+  items?: ExpenseItem[];
+}
+
 // ---- Legacy single-row TimeEntry (the old TimeKeeping page) --------------
 export interface TimeEntry {
   _id: string;

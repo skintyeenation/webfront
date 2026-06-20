@@ -11,6 +11,7 @@ export type NotificationCategory =
   | 'staffOtp'
   | 'communityNotifications'
   | 'timesheetEvents'
+  | 'expenseEvents'
   | 'accountDeleted';
 
 export interface NotificationSettings {
@@ -18,6 +19,7 @@ export interface NotificationSettings {
   staffOtp: boolean;              // staff sign-in OTP on add / password set
   communityNotifications: boolean; // band-member notification blasts
   timesheetEvents: boolean;        // timesheet submitted / edited / approved / rejected
+  expenseEvents: boolean;          // expense claim submitted / edited / approved / rejected
   accountDeleted: boolean;         // staff offboarding email
   // Sender identity applied to every outgoing email.
   fromName: string;
@@ -38,6 +40,7 @@ function defaults(): NotificationSettings {
     staffOtp: true,
     communityNotifications: true,
     timesheetEvents: true,
+    expenseEvents: true,
     accountDeleted: true,
     fromName: fromName || 'Skin Tyee First Nation',
     fromEmail: fromEmail || 'it@skintyee.ca',
@@ -82,6 +85,7 @@ export class SettingsService {
       staffOtp:               coerceBool(patch.staffOtp, cur.staffOtp),
       communityNotifications: coerceBool(patch.communityNotifications, cur.communityNotifications),
       timesheetEvents:        coerceBool(patch.timesheetEvents, cur.timesheetEvents),
+      expenseEvents:          coerceBool(patch.expenseEvents, cur.expenseEvents),
       accountDeleted:         coerceBool(patch.accountDeleted, cur.accountDeleted),
       fromName:  (patch.fromName  ?? cur.fromName ).toString().trim() || defaults().fromName,
       fromEmail: (patch.fromEmail ?? cur.fromEmail).toString().trim() || defaults().fromEmail,

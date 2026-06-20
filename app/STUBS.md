@@ -123,6 +123,18 @@ API Server for data.
 - **Future home:** document/media features (e.g. Public Records attachments,
   meeting minutes) would add an upload service behind a `StorageService` seam,
   backed by Azure Blob.
+- **Wired since:** the **Documents** library and **Expenses** receipts both go
+  through the pluggable `DOCUMENT_STORAGE` adapter in the api/ (Blob in prod via
+  `scripts/setup-app-documents-blob.sh`; in-memory otherwise).
+
+## 3b. AI receipt extraction — real, key-gated (→ Anthropic Claude)
+
+- **What:** the **Expenses** module reads each uploaded receipt with **Claude
+  vision** (`api/src/anthropic.service.ts`) to pre-fill amount / vendor / date
+  and suggest a GL-coded tag. The api/ calls the Anthropic Messages API directly.
+- **Gate:** with **no `ANTHROPIC_API_KEY`** the service is a graceful no-op — the
+  receipt is stored and the worker types the fields in by hand. Turn it on in
+  prod with `scripts/setup-app-anthropic.sh`. See `docs/features/expenses.md`.
 
 ## 4. Cross-cutting diagram items — not implemented
 

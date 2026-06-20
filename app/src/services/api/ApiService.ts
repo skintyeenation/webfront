@@ -1,4 +1,17 @@
-import { AppNotification, BandMember, BandMeeting, CommunityEvent, Expenditure, FeedItem, MajorProject, PayPeriod, PayPeriodConfig, PlannerPlanSummary, PlannerRollup, PlannerTask, Poll, PublicRecord, Role, TimeEntry, Timesheet } from 'skintyee/models';
+import { AppNotification, BandMember, BandMeeting, CommunityEvent, Expenditure, FeedItem, MajorProject, PayPeriod, PayPeriodConfig, PlannerPlanSummary, PlannerRollup, PlannerTask, Poll, PublicRecord, Role, TimeEntry, Timesheet, ExpenseClaim, ExpenseItem, ExpenseTag, ExpensePeriod } from 'skintyee/models';
+
+// Expense report row (mirrors TimesheetReportSummary). Returned by the api/'s
+// GET /v1/expenses/reports.
+export interface ExpenseReportSummary {
+  payPeriodId: string;
+  periodLabel: string;
+  startISO: string;
+  endISO: string;
+  payDateISO: string;
+  hasData: boolean;
+  claimCount: number;
+  totalAmount: number;
+}
 
 /**
  * ApiService is the single seam between the app and its backend.
@@ -60,6 +73,7 @@ export interface NotificationSettings {
   staffOtp: boolean;               // staff sign-in OTP (on add / password set)
   communityNotifications: boolean; // band-member notification blasts
   timesheetEvents: boolean;        // timesheet submitted / edited / approved / rejected
+  expenseEvents: boolean;          // expense claim submitted / edited / approved / rejected
   accountDeleted: boolean;         // staff offboarding email
   fromName: string;                // sender display name
   fromEmail: string;               // sender address (e.g. it@skintyee.ca)
@@ -124,6 +138,7 @@ export interface ApiService {
       bandGroups?: string[];
       createPerson?: boolean;
       timesheetsEnabled?: boolean;
+      expensesEnabled?: boolean;
     }): Promise<{
       bandMember: BandMember;
       personId?: string;
@@ -266,6 +281,42 @@ export interface ApiService {
       fetchCsv(periodId: string): Promise<{ blob: Blob; filename: string }>;
     };
   };
+  // Expenses — claims (a batch of receipts) per submitter per period; finance
+  // approves. Mirrors the timekeeping surface. Receipts are AI-prefilled by Claude.
+  expenses: {
+    periods(count?: number): Promise<{ current: ExpensePeriod; recent: ExpensePeriod[]; config: any }>;
+    meEligible(): Promise<{ eligible: boolean; upn: string }>;
+    eligiblePeople(): Promise<Array<{ personId: string; workerUpn: string; workerName: string; isBandMember: boolean }>>;
+    // Tag catalog (editable, like Document Tag Manager).
+    tags(activeOnly?: boolean): Promise<ExpenseTag[]>;
+    createTag(slug: string, label: string, glAccount?: string): Promise<ExpenseTag>;
+    updateTag(slug: string, patch: { label?: string; active?: boolean; glAccount?: string | null }): Promise<ExpenseTag>;
+    deleteTag(slug: string): Promise<void>;
+    // Claims
+    myClaims(period?: string): Promise<{ period: ExpensePeriod; current: ExpenseClaim | null; history: ExpenseClaim[] }>;
+    start(periodId?: string): Promise<ExpenseClaim>; // idempotent draft for the period
+    updateClaim(id: string, patch: { title?: string; notes?: string; currency?: string }): Promise<ExpenseClaim>;
+    submit(id: string): Promise<ExpenseClaim>;
+    allClaims(period?: string, status?: string): Promise<ExpenseClaim[]>; // approval queue (finance/admin)
+    approve(id: string): Promise<ExpenseClaim>;
+    reject(id: string, reason?: string): Promise<ExpenseClaim>;
+    reopen(id: string): Promise<ExpenseClaim>;
+    adminGetClaim(id: string): Promise<ExpenseClaim>;
+    deleteClaim(id: string): Promise<void>;
+    // Receipt items. `file` (image/pdf) is optional; Claude prefills the rest.
+    addReceipt(claimId: string, file: { uri: string; name: string; mimeType: string } | null, fields: { date?: string; vendor?: string; amount?: number; tagSlug?: string; description?: string }): Promise<{ item: ExpenseItem; ai: any }>;
+    updateItem(id: string, patch: { date?: string; vendor?: string; amount?: number; tagSlug?: string; description?: string }): Promise<ExpenseItem>;
+    deleteItem(id: string): Promise<void>;
+    receiptUrl(itemId: string): string; // GET endpoint that redirects to the receipt
+    fetchReceipt(itemId: string): Promise<{ blob: Blob; mimeType: string }>; // raw bytes (authed) for thumbnails/preview
+    reports: {
+      list(count?: number): Promise<ExpenseReportSummary[]>;
+      generate(periodId: string): Promise<ExpenseReportSummary>;
+      fetchPdf(periodId: string, opts?: { download?: boolean }): Promise<{ blob: Blob; filename: string }>;
+      fetchCsv(periodId: string): Promise<{ blob: Blob; filename: string }>;
+      claimPdfUrl(claimId: string, opts?: { download?: boolean }): string;
+    };
+  };
   polls: {
     list(): Promise<Poll[]>;
     get(id: string): Promise<Poll | undefined>;
@@ -355,8 +406,8 @@ export interface ApiService {
     addLink(stepId: string, input: { label: string; url: string }): Promise<void>;
     removeLink(rowId: string): Promise<void>;
     listPeople(): Promise<PersonDto[]>;
-    createPerson(input: { displayName?: string; email?: string; phone?: string; companyId?: string; bandMemberId?: string; timesheetsEnabled?: boolean }): Promise<PersonDto>;
-    updatePerson(id: string, patch: Partial<{ displayName: string; email: string | null; phone: string | null; companyId: string | null; bandMemberId: string | null; timesheetsEnabled: boolean }>): Promise<PersonDto>;
+    createPerson(input: { displayName?: string; email?: string; phone?: string; companyId?: string; bandMemberId?: string; timesheetsEnabled?: boolean; expensesEnabled?: boolean }): Promise<PersonDto>;
+    updatePerson(id: string, patch: Partial<{ displayName: string; email: string | null; phone: string | null; companyId: string | null; bandMemberId: string | null; timesheetsEnabled: boolean; expensesEnabled: boolean }>): Promise<PersonDto>;
     deletePerson(id: string): Promise<void>;
     listAssignments(opts?: { flowId?: string; personId?: string }): Promise<OnboardingAssignmentDto[]>;
     /** Worker view — assignments belonging to the signed-in caller. */
@@ -418,6 +469,9 @@ export interface PersonDto {
   /** Toggle gating Time Keeping. When true, the person shows up on
    *  the Approvals roster + is allowed to enter timesheets. */
   timesheetsEnabled: boolean;
+  /** Toggle gating Expenses. When true, the person shows up on the
+   *  expense Approvals roster + may start/submit expense claims. */
+  expensesEnabled: boolean;
   /** Whether this Person currently has a password set for the
    *  email/password sign-in path. False for Entra-linked Persons
    *  (they use SSO) and for externals who haven't had one issued yet. */

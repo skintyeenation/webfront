@@ -237,6 +237,85 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
         },
       },
     },
+    expenses: {
+      periods: (count?: number) => get<any>('/expenses/periods', count ? { count: String(count) } : undefined),
+      meEligible: () => get<any>('/expenses/me/eligible'),
+      eligiblePeople: () => get<any[]>('/expenses/eligible-people'),
+      tags: (activeOnly?: boolean) => get<any[]>('/expenses/tags', activeOnly ? { active: '1' } : undefined),
+      createTag: (slug: string, label: string, glAccount?: string) => post<any>('/expenses/tags', { slug, label, glAccount }),
+      updateTag: (slug: string, p: any) => patch<any>(`/expenses/tags/${encodeURIComponent(slug)}`, p),
+      deleteTag: async (slug: string) => {
+        const res = await fetch(api(`/expenses/tags/${encodeURIComponent(slug)}`), { method: 'DELETE', headers: headers() });
+        if (!res.ok && res.status !== 204) throw new Error(`DELETE /expenses/tags/${slug} → ${res.status}`);
+      },
+      myClaims: (period?: string) => get<any>('/expenses/claims', period ? { period } : undefined),
+      start: (periodId?: string) => post<any>('/expenses/claims/start', periodId ? { periodId } : {}),
+      updateClaim: (id: string, p: any) => patch<any>(`/expenses/claims/${encodeURIComponent(id)}`, p),
+      submit: (id: string) => post<any>(`/expenses/claims/${encodeURIComponent(id)}/submit`, {}),
+      allClaims: (period?: string, status?: string) =>
+        get<any[]>('/expenses/claims/all', { ...(period ? { period } : {}), ...(status ? { status } : {}) }),
+      approve: (id: string) => post<any>(`/expenses/claims/${encodeURIComponent(id)}/approve`, {}),
+      reject: (id: string, reason?: string) => post<any>(`/expenses/claims/${encodeURIComponent(id)}/reject`, { reason }),
+      reopen: (id: string) => post<any>(`/expenses/claims/${encodeURIComponent(id)}/reopen`, {}),
+      adminGetClaim: (id: string) => get<any>(`/expenses/claims/admin/${encodeURIComponent(id)}`),
+      deleteClaim: async (id: string) => {
+        const res = await fetch(api(`/expenses/claims/${encodeURIComponent(id)}`), { method: 'DELETE', headers: headers() });
+        if (!res.ok && res.status !== 204) throw new Error(`DELETE /expenses/claims/${id} → ${res.status}`);
+      },
+      addReceipt: async (claimId: string, file: any, fields: any) => {
+        const fd = new FormData();
+        if (file) {
+          if (typeof window !== 'undefined') {
+            const blob = await (await fetch(file.uri)).blob();
+            fd.append('file', blob, file.name);
+          } else {
+            fd.append('file', { uri: file.uri, name: file.name, type: file.mimeType } as any);
+          }
+        }
+        fd.append('payload', JSON.stringify(fields ?? {}));
+        const res = await fetch(api(`/expenses/claims/${encodeURIComponent(claimId)}/items`), {
+          method: 'POST',
+          headers: (() => { const h = headers(); delete (h as any)['Accept']; return h; })(),
+          body: fd as any,
+        });
+        if (!res.ok) throw new Error(`POST /expenses/claims/${claimId}/items → ${res.status}: ${await res.text()}`);
+        return res.json();
+      },
+      updateItem: (id: string, p: any) => patch<any>(`/expenses/items/${encodeURIComponent(id)}`, p),
+      deleteItem: async (id: string) => {
+        const res = await fetch(api(`/expenses/items/${encodeURIComponent(id)}`), { method: 'DELETE', headers: headers() });
+        if (!res.ok && res.status !== 204) throw new Error(`DELETE /expenses/items/${id} → ${res.status}`);
+      },
+      receiptUrl: (itemId: string) => api(`/expenses/items/${encodeURIComponent(itemId)}/receipt`),
+      fetchReceipt: async (itemId: string) => {
+        const path = `/expenses/items/${encodeURIComponent(itemId)}/receipt/raw`;
+        const res = await fetch(api(path), { headers: headers() });
+        if (!res.ok) throw new Error(`GET ${path} → ${res.status}`);
+        const blob = await res.blob();
+        return { blob, mimeType: res.headers.get('content-type') ?? blob.type ?? 'application/octet-stream' };
+      },
+      reports: {
+        list: (count?: number) => get<any[]>('/expenses/reports', count ? { count: String(count) } : undefined),
+        generate: (periodId: string) => post<any>(`/expenses/reports/${encodeURIComponent(periodId)}/generate`, {}),
+        fetchPdf: async (periodId: string, opts?: { download?: boolean }) => {
+          const path = `/expenses/reports/${encodeURIComponent(periodId)}/pdf${opts?.download ? '?download=1' : ''}`;
+          const res = await fetch(api(path), { headers: headers() });
+          if (!res.ok) throw new Error(`GET ${path} → ${res.status}: ${await res.text()}`);
+          const blob = await res.blob();
+          const cd = res.headers.get('content-disposition') ?? '';
+          return { blob, filename: cd.match(/filename="([^"]+)"/)?.[1] ?? `expenses-${periodId}.pdf` };
+        },
+        fetchCsv: async (periodId: string) => {
+          const path = `/expenses/reports/${encodeURIComponent(periodId)}/csv`;
+          const res = await fetch(api(path), { headers: headers() });
+          if (!res.ok) throw new Error(`GET ${path} → ${res.status}: ${await res.text()}`);
+          const blob = await res.blob();
+          const cd = res.headers.get('content-disposition') ?? '';
+          return { blob, filename: cd.match(/filename="([^"]+)"/)?.[1] ?? `expenses-${periodId}.csv` };
+        },
+        claimPdfUrl: (claimId: string, opts?: { download?: boolean }) => api(`/expenses/claims/${encodeURIComponent(claimId)}/pdf${opts?.download ? '?download=1' : ''}`),
+      },
+    },
     polls: {
       list: () => get<Poll[]>('/polls'),
       get: (id: string) => get<Poll | undefined>(`/polls/${id}`).catch(() => undefined),

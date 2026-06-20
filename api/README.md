@@ -54,6 +54,8 @@ email clients than an inline `cid:` attachment.
 | **Community notification** | `POST /v1/notifications` | **all band members** — everyone in the `band-members` Entra group (incl. band members who are also staff). **Non-band-member staff are excluded.** | the notification title + body + category |
 | **Timesheet — submitted / approved / rejected** | the matching `/v1/timekeeping/timesheets/*` endpoints | the **worker** + the **`admins` group** | a per-event **"what changed"** summary (status, hour/OT/week diffs, per-day entry changes; rejection reason) + current totals |
 | **Timesheet — edited** (admin edits a worker's sheet) | `PATCH /v1/timekeeping/timesheets/admin/:id` | the **worker** + the **editing admin only** (not the whole group) | the same "what changed" summary. **Draft sheets don't email** — a sheet that's never been submitted/approved isn't in the approval pipeline yet, so edits to it are silent. (Adding a timesheet sends no email either.) |
+| **Expense claim — submitted / approved / rejected** | the matching `/v1/expenses/claims/*` endpoints | the **submitter** + the **`finance` and `admins` groups** | a receipt breakdown (vendor · amount · tag) + claim totals; rejection reason |
+| **Expense claim — edited** (admin edits a claim) | `PATCH /v1/expenses/claims/admin/:id` | the **submitter** + the **editing admin only** | the same receipt breakdown + totals |
 | **Staff account removed (offboarding)** | `DELETE /v1/onboarding/people/:id` | the **`admins` group** + the person's **non-`skintyee.ca`** email (their `@skintyee.ca` mailbox is gone) | name, account, who deleted it |
 
 **Not emailed:** Teams / Microsoft 365 **meetings & events** — Microsoft 365
@@ -82,7 +84,8 @@ persisted in the `AppSetting` table; in-memory fallback when Prisma is down):
 
 - **Per-category kill-switches** — globally enable/disable each class of system
   email: `staffOtp`, `communityNotifications`, `timesheetEvents`,
-  `accountDeleted`. A disabled category short-circuits the send at the call site.
+  `expenseEvents`, `accountDeleted`. A disabled category short-circuits the send
+  at the call site.
 - **Sender identity** — `fromName` / `fromEmail` (the Mailgun `From`) and
   `replyTo` (the `Reply-To` header), applied to **every** outgoing email by
   `MailgunService`. These default to the `MAILGUN_FROM` / `MAILGUN_REPLY_TO`

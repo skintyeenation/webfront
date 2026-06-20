@@ -19,6 +19,10 @@ import { DevicesController } from './devices.controller';
 import { MailgunService } from './mailgun.service';
 import { SettingsService } from './settings.service';
 import { SettingsController } from './settings.controller';
+import { ExpensesController } from './expenses.controller';
+import { ExpensesService } from './expenses.service';
+import { ExpenseReportsService } from './expense-reports.service';
+import { AnthropicService } from './anthropic.service';
 
 @Module({
   imports: [StorageModule],
@@ -29,10 +33,14 @@ import { SettingsController } from './settings.controller';
     StaffAuthController,  // staff-auth feature — public /v1/auth/staff/*
     DevicesController,    // System → Devices (Entra devices, seeded; admin-only)
     SettingsController,   // System → Configure Notifications (admin-only)
+    ExpensesController,   // Expenses module — claims/receipts/tags (mirrors TimeKeeping)
   ],
   providers: [
     DataService,
     SettingsService,   // Admin-configurable email toggles + sender/reply-to
+    ExpensesService,   // Expense claims/items/tags + receipt upload + AI prefill
+    ExpenseReportsService, // Expense PDF/CSV reports (band letterhead, like timesheets)
+    AnthropicService,  // Claude vision — receipt extraction + tag suggestion
     GraphFeedService,  // ADR-14: Microsoft Graph reader for Planner + Teams meetings
     PrismaService,     // ADR-7:  Postgres data layer (degrades to in-memory if no DATABASE_URL)
     ExoService,        // ADR-15: Exchange Online PowerShell via Azure Function (shared mailbox perms)

@@ -39,6 +39,11 @@ export interface DocumentStorageAdapter {
   /** (Re-)issue a download URL for an existing key. Idempotent. */
   urlFor(key: string): Promise<string>;
 
+  /** Read the raw bytes for a key so the api/ can stream them itself
+   *  (e.g. receipt thumbnails/previews, which can't carry auth headers
+   *  to a presigned URL). Returns null when the key is unknown. */
+  read(key: string): Promise<{ bytes: Buffer; mimeType: string } | null>;
+
   /** Delete by key. Idempotent — no error if already gone. */
   delete(key: string): Promise<void>;
 

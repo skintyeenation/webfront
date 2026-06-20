@@ -80,6 +80,17 @@ export class AzureBlobStorageAdapter implements DocumentStorageAdapter {
     return this.publicUrl(key);
   }
 
+  async read(key: string): Promise<{ bytes: Buffer; mimeType: string } | null> {
+    if (!this.hasRealAzure) {
+      const e = this.inMemory.get(key);
+      return e ? { bytes: e.bytes, mimeType: e.mimeType } : null;
+    }
+    const res = await fetch(this.publicUrl(key));
+    if (!res.ok) return null;
+    const buf = Buffer.from(await res.arrayBuffer());
+    return { bytes: buf, mimeType: res.headers.get('content-type') ?? 'application/octet-stream' };
+  }
+
   async delete(key: string): Promise<void> {
     if (!this.hasRealAzure) {
       this.inMemory.delete(key);
