@@ -86,15 +86,23 @@ beside it). This is the linchpin — it can't be done from the cloud.*
 
 ### Step 2 — Turn on SSPR in Entra
 [entra.microsoft.com](https://entra.microsoft.com) → **Protection → Password
-reset**:
+reset**. Each setting below is a **separate sub-page in that blade's left menu**
+(they are *not* all under Properties — Properties holds **only** the master
+*"Self service password reset enabled"* switch, which threw us off 2026-06-19).
+**Click Save on each page.**
+
 - **Properties** → *Self service password reset enabled* = **Selected** (a pilot
-  group) or **All**.
+  group) or **All** → Save. *(This is the only setting on this page — expected.)*
 - **Authentication methods** → require ≥1 method (e.g. Email, Mobile phone),
-  set *Number of methods required to reset*.
-- **Registration** → *Require users to register when signing in* = **Yes**.
+  set *Number of methods required to reset* → Save.
+- **Registration** → *Require users to register when signing in* = **Yes** → Save.
 - **On-premises integration** → *Write back passwords to your on-premises
   directory* = **Yes** (this toggle only appears **after Step 1**) → *Allow
-  users to unlock accounts* = **Yes**.
+  users to unlock accounts* = **Yes** → Save. **← the writeback toggle that matters.**
+
+> Prereqs confirmed 2026-06-19: tenant has **`AAD_PREMIUM` (Entra ID P1)** — 25
+> enabled / 6 assigned — and the operator account `admin@skintyeenation.onmicrosoft.com`
+> is **Global Administrator**, so all four pages are editable.
 
 > **Observed 2026-06-19 — don't trust the cloud Graph flag.** After writeback was
 > fully enabled on-prem, the directory flag `passwordWritebackEnabled` (Graph
