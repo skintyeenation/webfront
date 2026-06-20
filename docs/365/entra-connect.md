@@ -321,6 +321,14 @@ sign in). Check on the device: `dsregcmd /status` → **`AzureAdJoined : YES`** 
 
 ## Troubleshooting
 
+**"Microsoft Entra Connect provisioning agent (cloud sync): Not detected" in the
+portal.** **Expected — leave it.** That status is for *Entra Cloud Sync*, a
+separate lightweight agent we deliberately do **not** use. We run the **full
+Microsoft Entra Connect Sync** (shown as *"Set up complete"*), which is also what
+performs **password writeback**. "Not detected" for the cloud-sync agent is the
+correct state; installing it would add a second, competing sync engine. It is
+**unrelated** to any writeback / SSPR issue.
+
 **"Using an enterprise or domain admin account for your AD forest account is not
 allowed"** on the *Connect your directories* screen. This appears only when you
 pick **"Use existing AD account"** and type a privileged account — Entra Connect
