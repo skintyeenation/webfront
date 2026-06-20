@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Image, TouchableOpacity, View } from 'react-native';
 import { ActivityIndicator } from 'react-native';
-import { Avatar, Button, Card, Chip, Divider, HelperText, Text, TextInput } from 'react-native-paper';
+import { Avatar, Button, Card, Chip, Divider, HelperText, Switch, Text, TextInput } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import * as WebBrowser from 'expo-web-browser';
 import { PageContainer, PageContent } from 'skintyee/components/layout';
@@ -441,6 +441,8 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
   const directory = useAppSelector((s) => s.directory.entities);
   const isAdmin = role === 'admin';
   const isSigningIn = status === 'signing-in';
+  // Dev-only: the advanced role switcher is hidden behind a toggle.
+  const [showRoleSwitcher, setShowRoleSwitcher] = useState(false);
 
   // Match the signed-in user against the directory to pick up hasPhoto +
   // the member id needed by the photo proxy. Falls through if the user
@@ -514,17 +516,6 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
           </View>
 
           <Text style={{ color: theme.colors.text, fontSize: 18, marginTop: 10 }}>{name}</Text>
-          {signedIn && me && isAdmin ? (
-            <Button
-              compact mode="text" icon="pencil"
-              textColor={theme.colors.primary}
-              onPress={() => (navigation as any)?.navigate?.('Admin', { screen: 'memberEdit', params: { id: me._id } })}
-              style={{ marginTop: 2 }}
-              labelStyle={{ fontSize: 12, marginVertical: 0 }}
-            >
-              Edit
-            </Button>
-          ) : null}
 
           {/* Role chip carries a tappable refresh icon — re-fetches
               /v1/admin/role-for/:upn through the unspoof thunk so any
@@ -693,42 +684,34 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
         ) : null}
 
         {!signedIn ? null : (
-          <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 16 }}>
-            <Card.Content>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                <MaterialCommunityIcons name="account-check" size={20} color={theme.colors.success} style={{ marginRight: 8 }} />
-                <Text style={{ color: theme.colors.text, fontSize: 15, flex: 1 }}>Signed in</Text>
-              </View>
-              <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginBottom: 8 }}>
-                Your role was derived from your Microsoft account.
-                {role === 'admin' ? ' You have full admin access.' :
-                 role === 'staff' ? ' You have staff access.' :
-                 role === 'member' ? ' You have band-member access.' :
-                 ''}
-              </Text>
+          <View style={{ marginBottom: 16 }}>
+            {me && isAdmin ? (
               <Button
-                mode="outlined"
-                icon="lock-reset"
+                mode="outlined" icon="pencil"
                 textColor={theme.colors.primary}
-                onPress={openPasswordReset}
-                style={{ borderColor: theme.colors.primary, alignSelf: 'center', marginTop: 6 }}
+                onPress={() => (navigation as any)?.navigate?.('Admin', { screen: 'memberEdit', params: { id: me._id } })}
+                style={{ borderColor: theme.colors.primary, marginBottom: 8 }}
               >
-                Reset my password
+                Edit Account
               </Button>
-              <HelperText type="info" visible style={{ textAlign: 'center' }}>
-                Opens Microsoft self-service reset — set a new password, then sign back in.
-              </HelperText>
-              <Button
-                mode="outlined"
-                icon="logout"
-                textColor={theme.colors.accent}
-                onPress={() => dispatch(signOut())}
-                style={{ borderColor: theme.colors.defaultBorder, alignSelf: 'center', marginTop: 2 }}
-              >
-                Sign out
-              </Button>
-            </Card.Content>
-          </Card>
+            ) : null}
+            <Button
+              mode="outlined" icon="lock-reset"
+              textColor={theme.colors.primary}
+              onPress={openPasswordReset}
+              style={{ borderColor: theme.colors.primary, marginBottom: 8 }}
+            >
+              Reset Password
+            </Button>
+            <Button
+              mode="outlined" icon="logout"
+              textColor={theme.colors.accent}
+              onPress={() => dispatch(signOut())}
+              style={{ borderColor: theme.colors.accent }}
+            >
+              Sign Out
+            </Button>
+          </View>
         )}
 
         {/* Dev role switcher ---------------------------------------------
@@ -740,9 +723,13 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
             comes through normally. */}
         {!Config.isProd ? (
         <>
-        <Text style={{ color: theme.colors.textDarker, marginBottom: 8 }}>
-          Switch role (development only){isSpoofed ? ` · tap "${role}" again to revert to your ${canonicalRole} role` : ''}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <Text style={{ color: theme.colors.textDarker, flex: 1, paddingRight: 8 }}>
+            Advanced: role switcher (dev only){isSpoofed ? ` · spoofing ${role}` : ''}
+          </Text>
+          <Switch value={showRoleSwitcher} onValueChange={setShowRoleSwitcher} color={theme.colors.primary} />
+        </View>
+        {showRoleSwitcher ? (
         <Card style={{ backgroundColor: theme.colors.darkDefault }}>
           <Card.Content>
             {ROLES.map((r, i) => {
@@ -790,6 +777,7 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
             })}
           </Card.Content>
         </Card>
+        ) : null}
         </>
         ) : null}
       </PageContent>
