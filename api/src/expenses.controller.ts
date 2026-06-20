@@ -155,6 +155,17 @@ export class ExpensesController {
     res.send(bytes);
   }
 
+  // Separate "receipts & line items by user" PDF (general summary untouched).
+  @Get('reports/:periodId/by-user/pdf') @Roles('staff', 'admin')
+  async reportByUserPdf(@Param('periodId') periodId: string, @Query('download') download: string | undefined, @Req() req: any, @Res() res: any) {
+    await this.assertCanApprove(req);
+    const { bytes, fileName } = await this.reports.getByUserPdf(periodId);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `${download === '1' ? 'attachment' : 'inline'}; filename="${fileName}"`);
+    res.setHeader('Content-Length', String(bytes.length));
+    res.send(bytes);
+  }
+
   @Get('reports/:periodId/csv') @Roles('staff', 'admin')
   async reportCsv(@Param('periodId') periodId: string, @Req() req: any, @Res() res: any) {
     await this.assertCanApprove(req);

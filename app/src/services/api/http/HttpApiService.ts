@@ -314,6 +314,14 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
           return { blob, filename: cd.match(/filename="([^"]+)"/)?.[1] ?? `expenses-${periodId}.csv` };
         },
         claimPdfUrl: (claimId: string, opts?: { download?: boolean }) => api(`/expenses/claims/${encodeURIComponent(claimId)}/pdf${opts?.download ? '?download=1' : ''}`),
+        fetchByUserPdf: async (periodId: string, opts?: { download?: boolean }) => {
+          const path = `/expenses/reports/${encodeURIComponent(periodId)}/by-user/pdf${opts?.download ? '?download=1' : ''}`;
+          const res = await fetch(api(path), { headers: headers() });
+          if (!res.ok) throw new Error(`GET ${path} → ${res.status}: ${await res.text()}`);
+          const blob = await res.blob();
+          const cd = res.headers.get('content-disposition') ?? '';
+          return { blob, filename: cd.match(/filename="([^"]+)"/)?.[1] ?? `expenses-by-user-${periodId}.pdf` };
+        },
       },
     },
     polls: {

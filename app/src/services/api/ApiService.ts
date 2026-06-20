@@ -315,6 +315,9 @@ export interface ApiService {
       fetchPdf(periodId: string, opts?: { download?: boolean }): Promise<{ blob: Blob; filename: string }>;
       fetchCsv(periodId: string): Promise<{ blob: Blob; filename: string }>;
       claimPdfUrl(claimId: string, opts?: { download?: boolean }): string;
+      // Separate detailed report: receipts + line items grouped by user, with
+      // the receipt image in the right column.
+      fetchByUserPdf(periodId: string, opts?: { download?: boolean }): Promise<{ blob: Blob; filename: string }>;
     };
   };
   polls: {

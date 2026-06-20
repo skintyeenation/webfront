@@ -61,7 +61,10 @@ export interface PdfImage {
   /** Dedup key — identical keys embed the pixel data only once. */
   key: string;
   /** zlib/FlateDecode-compressed raw RGB (8 bits/component), base64. */
-  flateRgbB64: string;
+  flateRgbB64?: string;
+  /** OR: raw JPEG bytes, base64 — embedded directly via DCTDecode (PDF reads
+   *  JPEG natively, no decoding needed). Takes precedence over flateRgbB64. */
+  jpegB64?: string;
   /** Native pixel dimensions of the (deflated) image. */
   widthPx: number;
   heightPx: number;
@@ -156,13 +159,15 @@ export function buildPdf(pages: PdfPage[]): Buffer {
   for (const page of pages) {
     for (const img of page.images ?? []) {
       if (imObjNum.has(img.key)) continue;
-      const bytes = Buffer.from(img.flateRgbB64, 'base64');
+      const isJpeg = !!img.jpegB64;
+      const bytes = Buffer.from((isJpeg ? img.jpegB64 : img.flateRgbB64) ?? '', 'base64');
       const objNum = objects.length + 1;
       imObjNum.set(img.key, objNum);
       imName.set(img.key, `Im${objNum}`);
+      const filter = isJpeg ? 'DCTDecode' : 'FlateDecode';
       objects.push(
         `<</Type/XObject/Subtype/Image/Width ${img.widthPx}/Height ${img.heightPx}` +
-        `/ColorSpace/DeviceRGB/BitsPerComponent 8/Filter/FlateDecode/Length ${bytes.length}>>` +
+        `/ColorSpace/DeviceRGB/BitsPerComponent 8/Filter/${filter}/Length ${bytes.length}>>` +
         `\nstream\n${bytes.toString('binary')}\nendstream`,
       );
     }

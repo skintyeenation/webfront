@@ -1,5 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
+import { DOCUMENT_STORAGE } from './storage/storage.module';
+import { DocumentStorageAdapter } from './storage/document-storage';
 import { recentExpensePeriods, expensePeriodFor, ExpensePeriod } from './skintyee-expense-periods';
 import { buildPdf, PdfLine, PdfRect, PdfImage, PDF_CONST } from './pdf-builder';
 import { TIMESHEET_LOGO } from './timesheet-logo';
@@ -33,6 +35,35 @@ function wrapText(text: string, maxChars: number): string[] {
 
 const money = (n: number, cur = 'CAD') => `${cur} ${round2(n).toFixed(2)}`;
 
+// Receipt line-item summary detection (mirrors the app's isSummaryLine). Summary
+// rows (subtotal/total/tax/…) aren't real items; tax/total are printed from the
+// item fields, the subtotal line is shown.
+const SUMMARY_RE = /^\s*(sub[\s-]*total|total|balance(\s*due)?|amount\s*due|change|tax|gst|hst|pst|qst|tip|gratuity|rounding|cash|visa|mastercard|debit|credit|payment|due)\b/i;
+const isSubtotalLine = (li: any) => /sub[\s-]*total/i.test(li?.description ?? '');
+const isSummaryLine = (li: any) => !!li && (li.isSummary === true || SUMMARY_RE.test(li.description ?? ''));
+const isHiddenSummary = (li: any) => isSummaryLine(li) && !isSubtotalLine(li);
+
+// Parse a JPEG's pixel dimensions from its SOF marker (no decode needed) so the
+// PDF image XObject can declare Width/Height. Returns null if not a JPEG.
+function jpegSize(buf: Buffer): { width: number; height: number } | null {
+  if (buf.length < 4 || buf[0] !== 0xff || buf[1] !== 0xd8) return null;
+  let o = 2;
+  while (o + 9 < buf.length) {
+    if (buf[o] !== 0xff) { o++; continue; }
+    const marker = buf[o + 1];
+    // SOF0..SOF15 carry frame dimensions (skip non-frame DHT/DQT/RST/etc).
+    if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {
+      const height = buf.readUInt16BE(o + 5);
+      const width = buf.readUInt16BE(o + 7);
+      return { width, height };
+    }
+    const len = buf.readUInt16BE(o + 2);
+    if (len < 2) return null;
+    o += 2 + len;
+  }
+  return null;
+}
+
 const pdfCache = new Map<string, { bytes: Buffer; fileName: string }>();
 
 export interface ExpenseReportSummary {
@@ -50,7 +81,10 @@ export interface ExpenseReportSummary {
 export class ExpenseReportsService {
   private readonly log = new Logger(ExpenseReportsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(DOCUMENT_STORAGE) private readonly storage: DocumentStorageAdapter,
+  ) {}
 
   async list(count = 12): Promise<ExpenseReportSummary[]> {
     const periods = [expensePeriodFor(), ...recentExpensePeriods(count - 1)];
@@ -115,6 +149,109 @@ export class ExpenseReportsService {
     this.claimPages(pages, period, claim, tagLabels, /*cover*/ true);
     const fileName = `expense-${claim.submitterUpn}-${claim.payPeriodId}.pdf`;
     return { bytes: buildPdf(pages as any), fileName };
+  }
+
+  /**
+   * "Receipts & line items by user" — a SEPARATE detailed report (the general
+   * expense summary is untouched). Grouped by submitter; for each receipt it
+   * prints the line items (with subtotal/tax/total) in the left column and the
+   * receipt IMAGE in the right column (JPEG embedded; non-JPEG shows a note).
+   */
+  async getByUserPdf(payPeriodId: string): Promise<{ bytes: Buffer; fileName: string }> {
+    if (!this.prisma.isAvailable) throw new Error('Postgres required.');
+    const claims = await this.prisma.expenseClaim.findMany({
+      where: { payPeriodId }, include: { items: { orderBy: [{ date: 'asc' }] } }, orderBy: [{ submitterName: 'asc' }],
+    });
+    const period = expensePeriodFor(payPeriodId);
+    const tagLabels = await this.tagLabelMap();
+    const pages: Page[] = [];
+    const totalAmount = claims.reduce((s, c) => s + (c.totalAmount ?? 0), 0);
+    coverPage(pages, period, { claimCount: claims.length, totalAmount, currency: claims[0]?.currency ?? 'CAD' });
+    for (const c of claims) await this.userReceiptPages(pages, period, c, tagLabels);
+    return { bytes: buildPdf(pages as any), fileName: `expenses-by-user-${payPeriodId}.pdf` };
+  }
+
+  // One submitter section: each receipt = line items (left) + image (right).
+  private async userReceiptPages(pages: Page[], period: ExpensePeriod, claim: any, tagLabels: Map<string, { label: string; gl: string | null }>) {
+    const { PAGE_W, PAGE_MARGIN } = PDF_CONST;
+    const cur = claim.currency ?? 'CAD';
+    const LEFT_X = PAGE_MARGIN;
+    const AMT_X = PAGE_MARGIN + 250;                 // right edge of the left column's numbers
+    const IMG_X = PAGE_MARGIN + 330;                 // right-column receipt image
+    const IMG_W = PAGE_W - PAGE_MARGIN - IMG_X;      // ~186pt
+    const FLOOR = 96;
+
+    let { page, y } = newClaimPage(period, claim.submitterName, { claim });
+    if ((claim as any).submitterEmail) { page.lines.push({ size: 9, y, text: (claim as any).submitterEmail }); y -= 16; }
+
+    const items = (claim.items ?? []) as any[];
+    if (items.length === 0) { page.lines.push({ size: 10, y, text: '(no receipts)' }); pages.push(page); return; }
+
+    let imgSeq = 0;
+    for (const it of items) {
+      // Resolve the receipt image up front so we know how tall the block is.
+      const img = await this.receiptJpeg(it, IMG_X, IMG_W, `r${claim.id}-${imgSeq++}`);
+      const lineRows = (Array.isArray(it.lineItems) ? it.lineItems : []).filter((li: any) => !isHiddenSummary(li));
+      const textH = 26 + (lineRows.length + 2) * 12 + 18; // header + lines + tax/total
+      const blockH = Math.max(textH, img ? img.h : 0) + 14;
+      if (y - blockH < FLOOR) { pages.push(page); ({ page, y } = newClaimPage(period, `${claim.submitterName} (cont.)`)); }
+
+      const topY = y;
+      // Right column: the receipt image (or a note).
+      if (img) {
+        img.y = topY - img.h;
+        page.images.push(img.pdf);
+      } else {
+        page.lines.push({ size: 8, x: IMG_X, y: topY - 10, text: it.mimeType?.includes('pdf') ? '[PDF receipt — see attachment]' : (it.fileName ? '[image receipt]' : '[no image]') });
+      }
+
+      // Left column: receipt header + line items.
+      let ly = topY;
+      const meta = tagLabels.get(it.tagSlug ?? '');
+      const tagCell = `${meta?.gl ? meta.gl + ' ' : ''}${meta?.label ?? it.tagSlug ?? '-'}`;
+      page.lines.push({ size: 11, x: LEFT_X, y: ly, text: (it.vendor || 'Receipt').slice(0, 34) });
+      page.lines.push({ size: 10, x: AMT_X - 6, y: ly, text: money(it.amount ?? 0, cur) });
+      ly -= 13;
+      page.lines.push({ size: 8.5, x: LEFT_X, y: ly, text: `${it.date ?? '-'}  ·  ${tagCell}`.slice(0, 46) }); ly -= 14;
+      for (const li of lineRows) {
+        const isSub = isSubtotalLine(li);
+        const label = isSub ? 'Subtotal' : `${li.qty && li.qty > 1 ? `${li.qty}× ` : ''}${li.description ?? ''}`;
+        page.lines.push({ size: 9, x: LEFT_X + 10, y: ly, text: `${isSub ? '' : '· '}${label}${li.excluded ? ' (excluded)' : ''}`.slice(0, 38) });
+        if (li.amount != null) page.lines.push({ size: 9, x: AMT_X - 6, y: ly, text: money(li.amount, cur) });
+        ly -= 12;
+      }
+      if (it.taxAmount != null) { page.lines.push({ size: 9, x: LEFT_X + 10, y: ly, text: 'Tax' }); page.lines.push({ size: 9, x: AMT_X - 6, y: ly, text: money(it.taxAmount, cur) }); ly -= 12; }
+      page.lines.push({ size: 9.5, x: LEFT_X + 10, y: ly, text: 'Total' }); page.lines.push({ size: 9.5, x: AMT_X - 6, y: ly, text: money(it.amount ?? 0, cur) });
+
+      y = topY - blockH;
+      page.rects.push({ x: LEFT_X, y: y + 8, w: PAGE_W - 2 * PAGE_MARGIN, h: 0.4 });
+    }
+
+    if (y - 26 < FLOOR) { pages.push(page); ({ page, y } = newClaimPage(period, `${claim.submitterName} (cont.)`)); }
+    page.lines.push({ size: 11, x: LEFT_X, y: y - 8, text: 'Claim total' });
+    page.lines.push({ size: 11, x: AMT_X - 6, y: y - 8, text: money(claim.totalAmount ?? 0, cur) });
+    pages.push(page);
+  }
+
+  // Read a receipt's bytes + embed as a right-column JPEG (scaled into IMG_W).
+  // Returns null for non-JPEG / unreadable receipts (caller prints a note).
+  private async receiptJpeg(item: any, x: number, maxW: number, key: string): Promise<{ pdf: PdfImage; h: number; y: number } | null> {
+    if (!item.fileKey) return null;
+    try {
+      const r = await this.storage.read(item.fileKey);
+      if (!r) return null;
+      const isJpeg = (item.mimeType ?? r.mimeType ?? '').includes('jpeg') || (item.mimeType ?? '').includes('jpg');
+      if (!isJpeg) return null;
+      const dim = jpegSize(r.bytes);
+      if (!dim) return null;
+      const maxH = 150;
+      let w = maxW, h = (maxW * dim.height) / dim.width;
+      if (h > maxH) { h = maxH; w = (maxH * dim.width) / dim.height; }
+      return { pdf: { key, jpegB64: r.bytes.toString('base64'), widthPx: dim.width, heightPx: dim.height, x, y: 0, w, h }, h, y: 0 };
+    } catch (e: any) {
+      this.log.warn(`receiptJpeg ${item.id}: ${e?.message ?? e}`);
+      return null;
+    }
   }
 
   async csv(payPeriodId: string): Promise<{ filename: string; csv: string }> {

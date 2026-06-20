@@ -39,7 +39,7 @@ export default function ExpenseReports() {
   const [reports, setReports] = useState<ExpenseReportSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | undefined>();
-  const [busyAction, setBusyAction] = useState<'open' | 'save' | 'csv' | undefined>();
+  const [busyAction, setBusyAction] = useState<'open' | 'save' | 'csv' | 'byuser' | undefined>();
   const [error, setError] = useState<string | undefined>();
   const { showToast, toastNode } = useToast();
 
@@ -72,6 +72,15 @@ export default function ExpenseReports() {
       const { blob, filename } = await apiFactory().expenses.reports.fetchPdf(r.payPeriodId, { download: true });
       saveBlob(blob, filename);
       showToast('PDF saved to Downloads');
+    } catch (e: any) { setError(e?.message ?? String(e)); }
+    finally { setBusy(undefined); setBusyAction(undefined); }
+  };
+  const openByUser = async (r: ExpenseReportSummary) => {
+    if (!r.hasData) return;
+    setBusy(r.payPeriodId); setBusyAction('byuser'); setError(undefined);
+    try {
+      const { blob } = await apiFactory().expenses.reports.fetchByUserPdf(r.payPeriodId);
+      openBlob(blob);
     } catch (e: any) { setError(e?.message ?? String(e)); }
     finally { setBusy(undefined); setBusyAction(undefined); }
   };
@@ -134,6 +143,10 @@ export default function ExpenseReports() {
                     <Button compact mode="outlined" icon="file-delimited" textColor={theme.colors.text}
                       onPress={() => downloadCsv(r)} loading={isBusy && busyAction === 'csv'} disabled={isBusy} style={{ marginLeft: 6 }}>
                       CSV
+                    </Button>
+                    <Button compact mode="outlined" icon="account-details" textColor={theme.colors.text}
+                      onPress={() => openByUser(r)} loading={isBusy && busyAction === 'byuser'} disabled={isBusy} style={{ marginLeft: 6, marginTop: 6 }}>
+                      By user + receipts
                     </Button>
                   </View>
                 ) : null}

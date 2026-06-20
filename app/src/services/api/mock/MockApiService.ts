@@ -129,6 +129,7 @@ export const mockApiService: ApiService = {
       fetchPdf:    () => { throw new Error('expenses.reports.fetchPdf requires the real api/'); },
       fetchCsv:    () => { throw new Error('expenses.reports.fetchCsv requires the real api/'); },
       claimPdfUrl: () => '',
+      fetchByUserPdf: () => { throw new Error('expenses.reports.fetchByUserPdf requires the real api/'); },
     },
   },
   polls: {
