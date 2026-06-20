@@ -330,16 +330,23 @@ export class ExpenseReportsService {
         page.lines.push({ size: 10, x: PAGE_MARGIN, y, text: it.date ?? '-' });
         page.lines.push({ size: 10, x: TAG_X, y, text: tagCell });
         // Show each receipt in its OWN currency (the "USD" prefix flags foreign).
-        page.lines.push({ size: 10, x: AMT_X, y, text: money(it.amount ?? 0, it.currency ?? 'CAD') });
+        const icur = it.currency ?? 'CAD';
+        page.lines.push({ size: 10, x: AMT_X, y, text: money(it.amount ?? 0, icur) });
         vendorLines.forEach((vl, i) => page.lines.push({ size: 10, x: VENDOR_X, y: y - i * LINE_H, text: vl }));
         y -= rowH;
+        // Foreign receipt: show the exchange rate + CAD equivalent underneath.
+        if (icur !== 'CAD') {
+          const rate = (it as any).fxRate ?? rateFor(icur);
+          page.lines.push({ size: 8, x: AMT_X, y, text: `@ ${rate} = ${money(toCadAt(it.amount ?? 0, rate), 'CAD')}` });
+          y -= 11;
+        }
       }
     }
     y -= 6;
     // Claim total is the CAD-converted sum.
     page.lines.push({ size: 11, x: AMT_X - 60, y, text: `Total (CAD): ${money(claim.totalAmount ?? 0, 'CAD')}` });
     y -= 14;
-    if (hasForeign) { page.lines.push({ size: 8, x: PAGE_MARGIN, y, text: 'Includes foreign-currency receipts — total converted to CAD.' }); y -= 12; }
+    if (hasForeign) { page.lines.push({ size: 8, x: PAGE_MARGIN, y, text: `Includes foreign-currency receipts — converted to CAD (USD @ ${rateFor('USD')}).` }); y -= 12; }
     y -= 4;
 
     if (claim.notes) {
