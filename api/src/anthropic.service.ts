@@ -11,6 +11,10 @@ import { Injectable, Logger } from '@nestjs/common';
 // Best-effort: when the key is unset OR anything fails, returns all-nulls so the
 // submitter can still enter the receipt manually.
 
+// Outcome of an extraction attempt, surfaced to the UI so the submitter knows
+// WHY a receipt didn't auto-fill (not just silently nothing).
+export type ExtractStatus = 'extracted' | 'unconfigured' | 'unsupported' | 'failed';
+
 export interface ReceiptExtraction {
   amount: number | null;
   vendor: string | null;
@@ -18,11 +22,13 @@ export interface ReceiptExtraction {
   currency: string | null; // ISO, e.g. CAD
   suggestedTagSlug: string | null;
   confidence: number | null; // 0..1
+  status: ExtractStatus;
+  message: string | null; // human-readable note when status != 'extracted'
 }
 
-const EMPTY: ReceiptExtraction = {
-  amount: null, vendor: null, date: null, currency: null, suggestedTagSlug: null, confidence: null,
-};
+const empty = (status: ExtractStatus, message: string | null = null): ReceiptExtraction => ({
+  amount: null, vendor: null, date: null, currency: null, suggestedTagSlug: null, confidence: null, status, message,
+});
 
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
@@ -45,7 +51,7 @@ export class AnthropicService {
   ): Promise<ReceiptExtraction> {
     if (!this.configured) {
       this.log.warn('Anthropic not configured (ANTHROPIC_API_KEY unset) — skipping receipt extraction');
-      return { ...EMPTY };
+      return empty('unconfigured', 'AI receipt reading isn’t set up on the server — enter the details manually.');
     }
 
     // Build the media content block (image vs PDF document).
@@ -56,7 +62,7 @@ export class AnthropicService {
       media = { type: 'image', source: { type: 'base64', media_type: mimeType, data: bytes.toString('base64') } };
     } else {
       this.log.warn(`extractReceipt: unsupported mimeType ${mimeType} — skipping`);
-      return { ...EMPTY };
+      return empty('unsupported', `Can’t AI-read this file type (${mimeType}) — enter the details manually.`);
     }
 
     const slugs = tags.map((t) => t.slug);
@@ -99,7 +105,17 @@ export class AnthropicService {
         }),
       });
       if (!res.ok) {
-        throw new Error(`Anthropic ${res.status}: ${await res.text()}`);
+        const raw = await res.text();
+        let msg = `Anthropic API error ${res.status}`;
+        try { const j = JSON.parse(raw); if (j?.error?.message) msg = j.error.message; } catch { /* keep default */ }
+        // Friendly mapping for the common billing case.
+        if (/credit balance is too low|too low to access/i.test(msg)) {
+          msg = 'AI reading is unavailable — the Anthropic account is out of credits. Top up billing to enable it.';
+        } else {
+          msg = `AI couldn’t read the receipt (${msg}). Enter the details manually.`;
+        }
+        this.log.warn(`extractReceipt failed: ${raw.slice(0, 300)}`);
+        return empty('failed', msg);
       }
       const data: any = await res.json();
       const toolUse = (data.content ?? []).find((c: any) => c.type === 'tool_use');
@@ -111,12 +127,14 @@ export class AnthropicService {
         currency: typeof inp.currency === 'string' && inp.currency.trim() ? inp.currency.trim().toUpperCase() : null,
         suggestedTagSlug: typeof inp.tagSlug === 'string' && slugs.includes(inp.tagSlug) ? inp.tagSlug : null,
         confidence: typeof inp.confidence === 'number' ? inp.confidence : null,
+        status: 'extracted',
+        message: null,
       };
       this.log.log(`extractReceipt: ${out.vendor ?? '?'} ${out.amount ?? '?'} → tag ${out.suggestedTagSlug ?? '∅'}`);
       return out;
     } catch (e: any) {
       this.log.warn(`extractReceipt failed: ${e?.message ?? e}`);
-      return { ...EMPTY };
+      return empty('failed', `AI couldn’t read the receipt (${e?.message ?? 'network error'}). Enter the details manually.`);
     }
   }
 }

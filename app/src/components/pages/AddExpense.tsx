@@ -51,7 +51,7 @@ export default function AddExpense({ navigation, route }: any) {
   const [saving, setSaving] = useState(false);
   const [submittedMode, setSubmittedMode] = useState<'draft' | 'submit' | null>(null);
   const [error, setError] = useState<string | undefined>();
-  const { showToast, toastNode } = useToast();
+  const { showToast, toastNode } = useToast(5000); // a bit longer so AI status messages are readable
   // Receipts uploaded this session but not yet committed via Save/Submit.
   // If the user leaves without saving, these (file + row) are purged so we
   // never leave orphaned uploads behind. Cleared on a successful Save/Submit.
@@ -109,10 +109,18 @@ export default function AddExpense({ navigation, route }: any) {
       const file = await pick();
       if (!file) return;
       setUploading(true);
-      const { item } = await apiFactory().expenses.addReceipt(claim.id, file, {});
+      const { item, ai } = await apiFactory().expenses.addReceipt(claim.id, file, {});
       uncommittedRef.current.add(item.id);
       setItems((prev) => [...prev, item]);
-      showToast(item.aiExtracted ? 'Receipt read by AI — review the details' : 'Receipt added');
+      // Tell the submitter what the AI did — or why it didn't (not set up, out
+      // of credits, unreadable, …) — instead of silently adding an empty row.
+      if (item.aiExtracted) {
+        showToast('Receipt read by AI — review the details');
+      } else if (ai?.message) {
+        showToast(ai.message, 'error');
+      } else {
+        showToast('AI couldn’t find details on this receipt — enter them manually.', 'error');
+      }
     } catch (e: any) {
       setError(e?.message ?? String(e));
     } finally {

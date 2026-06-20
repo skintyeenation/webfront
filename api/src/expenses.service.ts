@@ -1,6 +1,6 @@
 import { ForbiddenException, Inject, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
-import { AnthropicService } from './anthropic.service';
+import { AnthropicService, ReceiptExtraction } from './anthropic.service';
 import { DOCUMENT_STORAGE } from './storage/storage.module';
 import { DocumentStorageAdapter } from './storage/document-storage';
 import { EXPENSE_TAG_SEED } from './expense-tags.seed';
@@ -238,7 +238,7 @@ export class ExpensesService implements OnModuleInit {
     let storageDriver: string | null = null;
     let fileKey: string | null = null, fileUrl: string | null = null;
     let fileName: string | null = null, mimeType: string | null = null, sizeBytes: number | null = null;
-    let ai = { amount: null as number | null, vendor: null as string | null, date: null as string | null, currency: null as string | null, suggestedTagSlug: null as string | null, confidence: null as number | null };
+    let ai: ReceiptExtraction = { amount: null, vendor: null, date: null, currency: null, suggestedTagSlug: null, confidence: null, status: 'extracted', message: null };
 
     if (file) {
       const up = await this.storage.upload({ fileName: file.fileName, mimeType: file.mimeType, bytes: file.bytes });
