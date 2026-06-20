@@ -53,6 +53,9 @@ export interface PersonRecord {
    *  the Approvals roster + is allowed to enter timesheets via the
    *  saveDraft / submit endpoints. */
   timesheetsEnabled: boolean;
+  /** Toggle gating Expenses. When true, the person shows up in the
+   *  expense Approvals roster + may start/submit expense claims. */
+  expensesEnabled: boolean;
   /** Whether this Person has a password set for the email/password
    *  sign-in path (staff-auth feature). Always false when
    *  bandMemberId is set (Entra-backed Persons use SSO). Drives the
@@ -431,7 +434,7 @@ export class OnboardingService implements OnApplicationBootstrap {
     return Array.from(this.memPeople.values()).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
-  async updatePerson(id: string, patch: Partial<{ displayName: string; email: string | null; phone: string | null; companyId: string | null; bandMemberId: string | null; timesheetsEnabled: boolean }>): Promise<PersonRecord | null> {
+  async updatePerson(id: string, patch: Partial<{ displayName: string; email: string | null; phone: string | null; companyId: string | null; bandMemberId: string | null; timesheetsEnabled: boolean; expensesEnabled: boolean }>): Promise<PersonRecord | null> {
     if (this.prisma.isAvailable) {
       const data: any = {};
       if (patch.displayName != null) data.displayName = patch.displayName;
@@ -439,6 +442,7 @@ export class OnboardingService implements OnApplicationBootstrap {
       if (patch.phone !== undefined) data.phone = patch.phone;
       if (patch.companyId !== undefined) data.companyId = patch.companyId;
       if (patch.timesheetsEnabled !== undefined) data.timesheetsEnabled = patch.timesheetsEnabled;
+      if (patch.expensesEnabled !== undefined) data.expensesEnabled = patch.expensesEnabled;
       // Switching the band-member link → re-pull name/email/phone from
       // the new linked member so it stays authoritative.
       if (patch.bandMemberId !== undefined) {
@@ -481,6 +485,7 @@ export class OnboardingService implements OnApplicationBootstrap {
     if (patch.companyId !== undefined) next.companyId = patch.companyId;
     if (patch.bandMemberId !== undefined) next.bandMemberId = patch.bandMemberId;
     if (patch.timesheetsEnabled !== undefined) next.timesheetsEnabled = patch.timesheetsEnabled;
+    if (patch.expensesEnabled !== undefined) next.expensesEnabled = patch.expensesEnabled;
     this.memPeople.set(id, next);
     return next;
   }
@@ -594,7 +599,7 @@ export class OnboardingService implements OnApplicationBootstrap {
   // If bandMemberId is supplied, pull name/email/phone from the linked
   // BandMember row so they stay authoritative; admin's overrides are only
   // used when there's no link.
-  async createPerson(input: { displayName: string; email?: string; phone?: string; companyId?: string; bandMemberId?: string; timesheetsEnabled?: boolean }): Promise<PersonRecord> {
+  async createPerson(input: { displayName: string; email?: string; phone?: string; companyId?: string; bandMemberId?: string; timesheetsEnabled?: boolean; expensesEnabled?: boolean }): Promise<PersonRecord> {
     if (this.prisma.isAvailable) {
       let displayName = input.displayName;
       let email = input.email;
@@ -617,6 +622,7 @@ export class OnboardingService implements OnApplicationBootstrap {
           companyId: input.companyId ?? null,
           bandMemberId: input.bandMemberId ?? null,
           timesheetsEnabled: !!input.timesheetsEnabled,
+          expensesEnabled: !!input.expensesEnabled,
         },
         include: { bandMember: { select: { id: true, name: true, upn: true } } },
       });
@@ -631,6 +637,7 @@ export class OnboardingService implements OnApplicationBootstrap {
       bandMemberName: null,
       bandMemberUpn: null,
       timesheetsEnabled: !!input.timesheetsEnabled,
+      expensesEnabled: !!input.expensesEnabled,
       hasAppSignIn: false,  // in-memory mode: no password path
       createdAt: new Date().toISOString(),
     };
@@ -860,6 +867,7 @@ function toPersonRecord(row: any): PersonRecord {
     bandMemberName: row.bandMember?.name ?? null,
     bandMemberUpn: row.bandMember?.upn ?? null,
     timesheetsEnabled: !!row.timesheetsEnabled,
+    expensesEnabled: !!row.expensesEnabled,
     // Boolean only — never expose the hash itself. A Person with a
     // linked BandMember can't have a password (link transaction nulls
     // it), so this is implicitly false there.

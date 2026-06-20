@@ -404,8 +404,8 @@ export interface ApiService {
     addLink(stepId: string, input: { label: string; url: string }): Promise<void>;
     removeLink(rowId: string): Promise<void>;
     listPeople(): Promise<PersonDto[]>;
-    createPerson(input: { displayName?: string; email?: string; phone?: string; companyId?: string; bandMemberId?: string; timesheetsEnabled?: boolean }): Promise<PersonDto>;
-    updatePerson(id: string, patch: Partial<{ displayName: string; email: string | null; phone: string | null; companyId: string | null; bandMemberId: string | null; timesheetsEnabled: boolean }>): Promise<PersonDto>;
+    createPerson(input: { displayName?: string; email?: string; phone?: string; companyId?: string; bandMemberId?: string; timesheetsEnabled?: boolean; expensesEnabled?: boolean }): Promise<PersonDto>;
+    updatePerson(id: string, patch: Partial<{ displayName: string; email: string | null; phone: string | null; companyId: string | null; bandMemberId: string | null; timesheetsEnabled: boolean; expensesEnabled: boolean }>): Promise<PersonDto>;
     deletePerson(id: string): Promise<void>;
     listAssignments(opts?: { flowId?: string; personId?: string }): Promise<OnboardingAssignmentDto[]>;
     /** Worker view — assignments belonging to the signed-in caller. */
@@ -467,6 +467,9 @@ export interface PersonDto {
   /** Toggle gating Time Keeping. When true, the person shows up on
    *  the Approvals roster + is allowed to enter timesheets. */
   timesheetsEnabled: boolean;
+  /** Toggle gating Expenses. When true, the person shows up on the
+   *  expense Approvals roster + may start/submit expense claims. */
+  expensesEnabled: boolean;
   /** Whether this Person currently has a password set for the
    *  email/password sign-in path. False for Entra-linked Persons
    *  (they use SSO) and for externals who haven't had one issued yet. */

@@ -131,6 +131,7 @@ export class OnboardingController {
       companyId: b.companyId,
       bandMemberId: b.bandMemberId,
       timesheetsEnabled: b.timesheetsEnabled,
+      expensesEnabled: b.expensesEnabled,
     });
     if (!r) throw new NotFoundException();
     return r;
@@ -187,6 +188,7 @@ export class OnboardingController {
       companyId: b.companyId || undefined,
       bandMemberId: b.bandMemberId || undefined,
       timesheetsEnabled: !!b.timesheetsEnabled,
+      expensesEnabled: !!b.expensesEnabled,
     });
   }
 
