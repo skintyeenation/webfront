@@ -585,6 +585,29 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
               </Card.Content>
             </Card>
 
+            {(me.licenses?.length ?? 0) > 0 ? (
+              <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
+                <Card.Content>
+                  <Text style={{ color: theme.colors.text, fontSize: 14, marginBottom: 8 }}>Microsoft licences</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                    {(me.licenses as string[]).map((p) => {
+                      const paid = p === 'AAD_PREMIUM';
+                      const label = paid ? 'Entra ID P1'
+                        : p === 'O365_BUSINESS_PREMIUM' ? 'Microsoft 365 Business Standard'
+                        : p;
+                      return (
+                        <Chip key={p} compact icon={paid ? 'star-circle' : 'microsoft-office'}
+                          style={{ marginRight: 4, marginTop: 2, backgroundColor: theme.colors.secondary }}
+                          textStyle={{ fontSize: 11, color: theme.colors.text }}>
+                          {label}
+                        </Chip>
+                      );
+                    })}
+                  </View>
+                </Card.Content>
+              </Card>
+            ) : null}
+
             {(me.bandGroups?.length ?? 0) > 0 ? (
               <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12 }}>
                 <Card.Content>
