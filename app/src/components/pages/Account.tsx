@@ -518,7 +518,9 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
             ) : null}
           </View>
 
-          <Text style={{ color: theme.colors.text, fontSize: 18, marginTop: 10 }}>{name}</Text>
+          {signedIn ? (
+            <Text style={{ color: theme.colors.text, fontSize: 18, marginTop: 10 }}>{name}</Text>
+          ) : null}
 
           {/* Role chip carries a tappable refresh icon — re-fetches
               /v1/admin/role-for/:upn through the unspoof thunk so any
