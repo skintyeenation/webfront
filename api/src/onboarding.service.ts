@@ -492,6 +492,39 @@ export class OnboardingService implements OnApplicationBootstrap {
    *  linked BandMember when present, else from email (most external
    *  contractors); rows without either are dropped (can't key a
    *  Timesheet to them). */
+  // ---- Expenses eligibility (mirrors the timesheet helpers, expensesEnabled) -
+  async listExpenseWorkers(): Promise<Array<{ personId: string; workerUpn: string; workerName: string; isBandMember: boolean }>> {
+    if (!this.prisma.isAvailable) return [];
+    const rows = await this.prisma.person.findMany({
+      where: { expensesEnabled: true },
+      include: { bandMember: { select: { upn: true, name: true } } },
+      orderBy: { displayName: 'asc' },
+    });
+    return rows
+      .map((p) => {
+        const upn = (p.bandMember?.upn ?? p.email ?? '').toLowerCase();
+        if (!upn) return null;
+        return { personId: p.id, workerUpn: upn, workerName: p.bandMember?.name ?? p.displayName, isBandMember: !!p.bandMember };
+      })
+      .filter((x): x is { personId: string; workerUpn: string; workerName: string; isBandMember: boolean } => !!x);
+  }
+
+  async isExpenseEligible(upn: string): Promise<boolean> {
+    if (!upn || !this.prisma.isAvailable) return false;
+    const u = upn.toLowerCase();
+    const row = await this.prisma.person.findFirst({
+      where: {
+        expensesEnabled: true,
+        OR: [
+          { email: { equals: u, mode: 'insensitive' } },
+          { bandMember: { upn: { equals: u, mode: 'insensitive' } } },
+        ],
+      },
+      select: { id: true },
+    });
+    return !!row;
+  }
+
   async listTimesheetWorkers(): Promise<Array<{ personId: string; workerUpn: string; workerName: string; isBandMember: boolean }>> {
     if (this.prisma.isAvailable) {
       const rows = await this.prisma.person.findMany({
