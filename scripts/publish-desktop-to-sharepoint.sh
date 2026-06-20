@@ -63,6 +63,10 @@ for f in "$ARTIFACT_DIR"/*.exe "$ARTIFACT_DIR"/*.dmg "$ARTIFACT_DIR"/*.AppImage 
 done
 [ ${#FILES[@]} -gt 0 ] || { echo "✗ no installers in $ARTIFACT_DIR (run 'pnpm --filter @skintyee/app desktop:build:*' first)" >&2; exit 1; }
 
+# URL-encode a Graph drive path (spaces etc.) but keep the '/' separators —
+# electron-builder filenames contain spaces (productName "Skin Tyee").
+encode_path() { printf '%s' "$1" | jq -sRr '@uri' | sed 's|%2F|/|g'; }
+
 echo "▸ publishing ${#FILES[@]} artifact(s) → /${BASE_PATH} on '${SHAREPOINT_DRIVE_NAME}'"
 
 upload_one() {
@@ -71,11 +75,12 @@ upload_one() {
   remote="${BASE_PATH}/${name}"
   size=$(wc -c < "$file" | tr -d ' ')
   if [ "$DRY_RUN" = 1 ]; then echo "  (dry-run) would upload $name (${size} bytes) → /$remote"; return; fi
+  local enc; enc=$(encode_path "$remote")
 
   # Create an upload session (replace if exists).
   session=$(curl -sf -X POST -H "authorization: Bearer $TOKEN" -H 'content-type: application/json' \
     -d '{"item":{"@microsoft.graph.conflictBehavior":"replace"}}' \
-    "https://graph.microsoft.com/v1.0/drives/${DRIVE_ID}/root:/${remote}:/createUploadSession" \
+    "https://graph.microsoft.com/v1.0/drives/${DRIVE_ID}/root:/${enc}:/createUploadSession" \
     | jq -r '.uploadUrl')
   [ -n "$session" ] && [ "$session" != "null" ] || { echo "  ✗ $name: no upload session" >&2; return 1; }
 

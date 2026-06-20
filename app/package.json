@@ -70,6 +70,7 @@
     "productName": "Skin Tyee",
     "copyright": "© Skin Tyee First Nation",
     "electronVersion": "31.7.7",
+    "artifactName": "SkinTyee-${version}-${arch}.${ext}",
     "directories": { "output": "desktop-dist", "buildResources": "electron/resources" },
     "files": ["electron/**/*", "web-build/**/*"],
     "extraMetadata": { "main": "electron/main.js" },
