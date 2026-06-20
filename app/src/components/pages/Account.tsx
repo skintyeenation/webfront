@@ -559,11 +559,6 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
                     {me.title}
                   </Chip>
                 ) : null}
-                {(me?.licenses ?? []).includes('AAD_PREMIUM') ? (
-                  <Chip compact icon="star-circle" style={{ marginBottom: 4, backgroundColor: theme.colors.success }} textStyle={{ fontSize: 11, color: '#000' }}>
-                    Entra P1
-                  </Chip>
-                ) : null}
               </>
             )}
           </View>
