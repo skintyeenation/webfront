@@ -47,6 +47,7 @@ export default function AssignmentTimeline({ navigation, route }: any) {
   // We can't call listPeople (admin-only), so we use the signed-in
   // user's name from the auth slice. Admins still get the Person row.
   const meName = useAppSelector((s) => s.auth.user?.name || s.auth.name);
+  const myUpn = (useAppSelector((s) => s.auth.user?.upn) || '').toLowerCase();
 
   const [assignment, setAssignment] = useState<OnboardingAssignmentDto | undefined>();
   const [flow, setFlow] = useState<OnboardingFlowDto | undefined>();
@@ -263,6 +264,12 @@ export default function AssignmentTimeline({ navigation, route }: any) {
 
   const stepById = new Map(flow.steps.map((s) => [s.id, s]));
   const documentById = new Map(documents.map((d) => [d.id, d]));
+  // Is the signed-in user the person being onboarded here? An admin can land on
+  // their OWN assignment — in which case "on their behalf" is wrong (it's theirs).
+  const isOwnAssignment = !!myUpn && (
+    (person?.bandMemberUpn ?? '').toLowerCase() === myUpn ||
+    (person?.email ?? '').toLowerCase() === myUpn
+  );
   const completed = assignment.stepStates.filter((s) => s.status === 'completed').length;
   const overall =
     assignment.completedAt ? 'completed'
@@ -420,8 +427,8 @@ export default function AssignmentTimeline({ navigation, route }: any) {
                 {isAdmin ? (
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
                     {(step.completion !== 'admin_marks') ? (
-                      <Button compact mode="text" icon="upload" textColor={theme.colors.text} onPress={() => adminUpload(step.id)} disabled={busyStep === step.id}>
-                        Upload on their behalf
+                      <Button compact mode="text" icon="upload" textColor={theme.colors.text} onPress={() => (isOwnAssignment ? workerUpload(step.id) : adminUpload(step.id))} disabled={busyStep === step.id}>
+                        {isOwnAssignment ? (state?.personFileUrl ? 'Replace upload' : 'Upload') : 'Upload on their behalf'}
                       </Button>
                     ) : null}
                     <View style={{ flex: 1 }} />
