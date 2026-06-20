@@ -68,7 +68,7 @@ const TOOLS_ITEMS: MoreItem[] = [
 // when /v1/onboarding/my-assignments returns at least one open
 // (non-completed) assignment.
 const ONBOARDING_ITEMS: MoreItem[] = [
-  { route: 'myOnboarding', label: 'My Onboarding', description: 'Complete your onboarding steps', icon: 'clipboard-check-outline', roles: ['member', 'staff'] },
+  { route: 'myOnboarding', label: 'My Onboarding', description: 'Complete your onboarding steps', icon: 'clipboard-check-outline', roles: ['member', 'staff', 'admin'] },
 ];
 
 // "Community" — bottom grouping on every role's view. Both admins and
@@ -118,7 +118,9 @@ export default function MoreMenu({ navigation }: any) {
   const [openOnboarding, setOpenOnboarding] = useState(0);
   useFocusEffect(useCallback(() => {
     let cancelled = false;
-    if (!signedIn || isAdmin) { setOpenOnboarding(0); return; }
+    // Admins can be onboarded too — surface "My Onboarding" for them when they
+    // personally have open assignments, not just for staff/members.
+    if (!signedIn) { setOpenOnboarding(0); return; }
     (async () => {
       try {
         const as = await apiFactory().onboarding.myAssignments();
@@ -129,7 +131,7 @@ export default function MoreMenu({ navigation }: any) {
       }
     })();
     return () => { cancelled = true; };
-  }, [signedIn, isAdmin]));
+  }, [signedIn]));
 
   return (
     <PageContainer>
@@ -144,10 +146,10 @@ export default function MoreMenu({ navigation }: any) {
                  at the bottom so the same browsing surface lives in
                  the same place across roles. */}
         <Section title="Account & Role" items={ACCOUNT_ITEMS} role={role} navigation={navigation} />
-        {/* My Onboarding — pinned at the top above Tools (mandatory
-            surface). Only renders when the worker has at least one
-            open assignment. Red badge counts open ones. */}
-        {!isAdmin && openOnboarding > 0 ? (
+        {/* My Onboarding — pinned at the top above Admin tools / Tools
+            (mandatory surface), for ANY role including admins. Only renders
+            when the user has at least one open assignment. Red badge counts. */}
+        {openOnboarding > 0 ? (
           <View>
             <Section title="MY ONBOARDING" items={ONBOARDING_ITEMS} role={role} navigation={navigation} />
             <View style={{ position: 'absolute', right: 12, top: 36 }}>
