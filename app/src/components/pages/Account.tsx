@@ -706,7 +706,7 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
               <Button
                 mode="contained" icon="pencil"
                 buttonColor={theme.colors.primary} textColor="#000"
-                onPress={() => (navigation as any)?.navigate?.('Admin', { screen: 'memberEdit', params: { id: me._id } })}
+                onPress={() => (navigation as any)?.navigate?.('Admin', { screen: 'memberEdit', params: { id: me._id }, initial: false })}
                 style={{ marginBottom: 8 }}
               >
                 Edit Account

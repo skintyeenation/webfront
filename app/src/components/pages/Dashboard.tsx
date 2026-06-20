@@ -432,7 +432,7 @@ export default function Dashboard({ navigation }: any) {
                     <Button
                       compact mode="contained" icon="arrow-right"
                       buttonColor={theme.colors.primary} textColor="#fff"
-                      onPress={() => navigation.navigate(isAdmin ? 'Admin' : 'More', { screen: 'myOnboarding' })}
+                      onPress={() => navigation.navigate(isAdmin ? 'Admin' : 'More', { screen: 'myOnboarding', initial: false })}
                     >
                       Open
                     </Button>
@@ -460,7 +460,7 @@ export default function Dashboard({ navigation }: any) {
             hoursLogged={hoursLogged}
             cutoffDate={cutoffDate}
             daysRemaining={daysRemaining}
-            onOpen={() => navigation.navigate('Admin', { screen: 'timekeeping' })}
+            onOpen={() => navigation.navigate('Admin', { screen: 'timekeeping', initial: false })}
           />
         ) : myEligible ? (
           <MyTimekeepingCard
@@ -472,7 +472,7 @@ export default function Dashboard({ navigation }: any) {
             periodLabel={myPeriodLabel}
             cutoffDate={cutoffDate}
             daysRemaining={daysRemaining}
-            onOpen={() => navigation.navigate('More', { screen: 'timekeeping' })}
+            onOpen={() => navigation.navigate('More', { screen: 'timekeeping', initial: false })}
           />
         ) : null}
 
