@@ -82,6 +82,12 @@ export interface ApiService {
     // Entra ID P1). `skuIds` from admin.licenseCatalog(). Diffs vs Entra +
     // calls Graph assignLicense, returns the updated member.
     setLicenses(id: string, skuIds: string[]): Promise<BandMember>;
+    // Lock (blocked:true) or unlock (false) an account — blocks sign-in +
+    // revokes live sessions. Returns the updated member.
+    setBlocked(id: string, blocked: boolean): Promise<BandMember>;
+    // Admin force a password reset: revoke the user's sessions + email them
+    // the self-service reset link (aka.ms/sspr). Returns send status.
+    forcePasswordReset(id: string): Promise<{ ok: boolean; emailed: boolean; emailedTo?: string }>;
   };
   admin: {
     // Catalog of the 13 Entra security groups (Skin Tyee Admins, IT, etc.).

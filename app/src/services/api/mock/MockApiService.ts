@@ -34,6 +34,8 @@ export const mockApiService: ApiService = {
     setGroups:    () => { throw new Error('directory.setGroups requires the real api/ (Entra write-back).'); },
     setMailboxes: () => { throw new Error('directory.setMailboxes requires the real api/ (Exchange Online write-back).'); },
     setLicenses:  () => { throw new Error('directory.setLicenses requires the real api/ (Entra licence assignment).'); },
+    setBlocked:   () => { throw new Error('directory.setBlocked requires the real api/ (Entra accountEnabled).'); },
+    forcePasswordReset: () => { throw new Error('directory.forcePasswordReset requires the real api/ (Entra revoke + email).'); },
   },
   admin: {
     securityGroups:   () => { throw new Error('admin.securityGroups requires the real api/'); },

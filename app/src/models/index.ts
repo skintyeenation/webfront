@@ -44,6 +44,9 @@ export interface BandMember {
   // (the api/'s proxy that streams from Graph). When false, fall back to
   // the avatarLetter rendering.
   hasPhoto?: boolean;
+  // Account enabled in Entra. false = locked/blocked (admin lock or departed).
+  // Drives the EditMember Lock/Unlock control.
+  enabled?: boolean;
 }
 
 export interface CommunityEvent {

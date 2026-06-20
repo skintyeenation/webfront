@@ -4,7 +4,7 @@ import { ApiService } from 'skintyee/store/apis';
 import { reduceFulfilledState, reducePendingState, reduceRejectedState, thunkApiWithState } from 'skintyee/store/helpers';
 import { BandMember } from 'skintyee/models';
 
-const directoryActionNames = ['load_directory', 'load_member', 'set_member_groups', 'set_member_mailboxes', 'set_member_licenses'] as const;
+const directoryActionNames = ['load_directory', 'load_member', 'set_member_groups', 'set_member_mailboxes', 'set_member_licenses', 'set_member_blocked'] as const;
 export const directoryActions = makeActions(directoryActionNames);
 
 export const loadDirectory = createAsyncThunk(directoryActions.loadDirectory.type, async (_opts = undefined, thunkApi) => {
@@ -47,6 +47,15 @@ export const setMemberLicenses = createAsyncThunk(
   async (args: { id: string; skuIds: string[] }, thunkApi) => {
     const { api } = thunkApiWithState(thunkApi);
     return await (api as ApiService).directory.setLicenses(args.id, args.skuIds);
+  }
+);
+
+// Lock / unlock an account (blocks sign-in + revokes sessions).
+export const setMemberBlocked = createAsyncThunk(
+  directoryActions.setMemberBlocked.type,
+  async (args: { id: string; blocked: boolean }, thunkApi) => {
+    const { api } = thunkApiWithState(thunkApi);
+    return await (api as ApiService).directory.setBlocked(args.id, args.blocked);
   }
 );
 
@@ -110,6 +119,16 @@ const directorySlice = createSlice({
     builder.addCase(setMemberLicenses.pending, reducePendingState());
     builder.addCase(setMemberLicenses.rejected, reduceRejectedState());
     builder.addCase(setMemberLicenses.fulfilled, reduceFulfilledState((state, action) => {
+      const updated = action.payload as BandMember;
+      return {
+        ...state,
+        entities: state.entities.map((m) => (m._id === updated._id ? { ...m, ...updated } : m)),
+        selected: state.selected?._id === updated._id ? { ...state.selected, ...updated } : state.selected,
+      };
+    }));
+    builder.addCase(setMemberBlocked.pending, reducePendingState());
+    builder.addCase(setMemberBlocked.rejected, reduceRejectedState());
+    builder.addCase(setMemberBlocked.fulfilled, reduceFulfilledState((state, action) => {
       const updated = action.payload as BandMember;
       return {
         ...state,

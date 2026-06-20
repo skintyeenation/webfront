@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { Button, Card, Chip, HelperText, IconButton, Snackbar, Text, TextInput } from 'react-native-paper';
+import { Button, Card, Chip, Divider, HelperText, IconButton, Snackbar, Text, TextInput } from 'react-native-paper';
 import { PageContainer, PageContent, NoContent, useConfirm } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
-import { loadDirectory, loadMember, setMemberGroups, setMemberMailboxes, setMemberLicenses, updateMember } from 'skintyee/store/modules/directory';
+import { loadDirectory, loadMember, setMemberGroups, setMemberMailboxes, setMemberLicenses, setMemberBlocked, updateMember } from 'skintyee/store/modules/directory';
 import { BandMember } from 'skintyee/models';
 import { SecurityGroup, SharedMailbox, LicenseSku } from 'skintyee/services/api/ApiService';
 import { apiFactory } from 'skintyee/store/apis';
@@ -80,6 +80,11 @@ export default function EditMember({ route, navigation }: any) {
   const [rotating, setRotating] = useState(false);
   const [rotatedPassword, setRotatedPassword] = useState<string | null>(null);
   const [rotateError, setRotateError] = useState<string | undefined>();
+  // Admin access actions — force a self-service reset (revoke + email SSPR
+  // link) and lock/unlock the account.
+  const [forcing, setForcing] = useState(false);
+  const [blocking, setBlocking] = useState(false);
+  const locked = member?.enabled === false;
   const [toast, setToast] = useState<string | null>(null);
   const { confirm, ConfirmHost } = useConfirm();
 
@@ -551,6 +556,62 @@ export default function EditMember({ route, navigation }: any) {
                   style={{ alignSelf: 'flex-start', borderColor: theme.colors.accent }}
                 >
                   {rotatedPassword ? 'Rotate again' : 'Rotate password'}
+                </Button>
+              </View>
+
+              <Divider style={{ marginVertical: 12, backgroundColor: '#2A2A2A' }} />
+              <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginBottom: 2 }}>
+                ACCESS
+              </Text>
+              <HelperText type="info" visible style={{ marginLeft: -8, marginBottom: 4 }}>
+                For synced accounts, use these instead of Rotate: force the user through
+                self-service reset (aka.ms/sspr), or block their sign-in.
+              </HelperText>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                <Button
+                  mode="outlined" icon="email-lock"
+                  textColor={theme.colors.primary}
+                  loading={forcing} disabled={forcing || blocking}
+                  onPress={() => confirm({
+                    title: 'Force a password reset?',
+                    message: `${name} will be signed out everywhere and emailed a self-service reset link (aka.ms/sspr).`,
+                    confirmLabel: 'Force reset',
+                    onConfirm: async () => {
+                      setForcing(true); setRotateError(undefined);
+                      try {
+                        const r = await apiFactory().directory.forcePasswordReset(member!._id);
+                        setToast(r.emailed ? `Reset link emailed to ${r.emailedTo}` : 'Signed out — no email on file to send the link');
+                      } catch (e: any) { setRotateError(e?.message ?? String(e)); }
+                      finally { setForcing(false); }
+                    },
+                  })}
+                  style={{ marginRight: 8, marginBottom: 8, borderColor: theme.colors.primary }}
+                >
+                  Force password reset
+                </Button>
+                <Button
+                  mode="outlined" icon={locked ? 'lock-open-variant' : 'lock'}
+                  textColor={locked ? theme.colors.success : theme.colors.error}
+                  loading={blocking} disabled={forcing || blocking}
+                  onPress={() => confirm({
+                    title: locked ? 'Unlock account?' : 'Lock account?',
+                    message: locked
+                      ? `${name} will be able to sign in again.`
+                      : `${name} will be blocked from signing in and signed out everywhere.`,
+                    confirmLabel: locked ? 'Unlock' : 'Lock',
+                    destructive: !locked,
+                    onConfirm: async () => {
+                      setBlocking(true); setRotateError(undefined);
+                      try {
+                        await dispatch(setMemberBlocked({ id: member!._id, blocked: !locked })).unwrap();
+                        setToast(locked ? 'Account unlocked' : 'Account locked');
+                      } catch (e: any) { setRotateError(e?.message ?? String(e)); }
+                      finally { setBlocking(false); }
+                    },
+                  })}
+                  style={{ marginBottom: 8, borderColor: locked ? theme.colors.success : theme.colors.error }}
+                >
+                  {locked ? 'Unlock account' : 'Lock account'}
                 </Button>
               </View>
             </Card.Content>

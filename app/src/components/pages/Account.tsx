@@ -3,7 +3,15 @@ import { Image, TouchableOpacity, View } from 'react-native';
 import { ActivityIndicator } from 'react-native';
 import { Avatar, Button, Card, Chip, Divider, HelperText, Text, TextInput } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import * as WebBrowser from 'expo-web-browser';
 import { PageContainer, PageContent } from 'skintyee/components/layout';
+
+// Microsoft self-service password reset (SSPR). Opens in an in-app browser
+// tab — the right surface for the MS auth flow (a raw WebView gets blocked).
+// Works even when locked out / forgotten, and (writeback is enabled) the new
+// password lands on the on-prem STFN.local account. See docs/365/password-reset-sspr.md.
+const SSPR_URL = 'https://aka.ms/sspr';
+const openPasswordReset = () => WebBrowser.openBrowserAsync(SSPR_URL);
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { resetSignInStatus, setRole, signIn, signInStaff, signOut, unspoof } from 'skintyee/store/modules/auth';
 import { requestStaffPasswordReset, submitStaffPasswordReset } from 'skintyee/services/staffAuth';
@@ -544,6 +552,16 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
               >
                 {isSigningIn ? 'Try again' : 'Sign in with Microsoft'}
               </Button>
+              <Button
+                mode="text"
+                compact
+                icon="lock-reset"
+                textColor={theme.colors.primary}
+                onPress={openPasswordReset}
+                style={{ alignSelf: 'center', marginTop: 6 }}
+              >
+                Forgot your password? Reset it
+              </Button>
 
               {/* Visual feedback when in-flight — separate from the button so
                   it doesn't block taps. Shows a small spinner + cancel link. */}
@@ -596,10 +614,22 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
               </Text>
               <Button
                 mode="outlined"
+                icon="lock-reset"
+                textColor={theme.colors.primary}
+                onPress={openPasswordReset}
+                style={{ borderColor: theme.colors.primary, alignSelf: 'center', marginTop: 6 }}
+              >
+                Reset my password
+              </Button>
+              <HelperText type="info" visible style={{ textAlign: 'center' }}>
+                Opens Microsoft self-service reset — set a new password, then sign back in.
+              </HelperText>
+              <Button
+                mode="outlined"
                 icon="logout"
                 textColor={theme.colors.accent}
                 onPress={() => dispatch(signOut())}
-                style={{ borderColor: theme.colors.defaultBorder, alignSelf: 'center', marginTop: 6 }}
+                style={{ borderColor: theme.colors.defaultBorder, alignSelf: 'center', marginTop: 2 }}
               >
                 Sign out
               </Button>
