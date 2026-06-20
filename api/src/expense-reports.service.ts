@@ -125,15 +125,15 @@ export class ExpenseReportsService {
     const tagLabels = await this.tagLabelMap();
     const tagText = (slug?: string | null) => tagLabels.get(slug ?? '')?.label ?? slug ?? '';
     const glOf = (slug?: string | null) => tagLabels.get(slug ?? '')?.gl ?? '';
-    const header = ['submitterUpn', 'submitterName', 'claimStatus', 'currency', 'date', 'vendor', 'tag', 'glAccount', 'amount', 'description', 'submittedAt', 'approvedBy', 'approvedAt', 'rejectedReason'];
+    const header = ['submitterUpn', 'submitterName', 'claimStatus', 'claimCurrency', 'date', 'vendor', 'tag', 'glAccount', 'amount', 'tax', 'currency', 'description', 'submittedAt', 'approvedBy', 'approvedAt', 'rejectedReason'];
     const esc = (v: any): string => { if (v == null) return ''; const s = String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
     const lines = [header.join(',')];
     for (const c of claims) {
       const base = [c.submitterUpn, c.submitterName, c.status, c.currency];
       const tail = [c.submittedAt?.toISOString() ?? '', c.approvedBy ?? '', c.approvedAt?.toISOString() ?? '', c.rejectedReason ?? ''];
-      if (c.items.length === 0) { lines.push([...base, '', '', '', '', '', '', ...tail].map(esc).join(',')); continue; }
+      if (c.items.length === 0) { lines.push([...base, '', '', '', '', '', '', '', '', ...tail].map(esc).join(',')); continue; }
       for (const it of c.items) {
-        lines.push([...base, it.date ?? '', it.vendor ?? '', tagText(it.tagSlug), glOf(it.tagSlug), it.amount, it.description ?? '', ...tail].map(esc).join(','));
+        lines.push([...base, it.date ?? '', it.vendor ?? '', tagText(it.tagSlug), glOf(it.tagSlug), it.amount, (it as any).taxAmount ?? '', (it as any).currency ?? '', it.description ?? '', ...tail].map(esc).join(','));
       }
     }
     return { filename: `expenses-${payPeriodId}.csv`, csv: lines.join('\n') + '\n' };

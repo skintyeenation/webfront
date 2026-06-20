@@ -231,6 +231,8 @@ export interface ExpenseLineItem {
   description: string;
   amount?: number | null;
   qty?: number | null;
+  // User can exclude a line (struck through + dropped from the claimed amount).
+  excluded?: boolean;
 }
 
 export interface ExpenseItem {
@@ -239,6 +241,8 @@ export interface ExpenseItem {
   date?: string | null;
   vendor?: string | null;
   amount: number;
+  taxAmount?: number | null;
+  currency?: string | null; // per-receipt; falls back to the claim currency
   tagSlug?: string | null;
   description?: string | null;
   aiExtracted?: boolean;

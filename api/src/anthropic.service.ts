@@ -23,6 +23,7 @@ export interface ReceiptLineItem {
 
 export interface ReceiptExtraction {
   amount: number | null;
+  tax: number | null; // tax portion (GST/PST/HST) of the total
   vendor: string | null;
   date: string | null; // YYYY-MM-DD
   currency: string | null; // ISO, e.g. CAD
@@ -35,7 +36,7 @@ export interface ReceiptExtraction {
 }
 
 const empty = (status: ExtractStatus, message: string | null = null): ReceiptExtraction => ({
-  amount: null, vendor: null, date: null, currency: null, suggestedTagSlug: null, confidence: null, lineItems: [], status, message,
+  amount: null, tax: null, vendor: null, date: null, currency: null, suggestedTagSlug: null, confidence: null, lineItems: [], status, message,
 });
 
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -82,6 +83,7 @@ export class AnthropicService {
         type: 'object',
         properties: {
           amount:     { type: ['number', 'null'], description: 'Grand total paid, including tax.' },
+          tax:        { type: ['number', 'null'], description: 'Total tax portion (GST/PST/HST) of the grand total, if shown.' },
           vendor:     { type: ['string', 'null'], description: 'Merchant / vendor name.' },
           date:       { type: ['string', 'null'], description: 'Receipt date as YYYY-MM-DD.' },
           currency:   { type: ['string', 'null'], description: 'ISO currency code (e.g. CAD, USD). Default CAD if unclear.' },
@@ -101,12 +103,13 @@ export class AnthropicService {
             },
           },
         },
-        required: ['amount', 'vendor', 'date', 'currency', 'tagSlug', 'confidence', 'lineItems'],
+        required: ['amount', 'tax', 'vendor', 'date', 'currency', 'tagSlug', 'confidence', 'lineItems'],
       },
     };
 
     const prompt =
-      `Extract the expense details from this receipt. Pick the single best expense tag (by slug) from this catalog: ${tagList}. ` +
+      `Extract the expense details from this receipt. Capture the grand total (amount), the tax portion (tax), and the currency. ` +
+      `Pick the single best expense tag (by slug) from this catalog: ${tagList}. ` +
       `If the photo is clear enough, also itemise the purchased line items into lineItems (description + amount, and qty when shown); ` +
       `if it's too blurry to read them, leave lineItems empty. ` +
       `If the image is not a readable receipt, set every field to null and lineItems to []. Respond by calling the record_receipt tool.`;
@@ -145,6 +148,7 @@ export class AnthropicService {
       const inp = toolUse?.input ?? {};
       const out: ReceiptExtraction = {
         amount:   typeof inp.amount === 'number' ? inp.amount : null,
+        tax:      typeof inp.tax === 'number' ? inp.tax : null,
         vendor:   typeof inp.vendor === 'string' && inp.vendor.trim() ? inp.vendor.trim() : null,
         date:     typeof inp.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(inp.date) ? inp.date : null,
         currency: typeof inp.currency === 'string' && inp.currency.trim() ? inp.currency.trim().toUpperCase() : null,

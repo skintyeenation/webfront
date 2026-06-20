@@ -269,7 +269,10 @@ export class ExpensesController {
     return this.svc.updateItem(id, {
       date: b?.date, vendor: b?.vendor,
       amount: typeof b?.amount === 'number' ? b.amount : (b?.amount ? Number(b.amount) : undefined),
+      taxAmount: b?.taxAmount === undefined ? undefined : (b?.taxAmount === null ? null : Number(b.taxAmount)),
+      currency: b?.currency,
       tagSlug: b?.tagSlug, description: b?.description,
+      lineItems: Array.isArray(b?.lineItems) ? b.lineItems : undefined,
     });
   }
 

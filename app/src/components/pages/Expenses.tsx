@@ -614,20 +614,29 @@ function ClaimDetailModal({
                       {it.description ? ` · ${it.description}` : ''}
                     </Text>
                   </View>
-                  <Text style={{ color: theme.colors.text, fontSize: 13 }}>{money(it.amount, claim.currency)}</Text>
+                  <Text style={{ color: theme.colors.text, fontSize: 13 }}>{money(it.amount, it.currency || claim.currency)}</Text>
                 </View>
                 {it.lineItems && it.lineItems.length > 0 ? (
                   <View style={{ marginTop: 4, paddingLeft: 10 }}>
-                    {it.lineItems.map((li, i) => (
-                      <View key={i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 1 }}>
-                        <Text style={{ color: theme.colors.textDarker, fontSize: 11, flex: 1 }} numberOfLines={1}>
-                          · {li.qty && li.qty > 1 ? `${li.qty}× ` : ''}{li.description}
-                        </Text>
-                        {li.amount != null ? (
-                          <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>{money(li.amount, claim.currency)}</Text>
-                        ) : null}
+                    {it.lineItems.map((li, i) => {
+                      const ex = !!li.excluded;
+                      return (
+                        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 1, opacity: ex ? 0.5 : 1 }}>
+                          <Text style={{ color: theme.colors.textDarker, fontSize: 11, flex: 1, textDecorationLine: ex ? 'line-through' : 'none' }} numberOfLines={1}>
+                            · {li.qty && li.qty > 1 ? `${li.qty}× ` : ''}{li.description}{ex ? ' (excluded)' : ''}
+                          </Text>
+                          {li.amount != null ? (
+                            <Text style={{ color: theme.colors.textDarker, fontSize: 11, textDecorationLine: ex ? 'line-through' : 'none' }}>{money(li.amount, it.currency || claim.currency)}</Text>
+                          ) : null}
+                        </View>
+                      );
+                    })}
+                    {it.taxAmount != null ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 1 }}>
+                        <Text style={{ color: theme.colors.textDarker, fontSize: 11, flex: 1 }}>· Tax</Text>
+                        <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>{money(it.taxAmount, it.currency || claim.currency)}</Text>
                       </View>
-                    ))}
+                    ) : null}
                   </View>
                 ) : null}
               </View>

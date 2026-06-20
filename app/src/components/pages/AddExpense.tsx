@@ -3,7 +3,7 @@ import { ActivityIndicator, Image, Linking, Platform, ScrollView, TouchableOpaci
 import { ActivityIndicator as Spinner, Button, Card, Chip, HelperText, IconButton, Menu, Modal, Portal, Text, TextInput } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import dayjs from 'dayjs';
-import { PageContainer, PageContent, useToast } from 'skintyee/components/layout';
+import { PageContainer, PageContent, useToast, useConfirm } from 'skintyee/components/layout';
 import { useAppSelector } from 'skintyee/store';
 import { apiFactory } from 'skintyee/store/apis';
 import { ExpenseClaim, ExpenseItem, ExpensePeriod, ExpenseTag } from 'skintyee/models';
@@ -52,6 +52,7 @@ export default function AddExpense({ navigation, route }: any) {
   const [submittedMode, setSubmittedMode] = useState<'draft' | 'submit' | null>(null);
   const [error, setError] = useState<string | undefined>();
   const { showToast, toastNode } = useToast(5000); // a bit longer so AI status messages are readable
+  const { confirm, ConfirmHost } = useConfirm();
   // Receipts uploaded this session but not yet committed via Save/Submit.
   // If the user leaves without saving, these (file + row) are purged so we
   // never leave orphaned uploads behind. Cleared on a successful Save/Submit.
@@ -167,6 +168,15 @@ export default function AddExpense({ navigation, route }: any) {
       setError(e?.message ?? String(e));
     }
   };
+  // Always confirm before removing a receipt — it deletes the row + its file.
+  const askRemoveItem = (it: ExpenseItem) =>
+    confirm({
+      title: 'Remove receipt?',
+      message: `${it.vendor || 'This receipt'} (${money(it.amount, it.currency || claim?.currency)}) will be permanently removed from the claim.`,
+      confirmLabel: 'Remove',
+      destructive: true,
+      onConfirm: () => removeItem(it.id),
+    });
 
   // Purge uncommitted uploads only when the user actually NAVIGATES AWAY from
   // the screen without saving — via React Navigation's 'beforeRemove'. (A plain
@@ -314,7 +324,7 @@ export default function AddExpense({ navigation, route }: any) {
               key={it.id} item={it} tags={tags} currency={claim.currency} locked={locked}
               onPatch={(p) => patchItem(it.id, p)}
               onPersist={(p) => persistItem(it.id, p)}
-              onRemove={() => removeItem(it.id)}
+              onRemove={() => askRemoveItem(it)}
             />
           ))
         )}
@@ -375,6 +385,7 @@ export default function AddExpense({ navigation, route }: any) {
         )}
 
         {toastNode}
+        <ConfirmHost />
       </PageContent>
     </PageContainer>
   );
@@ -389,24 +400,44 @@ function ReceiptRow({
   currency: string;
   locked: boolean;
   onPatch: (patch: Partial<ExpenseItem>) => void;
-  onPersist: (patch: { date?: string; vendor?: string; amount?: number; tagSlug?: string; description?: string }) => void;
+  onPersist: (patch: { date?: string; vendor?: string; amount?: number; taxAmount?: number | null; currency?: string | null; tagSlug?: string; description?: string; lineItems?: ExpenseItem['lineItems'] }) => void;
   onRemove: () => void;
 }) {
   const [tagPicker, setTagPicker] = useState(false);
   const tagLabel = tags.find((t) => t.slug === item.tagSlug)?.label;
   const hasReceipt = !!(item.fileUrl || item.fileName || item.mimeType);
+  const cur = (item.currency || currency);
 
-  // Amount is edited as raw text so a trailing/partial decimal ("12." → "12.5")
-  // survives keystrokes — parsing to a Number on every change stripped the dot,
-  // making decimals impossible. We parse to a number only for the live total
-  // (onPatch) and on blur (onPersist); the field shows the raw text.
+  // Amount/tax are edited as raw text so a trailing/partial decimal ("12." →
+  // "12.5") survives keystrokes — parsing to a Number on every change stripped
+  // the dot. We parse only for the live total (onPatch) and on blur (onPersist).
   const [amountText, setAmountText] = useState(item.amount != null ? String(item.amount) : '');
-  const onAmountChange = (v: string) => {
-    let cleaned = v.replace(/[^0-9.]/g, '');
-    const dot = cleaned.indexOf('.');
-    if (dot !== -1) cleaned = cleaned.slice(0, dot + 1) + cleaned.slice(dot + 1).replace(/\./g, '');
-    setAmountText(cleaned);
-    onPatch({ amount: Number(cleaned) || 0 });
+  const [taxText, setTaxText] = useState(item.taxAmount != null ? String(item.taxAmount) : '');
+  const lineItems = item.lineItems ?? [];
+  const hasLines = lineItems.length > 0;
+
+  const cleanDecimal = (v: string) => {
+    let c = v.replace(/[^0-9.]/g, '');
+    const dot = c.indexOf('.');
+    if (dot !== -1) c = c.slice(0, dot + 1) + c.slice(dot + 1).replace(/\./g, '');
+    return c;
+  };
+  const onAmountChange = (v: string) => { const c = cleanDecimal(v); setAmountText(c); onPatch({ amount: Number(c) || 0 }); };
+  const onTaxChange = (v: string) => { const c = cleanDecimal(v); setTaxText(c); onPatch({ taxAmount: c === '' ? null : (Number(c) || 0) }); };
+
+  // When the receipt is itemised, the claimed amount = sum of INCLUDED lines +
+  // tax. Toggling a line's exclusion recomputes + persists the amount too.
+  const recomputeFromLines = (lines: NonNullable<ExpenseItem['lineItems']>): number => {
+    const sub = lines.filter((l) => !l.excluded).reduce((s, l) => s + (Number(l.amount) || 0), 0);
+    return Math.round((sub + (Number(item.taxAmount) || 0)) * 100) / 100;
+  };
+  const toggleLineExcluded = (idx: number) => {
+    if (locked) return;
+    const lines = lineItems.map((l, i) => (i === idx ? { ...l, excluded: !l.excluded } : l));
+    const newAmount = recomputeFromLines(lines);
+    setAmountText(String(newAmount));
+    onPatch({ lineItems: lines, amount: newAmount });
+    onPersist({ lineItems: lines, amount: newAmount });
   };
 
   return (
@@ -434,9 +465,31 @@ function ReceiptRow({
             dense mode="outlined" label="Amount" value={amountText}
             editable={!locked}
             keyboardType="decimal-pad"
-            left={<TextInput.Affix text={currencySymbol(currency)} />}
+            left={<TextInput.Affix text={currencySymbol(cur)} />}
             onChangeText={onAmountChange}
             onEndEditing={() => onPersist({ amount: Number(amountText) || 0 })}
+            style={{ flex: 1 }}
+          />
+        </View>
+
+        {/* Tax + currency */}
+        <View style={{ flexDirection: 'row', marginTop: 6 }}>
+          <TextInput
+            dense mode="outlined" label="Tax" value={taxText}
+            editable={!locked}
+            keyboardType="decimal-pad"
+            left={<TextInput.Affix text={currencySymbol(cur)} />}
+            onChangeText={onTaxChange}
+            onEndEditing={() => onPersist({ taxAmount: taxText === '' ? null : (Number(taxText) || 0) })}
+            style={{ flex: 1, marginRight: 6 }}
+          />
+          <TextInput
+            dense mode="outlined" label="Currency" value={item.currency ?? ''}
+            editable={!locked}
+            autoCapitalize="characters" maxLength={3}
+            placeholder={currency}
+            onChangeText={(v) => onPatch({ currency: v.toUpperCase() })}
+            onEndEditing={() => onPersist({ currency: (item.currency || '').toUpperCase() || null })}
             style={{ flex: 1 }}
           />
         </View>
@@ -506,22 +559,51 @@ function ReceiptRow({
           style={{ marginTop: 6 }}
         />
 
-        {/* AI-itemised line items (when the photo was legible). Read-only. */}
-        {item.lineItems && item.lineItems.length > 0 ? (
+        {/* AI-itemised line items (when the photo was legible). Tap a line to
+            exclude it (struck through + dropped from the claimed amount). */}
+        {hasLines ? (
           <View style={{ marginTop: 8, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', paddingTop: 6 }}>
             <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginBottom: 4 }}>
-              DETAILS · ✨ {item.lineItems.length} line item{item.lineItems.length === 1 ? '' : 's'}
+              DETAILS · ✨ {lineItems.length} line item{lineItems.length === 1 ? '' : 's'}
+              {!locked ? '  ·  tap to exclude' : ''}
             </Text>
-            {item.lineItems.map((li, i) => (
-              <View key={i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 2 }}>
-                <Text style={{ color: theme.colors.text, fontSize: 12, flex: 1 }} numberOfLines={2}>
-                  {li.qty && li.qty > 1 ? `${li.qty}× ` : ''}{li.description}
-                </Text>
-                {li.amount != null ? (
-                  <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginLeft: 8 }}>{money(li.amount, currency)}</Text>
-                ) : null}
+            {lineItems.map((li, i) => {
+              const ex = !!li.excluded;
+              return (
+                <TouchableOpacity
+                  key={i}
+                  onPress={() => toggleLineExcluded(i)}
+                  disabled={locked}
+                  style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 3, opacity: ex ? 0.5 : 1 }}
+                >
+                  {!locked ? (
+                    <MaterialCommunityIcons
+                      name={ex ? 'checkbox-blank-circle-outline' : 'check-circle'}
+                      size={16}
+                      color={ex ? theme.colors.textDarker : theme.colors.success}
+                      style={{ marginRight: 6 }}
+                    />
+                  ) : null}
+                  <Text
+                    style={{ color: theme.colors.text, fontSize: 12, flex: 1, textDecorationLine: ex ? 'line-through' : 'none' }}
+                    numberOfLines={2}
+                  >
+                    {li.qty && li.qty > 1 ? `${li.qty}× ` : ''}{li.description}
+                  </Text>
+                  {li.amount != null ? (
+                    <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginLeft: 8, textDecorationLine: ex ? 'line-through' : 'none' }}>
+                      {money(li.amount, cur)}
+                    </Text>
+                  ) : null}
+                </TouchableOpacity>
+              );
+            })}
+            {item.taxAmount != null ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 2, marginTop: 2 }}>
+                <Text style={{ color: theme.colors.textDarker, fontSize: 11, flex: 1 }}>Tax</Text>
+                <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>{money(item.taxAmount, cur)}</Text>
               </View>
-            ))}
+            ) : null}
           </View>
         ) : null}
       </Card.Content>

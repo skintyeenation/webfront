@@ -305,7 +305,7 @@ export interface ApiService {
     deleteClaim(id: string): Promise<void>;
     // Receipt items. `file` (image/pdf) is optional; Claude prefills the rest.
     addReceipt(claimId: string, file: { uri: string; name: string; mimeType: string } | null, fields: { date?: string; vendor?: string; amount?: number; tagSlug?: string; description?: string }): Promise<{ item: ExpenseItem; ai: any }>;
-    updateItem(id: string, patch: { date?: string; vendor?: string; amount?: number; tagSlug?: string; description?: string }): Promise<ExpenseItem>;
+    updateItem(id: string, patch: { date?: string; vendor?: string; amount?: number; taxAmount?: number | null; currency?: string | null; tagSlug?: string; description?: string; lineItems?: import('skintyee/models').ExpenseLineItem[] }): Promise<ExpenseItem>;
     deleteItem(id: string): Promise<void>;
     receiptUrl(itemId: string): string; // GET endpoint that redirects to the receipt
     fetchReceipt(itemId: string): Promise<{ blob: Blob; mimeType: string }>; // raw bytes (authed) for thumbnails/preview

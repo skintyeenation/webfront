@@ -239,11 +239,15 @@ model ExpenseItem {
   claim       ExpenseClaim @relation(fields: [claimId], references: [id], onDelete: Cascade)
   date        String? // YYYY-MM-DD receipt date
   vendor      String?
-  amount      Float        @default(0)
+  amount      Float        @default(0) // claimed amount (sum of included line items + tax when itemised)
+  taxAmount   Float? // tax portion (GST/PST/HST) of the receipt
+  currency    String? // per-receipt ISO currency; falls back to the claim currency
   tagSlug     String? // → ExpenseTag.slug (the expense category)
   description String?
   aiExtracted Boolean      @default(false) // amount/vendor/date were AI-prefilled
-  // AI-itemised receipt lines when the photo was legible: [{description, amount, qty}]
+  // AI-itemised receipt lines when the photo was legible:
+  //   [{description, amount, qty, excluded}]  — `excluded` lines are struck out
+  //   in the UI and dropped from the claimed amount.
   lineItems   Json?
 
   // Receipt file — same storage shape as Document / TimesheetReport.

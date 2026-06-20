@@ -238,7 +238,7 @@ export class ExpensesService implements OnModuleInit {
     let storageDriver: string | null = null;
     let fileKey: string | null = null, fileUrl: string | null = null;
     let fileName: string | null = null, mimeType: string | null = null, sizeBytes: number | null = null;
-    let ai: ReceiptExtraction = { amount: null, vendor: null, date: null, currency: null, suggestedTagSlug: null, confidence: null, lineItems: [], status: 'extracted', message: null };
+    let ai: ReceiptExtraction = { amount: null, tax: null, vendor: null, date: null, currency: null, suggestedTagSlug: null, confidence: null, lineItems: [], status: 'extracted', message: null };
 
     if (file) {
       const up = await this.storage.upload({ fileName: file.fileName, mimeType: file.mimeType, bytes: file.bytes });
@@ -251,16 +251,22 @@ export class ExpensesService implements OnModuleInit {
     }
 
     const amount = round2(typeof fields.amount === 'number' ? fields.amount : (ai.amount ?? 0));
+    // Tag every AI line with excluded:false so the UI can toggle it.
+    const lineItems = ai.lineItems && ai.lineItems.length
+      ? ai.lineItems.map((li) => ({ ...li, excluded: false }))
+      : undefined;
     const item = await this.prisma.expenseItem.create({
       data: {
         claimId,
         date: fields.date ?? ai.date ?? null,
         vendor: fields.vendor ?? ai.vendor ?? null,
         amount,
+        taxAmount: ai.tax ?? null,
+        currency: ai.currency ?? null,
         tagSlug: fields.tagSlug ?? ai.suggestedTagSlug ?? null,
         description: fields.description ?? null,
         aiExtracted: !!file && (ai.amount != null || ai.vendor != null || ai.date != null),
-        lineItems: ai.lineItems && ai.lineItems.length ? (ai.lineItems as any) : undefined,
+        lineItems: lineItems as any,
         storage: storageDriver, fileKey, fileUrl, fileName, mimeType, sizeBytes,
       },
     });
@@ -268,7 +274,7 @@ export class ExpensesService implements OnModuleInit {
     return { item, ai };
   }
 
-  async updateItem(id: string, patch: { date?: string; vendor?: string; amount?: number; tagSlug?: string; description?: string }) {
+  async updateItem(id: string, patch: { date?: string; vendor?: string; amount?: number; taxAmount?: number | null; currency?: string | null; tagSlug?: string; description?: string; lineItems?: any[] }) {
     this.requireDb();
     const it = await this.prisma.expenseItem.findUnique({ where: { id }, include: { claim: true } });
     if (!it) throw new NotFoundException('Item not found');
@@ -279,8 +285,11 @@ export class ExpensesService implements OnModuleInit {
         date: patch.date ?? undefined,
         vendor: patch.vendor ?? undefined,
         amount: typeof patch.amount === 'number' ? round2(patch.amount) : undefined,
+        taxAmount: patch.taxAmount === undefined ? undefined : (patch.taxAmount === null ? null : round2(patch.taxAmount)),
+        currency: patch.currency === undefined ? undefined : (patch.currency || null),
         tagSlug: patch.tagSlug ?? undefined,
         description: patch.description ?? undefined,
+        lineItems: patch.lineItems === undefined ? undefined : (patch.lineItems as any),
       },
     });
     await this.recomputeTotal(it.claimId);
