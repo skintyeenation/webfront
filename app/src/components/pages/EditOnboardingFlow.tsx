@@ -1,14 +1,25 @@
-import React, { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ScrollView, View } from 'react-native';
 import { ActivityIndicator, Button, Card, Chip, Divider, HelperText, IconButton, Menu, Modal, Portal, Snackbar, Switch, Text, TextInput } from 'react-native-paper';
 import { PageContainer, PageContent, NoContent } from 'skintyee/components/layout';
 import { apiFactory } from 'skintyee/store/apis';
 import { pickFile } from 'skintyee/core/receiptCapture';
 import {
   OnboardingFlowDto, PersonDto, OnboardingAssignmentDto,
-  DocumentDto, StepCompletion,
+  DocumentDto, DocumentTagDto, DocumentAudience, StepCompletion,
 } from 'skintyee/services/api/ApiService';
 import { theme } from 'skintyee/styles';
+
+// Mirror of the Documents manager (EditDocument.tsx) so an onboarding upload
+// asks for the same metadata.
+const AUDIENCES: { value: DocumentAudience; label: string }[] = [
+  { value: 'admin',       label: 'Admin only' },
+  { value: 'staff',       label: 'Staff +' },
+  { value: 'band_member', label: 'Members +' },
+  { value: 'public',      label: 'Public' },
+];
+const TAG_CATEGORY_ORDER: Array<'gov' | 'gov_sector' | 'department'> = ['gov', 'gov_sector', 'department'];
+const TAG_CATEGORY_LABEL: Record<string, string> = { gov: 'Government', gov_sector: 'Sector', department: 'Department' };
 
 // ----------------------------------------------------------------------------
 // EditOnboardingFlow — admin screen to design / edit a flow.
@@ -57,18 +68,37 @@ export default function EditOnboardingFlow({ navigation, route }: any) {
   const [linkLabel, setLinkLabel] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
   const [completionMenuFor, setCompletionMenuFor] = useState<string | null>(null);
+
+  // New-document upload form (mirrors the Documents manager fields).
+  const [docTags, setDocTags] = useState<DocumentTagDto[]>([]);
+  const [uploadForStep, setUploadForStep] = useState<string | null>(null);
+  const [uTitle, setUTitle] = useState('');
+  const [uDescription, setUDescription] = useState('');
+  const [uAudience, setUAudience] = useState<DocumentAudience>('staff');
+  const [uTagIds, setUTagIds] = useState<Set<string>>(new Set());
+  const [uNeedsUpload, setUNeedsUpload] = useState(true);
+  const [uFile, setUFile] = useState<{ uri: string; name: string; mimeType: string; sizeBytes?: number } | undefined>();
+  const [uAudienceMenu, setUAudienceMenu] = useState(false);
   const [uploadingDoc, setUploadingDoc] = useState(false);
+
+  const uTagsByCategory = useMemo(() => {
+    const out: Record<string, DocumentTagDto[]> = { gov: [], gov_sector: [], department: [] };
+    for (const t of docTags) (out[t.category] ??= []).push(t);
+    return out;
+  }, [docTags]);
 
   const loadAll = async (existingFlow?: OnboardingFlowDto) => {
     setError(undefined);
     try {
       const api = apiFactory();
-      const [docs, conts, asg] = await Promise.all([
+      const [docs, conts, asg, tagCat] = await Promise.all([
         api.documents.list().catch(() => []),
         api.onboarding.listPeople(),
         flowId ? api.onboarding.listAssignments({ flowId }) : Promise.resolve([]),
+        api.documentTags.list().then((r) => r.tags).catch(() => [] as DocumentTagDto[]),
       ]);
       setDocuments(docs);
+      setDocTags(tagCat);
       setPeople(conts);
       setAssignments(asg);
       if (existingFlow) {
@@ -176,28 +206,50 @@ export default function EditOnboardingFlow({ navigation, route }: any) {
     }
   };
 
-  // Upload a brand-new file (e.g. the TD1 / TD1BC / T4 forms) straight into the
-  // library AND attach it to this step — the "+ Upload" button only attached an
-  // EXISTING doc, so there was no way to add a new file from here. The person is
-  // then required to upload their completed/signed copy (personUploadAllowed).
-  const uploadAndAttach = async (stepId: string) => {
+  // Open the new-document upload form for a step (mirrors the Documents
+  // manager: title / description / audience / tags + the file). The "+ Upload"
+  // button used to only attach an EXISTING doc — there was no way to add a new
+  // file, so the only thing to attach was the seeded NDA.
+  const openUploadForm = (stepId: string) => {
+    setUploadForStep(stepId);
+    setAttachOpenForStep(null);
+    setUTitle(''); setUDescription(''); setUAudience('staff');
+    setUTagIds(new Set()); setUNeedsUpload(true); setUFile(undefined);
+    setError(undefined);
+  };
+  const uToggleTag = (id: string) => setUTagIds((prev) => {
+    const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next;
+  });
+  const pickUploadFile = async () => {
     setError(undefined);
     try {
       const picked = await pickFile();
       if (!picked) return;
-      setUploadingDoc(true);
-      const title = picked.name.replace(/\.[^./\\]+$/, '') || picked.name;
+      setUFile(picked);
+      if (!uTitle.trim()) setUTitle(picked.name.replace(/\.[^./\\]+$/, '') || picked.name);
+    } catch (e: any) {
+      setError(e?.message ?? String(e));
+    }
+  };
+  const submitUpload = async () => {
+    if (!uploadForStep) return;
+    if (!uTitle.trim()) { setError('Title is required.'); return; }
+    if (!uFile) { setError('Choose a file to upload.'); return; }
+    setUploadingDoc(true);
+    setError(undefined);
+    try {
       const created = await apiFactory().documents.create({
-        title,
-        audience: 'staff',
-        tagIds: [],
-        file: { uri: picked.uri, name: picked.name, mimeType: picked.mimeType },
+        title: uTitle.trim(),
+        description: uDescription.trim() || undefined,
+        audience: uAudience,
+        tagIds: Array.from(uTagIds),
+        file: { uri: uFile.uri, name: uFile.name, mimeType: uFile.mimeType },
       });
-      await apiFactory().onboarding.attachDocument(stepId, { documentId: created.id, personUploadAllowed: true });
-      setAttachOpenForStep(null);
+      await apiFactory().onboarding.attachDocument(uploadForStep, { documentId: created.id, personUploadAllowed: uNeedsUpload });
+      setUploadForStep(null);
       await loadAll();      // refresh the library list
       await reloadFlow();   // refresh the step's attachments
-      setToast(`Uploaded & attached “${title}”`);
+      setToast(`Uploaded & attached “${uTitle.trim()}”`);
     } catch (e: any) {
       setError(e?.message ?? String(e));
       setToast(e?.message ? `Upload failed: ${e.message}` : 'Upload failed');
@@ -408,15 +460,13 @@ export default function EditOnboardingFlow({ navigation, route }: any) {
             <Button
               mode="contained" icon="file-upload"
               buttonColor={theme.colors.primary} textColor="#fff"
-              onPress={() => attachOpenForStep && uploadAndAttach(attachOpenForStep)}
-              loading={uploadingDoc}
-              disabled={uploadingDoc}
+              onPress={() => attachOpenForStep && openUploadForm(attachOpenForStep)}
               style={{ marginTop: 10, alignSelf: 'flex-start' }}
             >
               Upload a new document…
             </Button>
             <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginTop: 4 }}>
-              Adds the file (PDF/image) to the library and attaches it — the person uploads their completed copy.
+              Adds the file (PDF/image) to the library and attaches it to this step.
             </Text>
 
             <Divider style={{ marginVertical: 10, backgroundColor: 'rgba(255,255,255,0.08)' }} />
@@ -443,6 +493,98 @@ export default function EditOnboardingFlow({ navigation, route }: any) {
             <Button mode="text" textColor={theme.colors.textDarker} onPress={() => setAttachOpenForStep(null)} style={{ marginTop: 6 }}>
               Cancel
             </Button>
+          </Modal>
+        </Portal>
+
+        {/* New-document upload form — same fields as the Documents manager. */}
+        <Portal>
+          <Modal
+            visible={uploadForStep !== null}
+            onDismiss={() => !uploadingDoc && setUploadForStep(null)}
+            contentContainerStyle={{ backgroundColor: theme.colors.darkDefault, padding: 16, borderRadius: 8, marginHorizontal: 20, maxHeight: '85%', alignSelf: 'center', width: '90%', maxWidth: 460 }}
+          >
+            <Text style={{ color: theme.colors.text, fontSize: 16, fontWeight: '700' }}>Upload a new document</Text>
+            <ScrollView style={{ marginTop: 8 }}>
+              {/* File */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                <Button mode="outlined" icon="paperclip" textColor={theme.colors.text} onPress={pickUploadFile} style={{ borderColor: theme.colors.secondary }}>
+                  {uFile ? 'Change file' : 'Choose file (PDF/image)'}
+                </Button>
+                {uFile ? (
+                  <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginLeft: 8, flex: 1 }} numberOfLines={2}>
+                    {uFile.name}{uFile.sizeBytes ? ` (${Math.round(uFile.sizeBytes / 1024)} KB)` : ''}
+                  </Text>
+                ) : null}
+              </View>
+
+              <TextInput label="Title" value={uTitle} onChangeText={setUTitle} mode="outlined" style={{ marginTop: 8 }} />
+              <TextInput label="Description (optional)" value={uDescription} onChangeText={setUDescription} mode="outlined" multiline numberOfLines={2} style={{ marginTop: 8 }} />
+
+              {/* Audience */}
+              <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginTop: 12, marginBottom: 4 }}>AUDIENCE</Text>
+              <Menu
+                visible={uAudienceMenu}
+                onDismiss={() => setUAudienceMenu(false)}
+                anchor={
+                  <Button mode="outlined" icon="account-group" textColor={theme.colors.text} onPress={() => setUAudienceMenu(true)} style={{ borderColor: theme.colors.secondary, alignSelf: 'flex-start' }}>
+                    {AUDIENCES.find((a) => a.value === uAudience)?.label ?? uAudience}
+                  </Button>
+                }
+              >
+                {AUDIENCES.map((a) => (
+                  <Menu.Item key={a.value} title={a.label} onPress={() => { setUAudience(a.value); setUAudienceMenu(false); }} />
+                ))}
+              </Menu>
+
+              {/* Tags */}
+              {docTags.length > 0 ? (
+                <>
+                  <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginTop: 12, marginBottom: 4 }}>TAGS</Text>
+                  {TAG_CATEGORY_ORDER.map((cat) => {
+                    const list = uTagsByCategory[cat] ?? [];
+                    if (list.length === 0) return null;
+                    return (
+                      <View key={cat} style={{ marginBottom: 6 }}>
+                        <Text style={{ color: theme.colors.textDarker, fontSize: 10 }}>{TAG_CATEGORY_LABEL[cat]}</Text>
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 2 }}>
+                          {list.map((t) => {
+                            const on = uTagIds.has(t.id);
+                            return (
+                              <Chip
+                                key={t.id} compact selected={on} showSelectedCheck
+                                onPress={() => uToggleTag(t.id)}
+                                style={{ marginRight: 6, marginBottom: 6, backgroundColor: on ? theme.colors.primary : theme.colors.secondary }}
+                                textStyle={{ color: on ? '#000' : theme.colors.text, fontSize: 11 }}
+                              >
+                                {t.displayName}
+                              </Chip>
+                            );
+                          })}
+                        </View>
+                      </View>
+                    );
+                  })}
+                </>
+              ) : null}
+
+              {/* Person-upload requirement */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
+                <Switch value={uNeedsUpload} onValueChange={setUNeedsUpload} color={theme.colors.primary} />
+                <View style={{ marginLeft: 8, flex: 1 }}>
+                  <Text style={{ color: theme.colors.text, fontSize: 13 }}>Person uploads a completed copy</Text>
+                  <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>For forms they fill/sign (TD1, T4…). Off = read-only reference.</Text>
+                </View>
+              </View>
+
+              {error ? <HelperText type="error" visible>{error}</HelperText> : null}
+            </ScrollView>
+
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12 }}>
+              <Button mode="text" textColor={theme.colors.textDarker} onPress={() => setUploadForStep(null)} disabled={uploadingDoc}>Cancel</Button>
+              <Button mode="contained" icon="upload" buttonColor={theme.colors.primary} textColor="#fff" onPress={submitUpload} loading={uploadingDoc} disabled={uploadingDoc}>
+                Upload & attach
+              </Button>
+            </View>
           </Modal>
         </Portal>
 
