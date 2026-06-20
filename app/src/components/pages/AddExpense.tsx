@@ -168,17 +168,22 @@ export default function AddExpense({ navigation, route }: any) {
     }
   };
 
-  // Purge uncommitted uploads when leaving the screen without saving. Runs on
-  // unmount; reads the ref so it always sees the latest set. Fire-and-forget —
-  // deleteItem also removes the stored file, so nothing is left orphaned.
+  // Purge uncommitted uploads only when the user actually NAVIGATES AWAY from
+  // the screen without saving — via React Navigation's 'beforeRemove'. (A plain
+  // unmount effect also fired on hot-reload / incidental re-renders, which
+  // deleted in-progress receipts and left stale 404s.) Cleared on Save/Submit,
+  // so a saved draft keeps its receipts. Fire-and-forget; deleteItem also
+  // removes the stored file, so nothing is orphaned.
   useEffect(() => {
-    return () => {
+    const unsub = navigation?.addListener?.('beforeRemove', () => {
       const ids = Array.from(uncommittedRef.current);
       if (ids.length === 0) return;
       const api = apiFactory();
       for (const id of ids) api.expenses.deleteItem(id).catch(() => {});
-    };
-  }, []);
+      uncommittedRef.current.clear();
+    });
+    return unsub;
+  }, [navigation]);
 
   const persist = async (mode: 'draft' | 'submit') => {
     if (!claim) return;

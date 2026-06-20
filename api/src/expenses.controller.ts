@@ -1,6 +1,6 @@
 import {
   BadRequestException, Body, Controller, Delete, ForbiddenException, Get, HttpCode, Logger,
-  Param, Patch, Post, Query, Req, Res, UploadedFile, UseInterceptors,
+  NotFoundException, Param, Patch, Post, Query, Req, Res, UploadedFile, UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Roles } from './roles';
@@ -282,7 +282,7 @@ export class ExpensesController {
   @Get('items/:id/receipt') @Roles('member', 'staff', 'admin')
   async receipt(@Param('id') id: string, @Req() req: any) {
     const r = await this.svc.getReceipt(id);
-    if (!r) throw new ForbiddenException('No receipt on this item.');
+    if (!r) throw new NotFoundException('No receipt on this item.');
     const res = req.res;
     res.redirect(r.url);
   }
@@ -292,7 +292,7 @@ export class ExpensesController {
   @Get('items/:id/receipt/raw') @Roles('member', 'staff', 'admin')
   async receiptRaw(@Param('id') id: string, @Res() res: any) {
     const r = await this.svc.getReceiptBytes(id);
-    if (!r) throw new ForbiddenException('No receipt on this item.');
+    if (!r) throw new NotFoundException('No receipt on this item (it may have been removed, or its file was lost on a dev restart).');
     res.setHeader('Content-Type', r.mimeType);
     res.setHeader('Content-Disposition', `inline; filename="${r.fileName}"`);
     res.setHeader('Content-Length', String(r.bytes.length));
