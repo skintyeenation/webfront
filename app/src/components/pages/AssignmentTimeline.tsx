@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Linking, Platform, View } from 'react-native';
-import { ActivityIndicator, Button, Card, Chip, Divider, HelperText, IconButton, Modal, Portal, Snackbar, Text, TextInput } from 'react-native-paper';
+import { ActivityIndicator, Button, Card, Chip, Divider, HelperText, IconButton, Modal, Portal, Text, TextInput } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import dayjs from 'dayjs';
-import { PageContainer, PageContent, NoContent } from 'skintyee/components/layout';
+import { PageContainer, PageContent, NoContent, useToast } from 'skintyee/components/layout';
 import { useAppSelector } from 'skintyee/store';
 import { apiFactory } from 'skintyee/store/apis';
 import {
@@ -54,7 +54,7 @@ export default function AssignmentTimeline({ navigation, route }: any) {
   const [documents, setDocuments] = useState<DocumentDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>();
-  const [toast, setToast] = useState<string | null>(null);
+  const { showToast, toastNode } = useToast();
   const [rejectFor, setRejectFor] = useState<{ stepId: string; reason: string } | null>(null);
   const [busyStep, setBusyStep] = useState<string | undefined>();
 
@@ -96,7 +96,7 @@ export default function AssignmentTimeline({ navigation, route }: any) {
     setBusyStep(stepId);
     try {
       await apiFactory().onboarding.approveStep(assignment.id, stepId);
-      setToast('Step marked complete');
+      showToast('Step marked complete');
       await load();
     } catch (e: any) { setError(e?.message ?? String(e)); }
     finally { setBusyStep(undefined); }
@@ -107,7 +107,7 @@ export default function AssignmentTimeline({ navigation, route }: any) {
     try {
       await apiFactory().onboarding.rejectStep(assignment.id, rejectFor.stepId, rejectFor.reason || undefined);
       setRejectFor(null);
-      setToast('Step rejected');
+      showToast('Step rejected');
       await load();
     } catch (e: any) { setError(e?.message ?? String(e)); }
     finally { setBusyStep(undefined); }
@@ -117,7 +117,7 @@ export default function AssignmentTimeline({ navigation, route }: any) {
     setBusyStep(stepId);
     try {
       await apiFactory().onboarding.resetStep(assignment.id, stepId);
-      setToast('Step reset');
+      showToast('Step reset');
       await load();
     } catch (e: any) { setError(e?.message ?? String(e)); }
     finally { setBusyStep(undefined); }
@@ -145,7 +145,7 @@ export default function AssignmentTimeline({ navigation, route }: any) {
         a.href = u; a.download = filename;
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
         setTimeout(() => URL.revokeObjectURL(u), 5_000);
-        setToast('Saved');
+        showToast('Saved');
       }
     } catch (e: any) { setError(e?.message ?? String(e)); }
   };
@@ -182,7 +182,7 @@ export default function AssignmentTimeline({ navigation, route }: any) {
     setBusyStep(stepId);
     try {
       await apiFactory().onboarding.meUpload(assignment.id, stepId, file);
-      setToast('Uploaded');
+      showToast('Uploaded');
       await load();
     } catch (e: any) { setError(e?.message ?? String(e)); }
     finally { setBusyStep(undefined); }
@@ -218,7 +218,7 @@ export default function AssignmentTimeline({ navigation, route }: any) {
     setBusyStep(stepId);
     try {
       await apiFactory().onboarding.adminUpload(assignment.id, stepId, file);
-      setToast('Uploaded');
+      showToast('Uploaded');
       await load();
     } catch (e: any) { setError(e?.message ?? String(e)); }
     finally { setBusyStep(undefined); }
@@ -230,10 +230,10 @@ export default function AssignmentTimeline({ navigation, route }: any) {
     const url = (typeof window !== 'undefined' ? window.location.origin : 'https://app.skintyee.ca')
       + `/onboard/${assignment.id}/${assignment.publicToken}`;
     if (Platform.OS === 'web' && navigator?.clipboard) {
-      try { await navigator.clipboard.writeText(url); setToast('Link copied'); }
-      catch { setToast(url); }
+      try { await navigator.clipboard.writeText(url); showToast('Link copied'); }
+      catch { showToast(url); }
     } else {
-      setToast(url);
+      showToast(url);
     }
   };
 
@@ -242,7 +242,7 @@ export default function AssignmentTimeline({ navigation, route }: any) {
     try {
       const { publicToken } = await apiFactory().onboarding.rotateToken(assignment.id);
       setAssignment({ ...assignment, publicToken });
-      setToast('New link generated');
+      showToast('New link generated');
     } catch (e: any) { setError(e?.message ?? String(e)); }
   };
 
@@ -475,15 +475,7 @@ export default function AssignmentTimeline({ navigation, route }: any) {
           </Modal>
         </Portal>
 
-        <Snackbar
-          visible={toast !== null}
-          onDismiss={() => setToast(null)}
-          duration={2400}
-          wrapperStyle={{ alignItems: 'center' }}
-          style={{ backgroundColor: theme.colors.success, alignSelf: 'center', width: '100%', maxWidth: 480 }}
-        >
-          <Text style={{ color: '#000', textAlign: 'center', width: '100%' }}>{toast ?? ''}</Text>
-        </Snackbar>
+        {toastNode}
       </PageContent>
     </PageContainer>
   );

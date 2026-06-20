@@ -1,8 +1,8 @@
 import React, { useCallback, useState } from 'react';
 import { View } from 'react-native';
-import { ActivityIndicator, Button, Card, Divider, HelperText, Snackbar, Switch, Text, TextInput } from 'react-native-paper';
+import { ActivityIndicator, Button, Card, Divider, HelperText, Switch, Text, TextInput } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
-import { PageContainer, PageContent, NoContent } from 'skintyee/components/layout';
+import { PageContainer, PageContent, NoContent, useToast } from 'skintyee/components/layout';
 import { apiFactory } from 'skintyee/store/apis';
 import { NotificationSettings } from 'skintyee/services/api/ApiService';
 import { theme } from 'skintyee/styles';
@@ -32,7 +32,7 @@ export default function ConfigureNotifications() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | undefined>();
-  const [toast, setToast] = useState<string | null>(null);
+  const { showToast, toastNode } = useToast();
 
   const load = useCallback(async () => {
     setError(undefined);
@@ -58,7 +58,7 @@ export default function ConfigureNotifications() {
     try {
       const saved = await apiFactory().admin.updateNotificationSettings(settings);
       setSettings(saved);
-      setToast('Saved');
+      showToast('Saved');
     } catch (e: any) {
       setError(e?.message ?? String(e));
     } finally {
@@ -160,15 +160,7 @@ export default function ConfigureNotifications() {
           Save changes
         </Button>
 
-        <Snackbar
-          visible={toast !== null}
-          onDismiss={() => setToast(null)}
-          duration={1800}
-          wrapperStyle={{ alignItems: 'center' }}
-          style={{ backgroundColor: theme.colors.success, alignSelf: 'center', width: '100%', maxWidth: 420 }}
-        >
-          <Text style={{ color: '#000', textAlign: 'center', width: '100%' }}>{toast ?? ''}</Text>
-        </Snackbar>
+        {toastNode}
       </PageContent>
     </PageContainer>
   );

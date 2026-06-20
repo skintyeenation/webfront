@@ -1,8 +1,8 @@
 import React, { useCallback, useState } from 'react';
 import { View } from 'react-native';
-import { ActivityIndicator, Button, Card, Chip, Divider, HelperText, IconButton, Modal, Portal, Snackbar, Switch, Text, TextInput } from 'react-native-paper';
+import { ActivityIndicator, Button, Card, Chip, Divider, HelperText, IconButton, Modal, Portal, Switch, Text, TextInput } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
-import { PageContainer, PageContent, useConfirm } from 'skintyee/components/layout';
+import { PageContainer, PageContent, useConfirm, useToast } from 'skintyee/components/layout';
 import { apiFactory } from 'skintyee/store/apis';
 import { ExpenseTag } from 'skintyee/models';
 import { theme } from 'skintyee/styles';
@@ -20,7 +20,7 @@ export default function ExpenseTagManager() {
   const [tags, setTags] = useState<ExpenseTag[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>();
-  const [toast, setToast] = useState<string | null>(null);
+  const { showToast, toastNode } = useToast();
   const { confirm, ConfirmHost } = useConfirm();
 
   const [editing, setEditing] = useState<{ slug: string; label: string; glAccount: string; isNew: boolean } | null>(null);
@@ -53,10 +53,10 @@ export default function ExpenseTagManager() {
       if (editing.isNew) {
         const slug = editing.slug.trim() || slugify(editing.label);
         await api.expenses.createTag(slug, editing.label.trim(), gl || undefined);
-        setToast('Tag added');
+        showToast('Tag added');
       } else {
         await api.expenses.updateTag(editing.slug, { label: editing.label.trim(), glAccount: gl || null });
-        setToast('Tag updated');
+        showToast('Tag updated');
       }
       setEditing(null);
       await load();
@@ -85,7 +85,7 @@ export default function ExpenseTagManager() {
       onConfirm: async () => {
         try {
           await apiFactory().expenses.deleteTag(t.slug);
-          setToast('Tag deleted');
+          showToast('Tag deleted');
           await load();
         } catch (e: any) {
           setError(e?.message ?? String(e));
@@ -183,15 +183,7 @@ export default function ExpenseTagManager() {
           </Modal>
         </Portal>
 
-        <Snackbar
-          visible={toast !== null}
-          onDismiss={() => setToast(null)}
-          duration={1800}
-          wrapperStyle={{ alignItems: 'center' }}
-          style={{ backgroundColor: theme.colors.success, alignSelf: 'center', width: '100%', maxWidth: 420 }}
-        >
-          <Text style={{ color: '#000', textAlign: 'center', width: '100%' }}>{toast ?? ''}</Text>
-        </Snackbar>
+        {toastNode}
         <ConfirmHost />
       </PageContent>
     </PageContainer>

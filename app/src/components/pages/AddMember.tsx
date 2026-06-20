@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
-import { Button, Card, Chip, HelperText, IconButton, Snackbar, Switch, Text, TextInput } from 'react-native-paper';
-import { PageContainer, PageContent, SecurityGroupPicker, useConfirm } from 'skintyee/components/layout';
+import { Button, Card, Chip, HelperText, IconButton, Switch, Text, TextInput } from 'react-native-paper';
+import { PageContainer, PageContent, SecurityGroupPicker, useConfirm, useToast } from 'skintyee/components/layout';
 import { useAppDispatch } from 'skintyee/store';
 import { addMember } from 'skintyee/store/modules/directory';
 import { apiFactory } from 'skintyee/store/apis';
@@ -65,7 +65,7 @@ export default function AddMember({ navigation }: any) {
   const [success, setSuccess] = useState<null | {
     upn: string; oneTimePassword: string; bandGroupCount: number; failedGroups: string[]; personId?: string;
   }>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const { showToast, toastNode } = useToast();
 
   // Live UPN suggestion as the name is typed.
   const suggestedUpn = useMemo(() => {
@@ -76,10 +76,10 @@ export default function AddMember({ navigation }: any) {
 
   const copyPassword = async () => {
     if (typeof navigator !== 'undefined' && (navigator as any).clipboard) {
-      try { await (navigator as any).clipboard.writeText(success?.oneTimePassword ?? password); setToast('Password copied'); return; }
+      try { await (navigator as any).clipboard.writeText(success?.oneTimePassword ?? password); showToast('Password copied'); return; }
       catch { /* fall through */ }
     }
-    setToast(success?.oneTimePassword ?? password);
+    showToast(success?.oneTimePassword ?? password);
   };
 
   const submit = async () => {
@@ -166,11 +166,7 @@ export default function AddMember({ navigation }: any) {
               </View>
             </Card.Content>
           </Card>
-          <Snackbar visible={toast !== null} onDismiss={() => setToast(null)} duration={1800}
-            wrapperStyle={{ alignItems: 'center' }}
-            style={{ backgroundColor: theme.colors.success, alignSelf: 'center', width: '100%', maxWidth: 420 }}>
-            <Text style={{ color: '#000', textAlign: 'center', width: '100%' }}>{toast ?? ''}</Text>
-          </Snackbar>
+          {toastNode}
         </PageContent>
       </PageContainer>
     );
@@ -210,10 +206,10 @@ export default function AddMember({ navigation }: any) {
                   forceTextInputFocus={false}
                   onPress={async () => {
                     if (typeof navigator !== 'undefined' && (navigator as any).clipboard) {
-                      try { await (navigator as any).clipboard.writeText(password); setToast('Password copied'); return; }
+                      try { await (navigator as any).clipboard.writeText(password); showToast('Password copied'); return; }
                       catch { /* fall through */ }
                     }
-                    setToast(password);
+                    showToast(password);
                   }}
                 />
               }

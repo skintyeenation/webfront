@@ -1,9 +1,9 @@
 import React, { useCallback, useState } from 'react';
 import { Linking, Platform, View } from 'react-native';
-import { ActivityIndicator, Button, Card, Chip, HelperText, Snackbar, Text } from 'react-native-paper';
+import { ActivityIndicator, Button, Card, Chip, HelperText, Text } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import dayjs from 'dayjs';
-import { PageContainer, PageContent } from 'skintyee/components/layout';
+import { PageContainer, PageContent, useToast } from 'skintyee/components/layout';
 import { apiFactory } from 'skintyee/store/apis';
 import { TimesheetReportSummary } from 'skintyee/services/api/ApiService';
 import { theme } from 'skintyee/styles';
@@ -53,7 +53,7 @@ export default function TimekeepingReports({ navigation }: any) {
   const [busy, setBusy] = useState<string | undefined>();
   const [busyAction, setBusyAction] = useState<'open' | 'save' | 'csv' | 'regen' | undefined>();
   const [error, setError] = useState<string | undefined>();
-  const [toast, setToast] = useState<string | null>(null);
+  const { showToast, toastNode } = useToast();
 
   const load = useCallback(async () => {
     setError(undefined);
@@ -95,7 +95,7 @@ export default function TimekeepingReports({ navigation }: any) {
       await ensureGenerated(r);
       const { blob, filename } = await apiFactory().timekeeping.reports.fetchPdf(r.payPeriodId, { download: true });
       saveBlob(blob, filename);
-      setToast('PDF saved to Downloads');
+      showToast('PDF saved to Downloads');
     } catch (e: any) {
       setError(e?.message ?? String(e));
     } finally { setBusy(undefined); setBusyAction(undefined); }
@@ -106,7 +106,7 @@ export default function TimekeepingReports({ navigation }: any) {
     try {
       const fresh = await apiFactory().timekeeping.reports.generate(r.payPeriodId);
       setReports((prev) => prev.map((x) => (x.payPeriodId === r.payPeriodId ? fresh : x)));
-      setToast('Regenerated');
+      showToast('Regenerated');
     } catch (e: any) {
       setError(e?.message ?? String(e));
     } finally { setBusy(undefined); setBusyAction(undefined); }
@@ -118,7 +118,7 @@ export default function TimekeepingReports({ navigation }: any) {
     try {
       const { blob, filename } = await apiFactory().timekeeping.reports.fetchCsv(r.payPeriodId);
       saveBlob(blob, filename);
-      setToast('CSV saved to Downloads');
+      showToast('CSV saved to Downloads');
     } catch (e: any) {
       setError(e?.message ?? String(e));
     } finally { setBusy(undefined); setBusyAction(undefined); }
@@ -222,15 +222,7 @@ export default function TimekeepingReports({ navigation }: any) {
           );
         })}
 
-        <Snackbar
-          visible={toast !== null}
-          onDismiss={() => setToast(null)}
-          duration={1800}
-          wrapperStyle={{ alignItems: 'center' }}
-          style={{ backgroundColor: theme.colors.success, alignSelf: 'center', width: '100%', maxWidth: 420 }}
-        >
-          <Text style={{ color: '#000', textAlign: 'center', width: '100%' }}>{toast ?? ''}</Text>
-        </Snackbar>
+        {toastNode}
       </PageContent>
     </PageContainer>
   );

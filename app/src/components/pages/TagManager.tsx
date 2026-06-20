@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
-import { ActivityIndicator, Button, Card, Chip, Divider, HelperText, IconButton, Modal, Portal, Snackbar, Text, TextInput } from 'react-native-paper';
+import { ActivityIndicator, Button, Card, Chip, Divider, HelperText, IconButton, Modal, Portal, Text, TextInput } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
-import { PageContainer, PageContent } from 'skintyee/components/layout';
+import { PageContainer, PageContent, useToast } from 'skintyee/components/layout';
 import { apiFactory } from 'skintyee/store/apis';
 import { DocumentTagDto } from 'skintyee/services/api/ApiService';
 import { theme } from 'skintyee/styles';
@@ -34,7 +34,7 @@ export default function TagManager({ navigation }: any) {
   const [categories, setCategories] = useState<Array<{ slug: 'gov' | 'gov_sector' | 'department'; displayName: string; description: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>();
-  const [toast, setToast] = useState<string | null>(null);
+  const { showToast, toastNode } = useToast();
 
   const [editing, setEditing] = useState<{ id?: string; category: 'gov' | 'gov_sector' | 'department'; slug: string; displayName: string } | null>(null);
   const [saving, setSaving] = useState(false);
@@ -83,10 +83,10 @@ export default function TagManager({ navigation }: any) {
       const api = apiFactory();
       if (editing.id) {
         await api.documentTags.update(editing.id, { slug, displayName: editing.displayName.trim() });
-        setToast('Tag updated');
+        showToast('Tag updated');
       } else {
         await api.documentTags.create({ category: editing.category, slug, displayName: editing.displayName.trim() });
-        setToast('Tag added');
+        showToast('Tag added');
       }
       setEditing(null);
       await load();
@@ -101,7 +101,7 @@ export default function TagManager({ navigation }: any) {
     if (t.inUseCount > 0) return; // UI gate; server throws 409 too
     try {
       await apiFactory().documentTags.delete(t.id);
-      setToast('Tag deleted');
+      showToast('Tag deleted');
       await load();
     } catch (e: any) {
       setError(e?.message ?? String(e));
@@ -212,15 +212,7 @@ export default function TagManager({ navigation }: any) {
           </Modal>
         </Portal>
 
-        <Snackbar
-          visible={toast !== null}
-          onDismiss={() => setToast(null)}
-          duration={1800}
-          wrapperStyle={{ alignItems: 'center' }}
-          style={{ backgroundColor: theme.colors.success, alignSelf: 'center', width: '100%', maxWidth: 420 }}
-        >
-          <Text style={{ color: '#000', textAlign: 'center', width: '100%' }}>{toast ?? ''}</Text>
-        </Snackbar>
+        {toastNode}
       </PageContent>
     </PageContainer>
   );

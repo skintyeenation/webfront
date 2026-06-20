@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
-import { ActivityIndicator as Spinner, Button, Card, Chip, HelperText, IconButton, Menu, Modal, Portal, Snackbar, Text, TextInput } from 'react-native-paper';
+import { ActivityIndicator as Spinner, Button, Card, Chip, HelperText, IconButton, Menu, Modal, Portal, Text, TextInput } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import dayjs from 'dayjs';
-import { PageContainer, PageContent } from 'skintyee/components/layout';
+import { PageContainer, PageContent, useToast } from 'skintyee/components/layout';
 import { useAppSelector } from 'skintyee/store';
 import { apiFactory } from 'skintyee/store/apis';
 import { ExpenseClaim, ExpenseItem, ExpensePeriod, ExpenseTag } from 'skintyee/models';
@@ -51,7 +51,7 @@ export default function AddExpense({ navigation, route }: any) {
   const [saving, setSaving] = useState(false);
   const [submittedMode, setSubmittedMode] = useState<'draft' | 'submit' | null>(null);
   const [error, setError] = useState<string | undefined>();
-  const [toast, setToast] = useState<string | null>(null);
+  const { showToast, toastNode } = useToast();
   // Receipts uploaded this session but not yet committed via Save/Submit.
   // If the user leaves without saving, these (file + row) are purged so we
   // never leave orphaned uploads behind. Cleared on a successful Save/Submit.
@@ -112,7 +112,7 @@ export default function AddExpense({ navigation, route }: any) {
       const { item } = await apiFactory().expenses.addReceipt(claim.id, file, {});
       uncommittedRef.current.add(item.id);
       setItems((prev) => [...prev, item]);
-      setToast(item.aiExtracted ? 'Receipt read by AI — review the details' : 'Receipt added');
+      showToast(item.aiExtracted ? 'Receipt read by AI — review the details' : 'Receipt added');
     } catch (e: any) {
       setError(e?.message ?? String(e));
     } finally {
@@ -185,10 +185,10 @@ export default function AddExpense({ navigation, route }: any) {
         if (items.length === 0) throw new Error('Add at least one receipt before submitting.');
         const submitted = await api.expenses.submit(claim.id);
         setClaim(submitted);
-        setToast('Submitted for approval');
+        showToast('Submitted for approval');
         setTimeout(() => navigation?.goBack?.(), 900);
       } else {
-        setToast(adminEditMode ? 'Edits saved' : 'Saved');
+        showToast(adminEditMode ? 'Edits saved' : 'Saved');
         if (adminEditMode) setTimeout(() => navigation?.goBack?.(), 900);
       }
     } catch (e: any) {
@@ -361,15 +361,7 @@ export default function AddExpense({ navigation, route }: any) {
           </>
         )}
 
-        <Snackbar
-          visible={toast !== null}
-          onDismiss={() => setToast(null)}
-          duration={2200}
-          wrapperStyle={{ alignItems: 'center' }}
-          style={{ backgroundColor: theme.colors.success, alignSelf: 'center', width: '100%', maxWidth: 420 }}
-        >
-          <Text style={{ color: '#000', textAlign: 'center', width: '100%' }}>{toast ?? ''}</Text>
-        </Snackbar>
+        {toastNode}
       </PageContent>
     </PageContainer>
   );

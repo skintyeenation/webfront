@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { Button, Card, Chip, HelperText, IconButton, Snackbar, Text, TextInput } from 'react-native-paper';
+import { Button, Card, Chip, HelperText, IconButton, Text, TextInput } from 'react-native-paper';
 import dayjs from 'dayjs';
-import { PageContainer, PageContent, TimeField } from 'skintyee/components/layout';
+import { PageContainer, PageContent, TimeField, useToast } from 'skintyee/components/layout';
 import { useAppSelector } from 'skintyee/store';
 import { apiFactory } from 'skintyee/store/apis';
 import { PayPeriod, PayPeriodConfig, Timesheet } from 'skintyee/models';
@@ -165,7 +165,7 @@ export default function AddTimesheet({ navigation, route }: any) {
   const [saving, setSaving] = useState(false);
   const [submittedMode, setSubmittedMode] = useState<'draft' | 'submit' | null>(null);
   const [error, setError] = useState<string | undefined>();
-  const [toast, setToast] = useState<string | null>(null);
+  const { showToast, toastNode } = useToast();
 
   useEffect(() => {
     let cancelled = false;
@@ -350,7 +350,7 @@ export default function AddTimesheet({ navigation, route }: any) {
           ? await api.timekeeping.submit(payPeriod.id, body)
           : await api.timekeeping.saveDraft(payPeriod.id, body);
       setExisting(saved);
-      setToast(adminEditMode ? 'Edits saved' : (mode === 'submit' ? 'Submitted for approval' : 'Saved'));
+      showToast(adminEditMode ? 'Edits saved' : (mode === 'submit' ? 'Submitted for approval' : 'Saved'));
       // Admin-edit always returns to the Approvals tab; worker submit
       // bounces back too.
       if (adminEditMode || mode === 'submit') {
@@ -666,20 +666,7 @@ export default function AddTimesheet({ navigation, route }: any) {
             so a default left-pinned Snackbar reads as off-centre).
             Inner card is width-bounded + alignSelf:center, and the
             message text is centred horizontally inside it. */}
-        <Snackbar
-          visible={toast !== null}
-          onDismiss={() => setToast(null)}
-          duration={2200}
-          wrapperStyle={{ alignItems: 'center' }}
-          style={{
-            backgroundColor: theme.colors.success,
-            alignSelf: 'center',
-            width: '100%',
-            maxWidth: 420,
-          }}
-        >
-          <Text style={{ color: '#000', textAlign: 'center', width: '100%' }}>{toast ?? ''}</Text>
-        </Snackbar>
+        {toastNode}
       </PageContent>
     </PageContainer>
   );

@@ -15,5 +15,7 @@ export { TimeField } from './TimeField';
 export { LocationPicker } from './LocationPicker';
 export type { LatLng } from './LocationPicker';
 export { useConfirm } from './useConfirm';
+export { useToast } from './useToast';
+export type { ToastKind } from './useToast';
 export { SecurityGroupPicker } from './SecurityGroupPicker';
 export type { SecurityGroupPickerProps } from './SecurityGroupPicker';

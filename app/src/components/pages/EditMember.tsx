@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { Button, Card, Chip, Divider, HelperText, IconButton, Snackbar, Text, TextInput } from 'react-native-paper';
-import { PageContainer, PageContent, NoContent, useConfirm } from 'skintyee/components/layout';
+import { Button, Card, Chip, Divider, HelperText, IconButton, Text, TextInput } from 'react-native-paper';
+import { PageContainer, PageContent, NoContent, useConfirm, useToast } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { loadDirectory, loadMember, setMemberGroups, setMemberMailboxes, setMemberLicenses, setMemberBlocked, updateMember } from 'skintyee/store/modules/directory';
 import { BandMember } from 'skintyee/models';
@@ -98,7 +98,7 @@ export default function EditMember({ route, navigation }: any) {
   // Editing your own account — never let an admin lock themselves out.
   const myUpn = useAppSelector((s) => (s.auth.user?.upn ?? '').toLowerCase());
   const isSelf = !!member?.upn && (member.upn as string).toLowerCase() === myUpn;
-  const [toast, setToast] = useState<string | null>(null);
+  const { showToast, toastNode } = useToast();
   const { confirm, ConfirmHost } = useConfirm();
 
   // Shared mailbox catalog + selected. Only fetched/shown for licensed
@@ -529,9 +529,9 @@ export default function EditMember({ route, navigation }: any) {
                     <Text style={{ color: theme.colors.text, fontSize: 16, fontFamily: 'monospace', flex: 1 }}>{adminTempPw}</Text>
                     <IconButton icon="content-copy" size={18} iconColor={theme.colors.textDarker} onPress={async () => {
                       if (typeof navigator !== 'undefined' && (navigator as any).clipboard) {
-                        try { await (navigator as any).clipboard.writeText(adminTempPw); setToast('Password copied'); return; } catch { /* fall through */ }
+                        try { await (navigator as any).clipboard.writeText(adminTempPw); showToast('Password copied'); return; } catch { /* fall through */ }
                       }
-                      setToast(adminTempPw);
+                      showToast(adminTempPw);
                     }} />
                   </View>
                   <HelperText type="info" visible style={{ marginLeft: -8 }}>
@@ -622,7 +622,7 @@ export default function EditMember({ route, navigation }: any) {
                       setBlocking(true); setRotateError(undefined);
                       try {
                         await dispatch(setMemberBlocked({ id: member!._id, blocked: !locked })).unwrap();
-                        setToast(locked ? 'Account unlocked' : 'Account locked');
+                        showToast(locked ? 'Account unlocked' : 'Account locked');
                       } catch (e: any) { setRotateError(e?.message ?? String(e)); }
                       finally { setBlocking(false); }
                     },
@@ -658,15 +658,7 @@ export default function EditMember({ route, navigation }: any) {
 
         <ConfirmHost />
 
-        <Snackbar
-          visible={toast !== null}
-          onDismiss={() => setToast(null)}
-          duration={1800}
-          wrapperStyle={{ alignItems: 'center' }}
-          style={{ backgroundColor: theme.colors.success, alignSelf: 'center', width: '100%', maxWidth: 420 }}
-        >
-          <Text style={{ color: '#000', textAlign: 'center', width: '100%' }}>{toast ?? ''}</Text>
-        </Snackbar>
+        {toastNode}
       </PageContent>
     </PageContainer>
   );

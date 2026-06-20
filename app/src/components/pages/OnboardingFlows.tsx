@@ -1,10 +1,10 @@
 import React, { useCallback, useState } from 'react';
 import { View } from 'react-native';
-import { ActivityIndicator, Button, Card, Chip, Divider, HelperText, IconButton, Modal, Portal, SegmentedButtons, Snackbar, Text } from 'react-native-paper';
+import { ActivityIndicator, Button, Card, Chip, Divider, HelperText, IconButton, Modal, Portal, SegmentedButtons, Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useFocusEffect } from '@react-navigation/native';
 import dayjs from 'dayjs';
-import { PageContainer, PageContent, NoContent, AdminAddButton, useConfirm } from 'skintyee/components/layout';
+import { PageContainer, PageContent, NoContent, AdminAddButton, useConfirm, useToast } from 'skintyee/components/layout';
 import { apiFactory } from 'skintyee/store/apis';
 import { OnboardingFlowDto, PersonDto, OnboardingAssignmentDto } from 'skintyee/services/api/ApiService';
 import { theme } from 'skintyee/styles';
@@ -46,7 +46,7 @@ export default function OnboardingFlows({ navigation }: any) {
   const [assignFlowId, setAssignFlowId] = useState<string | undefined>();
   const [assignSaving, setAssignSaving] = useState(false);
   const [assignError, setAssignError] = useState<string | undefined>();
-  const [toast, setToast] = useState<string | null>(null);
+  const { showToast, toastNode } = useToast();
 
   const load = useCallback(async () => {
     setError(undefined);
@@ -87,7 +87,7 @@ export default function OnboardingFlows({ navigation }: any) {
       const r = await apiFactory().onboarding.createAssignment({ flowId: assignFlowId, personId });
       setAssignModalOpen(false);
       setAssignments((prev) => [r, ...prev]);
-      setToast('Assignment created');
+      showToast('Assignment created');
       navigation.navigate('onboardingAssignment', { id: r.id });
     } catch (e: any) {
       setAssignError(e?.message ?? String(e));
@@ -329,15 +329,7 @@ export default function OnboardingFlows({ navigation }: any) {
           </Modal>
         </Portal>
 
-        <Snackbar
-          visible={toast !== null}
-          onDismiss={() => setToast(null)}
-          duration={1800}
-          wrapperStyle={{ alignItems: 'center' }}
-          style={{ backgroundColor: theme.colors.success, alignSelf: 'center', width: '100%', maxWidth: 420 }}
-        >
-          <Text style={{ color: '#000', textAlign: 'center', width: '100%' }}>{toast ?? ''}</Text>
-        </Snackbar>
+        {toastNode}
 
         <ConfirmHost />
       </PageContent>

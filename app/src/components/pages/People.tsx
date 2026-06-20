@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
-import { ActivityIndicator, Button, Card, Chip, HelperText, IconButton, Modal, Portal, Snackbar, Switch, Text, TextInput } from 'react-native-paper';
+import { ActivityIndicator, Button, Card, Chip, HelperText, IconButton, Modal, Portal, Switch, Text, TextInput } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useFocusEffect } from '@react-navigation/native';
 import dayjs from 'dayjs';
-import { PageContainer, PageContent, NoContent, AdminAddButton, useConfirm } from 'skintyee/components/layout';
+import { PageContainer, PageContent, NoContent, AdminAddButton, useConfirm, useToast } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { loadDirectory } from 'skintyee/store/modules/directory';
 import { apiFactory } from 'skintyee/store/apis';
@@ -41,7 +41,7 @@ export default function People({ navigation }: any) {
   const [people, setPeople] = useState<PersonDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>();
-  const [toast, setToast] = useState<string | null>(null);
+  const { showToast, toastNode } = useToast();
   const { confirm, ConfirmHost } = useConfirm();
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -100,7 +100,7 @@ export default function People({ navigation }: any) {
       // the password in the snackbar as a fallback so admin can long-
       // press / triple-click to grab it. Best-effort, but the inline
       // success path covers the common case.
-      setToast(text);
+      showToast(text);
     }
   };
   const [saving, setSaving] = useState(false);
@@ -210,7 +210,7 @@ export default function People({ navigation }: any) {
       onConfirm: async () => {
         try {
           await apiFactory().onboarding.deletePerson(p.id);
-          setToast('Removed');
+          showToast('Removed');
           await load();
         } catch (e: any) {
           setError(e?.message ?? String(e));
@@ -263,7 +263,7 @@ export default function People({ navigation }: any) {
           timesheetsEnabled,
           expensesEnabled,
         });
-        setToast('Saved');
+        showToast('Saved');
         setModalOpen(false);
         resetForm();
         await load();
@@ -312,7 +312,7 @@ export default function People({ navigation }: any) {
           }
         }
 
-        setToast('Person added');
+        showToast('Person added');
         setModalOpen(false);
         resetForm();
         await load();
@@ -807,15 +807,7 @@ export default function People({ navigation }: any) {
 
         <ConfirmHost />
 
-        <Snackbar
-          visible={toast !== null}
-          onDismiss={() => setToast(null)}
-          duration={1800}
-          wrapperStyle={{ alignItems: 'center' }}
-          style={{ backgroundColor: theme.colors.success, alignSelf: 'center', width: '100%', maxWidth: 420 }}
-        >
-          <Text style={{ color: '#000', textAlign: 'center', width: '100%' }}>{toast ?? ''}</Text>
-        </Snackbar>
+        {toastNode}
       </PageContent>
     </PageContainer>
   );

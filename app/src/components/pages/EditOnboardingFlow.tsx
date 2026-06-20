@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
-import { ActivityIndicator, Button, Card, Chip, Divider, HelperText, IconButton, Menu, Modal, Portal, Snackbar, Switch, Text, TextInput } from 'react-native-paper';
-import { PageContainer, PageContent, NoContent } from 'skintyee/components/layout';
+import { ActivityIndicator, Button, Card, Chip, Divider, HelperText, IconButton, Menu, Modal, Portal, Switch, Text, TextInput } from 'react-native-paper';
+import { PageContainer, PageContent, NoContent, useToast } from 'skintyee/components/layout';
 import { apiFactory } from 'skintyee/store/apis';
 import { pickFile } from 'skintyee/core/receiptCapture';
 import {
@@ -58,7 +58,7 @@ export default function EditOnboardingFlow({ navigation, route }: any) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | undefined>();
-  const [toast, setToast] = useState<string | null>(null);
+  const { showToast, toastNode } = useToast();
 
   // Per-step menus, attach modal etc. (Assigning a flow to a person
   // lives on the Onboarding screen's Assignments tab now — single home
@@ -147,14 +147,14 @@ export default function EditOnboardingFlow({ navigation, route }: any) {
           active,
         });
         setFlow(r);
-        setToast('Saved');
+        showToast('Saved');
       } else {
         const r = await api.onboarding.createFlow({
           title: title.trim(),
           description: description.trim() || undefined,
         });
         setFlow(r);
-        setToast('Flow created');
+        showToast('Flow created');
         navigation?.setParams?.({ id: r.id });
       }
     } catch (e: any) {
@@ -189,20 +189,20 @@ export default function EditOnboardingFlow({ navigation, route }: any) {
       await apiFactory().onboarding.attachDocument(stepId, { documentId: doc.id, personUploadAllowed: allowUpload });
       setAttachOpenForStep(null);
       await reloadFlow();
-      setToast(`Attached “${doc.title}”`);
+      showToast(`Attached “${doc.title}”`);
     } catch (e: any) {
       setError(e?.message ?? String(e));
-      setToast('Couldn’t attach the document');
+      showToast('Couldn’t attach the document', 'error');
     }
   };
   const detachDoc = async (rowId: string) => {
     try {
       await apiFactory().onboarding.detachDocument(rowId);
       await reloadFlow();
-      setToast('Document removed');
+      showToast('Document removed');
     } catch (e: any) {
       setError(e?.message ?? String(e));
-      setToast('Couldn’t remove the document');
+      showToast('Couldn’t remove the document', 'error');
     }
   };
 
@@ -249,10 +249,10 @@ export default function EditOnboardingFlow({ navigation, route }: any) {
       setUploadForStep(null);
       await loadAll();      // refresh the library list
       await reloadFlow();   // refresh the step's attachments
-      setToast(`Uploaded & attached “${uTitle.trim()}”`);
+      showToast(`Uploaded & attached “${uTitle.trim()}”`);
     } catch (e: any) {
       setError(e?.message ?? String(e));
-      setToast(e?.message ? `Upload failed: ${e.message}` : 'Upload failed');
+      showToast(e?.message ? `Upload failed: ` : 'Upload failed', 'error');
     } finally {
       setUploadingDoc(false);
     }
@@ -607,15 +607,7 @@ export default function EditOnboardingFlow({ navigation, route }: any) {
           </Modal>
         </Portal>
 
-        <Snackbar
-          visible={toast !== null}
-          onDismiss={() => setToast(null)}
-          duration={1800}
-          wrapperStyle={{ alignItems: 'center' }}
-          style={{ backgroundColor: theme.colors.success, alignSelf: 'center', width: '100%', maxWidth: 420 }}
-        >
-          <Text style={{ color: '#000', textAlign: 'center', width: '100%' }}>{toast ?? ''}</Text>
-        </Snackbar>
+        {toastNode}
       </PageContent>
     </PageContainer>
   );

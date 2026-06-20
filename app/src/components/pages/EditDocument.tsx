@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform, ScrollView, View } from 'react-native';
-import { ActivityIndicator, Button, Chip, HelperText, IconButton, Menu, Snackbar, Text, TextInput } from 'react-native-paper';
+import { ActivityIndicator, Button, Chip, HelperText, IconButton, Menu, Text, TextInput } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { PageContainer, PageContent, NoContent } from 'skintyee/components/layout';
+import { PageContainer, PageContent, NoContent, useToast } from 'skintyee/components/layout';
 import { useAppSelector } from 'skintyee/store';
 import { apiFactory } from 'skintyee/store/apis';
 import { DocumentDto, DocumentTagDto, DocumentAudience } from 'skintyee/services/api/ApiService';
@@ -49,7 +49,7 @@ export default function EditDocument({ navigation, route }: any) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | undefined>();
-  const [toast, setToast] = useState<string | null>(null);
+  const { showToast, toastNode } = useToast();
 
   // Initial load — tag catalog + existing doc if editing.
   useEffect(() => {
@@ -143,7 +143,7 @@ export default function EditDocument({ navigation, route }: any) {
           audience,
           tagIds: Array.from(tagIds),
         });
-        setToast('Saved');
+        showToast('Saved');
       } else {
         await api.documents.create({
           title: title.trim(),
@@ -153,7 +153,7 @@ export default function EditDocument({ navigation, route }: any) {
           tagIds: Array.from(tagIds),
           file,
         });
-        setToast('Document added');
+        showToast('Document added');
       }
       setTimeout(() => navigation?.goBack?.(), 800);
     } catch (e: any) {
@@ -331,15 +331,7 @@ export default function EditDocument({ navigation, route }: any) {
           </Button>
         </View>
 
-        <Snackbar
-          visible={toast !== null}
-          onDismiss={() => setToast(null)}
-          duration={1800}
-          wrapperStyle={{ alignItems: 'center' }}
-          style={{ backgroundColor: theme.colors.success, alignSelf: 'center', width: '100%', maxWidth: 420 }}
-        >
-          <Text style={{ color: '#000', textAlign: 'center', width: '100%' }}>{toast ?? ''}</Text>
-        </Snackbar>
+        {toastNode}
       </PageContent>
     </PageContainer>
   );
