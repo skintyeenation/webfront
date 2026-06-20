@@ -32,7 +32,7 @@ export function DateTimeField({ label, value, onChange, withTime = true }: DateT
       borderRadius: 4,
       padding: '10px',
       fontSize: 14,
-      fontFamily: 'inherit',
+      fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
       flex: 1,
     };
     return (

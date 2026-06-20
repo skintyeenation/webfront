@@ -428,7 +428,7 @@ function ReceiptRow({
           />
         </View>
 
-        <View style={{ flexDirection: 'row', marginTop: 6, alignItems: 'center' }}>
+        <View style={{ flexDirection: 'row', marginTop: 6, alignItems: 'flex-start' }}>
           <DateField
             value={item.date ?? ''}
             disabled={locked}
@@ -438,14 +438,17 @@ function ReceiptRow({
           {/* Tag picker as a Portal modal (not a Menu) — a Menu anchored to a
               flex:1 Button inside this row mis-measures on web and wouldn't
               open. The modal is reliable cross-platform + shows GL accounts. */}
-          <Button
-            mode="outlined" compact icon="tag" textColor={theme.colors.text}
-            onPress={() => setTagPicker(true)} disabled={locked}
-            style={{ borderColor: theme.colors.secondary, flex: 1 }}
-            contentStyle={{ justifyContent: 'flex-start' }}
-          >
-            {tagLabel ?? 'Tag'}
-          </Button>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginBottom: 2 }}>Tag</Text>
+            <Button
+              mode="outlined" compact icon="tag" textColor={theme.colors.text}
+              onPress={() => setTagPicker(true)} disabled={locked}
+              style={{ borderColor: theme.colors.secondary }}
+              contentStyle={{ justifyContent: 'flex-start' }}
+            >
+              {tagLabel ?? 'Choose…'}
+            </Button>
+          </View>
           <Portal>
             <Modal
               visible={tagPicker}
@@ -515,7 +518,7 @@ function DateField({ value, disabled, onChange, style }: { value: string; disabl
             borderRadius: 4,
             padding: '9px',
             fontSize: 14,
-            fontFamily: 'inherit',
+            fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
             width: '100%',
             boxSizing: 'border-box',
           },
