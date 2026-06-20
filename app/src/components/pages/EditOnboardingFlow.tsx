@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import { ActivityIndicator, Button, Card, Chip, Divider, HelperText, IconButton, Menu, Modal, Portal, Snackbar, Switch, Text, TextInput } from 'react-native-paper';
 import { PageContainer, PageContent, NoContent } from 'skintyee/components/layout';
 import { apiFactory } from 'skintyee/store/apis';
+import { pickFile } from 'skintyee/core/receiptCapture';
 import {
   OnboardingFlowDto, PersonDto, OnboardingAssignmentDto,
   DocumentDto, StepCompletion,
@@ -56,6 +57,7 @@ export default function EditOnboardingFlow({ navigation, route }: any) {
   const [linkLabel, setLinkLabel] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
   const [completionMenuFor, setCompletionMenuFor] = useState<string | null>(null);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
 
   const loadAll = async (existingFlow?: OnboardingFlowDto) => {
     setError(undefined);
@@ -153,13 +155,55 @@ export default function EditOnboardingFlow({ navigation, route }: any) {
   };
 
   const attachDoc = async (stepId: string, doc: DocumentDto, allowUpload: boolean) => {
-    await apiFactory().onboarding.attachDocument(stepId, { documentId: doc.id, personUploadAllowed: allowUpload });
-    setAttachOpenForStep(null);
-    await reloadFlow();
+    try {
+      await apiFactory().onboarding.attachDocument(stepId, { documentId: doc.id, personUploadAllowed: allowUpload });
+      setAttachOpenForStep(null);
+      await reloadFlow();
+      setToast(`Attached “${doc.title}”`);
+    } catch (e: any) {
+      setError(e?.message ?? String(e));
+      setToast('Couldn’t attach the document');
+    }
   };
   const detachDoc = async (rowId: string) => {
-    await apiFactory().onboarding.detachDocument(rowId);
-    await reloadFlow();
+    try {
+      await apiFactory().onboarding.detachDocument(rowId);
+      await reloadFlow();
+      setToast('Document removed');
+    } catch (e: any) {
+      setError(e?.message ?? String(e));
+      setToast('Couldn’t remove the document');
+    }
+  };
+
+  // Upload a brand-new file (e.g. the TD1 / TD1BC / T4 forms) straight into the
+  // library AND attach it to this step — the "+ Upload" button only attached an
+  // EXISTING doc, so there was no way to add a new file from here. The person is
+  // then required to upload their completed/signed copy (personUploadAllowed).
+  const uploadAndAttach = async (stepId: string) => {
+    setError(undefined);
+    try {
+      const picked = await pickFile();
+      if (!picked) return;
+      setUploadingDoc(true);
+      const title = picked.name.replace(/\.[^./\\]+$/, '') || picked.name;
+      const created = await apiFactory().documents.create({
+        title,
+        audience: 'staff',
+        tagIds: [],
+        file: { uri: picked.uri, name: picked.name, mimeType: picked.mimeType },
+      });
+      await apiFactory().onboarding.attachDocument(stepId, { documentId: created.id, personUploadAllowed: true });
+      setAttachOpenForStep(null);
+      await loadAll();      // refresh the library list
+      await reloadFlow();   // refresh the step's attachments
+      setToast(`Uploaded & attached “${title}”`);
+    } catch (e: any) {
+      setError(e?.message ?? String(e));
+      setToast(e?.message ? `Upload failed: ${e.message}` : 'Upload failed');
+    } finally {
+      setUploadingDoc(false);
+    }
   };
   const submitLink = async () => {
     if (!linkModalForStep || !linkUrl.trim()) return;
@@ -359,18 +403,39 @@ export default function EditOnboardingFlow({ navigation, route }: any) {
             contentContainerStyle={{ backgroundColor: theme.colors.darkDefault, padding: 16, borderRadius: 8, marginHorizontal: 20, maxHeight: '80%', alignSelf: 'center', width: '90%', maxWidth: 460 }}
           >
             <Text style={{ color: theme.colors.text, fontSize: 16, fontWeight: '700' }}>Attach a document</Text>
-            <Divider style={{ marginVertical: 8, backgroundColor: 'rgba(255,255,255,0.08)' }} />
+
+            {/* Upload a brand-new file (TD1 / TD1BC / T4, etc.) right here. */}
+            <Button
+              mode="contained" icon="file-upload"
+              buttonColor={theme.colors.primary} textColor="#fff"
+              onPress={() => attachOpenForStep && uploadAndAttach(attachOpenForStep)}
+              loading={uploadingDoc}
+              disabled={uploadingDoc}
+              style={{ marginTop: 10, alignSelf: 'flex-start' }}
+            >
+              Upload a new document…
+            </Button>
+            <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginTop: 4 }}>
+              Adds the file (PDF/image) to the library and attaches it — the person uploads their completed copy.
+            </Text>
+
+            <Divider style={{ marginVertical: 10, backgroundColor: 'rgba(255,255,255,0.08)' }} />
+            <Text style={{ color: theme.colors.textDarker, fontSize: 10, letterSpacing: 1, marginBottom: 4 }}>
+              OR PICK FROM THE LIBRARY
+            </Text>
             {documents.length === 0 ? (
-              <Text style={{ color: theme.colors.textDarker }}>No documents in the library. Add one from Admin → Documents first.</Text>
+              <Text style={{ color: theme.colors.textDarker, fontSize: 12, fontStyle: 'italic' }}>
+                Nothing in the library yet — upload one above.
+              </Text>
             ) : (
               documents.map((d) => (
                 <View key={d.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6 }}>
                   <Text style={{ color: theme.colors.text, fontSize: 13, flex: 1 }}>{d.title}</Text>
-                  <Button compact mode="text" icon="link" textColor={theme.colors.primary} onPress={() => attachDoc(attachOpenForStep!, d, false)}>
+                  <Button compact mode="text" icon="link-variant" textColor={theme.colors.primary} onPress={() => attachDoc(attachOpenForStep!, d, false)}>
                     Attach
                   </Button>
-                  <Button compact mode="text" icon="upload" textColor={theme.colors.accent} onPress={() => attachDoc(attachOpenForStep!, d, true)}>
-                    + Upload
+                  <Button compact mode="text" icon="account-arrow-up" textColor={theme.colors.accent} onPress={() => attachDoc(attachOpenForStep!, d, true)}>
+                    Needs upload
                   </Button>
                 </View>
               ))
