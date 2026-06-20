@@ -47,6 +47,9 @@ export interface BandMember {
   // Account enabled in Entra. false = locked/blocked (admin lock or departed).
   // Drives the EditMember Lock/Unlock control.
   enabled?: boolean;
+  // Break-glass tenant admin (@*.onmicrosoft.com) — must never be locked or
+  // force-reset. The UI disables those actions; the api/ also hard-refuses.
+  protectedAdmin?: boolean;
 }
 
 export interface CommunityEvent {

@@ -92,6 +92,9 @@ export default function EditMember({ route, navigation }: any) {
   const [adminTempPw, setAdminTempPw] = useState<string | null>(null);
   const accessToken = useAppSelector((s) => s.auth.accessToken);
   const locked = member?.enabled === false;
+  // Break-glass tenant admin — locking/force-resetting it could lock the whole
+  // org out of M365, so those actions are disabled (api/ also hard-refuses).
+  const protectedAdmin = (member as any)?.protectedAdmin === true;
   const [toast, setToast] = useState<string | null>(null);
   const { confirm, ConfirmHost } = useConfirm();
 
@@ -543,6 +546,11 @@ export default function EditMember({ route, navigation }: any) {
                   Sign in with Microsoft (Account tab) to set a temp password directly. Force reset + Lock still work below.
                 </HelperText>
               ) : null}
+              {protectedAdmin ? (
+                <HelperText type="error" visible style={{ marginLeft: -8 }}>
+                  Break-glass tenant admin — Lock and Force reset are disabled to protect organization access.
+                </HelperText>
+              ) : null}
               <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
                 {accessToken ? (
                   <Button
@@ -571,7 +579,7 @@ export default function EditMember({ route, navigation }: any) {
                 <Button
                   mode="outlined" icon="lock-reset"
                   textColor={theme.colors.primary}
-                  loading={forcing} disabled={forcing || blocking}
+                  loading={forcing} disabled={forcing || blocking || protectedAdmin}
                   onPress={() => confirm({
                     title: 'Force a password reset?',
                     message: `${name} will be signed out everywhere. They then reset their own password at aka.ms/sspr using their registered phone or personal email.`,
@@ -596,7 +604,7 @@ export default function EditMember({ route, navigation }: any) {
                 <Button
                   mode="outlined" icon={locked ? 'lock-open-variant' : 'lock'}
                   textColor={locked ? theme.colors.success : theme.colors.error}
-                  loading={blocking} disabled={forcing || blocking}
+                  loading={blocking} disabled={forcing || blocking || (protectedAdmin && !locked)}
                   onPress={() => confirm({
                     title: locked ? 'Unlock account?' : 'Lock account?',
                     message: locked

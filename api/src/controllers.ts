@@ -89,7 +89,16 @@ function mapBandMember(r: any) {
     managerUpn:  r.managerUpn  ?? undefined,
     hasPhoto:    r.hasPhoto,
     enabled:     r.enabled !== false,
+    protectedAdmin: isProtectedAdmin(r.upn),
   };
+}
+
+// Break-glass tenant admin accounts (@*.onmicrosoft.com, e.g.
+// admin@skintyeenation.onmicrosoft.com) must never be locked or force-reset
+// from the app — disabling one could lock the whole org out of Microsoft 365
+// with no recovery path. Surfaced on the DTO so the UI can disable the action.
+function isProtectedAdmin(upn?: string | null): boolean {
+  return !!upn && upn.toLowerCase().endsWith('.onmicrosoft.com');
 }
 
 // ---- Health ---------------------------------------------------------------
@@ -368,6 +377,14 @@ export class DirectoryController {
     const r = await this.prisma.bandMember.findUnique({ where: { id } });
     if (!r) throw new NotFoundException('Not found');
     const blocked = b?.blocked === true;
+    // NEVER lock a break-glass tenant admin (@*.onmicrosoft.com). Disabling it
+    // could lock the entire organization out of Microsoft 365 with no recovery.
+    if (blocked && isProtectedAdmin(r.upn)) {
+      throw new ForbiddenException(
+        'This is the break-glass tenant administrator account and cannot be locked — ' +
+        'doing so could lock the whole organization out of Microsoft 365.',
+      );
+    }
     try {
       await this.graph.setAccountEnabled(id, !blocked);
       if (blocked) await this.graph.revokeSignInSessions(id);
@@ -392,6 +409,9 @@ export class DirectoryController {
     if (!this.prisma.isAvailable) throw new NotFoundException('Prisma not connected');
     const r = await this.prisma.bandMember.findUnique({ where: { id } });
     if (!r) throw new NotFoundException('Not found');
+    if (isProtectedAdmin(r.upn)) {
+      throw new ForbiddenException('This is the break-glass tenant administrator account and cannot be reset/revoked from the app.');
+    }
     try {
       await this.graph.revokeSignInSessions(id);
     } catch (e: any) {
