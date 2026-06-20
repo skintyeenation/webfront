@@ -131,21 +131,21 @@ export default function ExpenseReports() {
                 </View>
 
                 {r.hasData ? (
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 }}>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', marginTop: 8 }}>
                     <Button compact mode="contained" icon="file-pdf-box" buttonColor={theme.colors.primary} textColor="#fff"
-                      onPress={() => openPdf(r)} loading={isBusy && busyAction === 'open'} disabled={isBusy}>
+                      onPress={() => openPdf(r)} loading={isBusy && busyAction === 'open'} disabled={isBusy} style={{ marginRight: 6, marginBottom: 6 }}>
                       Open PDF
                     </Button>
                     <Button compact mode="outlined" icon="download" textColor={theme.colors.text}
-                      onPress={() => savePdf(r)} loading={isBusy && busyAction === 'save'} disabled={isBusy} style={{ marginLeft: 6 }}>
+                      onPress={() => savePdf(r)} loading={isBusy && busyAction === 'save'} disabled={isBusy} style={{ marginRight: 6, marginBottom: 6 }}>
                       Save PDF
                     </Button>
                     <Button compact mode="outlined" icon="file-delimited" textColor={theme.colors.text}
-                      onPress={() => downloadCsv(r)} loading={isBusy && busyAction === 'csv'} disabled={isBusy} style={{ marginLeft: 6 }}>
+                      onPress={() => downloadCsv(r)} loading={isBusy && busyAction === 'csv'} disabled={isBusy} style={{ marginRight: 6, marginBottom: 6 }}>
                       CSV
                     </Button>
                     <Button compact mode="outlined" icon="account-details" textColor={theme.colors.text}
-                      onPress={() => openByUser(r)} loading={isBusy && busyAction === 'byuser'} disabled={isBusy} style={{ marginLeft: 6, marginTop: 6 }}>
+                      onPress={() => openByUser(r)} loading={isBusy && busyAction === 'byuser'} disabled={isBusy} style={{ marginBottom: 6 }}>
                       By user + receipts
                     </Button>
                   </View>

@@ -197,9 +197,10 @@ export class ExpenseReportsService {
       if (y - blockH < FLOOR) { pages.push(page); ({ page, y } = newClaimPage(period, `${claim.submitterName} (cont.)`)); }
 
       const topY = y;
-      // Right column: the receipt image (or a note).
+      // Right column: the receipt image (or a note). PdfImage.y is the BOTTOM-
+      // left corner — place the top of the image at the row top.
       if (img) {
-        img.y = topY - img.h;
+        img.pdf.y = topY - img.pdf.h;
         page.images.push(img.pdf);
       } else {
         page.lines.push({ size: 8, x: IMG_X, y: topY - 10, text: it.mimeType?.includes('pdf') ? '[PDF receipt — see attachment]' : (it.fileName ? '[image receipt]' : '[no image]') });
@@ -240,8 +241,8 @@ export class ExpenseReportsService {
     try {
       const r = await this.storage.read(item.fileKey);
       if (!r) return null;
-      const isJpeg = (item.mimeType ?? r.mimeType ?? '').includes('jpeg') || (item.mimeType ?? '').includes('jpg');
-      if (!isJpeg) return null;
+      // Detect JPEG by magic bytes (jpegSize returns null otherwise) rather than
+      // trusting a possibly-generic stored mimeType.
       const dim = jpegSize(r.bytes);
       if (!dim) return null;
       const maxH = 150;
