@@ -389,8 +389,20 @@ function ReceiptRow({
 }) {
   const [tagPicker, setTagPicker] = useState(false);
   const tagLabel = tags.find((t) => t.slug === item.tagSlug)?.label;
-  const amountStr = item.amount != null ? String(item.amount) : '';
   const hasReceipt = !!(item.fileUrl || item.fileName || item.mimeType);
+
+  // Amount is edited as raw text so a trailing/partial decimal ("12." → "12.5")
+  // survives keystrokes — parsing to a Number on every change stripped the dot,
+  // making decimals impossible. We parse to a number only for the live total
+  // (onPatch) and on blur (onPersist); the field shows the raw text.
+  const [amountText, setAmountText] = useState(item.amount != null ? String(item.amount) : '');
+  const onAmountChange = (v: string) => {
+    let cleaned = v.replace(/[^0-9.]/g, '');
+    const dot = cleaned.indexOf('.');
+    if (dot !== -1) cleaned = cleaned.slice(0, dot + 1) + cleaned.slice(dot + 1).replace(/\./g, '');
+    setAmountText(cleaned);
+    onPatch({ amount: Number(cleaned) || 0 });
+  };
 
   return (
     <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 8 }}>
@@ -414,23 +426,21 @@ function ReceiptRow({
             style={{ flex: 2, marginRight: 6 }}
           />
           <TextInput
-            dense mode="outlined" label="Amount" value={amountStr}
+            dense mode="outlined" label="Amount" value={amountText}
             editable={!locked}
             keyboardType="decimal-pad"
             left={<TextInput.Affix text={currencySymbol(currency)} />}
-            onChangeText={(v) => onPatch({ amount: Number(v.replace(/[^0-9.]/g, '')) || 0 })}
-            onEndEditing={() => onPersist({ amount: Number(item.amount) || 0 })}
+            onChangeText={onAmountChange}
+            onEndEditing={() => onPersist({ amount: Number(amountText) || 0 })}
             style={{ flex: 1 }}
           />
         </View>
 
         <View style={{ flexDirection: 'row', marginTop: 6, alignItems: 'center' }}>
-          <TextInput
-            dense mode="outlined" label="Date (YYYY-MM-DD)" value={item.date ?? ''}
-            editable={!locked}
-            placeholder="2026-06-15"
-            onChangeText={(v) => onPatch({ date: v })}
-            onEndEditing={() => onPersist({ date: item.date ?? '' })}
+          <DateField
+            value={item.date ?? ''}
+            disabled={locked}
+            onChange={(d) => { onPatch({ date: d }); onPersist({ date: d }); }}
             style={{ flex: 1, marginRight: 6 }}
           />
           {/* Tag picker as a Portal modal (not a Menu) — a Menu anchored to a
@@ -489,6 +499,47 @@ function ReceiptRow({
         />
       </Card.Content>
     </Card>
+  );
+}
+
+// Inline date-only field. Web: a real native <input type="date"> calendar
+// picker (no extra dep, mirrors DateTimeField's web path) emitting YYYY-MM-DD
+// directly. Native: a TextInput fallback. Kept date-only so it round-trips the
+// receipt's `date` string unchanged (no ISO/time coupling).
+function DateField({ value, disabled, onChange, style }: { value: string; disabled?: boolean; onChange: (d: string) => void; style?: any }) {
+  if (Platform.OS === 'web') {
+    return (
+      <View style={style}>
+        <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginBottom: 2 }}>Date</Text>
+        {React.createElement('input', {
+          type: 'date',
+          value: value || '',
+          disabled,
+          style: {
+            colorScheme: 'dark',
+            backgroundColor: theme.colors.darkDefault,
+            color: theme.colors.text,
+            border: '1px solid rgba(255,255,255,0.29)',
+            borderRadius: 4,
+            padding: '9px',
+            fontSize: 14,
+            fontFamily: 'inherit',
+            width: '100%',
+            boxSizing: 'border-box',
+          },
+          onChange: (e: any) => onChange(e.target.value),
+        })}
+      </View>
+    );
+  }
+  return (
+    <TextInput
+      dense mode="outlined" label="Date (YYYY-MM-DD)" value={value}
+      editable={!disabled}
+      placeholder="2026-06-15"
+      onChangeText={onChange}
+      style={style}
+    />
   );
 }
 
