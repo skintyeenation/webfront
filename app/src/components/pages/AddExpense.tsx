@@ -426,15 +426,15 @@ function ReceiptRow({
   const onTaxChange = (v: string) => { const c = cleanDecimal(v); setTaxText(c); onPatch({ taxAmount: c === '' ? null : (Number(c) || 0) }); };
 
   // When the receipt is itemised, the claimed amount = sum of INCLUDED, non-
-  // summary lines + tax. Summary rows (subtotal/total) never count. Toggling a
-  // line's exclusion recomputes + persists the amount too.
+  // summary lines + tax. Summary rows (subtotal/total/tax/…) NEVER count toward
+  // the total. Toggling a line's exclusion recomputes + persists the amount.
   const recomputeFromLines = (lines: NonNullable<ExpenseItem['lineItems']>): number => {
-    const sub = lines.filter((l) => !l.excluded && !l.isSummary).reduce((s, l) => s + (Number(l.amount) || 0), 0);
+    const sub = lines.filter((l) => !l.excluded && !isSummaryLine(l)).reduce((s, l) => s + (Number(l.amount) || 0), 0);
     return Math.round((sub + (Number(item.taxAmount) || 0)) * 100) / 100;
   };
   const toggleLineExcluded = (idx: number) => {
     if (locked) return;
-    if (lineItems[idx]?.isSummary) return; // summary rows aren't toggleable
+    if (isSummaryLine(lineItems[idx])) return; // summary rows aren't toggleable
     const lines = lineItems.map((l, i) => (i === idx ? { ...l, excluded: !l.excluded } : l));
     const newAmount = recomputeFromLines(lines);
     setAmountText(String(newAmount));
@@ -571,7 +571,7 @@ function ReceiptRow({
               const ex = !!li.excluded;
               // Summary rows (subtotal/total/tax) render read-only — no toggle,
               // muted, slightly set apart — like the tax row.
-              if (li.isSummary) {
+              if (isSummaryLine(li)) {
                 return (
                   <View key={i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 3, marginTop: 2 }}>
                     <Text style={{ color: theme.colors.textDarker, fontSize: 13, flex: 1, fontWeight: '600' }} numberOfLines={1}>
@@ -674,6 +674,16 @@ function DateField({ value, disabled, onChange, style }: { value: string; disabl
       style={style}
     />
   );
+}
+
+// A receipt line is a "summary" row (subtotal/total/tax/balance/change/…) when
+// the backend flagged it OR its label looks like one — so it never gets counted
+// into the claimed amount and can't be toggled, even for older/unflagged data.
+const SUMMARY_RE = /^\s*(sub[\s-]*total|total|balance(\s*due)?|amount\s*due|change|tax|gst|hst|pst|qst|tip|gratuity|rounding|cash|visa|mastercard|debit|credit|payment|due)\b/i;
+function isSummaryLine(li?: { description?: string; isSummary?: boolean } | null): boolean {
+  if (!li) return false;
+  if (li.isSummary) return true;
+  return SUMMARY_RE.test(li.description ?? '');
 }
 
 function currencySymbol(cur?: string): string {
