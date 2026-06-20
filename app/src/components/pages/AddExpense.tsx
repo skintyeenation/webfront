@@ -406,7 +406,8 @@ function ReceiptRow({
   const [tagPicker, setTagPicker] = useState(false);
   const tagLabel = tags.find((t) => t.slug === item.tagSlug)?.label;
   const hasReceipt = !!(item.fileUrl || item.fileName || item.mimeType);
-  const cur = (item.currency || currency);
+  // CAD-only for now — ignore any AI-detected currency (e.g. USD) on display.
+  const cur = 'CAD';
 
   // Amount/tax are edited as raw text so a trailing/partial decimal ("12." →
   // "12.5") survives keystrokes — parsing to a Number on every change stripped
@@ -486,9 +487,10 @@ function ReceiptRow({
             style={{ flex: 1, marginRight: 6 }}
           />
           {/* Currency is fixed to CAD for now — multi-currency entry is
-              disabled until we support FX. The field shows the default. */}
+              disabled until we support FX. Always show CAD regardless of any
+              AI-detected currency on the receipt. */}
           <TextInput
-            dense mode="outlined" label="Currency" value={item.currency || 'CAD'}
+            dense mode="outlined" label="Currency" value="CAD"
             editable={false}
             style={{ flex: 1 }}
           />

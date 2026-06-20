@@ -281,7 +281,7 @@ export class ExpensesService implements OnModuleInit {
         vendor: fields.vendor ?? ai.vendor ?? null,
         amount,
         taxAmount: ai.tax ?? null,
-        currency: ai.currency ?? 'CAD', // default to CAD (multi-currency entry disabled for now)
+        currency: 'CAD', // forced CAD for now — multi-currency entry disabled, ignore AI-detected currency
         tagSlug: fields.tagSlug ?? ai.suggestedTagSlug ?? null,
         description: fields.description ?? null,
         submitterUpn: claim.submitterUpn,
