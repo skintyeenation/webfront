@@ -579,19 +579,19 @@ function ReceiptRow({
                   {!locked ? (
                     <MaterialCommunityIcons
                       name={ex ? 'checkbox-blank-circle-outline' : 'check-circle'}
-                      size={16}
+                      size={18}
                       color={ex ? theme.colors.textDarker : theme.colors.success}
                       style={{ marginRight: 6 }}
                     />
                   ) : null}
                   <Text
-                    style={{ color: theme.colors.text, fontSize: 12, flex: 1, textDecorationLine: ex ? 'line-through' : 'none' }}
+                    style={{ color: theme.colors.text, fontSize: 14, flex: 1, textDecorationLine: ex ? 'line-through' : 'none' }}
                     numberOfLines={2}
                   >
                     {li.qty && li.qty > 1 ? `${li.qty}× ` : ''}{li.description}
                   </Text>
                   {li.amount != null ? (
-                    <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginLeft: 8, textDecorationLine: ex ? 'line-through' : 'none' }}>
+                    <Text style={{ color: theme.colors.textDarker, fontSize: 14, marginLeft: 8, textDecorationLine: ex ? 'line-through' : 'none' }}>
                       {money(li.amount, cur)}
                     </Text>
                   ) : null}
@@ -600,8 +600,8 @@ function ReceiptRow({
             })}
             {item.taxAmount != null ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 2, marginTop: 2 }}>
-                <Text style={{ color: theme.colors.textDarker, fontSize: 11, flex: 1 }}>Tax</Text>
-                <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>{money(item.taxAmount, cur)}</Text>
+                <Text style={{ color: theme.colors.textDarker, fontSize: 13, flex: 1 }}>Tax</Text>
+                <Text style={{ color: theme.colors.textDarker, fontSize: 13 }}>{money(item.taxAmount, cur)}</Text>
               </View>
             ) : null}
           </View>
