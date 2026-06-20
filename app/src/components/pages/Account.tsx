@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Image, TouchableOpacity, View } from 'react-native';
 import { ActivityIndicator } from 'react-native';
-import { Avatar, Button, Card, Chip, Divider, HelperText, Switch, Text, TextInput } from 'react-native-paper';
+import { Avatar, Button, Card, Chip, Divider, HelperText, SegmentedButtons, Switch, Text, TextInput } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import * as WebBrowser from 'expo-web-browser';
 import { PageContainer, PageContent } from 'skintyee/components/layout';
@@ -246,7 +246,7 @@ function StaffSignInCard() {
               }}
               style={{ alignSelf: 'flex-start', marginTop: 6 }}
             >
-              Forgot password?
+              Forgot Password
             </Button>
           </>
         ) : null}
@@ -443,6 +443,8 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
   const isSigningIn = status === 'signing-in';
   // Dev-only: the advanced role switcher is hidden behind a toggle.
   const [showRoleSwitcher, setShowRoleSwitcher] = useState(false);
+  // Sign-in method tab: Microsoft (Entra) vs Email/password (staff-auth).
+  const [loginTab, setLoginTab] = useState<'microsoft' | 'staff'>('microsoft');
 
   // Match the signed-in user against the directory to pick up hasPhoto +
   // the member id needed by the photo proxy. Falls through if the user
@@ -608,8 +610,20 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
           </>
         ) : null}
 
-        {/* Sign-in / sign-out -------------------------------------------- */}
+        {/* Sign-in — tabbed: Microsoft vs Email/password ------------------ */}
         {!signedIn ? (
+          <SegmentedButtons
+            value={loginTab}
+            onValueChange={(v) => setLoginTab(v as 'microsoft' | 'staff')}
+            density="small"
+            buttons={[
+              { value: 'microsoft', label: 'Microsoft', icon: 'microsoft' },
+              { value: 'staff',     label: 'Email',     icon: 'email-outline' },
+            ]}
+            style={{ marginBottom: 12 }}
+          />
+        ) : null}
+        {!signedIn && loginTab === 'microsoft' ? (
           <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 16, borderLeftWidth: 3, borderLeftColor: '#0078D4' }}>
             <Card.Content>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
@@ -645,7 +659,7 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
                 onPress={openPasswordReset}
                 style={{ alignSelf: 'center', marginTop: 6 }}
               >
-                Forgot your password? Reset it
+                Forgot Password
               </Button>
 
               {/* Visual feedback when in-flight — separate from the button so
@@ -679,7 +693,7 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
         {/* Email + password sign-in — for Person rows without an Entra
             identity (contractors, externals). See
             docs/features/staff-auth.md. Surfaces only when signed-out. */}
-        {!signedIn ? (
+        {!signedIn && loginTab === 'staff' ? (
           <StaffSignInCard />
         ) : null}
 
