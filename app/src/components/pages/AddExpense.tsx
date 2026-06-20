@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, Linking, Platform, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, Linking, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
 import { ActivityIndicator as Spinner, Button, Card, Chip, HelperText, IconButton, Menu, Modal, Portal, Snackbar, Text, TextInput } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import dayjs from 'dayjs';
@@ -387,7 +387,7 @@ function ReceiptRow({
   onPersist: (patch: { date?: string; vendor?: string; amount?: number; tagSlug?: string; description?: string }) => void;
   onRemove: () => void;
 }) {
-  const [tagMenu, setTagMenu] = useState(false);
+  const [tagPicker, setTagPicker] = useState(false);
   const tagLabel = tags.find((t) => t.slug === item.tagSlug)?.label;
   const amountStr = item.amount != null ? String(item.amount) : '';
   const hasReceipt = !!(item.fileUrl || item.fileName || item.mimeType);
@@ -433,26 +433,51 @@ function ReceiptRow({
             onEndEditing={() => onPersist({ date: item.date ?? '' })}
             style={{ flex: 1, marginRight: 6 }}
           />
-          <Menu
-            visible={tagMenu}
-            onDismiss={() => setTagMenu(false)}
-            anchor={
-              <Button
-                mode="outlined" compact icon="tag" textColor={theme.colors.text}
-                onPress={() => setTagMenu(true)} disabled={locked}
-                style={{ borderColor: theme.colors.secondary, flex: 1 }}
-              >
-                {tagLabel ?? 'Tag'}
-              </Button>
-            }
+          {/* Tag picker as a Portal modal (not a Menu) — a Menu anchored to a
+              flex:1 Button inside this row mis-measures on web and wouldn't
+              open. The modal is reliable cross-platform + shows GL accounts. */}
+          <Button
+            mode="outlined" compact icon="tag" textColor={theme.colors.text}
+            onPress={() => setTagPicker(true)} disabled={locked}
+            style={{ borderColor: theme.colors.secondary, flex: 1 }}
+            contentStyle={{ justifyContent: 'flex-start' }}
           >
-            {tags.map((t) => (
-              <Menu.Item
-                key={t.slug} title={t.glAccount ? `${t.label}  ·  GL ${t.glAccount}` : t.label}
-                onPress={() => { setTagMenu(false); onPatch({ tagSlug: t.slug }); onPersist({ tagSlug: t.slug }); }}
-              />
-            ))}
-          </Menu>
+            {tagLabel ?? 'Tag'}
+          </Button>
+          <Portal>
+            <Modal
+              visible={tagPicker}
+              onDismiss={() => setTagPicker(false)}
+              contentContainerStyle={{ backgroundColor: theme.colors.darkDefault, marginHorizontal: 20, borderRadius: 8, alignSelf: 'center', width: '90%', maxWidth: 420, maxHeight: '80%', padding: 8 }}
+            >
+              <Text style={{ color: theme.colors.text, fontSize: 15, fontWeight: '700', padding: 10 }}>Choose a tag</Text>
+              {tags.length === 0 ? (
+                <Text style={{ color: theme.colors.textDarker, padding: 10, fontStyle: 'italic' }}>
+                  No expense tags yet. An admin can add them in Expenses → Manage expense tags.
+                </Text>
+              ) : (
+                <ScrollView>
+                  {tags.map((t) => {
+                    const selected = t.slug === item.tagSlug;
+                    return (
+                      <TouchableOpacity
+                        key={t.slug}
+                        onPress={() => { setTagPicker(false); onPatch({ tagSlug: t.slug }); onPersist({ tagSlug: t.slug }); }}
+                        style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 11, paddingHorizontal: 12, backgroundColor: selected ? 'rgba(0,188,212,0.12)' : 'transparent', borderRadius: 6 }}
+                      >
+                        <MaterialCommunityIcons name={selected ? 'check-circle' : 'tag-outline'} size={18} color={selected ? theme.colors.primary : theme.colors.textDarker} style={{ marginRight: 10 }} />
+                        <Text style={{ color: theme.colors.text, fontSize: 14, flex: 1 }}>{t.label}</Text>
+                        {t.glAccount ? (
+                          <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>GL {t.glAccount}</Text>
+                        ) : null}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              )}
+              <Button mode="text" textColor={theme.colors.textDarker} onPress={() => setTagPicker(false)} style={{ alignSelf: 'flex-end' }}>Close</Button>
+            </Modal>
+          </Portal>
         </View>
 
         <TextInput
