@@ -647,6 +647,55 @@ export class OnboardingService implements OnApplicationBootstrap {
 
   // ---- Assignments --------------------------------------------------------
 
+  // Lazily backfill a StepState for every CURRENT step of the assignment's flow
+  // that it doesn't already have. stepId is a loose ref (no FK), so adding a
+  // step to a flow never reached existing assignments — they stayed frozen at
+  // the step count from when they were created (e.g. showing "0/1" after a 2nd
+  // step was added). This is additive: we don't prune states for removed steps.
+  private async ensureStepStates(rows: any[]): Promise<any[]> {
+    if (!this.prisma.isAvailable || rows.length === 0) return rows;
+    const flowIds = [...new Set(rows.map((r) => r.flowId))];
+    const stepsByFlow = new Map<string, string[]>();
+    await Promise.all(flowIds.map(async (fid) => {
+      const steps = await this.prisma.onboardingStep.findMany({ where: { flowId: fid }, select: { id: true } });
+      stepsByFlow.set(fid, steps.map((s) => s.id));
+    }));
+    let created = false;
+    for (const r of rows) {
+      const have = new Set((r.stepStates ?? []).map((s: any) => s.stepId));
+      const missing = (stepsByFlow.get(r.flowId) ?? []).filter((id) => !have.has(id));
+      if (missing.length) {
+        await this.prisma.onboardingStepState.createMany({
+          data: missing.map((stepId) => ({ assignmentId: r.id, stepId })),
+          skipDuplicates: true,
+        });
+        created = true;
+      }
+    }
+    if (!created) return rows;
+    const refreshed = await this.prisma.onboardingAssignment.findMany({
+      where: { id: { in: rows.map((r) => r.id) } }, include: { stepStates: true },
+    });
+    const byId = new Map(refreshed.map((r) => [r.id, r]));
+    return rows.map((r) => byId.get(r.id) ?? r);
+  }
+
+  // In-memory equivalent of ensureStepStates (dev fallback mode).
+  private memEnsureStepStates(a: AssignmentRecord): AssignmentRecord {
+    const flow = this.memFlows.get(a.flowId);
+    const have = new Set(a.stepStates.map((s) => s.stepId));
+    for (const s of flow?.steps ?? []) {
+      if (!have.has(s.id)) {
+        a.stepStates.push({
+          id: `ss-${++this.memSeq}`, assignmentId: a.id, stepId: s.id, status: 'pending',
+          personFileKey: null, personFileUrl: null, personFileName: null,
+          personMimeType: null, personSizeBytes: null, notes: null, completedAt: null, completedBy: null,
+        } as any);
+      }
+    }
+    return a;
+  }
+
   async listAssignments(opts?: { flowId?: string; personId?: string }): Promise<AssignmentRecord[]> {
     if (this.prisma.isAvailable) {
       const where: any = {};
@@ -655,11 +704,12 @@ export class OnboardingService implements OnApplicationBootstrap {
       const rows = await this.prisma.onboardingAssignment.findMany({
         where, include: { stepStates: true }, orderBy: { startedAt: 'desc' },
       });
-      return rows.map(toAssignmentRecord);
+      return (await this.ensureStepStates(rows)).map(toAssignmentRecord);
     }
     return Array.from(this.memAssignments.values())
       .filter((a) => !opts?.flowId || a.flowId === opts.flowId)
       .filter((a) => !opts?.personId || a.personId === opts.personId)
+      .map((a) => this.memEnsureStepStates(a))
       .sort((a, b) => b.startedAt.localeCompare(a.startedAt));
   }
 
@@ -668,9 +718,12 @@ export class OnboardingService implements OnApplicationBootstrap {
       const row = await this.prisma.onboardingAssignment.findUnique({
         where: { id }, include: { stepStates: true },
       });
-      return row ? toAssignmentRecord(row) : null;
+      if (!row) return null;
+      const [r] = await this.ensureStepStates([row]);
+      return toAssignmentRecord(r);
     }
-    return this.memAssignments.get(id) ?? null;
+    const a = this.memAssignments.get(id);
+    return a ? this.memEnsureStepStates(a) : null;
   }
 
   async getAssignmentByToken(token: string): Promise<AssignmentRecord | null> {
@@ -678,9 +731,11 @@ export class OnboardingService implements OnApplicationBootstrap {
       const row = await this.prisma.onboardingAssignment.findUnique({
         where: { publicToken: token }, include: { stepStates: true },
       });
-      return row ? toAssignmentRecord(row) : null;
+      if (!row) return null;
+      const [r] = await this.ensureStepStates([row]);
+      return toAssignmentRecord(r);
     }
-    for (const a of this.memAssignments.values()) if (a.publicToken === token) return a;
+    for (const a of this.memAssignments.values()) if (a.publicToken === token) return this.memEnsureStepStates(a);
     return null;
   }
 
