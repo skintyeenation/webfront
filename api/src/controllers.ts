@@ -1433,11 +1433,14 @@ export class TimeKeepingController {
     const id = `${worker.workerUpn}:${period.id}`;
     const existing = await this.prisma.timesheet.findUnique({ where: { id }, include: { entries: true } });
     if (existing) return existing;
+    // Snapshot the worker's email so the sheet stays attributable post-deletion.
+    const bm = await this.prisma.bandMember.findUnique({ where: { upn: worker.workerUpn }, select: { email: true } });
     return this.prisma.timesheet.create({
       data: {
         id,
         workerUpn: worker.workerUpn,
         workerName: worker.workerName,
+        workerEmail: bm?.email ?? worker.workerUpn,
         payPeriodId: period.id,
         status: 'draft',
       },
@@ -1592,6 +1595,7 @@ export class TimeKeepingController {
         id:         `${upn}:${period.id}`,
         workerUpn:  upn,
         workerName,
+        workerEmail: me?.email ?? upn,
         payPeriodId: period.id,
         status:     'draft',
         notes:      b.notes ?? null,

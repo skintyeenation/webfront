@@ -13,6 +13,17 @@ import { expensePeriodFor } from './skintyee-expense-periods';
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
+// Friendly stored receipt filename: "<date>_<submitter>_<vendor>.<ext>".
+// Each segment is slugified; missing parts are dropped. Keeps the original
+// extension so the file still opens with the right viewer.
+function receiptFileName(opts: { date?: string | null; submitter?: string | null; vendor?: string | null; originalName: string }): string {
+  const slug = (s?: string | null) => (s ?? '').normalize('NFKD').replace(/[^\w]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+  const ext = (opts.originalName.match(/\.([a-z0-9]+)$/i)?.[1] || 'jpg').toLowerCase();
+  const parts = [slug(opts.date), slug(opts.submitter), slug(opts.vendor)].filter(Boolean);
+  const base = parts.length ? parts.join('_') : 'receipt';
+  return `${base}.${ext}`;
+}
+
 @Injectable()
 export class ExpensesService implements OnModuleInit {
   private readonly log = new Logger(ExpensesService.name);
@@ -127,7 +138,7 @@ export class ExpensesService implements OnModuleInit {
   }
 
   /** Idempotent: create or return the draft claim for (submitter, period). */
-  async startClaim(input: { submitterUpn: string; submitterName: string; periodId?: string }) {
+  async startClaim(input: { submitterUpn: string; submitterName: string; submitterEmail?: string; periodId?: string }) {
     this.requireDb();
     const period = expensePeriodFor(input.periodId);
     const u = input.submitterUpn.toLowerCase();
@@ -135,7 +146,7 @@ export class ExpensesService implements OnModuleInit {
     const existing = await this.prisma.expenseClaim.findUnique({ where: { id }, include: { items: true } });
     if (existing) return existing;
     return this.prisma.expenseClaim.create({
-      data: { id, submitterUpn: u, submitterName: input.submitterName, payPeriodId: period.id, status: 'draft' },
+      data: { id, submitterUpn: u, submitterName: input.submitterName, submitterEmail: input.submitterEmail ?? null, payPeriodId: period.id, status: 'draft' },
       include: { items: true },
     });
   }
@@ -241,17 +252,25 @@ export class ExpensesService implements OnModuleInit {
     let ai: ReceiptExtraction = { amount: null, tax: null, vendor: null, date: null, currency: null, suggestedTagSlug: null, confidence: null, lineItems: [], status: 'extracted', message: null };
 
     if (file) {
-      const up = await this.storage.upload({ fileName: file.fileName, mimeType: file.mimeType, bytes: file.bytes });
-      storageDriver = this.storage.driver;
-      fileKey = up.key; fileUrl = up.url; fileName = file.fileName; mimeType = file.mimeType;
-      sizeBytes = up.sizeBytes ?? file.bytes.length;
-      // AI extraction is best-effort.
+      mimeType = file.mimeType;
+      sizeBytes = file.bytes.length;
+      // Run AI extraction FIRST so we can name the stored file by date/submitter/
+      // vendor (best-effort — manual entry still works if it fails).
       const tags = await this.listTags(true);
       ai = await this.anthropic.extractReceipt(file.bytes, file.mimeType, tags.map((t) => ({ slug: t.slug, label: t.label })));
+      const date = fields.date ?? ai.date ?? null;
+      const vendor = fields.vendor ?? ai.vendor ?? null;
+      fileName = receiptFileName({ date, submitter: claim.submitterName ?? claim.submitterUpn, vendor, originalName: file.fileName });
+      const up = await this.storage.upload({ fileName, mimeType: file.mimeType, bytes: file.bytes });
+      storageDriver = this.storage.driver;
+      fileKey = up.key; fileUrl = up.url;
+      sizeBytes = up.sizeBytes ?? file.bytes.length;
     }
 
     const amount = round2(typeof fields.amount === 'number' ? fields.amount : (ai.amount ?? 0));
-    // Tag every AI line with excluded:false so the UI can toggle it.
+    // Tag real (non-summary) AI lines with excluded:false so the UI can toggle
+    // them; summary rows (subtotal/total/tax) carry isSummary and stay
+    // non-toggleable + out of the claimed amount.
     const lineItems = ai.lineItems && ai.lineItems.length
       ? ai.lineItems.map((li) => ({ ...li, excluded: false }))
       : undefined;
@@ -265,6 +284,9 @@ export class ExpensesService implements OnModuleInit {
         currency: ai.currency ?? 'CAD', // default to CAD (multi-currency entry disabled for now)
         tagSlug: fields.tagSlug ?? ai.suggestedTagSlug ?? null,
         description: fields.description ?? null,
+        submitterUpn: claim.submitterUpn,
+        submitterName: claim.submitterName,
+        submitterEmail: (claim as any).submitterEmail ?? null,
         aiExtracted: !!file && (ai.amount != null || ai.vendor != null || ai.date != null),
         lineItems: lineItems as any,
         storage: storageDriver, fileKey, fileUrl, fileName, mimeType, sizeBytes,

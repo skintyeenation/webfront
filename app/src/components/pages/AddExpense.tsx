@@ -425,14 +425,16 @@ function ReceiptRow({
   const onAmountChange = (v: string) => { const c = cleanDecimal(v); setAmountText(c); onPatch({ amount: Number(c) || 0 }); };
   const onTaxChange = (v: string) => { const c = cleanDecimal(v); setTaxText(c); onPatch({ taxAmount: c === '' ? null : (Number(c) || 0) }); };
 
-  // When the receipt is itemised, the claimed amount = sum of INCLUDED lines +
-  // tax. Toggling a line's exclusion recomputes + persists the amount too.
+  // When the receipt is itemised, the claimed amount = sum of INCLUDED, non-
+  // summary lines + tax. Summary rows (subtotal/total) never count. Toggling a
+  // line's exclusion recomputes + persists the amount too.
   const recomputeFromLines = (lines: NonNullable<ExpenseItem['lineItems']>): number => {
-    const sub = lines.filter((l) => !l.excluded).reduce((s, l) => s + (Number(l.amount) || 0), 0);
+    const sub = lines.filter((l) => !l.excluded && !l.isSummary).reduce((s, l) => s + (Number(l.amount) || 0), 0);
     return Math.round((sub + (Number(item.taxAmount) || 0)) * 100) / 100;
   };
   const toggleLineExcluded = (idx: number) => {
     if (locked) return;
+    if (lineItems[idx]?.isSummary) return; // summary rows aren't toggleable
     const lines = lineItems.map((l, i) => (i === idx ? { ...l, excluded: !l.excluded } : l));
     const newAmount = recomputeFromLines(lines);
     setAmountText(String(newAmount));
@@ -567,6 +569,20 @@ function ReceiptRow({
             </Text>
             {lineItems.map((li, i) => {
               const ex = !!li.excluded;
+              // Summary rows (subtotal/total/tax) render read-only — no toggle,
+              // muted, slightly set apart — like the tax row.
+              if (li.isSummary) {
+                return (
+                  <View key={i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 3, marginTop: 2 }}>
+                    <Text style={{ color: theme.colors.textDarker, fontSize: 13, flex: 1, fontWeight: '600' }} numberOfLines={1}>
+                      {li.description}
+                    </Text>
+                    {li.amount != null ? (
+                      <Text style={{ color: theme.colors.textDarker, fontSize: 13, fontWeight: '600' }}>{money(li.amount, cur)}</Text>
+                    ) : null}
+                  </View>
+                );
+              }
               return (
                 <TouchableOpacity
                   key={i}

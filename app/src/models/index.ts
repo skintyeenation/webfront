@@ -233,6 +233,9 @@ export interface ExpenseLineItem {
   qty?: number | null;
   // User can exclude a line (struck through + dropped from the claimed amount).
   excluded?: boolean;
+  // Summary rows (subtotal/total/tax/…): displayed but NOT user-toggleable and
+  // NOT counted toward the claimed amount (like the tax row).
+  isSummary?: boolean;
 }
 
 export interface ExpenseItem {

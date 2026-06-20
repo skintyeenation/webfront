@@ -132,6 +132,9 @@ model Timesheet {
   id          String  @id // <workerUpn>:<payPeriodId>
   workerUpn   String
   workerName  String
+  // Snapshot of the worker's email at record time — so the record stays
+  // attributable even if the user is later deactivated or deleted from Entra.
+  workerEmail String?
   payPeriodId String // YYYY-MM-DD of the cutoff Friday
   status      String  @default("draft") // draft | submitted | approved | rejected
   notes       String?
@@ -211,6 +214,8 @@ model ExpenseClaim {
   id            String  @id // <submitterUpn>:<payPeriodId>
   submitterUpn  String
   submitterName String
+  // Email snapshot — keeps the claim attributable if the submitter is deleted.
+  submitterEmail String?
   payPeriodId   String // YYYY-MM-DD cutoff Friday — SAME pay periods as timesheets
   title         String?
   status        String  @default("draft") // draft | submitted | approved | rejected
@@ -244,6 +249,11 @@ model ExpenseItem {
   currency    String? // per-receipt ISO currency; falls back to the claim currency
   tagSlug     String? // → ExpenseTag.slug (the expense category)
   description String?
+  // Who submitted/uploaded this receipt (from the claim's submitter). Stored on
+  // the item so each receipt is independently attributable for audit/reports.
+  submitterUpn  String?
+  submitterName String?
+  submitterEmail String?
   aiExtracted Boolean      @default(false) // amount/vendor/date were AI-prefilled
   // AI-itemised receipt lines when the photo was legible:
   //   [{description, amount, qty, excluded}]  — `excluded` lines are struck out

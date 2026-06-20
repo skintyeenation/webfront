@@ -19,6 +19,9 @@ export interface ReceiptLineItem {
   description: string;
   amount: number | null;
   qty: number | null;
+  // Summary rows (subtotal / total / tax / balance / change …) — displayed but
+  // NOT user-toggleable and NOT counted toward the claimed amount (like tax).
+  isSummary?: boolean;
 }
 
 export interface ReceiptExtraction {
@@ -91,15 +94,16 @@ export class AnthropicService {
           confidence: { type: ['number', 'null'], description: 'Confidence 0..1 in this extraction.' },
           lineItems: {
             type: 'array',
-            description: 'Individual purchased line items, IF the photo is clear enough to read them. Leave empty ([]) if blurry/illegible or the receipt has no itemisation.',
+            description: 'Receipt lines, IF the photo is clear enough to read them. Leave empty ([]) if blurry/illegible or the receipt has no itemisation. Include actual purchased items; you may also include summary rows (subtotal/total/tax/balance/change) but mark them isSummary:true.',
             items: {
               type: 'object',
               properties: {
-                description: { type: 'string', description: 'Item name / description.' },
-                amount:      { type: ['number', 'null'], description: 'Line total (price × qty).' },
+                description: { type: 'string', description: 'Item name / description (or the summary row label, e.g. "Subtotal").' },
+                amount:      { type: ['number', 'null'], description: 'Line total (price × qty), or the summary amount.' },
                 qty:         { type: ['number', 'null'], description: 'Quantity, if shown.' },
+                isSummary:   { type: 'boolean', description: 'true for summary/total rows (subtotal, total, tax, balance, change, amount due, tip); false for actual purchased items.' },
               },
-              required: ['description', 'amount', 'qty'],
+              required: ['description', 'amount', 'qty', 'isSummary'],
             },
           },
         },
@@ -157,11 +161,17 @@ export class AnthropicService {
         lineItems: Array.isArray(inp.lineItems)
           ? inp.lineItems
               .filter((li: any) => li && typeof li.description === 'string' && li.description.trim())
-              .map((li: any) => ({
-                description: li.description.trim(),
-                amount: typeof li.amount === 'number' ? li.amount : null,
-                qty: typeof li.qty === 'number' ? li.qty : null,
-              }))
+              .map((li: any) => {
+                const description = li.description.trim();
+                // Defensive: flag obvious summary rows even if the model didn't.
+                const looksSummary = /^(sub-?total|total|balance(\s*due)?|amount\s*due|change|tax|gst|hst|pst|qst|tip|gratuity|rounding|cash|visa|mastercard|debit|payment)\b/i.test(description);
+                return {
+                  description,
+                  amount: typeof li.amount === 'number' ? li.amount : null,
+                  qty: typeof li.qty === 'number' ? li.qty : null,
+                  isSummary: li.isSummary === true || looksSummary,
+                };
+              })
           : [],
         status: 'extracted',
         message: null,

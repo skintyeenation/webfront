@@ -187,8 +187,8 @@ export class ExpensesController {
     if (!(await this.people.isExpenseEligible(upn))) {
       throw new ForbiddenException('You are not enabled for Expenses. Ask an admin to enable it on your People record.');
     }
-    const me = this.prisma.isAvailable ? await this.prisma.bandMember.findUnique({ where: { upn }, select: { name: true } }) : null;
-    return this.svc.startClaim({ submitterUpn: upn, submitterName: me?.name ?? upn, periodId: b?.periodId });
+    const me = this.prisma.isAvailable ? await this.prisma.bandMember.findUnique({ where: { upn }, select: { name: true, email: true } }) : null;
+    return this.svc.startClaim({ submitterUpn: upn, submitterName: me?.name ?? upn, submitterEmail: me?.email ?? upn, periodId: b?.periodId });
   }
 
   @Patch('claims/:id') @Roles('staff', 'admin')
