@@ -22,7 +22,13 @@ export function useConfirm() {
 
   const ConfirmHost = () => (
     <Portal>
-      <Dialog visible={!!opts} onDismiss={close} style={{ backgroundColor: theme.colors.darkDefault }}>
+      <Dialog
+        visible={!!opts}
+        onDismiss={close}
+        // Constrain on large screens — Paper's Dialog otherwise stretches to
+        // nearly full viewport width on desktop/web.
+        style={{ backgroundColor: theme.colors.darkDefault, alignSelf: 'center', width: '100%', maxWidth: 440 }}
+      >
         <Dialog.Title style={{ color: theme.colors.text, fontSize: 18 }}>{opts?.title}</Dialog.Title>
         <Dialog.Content>
           <Text style={{ color: theme.colors.textDarker }}>{opts?.message}</Text>
