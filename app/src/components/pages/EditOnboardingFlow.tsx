@@ -286,7 +286,7 @@ export default function EditOnboardingFlow({ navigation, route }: any) {
     <PageContainer>
       <PageContent>
         {/* Header card */}
-        <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 10 }}>
+        <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' }}>
           <Card.Content>
             <TextInput label="Flow title" value={title} onChangeText={setTitle} mode="outlined" style={{ marginBottom: 8 }} />
             <TextInput label="Description (optional)" value={description} onChangeText={setDescription} mode="outlined" multiline numberOfLines={3} />
@@ -308,8 +308,13 @@ export default function EditOnboardingFlow({ navigation, route }: any) {
         ) : null}
 
         {/* Steps */}
+        {flow && flow.steps.length > 0 ? (
+          <Text style={{ color: theme.colors.accent, fontSize: 12, fontWeight: '700', letterSpacing: 1, marginTop: 4, marginBottom: 6 }}>
+            STEPS ({flow.steps.length})
+          </Text>
+        ) : null}
         {flow?.steps.map((s, idx) => (
-          <Card key={s.id} style={{ marginBottom: 8, backgroundColor: theme.colors.darkDefault }}>
+          <Card key={s.id} style={{ marginBottom: 8, backgroundColor: theme.colors.darkDefault, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' }}>
             <Card.Content>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
                 <Text style={{ color: theme.colors.accent, fontSize: 12, fontWeight: '700', letterSpacing: 1, marginRight: 6 }}>
@@ -414,7 +419,7 @@ export default function EditOnboardingFlow({ navigation, route }: any) {
             who's already on this flow. Adding new ones happens from the
             Onboarding screen's Assignments tab. */}
         {flow && assignments.length > 0 ? (
-          <Card style={{ backgroundColor: theme.colors.darkDefault, marginTop: 12 }}>
+          <Card style={{ backgroundColor: theme.colors.darkDefault, marginTop: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' }}>
             <Card.Content>
               <Text style={{ color: theme.colors.text, fontSize: 14, fontWeight: '600' }}>
                 Assignments ({assignments.length})
