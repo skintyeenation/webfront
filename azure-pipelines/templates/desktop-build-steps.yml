@@ -21,6 +21,10 @@ steps:
 
   - bash: pnpm install --frozen-lockfile
     displayName: pnpm install (workspace)
+    env:
+      # electron-builder downloads its own electron dist via `electronVersion`,
+      # so skip the npm postinstall binary (faster + one fewer failure point).
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
 
   - bash: |
       cd app

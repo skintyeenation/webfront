@@ -2,6 +2,8 @@
   "name": "@skintyee/app",
   "version": "0.0.0",
   "private": true,
+  "description": "Skin Tyee First Nation community app",
+  "author": "Skin Tyee First Nation",
   "main": "index.js",
   "scripts": {
     "start": "expo start",
@@ -58,7 +60,7 @@
     "babel-plugin-module-resolver": "~4.1.0",
     "babel-preset-expo": "~9.3.0",
     "dotenv": "^17.4.2",
-    "electron": "^31.7.7",
+    "electron": "31.7.7",
     "electron-builder": "^24.13.3",
     "metro-react-native-babel-preset": "~0.73.6",
     "typescript": "~5.4.5"
@@ -67,6 +69,7 @@
     "appId": "ca.skintyee.desktop",
     "productName": "Skin Tyee",
     "copyright": "© Skin Tyee First Nation",
+    "electronVersion": "31.7.7",
     "directories": { "output": "desktop-dist", "buildResources": "electron/resources" },
     "files": ["electron/**/*", "web-build/**/*"],
     "extraMetadata": { "main": "electron/main.js" },
