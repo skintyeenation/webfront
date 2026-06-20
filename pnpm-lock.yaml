@@ -140,6 +140,9 @@ importers:
       expo-font:
         specifier: ~11.1.1
         version: 11.1.1(expo@48.0.21(@babel/core@7.29.0))
+      expo-image-picker:
+        specifier: ~14.1.1
+        version: 14.1.1(expo@48.0.21(@babel/core@7.29.0))
       expo-status-bar:
         specifier: ~1.4.4
         version: 1.4.4
@@ -3748,6 +3751,16 @@ packages:
 
   expo-font@11.1.1:
     resolution: {integrity: sha512-X+aICqYY69hiiDDtcNrjq8KutHrH2TrHuMqk0Rfq0P7hF6hMd+YefwLBNkvIrqrgmTAuqiLjMUwj2rHLqmgluw==}
+    peerDependencies:
+      expo: '*'
+
+  expo-image-loader@4.1.1:
+    resolution: {integrity: sha512-ciEHVokU0f6w0eTxdRxLCio6tskMsjxWIoV92+/ZD37qePUJYMfEphPhu1sruyvMBNR8/j5iyOvPFVGTfO8oxA==}
+    peerDependencies:
+      expo: '*'
+
+  expo-image-picker@14.1.1:
+    resolution: {integrity: sha512-SvWtnkLW7jp5Ntvk3lVcRQmhFYja8psmiR7O6P/+7S6f4llt3vaFwb4I3+pUXqJxxpi7BHc2+95qOLf0SFOIag==}
     peerDependencies:
       expo: '*'
 
@@ -11769,6 +11782,15 @@ snapshots:
     dependencies:
       expo: 48.0.21(@babel/core@7.29.0)
       fontfaceobserver: 2.3.0
+
+  expo-image-loader@4.1.1(expo@48.0.21(@babel/core@7.29.0)):
+    dependencies:
+      expo: 48.0.21(@babel/core@7.29.0)
+
+  expo-image-picker@14.1.1(expo@48.0.21(@babel/core@7.29.0)):
+    dependencies:
+      expo: 48.0.21(@babel/core@7.29.0)
+      expo-image-loader: 4.1.1(expo@48.0.21(@babel/core@7.29.0))
 
   expo-keep-awake@12.0.1(expo@48.0.21(@babel/core@7.29.0)):
     dependencies:

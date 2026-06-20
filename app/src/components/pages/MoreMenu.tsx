@@ -29,6 +29,7 @@ const ACCOUNT_ITEMS: MoreItem[] = [
 // are paired (flows pull from the document library).
 const ADMIN_ITEMS: MoreItem[] = [
   { route: 'timekeeping',      label: 'Time Keeping',      description: 'Worker hours & approvals',                                 icon: 'clock-outline',            roles: ['admin'] },
+  { route: 'expenses',         label: 'Expenses',          description: 'Receipt claims & finance approvals',                       icon: 'receipt',                  roles: ['admin'] },
   { route: 'directory',        label: 'Band Management',   description: 'Members, council & staff — add, remove, manage groups',   icon: 'account-group',            roles: ['admin'] },
   { route: 'onboardingPeople', label: 'Staff Management',  description: 'People on file — band members + external contractors',    icon: 'account-supervisor',       roles: ['admin'] },
   { route: 'onboardingFlows',  label: 'Onboarding',        description: 'Design onboarding flows & track progress for new people', icon: 'clipboard-check-multiple', roles: ['admin'] },
@@ -52,6 +53,9 @@ const SYSTEM_ITEMS: MoreItem[] = [
 const TOOLS_ITEMS: MoreItem[] = [
   // Mirrors admin's "Time Keeping" entry.
   { route: 'timekeeping',    label: 'My Timesheets',         description: 'Submit & view your hours',                                 icon: 'clock-outline',           roles: ['staff'] },
+  // Mirrors admin's "Expenses" entry — finance-group staff also reach
+  // the approval queue here (the Expenses screen gates on bandGroups).
+  { route: 'expenses',       label: 'My Expenses',           description: 'Submit receipts & expense claims',                         icon: 'receipt',                 roles: ['staff'] },
   // Mirrors admin's "Band Management" entry — non-admins see it as
   // the read-only "Band Member Directory".
   { route: 'directory',      label: 'Band Member Directory', description: 'Members, council & staff',                                 icon: 'account-group',           roles: ['public', 'member', 'staff'] },
