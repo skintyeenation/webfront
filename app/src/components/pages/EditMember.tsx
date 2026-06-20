@@ -7,6 +7,7 @@ import { loadDirectory, loadMember, setMemberGroups, setMemberMailboxes, setMemb
 import { BandMember } from 'skintyee/models';
 import { SecurityGroup, SharedMailbox, LicenseSku } from 'skintyee/services/api/ApiService';
 import { apiFactory } from 'skintyee/store/apis';
+import { adminResetPassword } from 'skintyee/services/graphAdmin';
 import { theme } from 'skintyee/styles';
 
 // Pull the "fullaccess" entries out of mailboxMemberships — those are the
@@ -84,6 +85,12 @@ export default function EditMember({ route, navigation }: any) {
   const [forcing, setForcing] = useState(false);
   const [blocking, setBlocking] = useState(false);
   const [forcedInfo, setForcedInfo] = useState<string | null>(null);
+  // Admin reset (Route B / MSAL) — uses the signed-in admin's delegated Graph
+  // token to set a temp password that writes back on-prem. Only available when
+  // actually signed in with Microsoft (not the dev role switcher).
+  const [adminResetting, setAdminResetting] = useState(false);
+  const [adminTempPw, setAdminTempPw] = useState<string | null>(null);
+  const accessToken = useAppSelector((s) => s.auth.accessToken);
   const locked = member?.enabled === false;
   const [toast, setToast] = useState<string | null>(null);
   const { confirm, ConfirmHost } = useConfirm();
@@ -502,17 +509,65 @@ export default function EditMember({ route, navigation }: any) {
             <Card.Content>
               <Text style={{ color: theme.colors.text, fontSize: 14, fontWeight: '600' }}>Password & access</Text>
               <HelperText type="info" visible style={{ marginLeft: -8, marginTop: 2, marginBottom: 8 }}>
-                These accounts sync from on-prem AD, so you can't set a password from the app.
-                {'\n'}• <Text style={{ color: theme.colors.text }}>Force password reset</Text> — signs {name} out, then they reset themselves at aka.ms/sspr.
-                {'\n'}• <Text style={{ color: theme.colors.text }}>Lock / Unlock</Text> — blocks or restores their sign-in.
+                <Text style={{ color: theme.colors.text }}>Reset password</Text> — set a temp password to hand {name} (writes back on-prem).
+                {'\n'}<Text style={{ color: theme.colors.text }}>Force password reset</Text> — sign them out so they self-serve at aka.ms/sspr.
+                {'\n'}<Text style={{ color: theme.colors.text }}>Lock / Unlock</Text> — block or restore sign-in.
               </HelperText>
               {rotateError ? <HelperText type="error" visible>{rotateError}</HelperText> : null}
+              {adminTempPw ? (
+                <>
+                  <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginTop: 4 }}>
+                    NEW TEMPORARY PASSWORD
+                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.04)', padding: 10, borderRadius: 4, marginTop: 4 }}>
+                    <Text style={{ color: theme.colors.text, fontSize: 16, fontFamily: 'monospace', flex: 1 }}>{adminTempPw}</Text>
+                    <IconButton icon="content-copy" size={18} iconColor={theme.colors.textDarker} onPress={async () => {
+                      if (typeof navigator !== 'undefined' && (navigator as any).clipboard) {
+                        try { await (navigator as any).clipboard.writeText(adminTempPw); setToast('Password copied'); return; } catch { /* fall through */ }
+                      }
+                      setToast(adminTempPw);
+                    }} />
+                  </View>
+                  <HelperText type="info" visible style={{ marginLeft: -8 }}>
+                    Give this to {name} now — it isn't shown again. They change it at next sign-in.
+                  </HelperText>
+                </>
+              ) : null}
               {forcedInfo ? (
                 <View style={{ backgroundColor: 'rgba(0,184,236,0.08)', borderRadius: 6, padding: 10, marginBottom: 8 }}>
                   <Text style={{ color: theme.colors.text, fontSize: 13, lineHeight: 19 }}>{forcedInfo}</Text>
                 </View>
               ) : null}
+              {!accessToken ? (
+                <HelperText type="info" visible style={{ marginLeft: -8 }}>
+                  Sign in with Microsoft (Account tab) to set a temp password directly. Force reset + Lock still work below.
+                </HelperText>
+              ) : null}
               <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                {accessToken ? (
+                  <Button
+                    mode="contained" icon="lock-reset"
+                    buttonColor={theme.colors.primary} textColor="#000"
+                    loading={adminResetting} disabled={adminResetting || forcing || blocking}
+                    onPress={() => confirm({
+                      title: 'Reset password?',
+                      message: `Sets a new temporary password for ${name} and writes it back to on-prem AD. You'll see it once to hand over.`,
+                      confirmLabel: 'Reset',
+                      destructive: true,
+                      onConfirm: async () => {
+                        setAdminResetting(true); setRotateError(undefined); setAdminTempPw(null); setForcedInfo(null);
+                        try {
+                          const pw = await adminResetPassword(member!._id, accessToken);
+                          setAdminTempPw(pw);
+                        } catch (e: any) { setRotateError(e?.message ?? String(e)); }
+                        finally { setAdminResetting(false); }
+                      },
+                    })}
+                    style={{ marginRight: 8, marginBottom: 8 }}
+                  >
+                    Reset password
+                  </Button>
+                ) : null}
                 <Button
                   mode="outlined" icon="lock-reset"
                   textColor={theme.colors.primary}

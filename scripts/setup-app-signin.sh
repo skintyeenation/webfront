@@ -47,6 +47,7 @@ GRAPH_RESOURCE_ID="00000003-0000-0000-c000-000000000000"
 USER_READ_DELEGATED="e1fe6dd8-ba31-4d61-89e7-88639da4683d"
 CALENDARS_READWRITE_DELEGATED="1ec239c2-d7c9-4623-a91a-a9775856bb36"   # Calendars.ReadWrite (Delegated)
 GROUP_READWRITE_ALL_DELEGATED="4e46008b-f24c-477d-8fff-7bb4ec7aafe0"   # Group.ReadWrite.All (Delegated)
+USERAUTHMETHOD_READWRITE_ALL_DELEGATED="b7887744-6746-4312-813d-72daeaee7e2d"  # UserAuthenticationMethod.ReadWrite.All (Delegated) — admin password reset (writeback) from EditMember
 
 DRY_RUN=0
 while [ $# -gt 0 ]; do
@@ -158,12 +159,15 @@ EOF
 fi
 
 # ----- 3) Add Microsoft Graph delegated permissions -------------------------
-# User.Read              — basic profile (default-consentable)
-# Calendars.ReadWrite    — write Band Meetings to user/shared calendars
-# Group.ReadWrite.All    — write Band Meetings to M365 group calendars
-#                          (Skin Tyee Council, Skin Tyee Management)
+# User.Read                          — basic profile (default-consentable)
+# Calendars.ReadWrite                — write Band Meetings to user/shared calendars
+# Group.ReadWrite.All                — write Band Meetings to M365 group calendars
+#                                      (Skin Tyee Council, Skin Tyee Management)
+# UserAuthenticationMethod.ReadWrite.All — admin password reset from EditMember.
+#   Delegated, so Graph enforces the signed-in admin's role + MFA; routes through
+#   SSPR writeback to on-prem (docs/365/password-reset-sspr.md, "Route B").
 say "adding Microsoft Graph delegated permissions…"
-for PERM in "$USER_READ_DELEGATED" "$CALENDARS_READWRITE_DELEGATED" "$GROUP_READWRITE_ALL_DELEGATED"; do
+for PERM in "$USER_READ_DELEGATED" "$CALENDARS_READWRITE_DELEGATED" "$GROUP_READWRITE_ALL_DELEGATED" "$USERAUTHMETHOD_READWRITE_ALL_DELEGATED"; do
   run az ad app permission add \
     --id "$APP_ID" \
     --api "$GRAPH_RESOURCE_ID" \

@@ -244,22 +244,33 @@ trips to the `STFN.local` DC, and regular users never open the 365/Entra portal.
   (`POST /users/{id}/authentication/methods/{methodId}/resetPassword`), which
   routes through writeback. Two ways to get there:
 
-| Route | Auth | Works? | Effort |
+| Route | Auth | Works? | Status |
 |---|---|---|---|
-| **A — app-only resetPassword** | app-only credential + `UserAuthenticationMethod.ReadWrite.All` | **UNVERIFIED** — `resetPassword` has historically needed a delegated MFA token; may be rejected app-only | small *if* it works |
-| **B — MSAL delegated admin** | admin signs into the app (MSAL) → API calls `resetPassword` **as them** | **YES, definitively** — it's exactly what the Entra portal does, moved in-app | larger — wires real Entra auth, replaces the `x-role` stub app-wide |
+| A — app-only resetPassword | app-only credential + `UserAuthenticationMethod.ReadWrite.All` | unverified — likely rejected app-only (needs delegated MFA) | not pursued |
+| **B — MSAL delegated admin** ✅ | admin signs into the app (existing MSAL) → app calls Graph `resetPassword` **with the admin's own delegated token** | **YES** — what the Entra portal does, in-app | **SHIPPED** |
 
-**Recommendation:** test **Route A** first (quick; also unblocks a real locked-out
-user). If app-only `resetPassword` writes back to `STFN.local`, restore a working
-**"Reset password"** button in EditMember (admin → hands a temp password). If it's
-rejected, **Route B (MSAL)** is required — and it's the same delegated sign-in
-that would replace the `x-role` stub everywhere, so it's worth doing for the
-broader auth story regardless.
+**Shipped (Route B).** The app already had a working Entra MSAL sign-in
+(`store/modules/auth.ts`, public client `skintyee-app-signin`, OAuth2+PKCE). We
+extended it:
+- Added the **delegated** `UserAuthenticationMethod.ReadWrite.All` scope to the
+  sign-in request + admin-consented it on `skintyee-app-signin` (see
+  `scripts/setup-app-signin.sh`).
+- `app/src/services/graphAdmin.ts` → `adminResetPassword()` calls
+  `POST /users/{id}/authentication/methods/{passwordMethodId}/resetPassword`
+  **directly from the app with the signed-in admin's token** (no OBO, no API
+  change), polls the operation, and returns the Microsoft-generated temp password.
+- EditMember "Password & access" → **Reset password** button (shown only when
+  signed in with Microsoft). Delegated, so Graph enforces the admin's role + MFA;
+  routes through writeback → lands on `STFN.local`.
+
+Note: this is a direct-from-client Graph call with the admin's own scoped token —
+no app-only privilege and no API trust needed. A future hardening could move it
+behind the API via on-behalf-of, but it isn't required for correctness.
 
 ### Intended UX split
 - **Own account → SSPR self-serve** (`aka.ms/sspr`).
 - **Admin editing a user →** admin-initiated:
-  - **Reset password** (hand a temp password) — *pending Route A/B*.
+  - **Reset password** (hand a temp password) — ✅ shipped via MSAL (admin must be signed in with Microsoft).
   - **Force reset** (push the user to self-serve) — shipped.
   - **Lock / Unlock** — shipped.
 
