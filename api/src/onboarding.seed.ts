@@ -1,60 +1,165 @@
-// Phase 2 onboarding seed — drops a single "Contractor Onboarding (sample)"
-// flow with one "Sign Non-Disclosure (NDA)" step so the screens have
-// something to render on a fresh install. The attached document is a
-// generated PDF stored via the active storage adapter.
+// Onboarding seed — a realistic multi-step new-hire flow so a fresh install
+// (and prod) has a usable checklist, not just a single NDA step.
 //
-// Re-running is safe: each upsert is keyed on title + flow title so
-// the seed never duplicates rows. Editing the seeded rows from the UI
-// is fine; they aren't pinned.
+// Idempotent + ADDITIVE: the seeder ensures the flow exists, then ensures each
+// step below exists (matched by title) — so re-running adds any step that's new
+// since the last seed without disturbing admin edits to existing rows. Each
+// step's document is a generated "sample" PDF (replace the real TD1 / TD1BC /
+// T4 / direct-deposit forms via the in-app uploader before production use).
 
-const SAMPLE_DOC_TITLE = 'Non-Disclosure Agreement (sample)';
-const SAMPLE_FLOW_TITLE = 'Contractor Onboarding (sample)';
-const SAMPLE_STEP_TITLE = 'Sign Non-Disclosure (NDA)';
+const FLOW_TITLE = 'Contractor Onboarding (sample)';
 const SEED_AUTHOR_UPN = 'system@skintyee.ca';
 
-// Hand-rolled minimal one-page PDF. Cross-reference offsets are
-// computed against the actual byte positions so the file opens cleanly
-// in browsers + Acrobat. ~500 bytes total — small enough to ship inline
-// without taxing the Blob container.
-function buildSampleNdaPdf(): Buffer {
+// Generalised one-page PDF builder (was buildSampleNdaPdf). Cross-reference
+// offsets are computed from real byte positions so the file opens cleanly in
+// browsers + Acrobat. Title at the top, then each body line below it.
+function buildSamplePdf(title: string, bodyLines: string[]): Buffer {
+  const esc = (s: string) => s.replace(/([()\\])/g, '\\$1');
+  let y = 690;
+  const body = bodyLines.map((ln) => { const t = `BT /F1 12 Tf 72 ${y} Td (${esc(ln)}) Tj ET`; y -= 18; return t; }).join('\n');
+  const text = `BT /F1 22 Tf 72 720 Td (${esc(title)}) Tj ET\n${body}`;
+
   const objects: string[] = [
     '<</Type/Catalog/Pages 2 0 R>>',
     '<</Type/Pages/Kids[3 0 R]/Count 1>>',
     '<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]/Contents 4 0 R/Resources<</Font<</F1 5 0 R>>>>>>',
-    '', // 4 — populated below
+    `<</Length ${text.length}>>\nstream\n${text}\nendstream`,
     '<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>',
   ];
-  const text =
-    'BT /F1 22 Tf 72 720 Td (Non-Disclosure Agreement) Tj ET\n' +
-    'BT /F1 12 Tf 72 690 Td (SAMPLE TEMPLATE - replace before production use.) Tj ET\n' +
-    'BT /F1 12 Tf 72 660 Td (Contractor agrees to keep all confidential information) Tj ET\n' +
-    'BT /F1 12 Tf 72 644 Td (received during the engagement strictly confidential.) Tj ET\n' +
-    'BT /F1 12 Tf 72 610 Td (Signature: __________________________   Date: ____________) Tj ET';
-  objects[3] = `<</Length ${text.length}>>\nstream\n${text}\nendstream`;
 
   const header = '%PDF-1.4\n';
-  const offsets: number[] = [0]; // [0] is the "free" slot
+  const offsets: number[] = [0];
   let cursor = header.length;
-  let body = '';
+  let bodyStr = '';
   for (let i = 0; i < objects.length; i++) {
     offsets.push(cursor);
     const obj = `${i + 1} 0 obj\n${objects[i]}\nendobj\n`;
-    body += obj;
+    bodyStr += obj;
     cursor += obj.length;
   }
   const xrefStart = cursor;
   let xref = `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
-  for (let i = 1; i <= objects.length; i++) {
-    xref += offsets[i].toString().padStart(10, '0') + ' 00000 n \n';
-  }
+  for (let i = 1; i <= objects.length; i++) xref += offsets[i].toString().padStart(10, '0') + ' 00000 n \n';
   const trailer = `trailer\n<</Size ${objects.length + 1}/Root 1 0 R>>\nstartxref\n${xrefStart}\n%%EOF\n`;
-  return Buffer.from(header + body + xref + trailer, 'binary');
+  return Buffer.from(header + bodyStr + xref + trailer, 'binary');
 }
 
+export type SeedCompletion = 'admin_marks' | 'person_uploads' | 'both';
+
+export interface SeedStep {
+  stepTitle: string;
+  instructions: string;
+  completion: SeedCompletion;
+  doc: {
+    title: string;
+    fileName: string;
+    description: string;
+    bodyLines: string[];
+  };
+}
+
+// The new-hire checklist. Order here = step order in the flow.
+const STEPS: SeedStep[] = [
+  {
+    stepTitle: 'Sign Non-Disclosure (NDA)',
+    instructions: 'Read the attached NDA, sign it, and upload the signed copy.',
+    completion: 'person_uploads',
+    doc: {
+      title: 'Non-Disclosure Agreement (sample)',
+      fileName: 'sample-nda.pdf',
+      description: 'Sample placeholder NDA used by the onboarding demo flow. Replace before production use.',
+      bodyLines: [
+        'SAMPLE TEMPLATE - replace before production use.',
+        'Contractor agrees to keep all confidential information',
+        'received during the engagement strictly confidential.',
+        '',
+        'Signature: __________________________   Date: ____________',
+      ],
+    },
+  },
+  {
+    stepTitle: 'Complete TD1 (Federal Personal Tax Credits Return)',
+    instructions: 'Fill out the federal TD1, sign it, and upload the completed form so payroll can set your deductions.',
+    completion: 'person_uploads',
+    doc: {
+      title: 'TD1 — Federal Personal Tax Credits Return (sample)',
+      fileName: 'sample-td1.pdf',
+      description: 'Sample placeholder for the CRA TD1. Replace with the current-year TD1 (docs/form-samples) via the uploader.',
+      bodyLines: [
+        'SAMPLE TEMPLATE - replace with the current-year CRA TD1.',
+        'Personal Tax Credits Return (federal).',
+        'Fill in your basic personal amount and any additional credits,',
+        'then sign and date on the last page.',
+        '',
+        'Signature: __________________________   Date: ____________',
+      ],
+    },
+  },
+  {
+    stepTitle: 'Complete TD1BC (BC Personal Tax Credits Return)',
+    instructions: 'Fill out the British Columbia TD1BC, sign it, and upload the completed form.',
+    completion: 'person_uploads',
+    doc: {
+      title: 'TD1BC — BC Personal Tax Credits Return (sample)',
+      fileName: 'sample-td1bc.pdf',
+      description: 'Sample placeholder for the BC TD1BC. Replace with the current-year TD1BC (docs/form-samples) via the uploader.',
+      bodyLines: [
+        'SAMPLE TEMPLATE - replace with the current-year TD1BC.',
+        'Personal Tax Credits Return (British Columbia).',
+        'Fill in your provincial basic personal amount and credits,',
+        'then sign and date on the last page.',
+        '',
+        'Signature: __________________________   Date: ____________',
+      ],
+    },
+  },
+  {
+    stepTitle: 'Direct Deposit Authorization',
+    instructions: 'Provide your banking details (a void cheque or bank-issued direct-deposit form) so payroll can deposit your pay.',
+    completion: 'person_uploads',
+    doc: {
+      title: 'Direct Deposit Authorization (sample)',
+      fileName: 'sample-direct-deposit.pdf',
+      description: 'Sample placeholder direct-deposit authorization. Replace before production use.',
+      bodyLines: [
+        'SAMPLE TEMPLATE - replace before production use.',
+        'Authorize Skin Tyee First Nation to deposit pay to:',
+        '',
+        'Institution #: ______   Transit #: ________   Account #: ____________',
+        'Attach a VOID cheque or a bank-issued direct-deposit form.',
+        '',
+        'Signature: __________________________   Date: ____________',
+      ],
+    },
+  },
+  {
+    stepTitle: 'Acknowledge Workplace Policies',
+    instructions: 'Read the workplace policies (conduct, safety, confidentiality) and upload the signed acknowledgement.',
+    completion: 'person_uploads',
+    doc: {
+      title: 'Workplace Policies Acknowledgement (sample)',
+      fileName: 'sample-policies.pdf',
+      description: 'Sample placeholder policy acknowledgement. Replace with the band’s real policy pack before production use.',
+      bodyLines: [
+        'SAMPLE TEMPLATE - replace with the real policy pack.',
+        'I acknowledge that I have read and agree to abide by the',
+        'workplace conduct, safety, and confidentiality policies of',
+        'Skin Tyee First Nation.',
+        '',
+        'Signature: __________________________   Date: ____________',
+      ],
+    },
+  },
+];
+
 export const ONBOARDING_SEED = {
-  SAMPLE_DOC_TITLE,
-  SAMPLE_FLOW_TITLE,
-  SAMPLE_STEP_TITLE,
+  FLOW_TITLE,
   SEED_AUTHOR_UPN,
-  buildSampleNdaPdf,
+  STEPS,
+  buildSamplePdf,
+  // Back-compat: a couple of call sites / tests referenced these.
+  SAMPLE_FLOW_TITLE: FLOW_TITLE,
+  SAMPLE_DOC_TITLE: STEPS[0].doc.title,
+  SAMPLE_STEP_TITLE: STEPS[0].stepTitle,
+  buildSampleNdaPdf: () => buildSamplePdf('Non-Disclosure Agreement', STEPS[0].doc.bodyLines),
 };

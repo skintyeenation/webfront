@@ -123,102 +123,92 @@ export class OnboardingService implements OnApplicationBootstrap {
     }
   }
 
+  // Ensure the seeded onboarding flow exists AND carries every step in the
+  // catalog. Additive + idempotent: re-running adds steps introduced since the
+  // last seed (matched by title) without touching existing rows — so a deploy
+  // brings prod's existing flow up to date instead of skipping it wholesale.
   private async seedSampleFlow(): Promise<void> {
     if (this.prisma.isAvailable) {
-      const existingFlow = await this.prisma.onboardingFlow.findFirst({
-        where: { title: ONBOARDING_SEED.SAMPLE_FLOW_TITLE },
+      let flow = await this.prisma.onboardingFlow.findFirst({
+        where: { title: ONBOARDING_SEED.FLOW_TITLE },
+        include: { steps: true },
       });
-      if (existingFlow) return;
-      // Ensure the sample NDA document exists, uploading the bytes
-      // through the active storage adapter.
-      let doc = await this.prisma.document.findFirst({
-        where: { title: ONBOARDING_SEED.SAMPLE_DOC_TITLE },
-      });
-      if (!doc) {
-        const bytes = ONBOARDING_SEED.buildSampleNdaPdf();
-        const up = await this.storage.upload({
-          fileName: 'sample-nda.pdf',
-          mimeType: 'application/pdf',
-          bytes,
-        });
-        doc = await this.prisma.document.create({
+      if (!flow) {
+        flow = await this.prisma.onboardingFlow.create({
           data: {
-            title: ONBOARDING_SEED.SAMPLE_DOC_TITLE,
-            description: 'Sample placeholder NDA used by the onboarding demo flow. Replace before production use.',
-            storage: this.storage.driver,
-            fileKey: up.key, fileUrl: up.url,
-            fileName: 'sample-nda.pdf', mimeType: 'application/pdf',
-            sizeBytes: bytes.length,
-            audience: 'staff',
+            title: ONBOARDING_SEED.FLOW_TITLE,
+            description: 'Standard new-hire onboarding. Edit / delete freely; swap the sample docs for the real forms via the uploader.',
             createdBy: ONBOARDING_SEED.SEED_AUTHOR_UPN,
           },
+          include: { steps: true },
         });
       }
-      const flow = await this.prisma.onboardingFlow.create({
-        data: {
-          title: ONBOARDING_SEED.SAMPLE_FLOW_TITLE,
-          description: 'Demo flow showing one step with an attached document. Edit / delete freely.',
-          createdBy: ONBOARDING_SEED.SEED_AUTHOR_UPN,
-          steps: {
-            create: [{
-              order: 0,
-              title: ONBOARDING_SEED.SAMPLE_STEP_TITLE,
-              instructions: 'Read the attached NDA, sign it, and upload the signed copy.',
-              completion: 'person_uploads',
-              documentLinks: {
-                create: [{ documentId: doc.id, personUploadAllowed: true }],
-              },
-            }],
+      const existingTitles = new Set(flow.steps.map((s) => s.title));
+      let order = flow.steps.length ? Math.max(...flow.steps.map((s) => s.order)) + 1 : 0;
+      let added = 0;
+      for (const step of ONBOARDING_SEED.STEPS) {
+        if (existingTitles.has(step.stepTitle)) continue;
+        // Ensure the step's document exists (reuse by title; upload if missing).
+        let doc = await this.prisma.document.findFirst({ where: { title: step.doc.title } });
+        if (!doc) {
+          const bytes = ONBOARDING_SEED.buildSamplePdf(step.doc.title.replace(/ \(sample\)$/, ''), step.doc.bodyLines);
+          const up = await this.storage.upload({ fileName: step.doc.fileName, mimeType: 'application/pdf', bytes });
+          doc = await this.prisma.document.create({
+            data: {
+              title: step.doc.title, description: step.doc.description,
+              storage: this.storage.driver, fileKey: up.key, fileUrl: up.url,
+              fileName: step.doc.fileName, mimeType: 'application/pdf', sizeBytes: bytes.length,
+              audience: 'staff', createdBy: ONBOARDING_SEED.SEED_AUTHOR_UPN,
+            },
+          });
+        }
+        await this.prisma.onboardingStep.create({
+          data: {
+            flowId: flow.id, order: order++, title: step.stepTitle,
+            instructions: step.instructions, completion: step.completion,
+            documentLinks: { create: [{ documentId: doc.id, personUploadAllowed: step.completion !== 'admin_marks' }] },
           },
-        },
-      });
-      this.log.log(`Seeded sample onboarding flow ${flow.id} → step "${ONBOARDING_SEED.SAMPLE_STEP_TITLE}"`);
+        });
+        added++;
+      }
+      if (added) this.log.log(`Onboarding seed: flow "${ONBOARDING_SEED.FLOW_TITLE}" +${added} step(s)`);
       return;
     }
 
-    // ---- in-memory fallback ----------------------------------------------
+    // ---- in-memory fallback (dev): seed the full catalog once -------------
     for (const f of this.memFlows.values()) {
-      if (f.title === ONBOARDING_SEED.SAMPLE_FLOW_TITLE) return;
+      if (f.title === ONBOARDING_SEED.FLOW_TITLE) return;
     }
-    const bytes = ONBOARDING_SEED.buildSampleNdaPdf();
-    const up = await this.storage.upload({
-      fileName: 'sample-nda.pdf',
-      mimeType: 'application/pdf',
-      bytes,
-    });
-    const docId = `seed-doc-${Math.random().toString(36).slice(2, 8)}`;
-    this.memSeededDocId = docId;
-    const stepId = `seed-step-${Math.random().toString(36).slice(2, 8)}`;
-    const flowId = `seed-flow-${Math.random().toString(36).slice(2, 8)}`;
     const now = new Date().toISOString();
-    this.memFlows.set(flowId, {
-      id: flowId,
-      title: ONBOARDING_SEED.SAMPLE_FLOW_TITLE,
-      description: 'Demo flow showing one step with an attached document. Edit / delete freely.',
-      companyId: null, active: true,
-      steps: [{
-        id: stepId, flowId, order: 0,
-        title: ONBOARDING_SEED.SAMPLE_STEP_TITLE,
-        instructions: 'Read the attached NDA, sign it, and upload the signed copy.',
-        completion: 'person_uploads',
-        documents: [{ id: `seed-sd`, documentId: docId, personUploadAllowed: true }],
+    const flowId = `seed-flow-${Math.random().toString(36).slice(2, 8)}`;
+    const steps: any[] = [];
+    let order = 0;
+    for (const step of ONBOARDING_SEED.STEPS) {
+      const bytes = ONBOARDING_SEED.buildSamplePdf(step.doc.title.replace(/ \(sample\)$/, ''), step.doc.bodyLines);
+      const up = await this.storage.upload({ fileName: step.doc.fileName, mimeType: 'application/pdf', bytes });
+      const docId = `seed-doc-${Math.random().toString(36).slice(2, 8)}`;
+      if (!this.memSeededDocId) this.memSeededDocId = docId;
+      steps.push({
+        id: `seed-step-${Math.random().toString(36).slice(2, 8)}`, flowId, order: order++,
+        title: step.stepTitle, instructions: step.instructions, completion: step.completion,
+        documents: [{ id: `seed-sd-${order}`, documentId: docId, personUploadAllowed: step.completion !== 'admin_marks' }],
         links: [],
-      }],
+      });
+      (this as any).memSeededDocs = [...((this as any).memSeededDocs ?? []), {
+        id: docId, title: step.doc.title, description: step.doc.description,
+        storage: this.storage.driver, fileKey: up.key, fileUrl: up.url,
+        fileName: step.doc.fileName, mimeType: 'application/pdf', sizeBytes: bytes.length,
+        linkUrl: null, audience: 'staff', companyId: null, tagIds: [],
+        createdAt: now, createdBy: ONBOARDING_SEED.SEED_AUTHOR_UPN, updatedAt: now,
+      }];
+    }
+    this.memFlows.set(flowId, {
+      id: flowId, title: ONBOARDING_SEED.FLOW_TITLE,
+      description: 'Standard new-hire onboarding. Edit / delete freely.',
+      companyId: null, active: true, steps,
       createdAt: now, createdBy: ONBOARDING_SEED.SEED_AUTHOR_UPN, updatedAt: now,
     });
-    // Stash the sample doc on the seeded record's first document so the
-    // app's documents.list (mock fallback) sees it too via a side query.
-    (this as any).memSeededDoc = {
-      id: docId,
-      title: ONBOARDING_SEED.SAMPLE_DOC_TITLE,
-      description: 'Sample placeholder NDA used by the onboarding demo flow. Replace before production use.',
-      storage: this.storage.driver,
-      fileKey: up.key, fileUrl: up.url,
-      fileName: 'sample-nda.pdf', mimeType: 'application/pdf', sizeBytes: bytes.length,
-      linkUrl: null, audience: 'staff', companyId: null, tagIds: [],
-      createdAt: now, createdBy: ONBOARDING_SEED.SEED_AUTHOR_UPN, updatedAt: now,
-    };
-    this.log.log(`Seeded in-memory sample onboarding flow ${flowId} (no Postgres detected).`);
+    this.log.log(`Seeded in-memory onboarding flow ${flowId} with ${steps.length} steps (no Postgres detected).`);
   }
 
   // ---- Flows --------------------------------------------------------------
