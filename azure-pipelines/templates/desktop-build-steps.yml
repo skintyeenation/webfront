@@ -36,11 +36,19 @@ steps:
   - bash: |
       cd app
       npx electron-builder --${{ parameters.platform }} --publish never
-      ls -lh desktop-dist || dir desktop-dist
-    displayName: electron-builder (${{ parameters.platform }})
+      echo "--- desktop-dist (top level) ---"; ls -lh desktop-dist
+      # Stage ONLY the real, top-level installers — electron-builder leaves
+      # helper exes (elevate.exe, the unpacked app exe, hermesc.exe) in
+      # subfolders (win-unpacked/, mac/, linux-unpacked/) which we must not ship.
+      mkdir -p installers
+      find desktop-dist -maxdepth 1 -type f \
+        \( -iname '*.exe' -o -iname '*.dmg' -o -iname '*.AppImage' -o -iname '*.deb' -o -iname '*.zip' \) \
+        -exec cp {} installers/ \;
+      echo "--- staged installers ---"; ls -lh installers
+    displayName: electron-builder (${{ parameters.platform }}) + stage installers
 
   - task: PublishPipelineArtifact@1
     inputs:
-      targetPath: app/desktop-dist
+      targetPath: app/installers
       artifact: desktop-${{ parameters.platform }}
     displayName: Publish installers artifact
