@@ -95,6 +95,9 @@ export default function EditMember({ route, navigation }: any) {
   // Break-glass tenant admin — locking/force-resetting it could lock the whole
   // org out of M365, so those actions are disabled (api/ also hard-refuses).
   const protectedAdmin = (member as any)?.protectedAdmin === true;
+  // Editing your own account — never let an admin lock themselves out.
+  const myUpn = useAppSelector((s) => (s.auth.user?.upn ?? '').toLowerCase());
+  const isSelf = !!member?.upn && (member.upn as string).toLowerCase() === myUpn;
   const [toast, setToast] = useState<string | null>(null);
   const { confirm, ConfirmHost } = useConfirm();
 
@@ -577,7 +580,6 @@ export default function EditMember({ route, navigation }: any) {
                   </Button>
                 ) : null}
                 {!protectedAdmin ? (
-                <>
                 <Button
                   mode="outlined" icon="lock-reset"
                   textColor={theme.colors.primary}
@@ -603,6 +605,8 @@ export default function EditMember({ route, navigation }: any) {
                 >
                   Force password reset
                 </Button>
+                ) : null}
+                {!protectedAdmin && !isSelf ? (
                 <Button
                   mode="outlined" icon={locked ? 'lock-open-variant' : 'lock'}
                   textColor={locked ? theme.colors.success : theme.colors.error}
@@ -627,7 +631,6 @@ export default function EditMember({ route, navigation }: any) {
                 >
                   {locked ? 'Unlock account' : 'Lock account'}
                 </Button>
-                </>
                 ) : null}
               </View>
             </Card.Content>
