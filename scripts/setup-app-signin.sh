@@ -121,6 +121,11 @@ say "configuring SPA + native redirect URIs…"
 #
 # Expo Go: dev testing uses 'exp://localhost:19000' or similar; we add
 #   that too so testing in the simulator works without an EAS build.
+#
+# Desktop (Electron): the packaged app serves the web build over a loopback
+#   http://localhost:8123/ server (app/electron/main.js) so window.location
+#   .origin is a valid scheme — file:// triggers AADSTS500111. Register that
+#   exact loopback URI (trailing slash = origin + '/') as an SPA redirect.
 
 if [ "$DRY_RUN" -eq 0 ]; then
   BODY=$(cat <<EOF
@@ -130,7 +135,8 @@ if [ "$DRY_RUN" -eq 0 ]; then
       "${WEB_URL}",
       "${WEB_URL}/auth",
       "http://localhost:19006",
-      "http://localhost:8081"
+      "http://localhost:8081",
+      "http://localhost:8123/"
     ]
   },
   "publicClient": {
