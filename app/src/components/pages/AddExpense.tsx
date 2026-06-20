@@ -474,7 +474,7 @@ function ReceiptRow({
     && Math.abs(itemsSum - (Number(subtotalLine.amount) || 0)) > 0.01;
 
   return (
-    <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 8 }}>
+    <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' }}>
       <Card.Content>
         {/* Header — tap the chevron to collapse the card to just vendor + amount. */}
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: collapsed ? 0 : 4 }}>
