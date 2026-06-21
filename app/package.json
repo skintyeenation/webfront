@@ -73,6 +73,8 @@
     "copyright": "© Skin Tyee First Nation",
     "electronVersion": "31.7.7",
     "artifactName": "SkinTyee-${version}-${arch}.${ext}",
+    "npmRebuild": false,
+    "nodeGypRebuild": false,
     "directories": {
       "output": "desktop-dist",
       "buildResources": "electron/resources"
