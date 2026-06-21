@@ -25,6 +25,9 @@ param(
     [string]$ClientId   = '14d82eec-204b-4c2f-b7e8-296a70dab67e'   # Microsoft Graph Command Line Tools (public client)
 )
 $ErrorActionPreference = 'Stop'
+# Force a hard process exit on completion/error - otherwise lingering auth/HTTP
+# threads can keep powershell.exe alive after the download, so `! ...` never returns.
+trap { Write-Host "ERROR: $_" -ForegroundColor Red; [Environment]::Exit(1) }
 [Net.ServicePointManager]::SecurityProtocol = `
     [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 
@@ -67,3 +70,4 @@ $prev = $ProgressPreference; $ProgressPreference = 'SilentlyContinue'
 Invoke-WebRequest -Uri $file.'@microsoft.graph.downloadUrl' -OutFile $dest -UseBasicParsing
 $ProgressPreference = $prev
 Write-Host "Done: $dest ($([math]::Round((Get-Item $dest).Length/1MB,1)) MB)" -ForegroundColor Green
+[Environment]::Exit(0)   # hard exit so the process returns immediately (no lingering threads)
