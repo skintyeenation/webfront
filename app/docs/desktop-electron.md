@@ -89,12 +89,17 @@ bash scripts/publish-desktop-to-sharepoint.sh
   its `redirect_uri` from `window.location.origin`. Under `file://` that origin
   is `"file://"`, which Entra rejects with **AADSTS500111** ("reply uri … has an
   invalid scheme"). The packaged app therefore serves the web bundle over a
-  **loopback `http://localhost:8123/` server** in `electron/main.js` (not
-  `file://`), giving a valid origin. That exact URI is registered on the **SPA**
-  platform of the Entra app by `scripts/setup-app-signin.sh`. Keep the port in
-  `main.js` (`LOOPBACK_PORT`) and the registered redirect URI in sync. If the
-  loopback port is busy, `main.js` falls back to `file://` (app still opens;
-  Entra sign-in unavailable until the port frees).
+  **loopback `http://localhost:<port>/` server** in `electron/main.js` (not
+  `file://`), giving a valid origin, and registers those URIs on the **SPA**
+  platform of the Entra app via `scripts/setup-app-signin.sh`.
+  **Windows gotcha:** Hyper-V/WSL/Docker reserve machine-specific TCP port ranges,
+  so a single fixed port can be unbindable — the bind fails, the app drops to
+  `file://`, and sign-in breaks with AADSTS500111 (this is why the macOS build
+  signs in fine but a Windows `.exe` may not). `main.js` therefore tries
+  **`8123`–`8132`** (`LOOPBACK_PORTS`) and uses the first that binds; all ten are
+  registered as SPA redirect URIs. Keep `LOOPBACK_PORTS` and the registered URIs
+  in sync. Only if **all** ports fail does it fall back to `file://`, and then it
+  shows a visible "sign-in unavailable" dialog instead of failing silently.
 - **Code signing.** Unsigned Windows installers trip SmartScreen; macOS needs
   Apple notarization. Add an OV/EV cert (Windows) and an Apple Developer cert
   (mac) when distributing widely.
