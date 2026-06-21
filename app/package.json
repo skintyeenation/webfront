@@ -13,8 +13,8 @@
     "ios": "expo run:ios",
     "android": "expo run:android",
     "typecheck": "tsc --noEmit",
-    "web:export:electron": "ELECTRON_BUILD=1 expo export:web",
-    "desktop:dev": "ELECTRON_DEV=1 electron electron/main.js",
+    "web:export:electron": "cross-env ELECTRON_BUILD=1 expo export:web",
+    "desktop:dev": "cross-env ELECTRON_DEV=1 electron electron/main.js",
     "desktop:build": "pnpm run web:export:electron && electron-builder",
     "desktop:build:win": "pnpm run web:export:electron && electron-builder --win",
     "desktop:build:linux": "pnpm run web:export:electron && electron-builder --linux",
@@ -60,6 +60,7 @@
     "@types/react-native-vector-icons": "~6.4.12",
     "babel-plugin-module-resolver": "~4.1.0",
     "babel-preset-expo": "~9.3.0",
+    "cross-env": "^10.1.0",
     "dotenv": "^17.4.2",
     "electron": "31.7.7",
     "electron-builder": "^24.13.3",
@@ -72,12 +73,40 @@
     "copyright": "© Skin Tyee First Nation",
     "electronVersion": "31.7.7",
     "artifactName": "SkinTyee-${version}-${arch}.${ext}",
-    "directories": { "output": "desktop-dist", "buildResources": "electron/resources" },
-    "files": ["electron/**/*", "web-build/**/*"],
-    "extraMetadata": { "main": "electron/main.js" },
-    "win": { "target": ["nsis"] },
-    "nsis": { "oneClick": false, "perMachine": false, "allowToChangeInstallationDirectory": true },
-    "linux": { "target": ["AppImage", "deb"], "category": "Office", "maintainer": "Skin Tyee First Nation <it@skintyee.ca>" },
-    "mac": { "target": ["dmg"], "category": "public.app-category.business" }
+    "directories": {
+      "output": "desktop-dist",
+      "buildResources": "electron/resources"
+    },
+    "files": [
+      "electron/**/*",
+      "web-build/**/*"
+    ],
+    "extraMetadata": {
+      "main": "electron/main.js"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Office",
+      "maintainer": "Skin Tyee First Nation <it@skintyee.ca>"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.business"
+    }
   }
 }
