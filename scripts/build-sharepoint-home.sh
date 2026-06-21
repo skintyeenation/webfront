@@ -25,6 +25,22 @@ SITE_URL="${SITE_URL:-https://skintyeenation.sharepoint.com/sites/it-project-doc
 PAGE_NAME="${PAGE_NAME:-DocsHome.aspx}"
 ADO_REPO_URL="${ADO_REPO_URL:-https://dev.azure.com/skintyeenation/devops/_git/webfront}"
 ADO_BUILDS_URL="${ADO_BUILDS_URL:-https://dev.azure.com/skintyeenation/devops/_build}"
+# Live API server (Swagger UI + OpenAPI spec) for the developer/API docs card.
+API_URL="${API_URL:-https://api.skintyee.ca}"
+
+# ----- link helpers -----------------------------------------------------------
+# A direct file URL (…/Shared Documents/webfront/docs/x.md) makes the browser
+# DOWNLOAD a .md (no inline viewer for that type). The SharePoint "open file"
+# form — Forms/AllItems.aspx?id=<file>&parent=<folder> — opens the file in
+# SharePoint's in-browser preview instead (same URL the library UI produces on
+# click). doc_open builds that link for a path relative to the document library.
+SP_LIB="/sites/it-project-docs/Shared Documents"
+urlenc_path() { local p="$1"; p="${p// /%20}"; p="${p//\//%2F}"; printf '%s' "$p"; }
+doc_open() {  # $1 = path under the library root, e.g. webfront/docs/x.md
+  local rel="$1" parent="${1%/*}"
+  printf '%s/Shared%%20Documents/Forms/AllItems.aspx?id=%s&amp;parent=%s' \
+    "$SITE_URL" "$(urlenc_path "$SP_LIB/$rel")" "$(urlenc_path "$SP_LIB/$parent")"
+}
 
 # ----- styling helpers --------------------------------------------------------
 
@@ -112,7 +128,7 @@ m365 spo page section add \
 m365 spo page text add \
   --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
   --section 2 --column 1 --order 1 \
-  --text "<h2>📚 Read the docs</h2><ul><li>📘 <a href=\"${SITE_URL}/Shared%20Documents/webfront/README.md\">README</a> — project overview, layout, pricing, onboarding</li><li>📂 <a href=\"${SITE_URL}/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2Fit-project-docs%2FShared%20Documents%2Fwebfront%2Fdocs\">All docs</a> — browse the full <code>docs/</code> tree</li></ul>" >/dev/null
+  --text "<h2>📚 Read the docs</h2><ul><li>📘 <a href=\"$(doc_open webfront/README.md)\">README</a> — project overview, layout, pricing, onboarding</li><li>📂 <a href=\"${SITE_URL}/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2Fit-project-docs%2FShared%20Documents%2Fwebfront%2Fdocs\">All docs</a> — browse the full <code>docs/</code> tree</li></ul>" >/dev/null
 
 m365 spo page text add \
   --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
@@ -126,20 +142,23 @@ m365 spo page section add \
   --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
   --sectionTemplate ThreeColumn --order 3 >/dev/null
 
+# Staff onboarding is now featured in its own section (below); the freed card
+# slot becomes the API documentation card. Row 1 groups the technical topics:
+# Microsoft 365 · DevOps · API documentation.
 m365 spo page text add \
   --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
   --section 3 --column 1 --order 1 \
-  --text "<h3>👥 Staff onboarding</h3><p>New-hire sequence: Outlook setup, password change, 1Password, shared mailboxes. Read this first if you're new.</p><p><a href=\"${SITE_URL}/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2Fit-project-docs%2FShared%20Documents%2Fwebfront%2Fdocs%2Fonboarding\"><strong>docs/onboarding/ →</strong></a></p>" >/dev/null
-
-m365 spo page text add \
-  --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
-  --section 3 --column 2 --order 1 \
   --text "<h3>🆔 Microsoft 365 &amp; Entra</h3><p>Tenant setup, identity model, shared mailboxes, SharePoint auto-publish.</p><p><a href=\"${SITE_URL}/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2Fit-project-docs%2FShared%20Documents%2Fwebfront%2Fdocs%2F365\"><strong>docs/365/ →</strong></a></p>" >/dev/null
 
 m365 spo page text add \
   --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
-  --section 3 --column 3 --order 1 \
+  --section 3 --column 2 --order 1 \
   --text "<h3>🔧 DevOps &amp; CI/CD</h3><p>Azure DevOps as primary, GitHub mirror, CI workflow migration, post-mortems.</p><p><a href=\"${SITE_URL}/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2Fit-project-docs%2FShared%20Documents%2Fwebfront%2Fdocs%2Fdevops\"><strong>docs/devops/ →</strong></a></p>" >/dev/null
+
+m365 spo page text add \
+  --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
+  --section 3 --column 3 --order 1 \
+  --text "<h3>🧩 API documentation</h3><p>Interactive REST reference for the Skin Tyee app backend — contract-first (OpenAPI), served live from the API server.</p><p><a href=\"${API_URL}/docs\"><strong>Swagger UI →</strong></a>&nbsp;·&nbsp;<a href=\"${API_URL}/openapi.json\">OpenAPI spec</a></p>" >/dev/null
 
 ok "topic blocks added"
 
@@ -151,17 +170,17 @@ m365 spo page section add \
 m365 spo page text add \
   --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
   --section 4 --column 1 --order 1 \
-  --text "<h3>📐 Architecture decisions</h3><p>ADRs — major architectural choices, dated and reversible.</p><p><a href=\"${SITE_URL}/Shared%20Documents/webfront/docs/architecture-decisions.md\"><strong>architecture-decisions →</strong></a></p>" >/dev/null
+  --text "<h3>📐 Architecture decisions</h3><p>ADRs — major architectural choices, dated and reversible.</p><p><a href=\"$(doc_open webfront/docs/architecture-decisions.md)\"><strong>architecture-decisions →</strong></a></p>" >/dev/null
 
 m365 spo page text add \
   --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
   --section 4 --column 2 --order 1 \
-  --text "<h3>💰 Hosting costs</h3><p>Azure + Microsoft 365 + domains pricing rationale (tax-deductible expense tracking for NGO).</p><p><a href=\"${SITE_URL}/Shared%20Documents/webfront/docs/hosting-costs.md\"><strong>hosting-costs →</strong></a></p>" >/dev/null
+  --text "<h3>💰 Hosting costs</h3><p>Azure + Microsoft 365 + domains pricing rationale (tax-deductible expense tracking for NGO).</p><p><a href=\"$(doc_open webfront/docs/hosting-costs.md)\"><strong>hosting-costs →</strong></a></p>" >/dev/null
 
 m365 spo page text add \
   --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
   --section 4 --column 3 --order 1 \
-  --text "<h3>📱 Community app</h3><p>Proposal, build plan, roadmap, testing strategy for the Skin Tyee app.</p><p><a href=\"${SITE_URL}/Shared%20Documents/webfront/docs/app-plan.md\"><strong>app-plan →</strong></a></p>" >/dev/null
+  --text "<h3>📱 Community app</h3><p>Proposal, build plan, roadmap, testing strategy for the Skin Tyee app.</p><p><a href=\"$(doc_open webfront/docs/app-plan.md)\"><strong>app-plan →</strong></a></p>" >/dev/null
 
 ok "reference blocks added"
 
@@ -177,19 +196,37 @@ m365 spo page text add \
 
 ok "updates section added"
 
-# ----- section 6 — desktop app downloads (its own section, after "how updates") --
-# Links point at the installers published by the build-desktop pipeline
-# (scripts/publish-desktop-to-sharepoint.sh → webfront/desktop/build-desktop/).
-DL_BASE="${SITE_URL}/Shared%20Documents/webfront/desktop/build-desktop"
+# ----- section 6 — onboarding documentation (fills the gap before downloads) --
+# A fuller companion to the staff-onboarding theme: the new-hire sequence with
+# deep links to the published docs/onboarding/ pages (open in-browser, not
+# download). Staff onboarding no longer has a teaser card — it lives here.
+ONB_FOLDER="${SITE_URL}/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2Fit-project-docs%2FShared%20Documents%2Fwebfront%2Fdocs%2Fonboarding"
 
-say "section 6 — desktop app downloads (one column, soft shading)…"
+say "section 6 — onboarding documentation (one column, neutral shading)…"
 m365 spo page section add \
   --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
-  --sectionTemplate OneColumn --order 6 --zoneEmphasis Soft >/dev/null
+  --sectionTemplate OneColumn --order 6 --zoneEmphasis Neutral >/dev/null
 
 m365 spo page text add \
   --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
   --section 6 --column 1 --order 1 \
+  --text "<h2>🚀 Onboarding documentation</h2><p>Everything a new staff member needs to get set up on the Nation's digital platform — work through it <strong>in order</strong>. Each step has a dedicated page with screenshots of the exact dialogs you'll see.</p><ul><li><strong>1 · Activate your <code>@skintyee.ca</code> account</strong> — first sign-in, set your password, register MFA. → <a href=\"$(doc_open webfront/docs/onboarding/outlook-skintyee-ca.md)\">Outlook setup</a></li><li><strong>1b · Install Microsoft 365</strong> — Outlook, Word, Excel, PowerPoint, Teams, OneNote. Your <code>@skintyee.ca</code> license unlocks the install (<a href=\"https://www.microsoft.com/en-us/microsoft-365/download-office\">download</a>).</li><li><strong>2 · Install &amp; sign into 1Password</strong> — your personal vault plus the shared vaults your role needs. → <a href=\"$(doc_open webfront/docs/onboarding/1password.md)\">1Password setup</a></li><li><strong>3 · Shared mailboxes &amp; band software</strong> — <code>info@</code>/<code>chief@</code>/<code>admin@</code> access and per-app invites (the Skin Tyee app, WordPress, Azure DevOps), granted by your admin.</li></ul><p>📖 <a href=\"$(doc_open webfront/docs/onboarding/README.md)\"><strong>Start here — onboarding overview</strong></a>&nbsp;·&nbsp;📂 <a href=\"${ONB_FOLDER}\">Browse all onboarding docs</a></p>" >/dev/null
+
+ok "onboarding section added"
+
+# ----- section 7 — desktop app downloads (its own section, after onboarding) --
+# Links point at the installers published by the build-desktop pipeline
+# (scripts/publish-desktop-to-sharepoint.sh → webfront/desktop/build-desktop/).
+DL_BASE="${SITE_URL}/Shared%20Documents/webfront/desktop/build-desktop"
+
+say "section 7 — desktop app downloads (one column, soft shading)…"
+m365 spo page section add \
+  --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
+  --sectionTemplate OneColumn --order 7 --zoneEmphasis Soft >/dev/null
+
+m365 spo page text add \
+  --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
+  --section 7 --column 1 --order 1 \
   --text "<h2>💻 Desktop app downloads</h2><p>Install the Skin Tyee desktop app (the same app as the web version, packaged for desktop). Latest build:</p><ul><li>🪟 <a href=\"${DL_BASE}/SkinTyee-0.0.0-x64.exe\"><strong>Windows</strong></a> — installer (<code>.exe</code>)</li><li>🍎 <a href=\"${DL_BASE}/SkinTyee-0.0.0-x64.dmg\"><strong>macOS</strong></a> — disk image (<code>.dmg</code>)</li><li>🐧 <a href=\"${DL_BASE}/SkinTyee-0.0.0-x86_64.AppImage\"><strong>Linux</strong></a> — <code>AppImage</code> (portable) or <a href=\"${DL_BASE}/SkinTyee-0.0.0-amd64.deb\"><strong>.deb</strong></a> (Debian/Ubuntu)</li></ul><p style=\"font-size:12px;color:#666\">These builds aren't code-signed yet: on <strong>macOS</strong> right-click → Open the first time; on <strong>Windows</strong> choose &quot;More info → Run anyway&quot;. Rebuilt by the <a href=\"${ADO_BUILDS_URL}\">build-desktop</a> pipeline.</p>" >/dev/null
 
 ok "downloads section added"
