@@ -116,95 +116,96 @@ m365 spo page text add \
 
 ok "intro added"
 
-say "section 2 — quick links (two columns)…"
+# ----- section 2 — onboarding documentation (right after the intro) ----------
+# The new-hire sequence with deep links to the published (rendered .html)
+# docs/onboarding/ pages. Staff onboarding has no teaser card — it lives here.
+say "section 2 — onboarding documentation (one column, neutral shading)…"
 m365 spo page section add \
   --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
-  --sectionTemplate TwoColumn --order 2 >/dev/null
+  --sectionTemplate OneColumn --order 2 --zoneEmphasis Neutral >/dev/null
 
 m365 spo page text add \
   --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
   --section 2 --column 1 --order 1 \
-  --text "<h2>📚 Read the docs</h2><ul><li>📘 <a href=\"$(doc_open webfront/README.md)\">README</a> — project overview, layout, pricing, onboarding</li><li>📂 <a href=\"${SITE_URL}/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2Fit-project-docs%2FShared%20Documents%2Fwebfront%2Fdocs\">All docs</a> — browse the full <code>docs/</code> tree</li></ul>" >/dev/null
-
-m365 spo page text add \
-  --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
-  --section 2 --column 2 --order 1 \
-  --text "<h2>⚙️ Behind the scenes</h2><ul><li>🔗 <a href=\"${ADO_REPO_URL}\">Source repo</a> — Azure DevOps (<code>webfront</code>)</li><li>🔄 <a href=\"${ADO_BUILDS_URL}\">Pipeline runs</a> — watch the publisher</li></ul>" >/dev/null
-
-ok "quick links added"
-
-say "section 3 — browse by topic (three columns)…"
-m365 spo page section add \
-  --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
-  --sectionTemplate ThreeColumn --order 3 >/dev/null
-
-# Staff onboarding is now featured in its own section (below); the freed card
-# slot becomes the API documentation card. Row 1 groups the technical topics:
-# Microsoft 365 · DevOps · API documentation.
-m365 spo page text add \
-  --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
-  --section 3 --column 1 --order 1 \
-  --text "<h3>🆔 Microsoft 365 &amp; Entra</h3><p>Tenant setup, identity model, shared mailboxes, SharePoint auto-publish.</p><p><a href=\"$(doc_open webfront/docs/365/entra-id.md)\"><strong>Entra ID &amp; identity →</strong></a></p>" >/dev/null
-
-m365 spo page text add \
-  --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
-  --section 3 --column 2 --order 1 \
-  --text "<h3>🔧 DevOps &amp; CI/CD</h3><p>Azure DevOps as primary, GitHub mirror, CI workflow migration, post-mortems.</p><p><a href=\"$(doc_open webfront/docs/devops/README.md)\"><strong>DevOps overview →</strong></a></p>" >/dev/null
-
-m365 spo page text add \
-  --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
-  --section 3 --column 3 --order 1 \
-  --text "<h3>🧩 API documentation</h3><p>Interactive REST reference for the Skin Tyee app backend — contract-first (OpenAPI), served live from the API server.</p><p><a href=\"${API_URL}/docs\"><strong>Swagger UI →</strong></a>&nbsp;·&nbsp;<a href=\"${API_URL}/openapi.json\">OpenAPI spec</a></p>" >/dev/null
-
-ok "topic blocks added"
-
-say "section 4 — reference (three columns)…"
-m365 spo page section add \
-  --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
-  --sectionTemplate ThreeColumn --order 4 >/dev/null
-
-m365 spo page text add \
-  --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
-  --section 4 --column 1 --order 1 \
-  --text "<h3>📐 Architecture decisions</h3><p>ADRs — major architectural choices, dated and reversible.</p><p><a href=\"$(doc_open webfront/docs/architecture-decisions.md)\"><strong>architecture-decisions →</strong></a></p>" >/dev/null
-
-m365 spo page text add \
-  --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
-  --section 4 --column 2 --order 1 \
-  --text "<h3>💰 Hosting costs</h3><p>Azure + Microsoft 365 + domains pricing rationale (tax-deductible expense tracking for NGO).</p><p><a href=\"$(doc_open webfront/docs/hosting-costs.md)\"><strong>hosting-costs →</strong></a></p>" >/dev/null
-
-m365 spo page text add \
-  --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
-  --section 4 --column 3 --order 1 \
-  --text "<h3>📱 Community app</h3><p>Proposal, build plan, roadmap, testing strategy for the Skin Tyee app.</p><p><a href=\"$(doc_open webfront/docs/app-plan.md)\"><strong>app-plan →</strong></a></p>" >/dev/null
-
-ok "reference blocks added"
-
-# ----- section 5 — onboarding documentation (featured on its own) -------------
-# The new-hire sequence with deep links to the published (rendered .html)
-# docs/onboarding/ pages. Staff onboarding has no teaser card — it lives here.
-say "section 5 — onboarding documentation (one column, neutral shading)…"
-m365 spo page section add \
-  --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
-  --sectionTemplate OneColumn --order 5 --zoneEmphasis Neutral >/dev/null
-
-m365 spo page text add \
-  --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
-  --section 5 --column 1 --order 1 \
   --text "<h2>🚀 Onboarding documentation</h2><p>Everything a new staff member needs to get set up on the Nation's digital platform — work through it <strong>in order</strong>. Each step has a dedicated page with screenshots of the exact dialogs you'll see.</p><ul><li><strong>1 · Activate your <code>@skintyee.ca</code> account</strong> — first sign-in, set your password, register MFA. → <a href=\"$(doc_open webfront/docs/onboarding/outlook-skintyee-ca.md)\">Outlook setup</a></li><li><strong>1b · Install Microsoft 365</strong> — Outlook, Word, Excel, PowerPoint, Teams, OneNote. Your <code>@skintyee.ca</code> license unlocks the install (<a href=\"https://www.microsoft.com/en-us/microsoft-365/download-office\">download</a>).</li><li><strong>2 · Install &amp; sign into 1Password</strong> — your personal vault plus the shared vaults your role needs. → <a href=\"$(doc_open webfront/docs/onboarding/1password.md)\">1Password setup</a></li><li><strong>3 · Shared mailboxes &amp; band software</strong> — <code>info@</code>/<code>chief@</code>/<code>admin@</code> access and per-app invites (the Skin Tyee app, WordPress, Azure DevOps), granted by your admin.</li></ul><p>📖 <a href=\"$(doc_open webfront/docs/onboarding/README.md)\"><strong>Start here — onboarding overview</strong></a></p>" >/dev/null
 
 ok "onboarding section added"
 
-# ----- section 6 — app downloads (desktop + mobile, side by side) -------------
-# Desktop links point at installers published by the build-desktop pipeline
-# (scripts/publish-desktop-to-sharepoint.sh → webfront/desktop/build-desktop/);
-# mobile is a coming-soon placeholder. Two columns so the two sit together.
-DL_BASE="${SITE_URL}/Shared%20Documents/webfront/desktop/build-desktop"
-
-say "section 6 — app downloads (two columns: desktop | mobile, soft shading)…"
+say "section 3 — quick links (two columns)…"
 m365 spo page section add \
   --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
-  --sectionTemplate TwoColumn --order 6 --zoneEmphasis Soft >/dev/null
+  --sectionTemplate TwoColumn --order 3 >/dev/null
+
+m365 spo page text add \
+  --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
+  --section 3 --column 1 --order 1 \
+  --text "<h2>📚 Read the docs</h2><ul><li>📘 <a href=\"$(doc_open webfront/README.md)\">README</a> — project overview, layout, pricing, onboarding</li><li>📂 <a href=\"${SITE_URL}/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2Fit-project-docs%2FShared%20Documents%2Fwebfront%2Fdocs\">All docs</a> — browse the full <code>docs/</code> tree</li></ul>" >/dev/null
+
+m365 spo page text add \
+  --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
+  --section 3 --column 2 --order 1 \
+  --text "<h2>⚙️ Behind the scenes</h2><ul><li>🔗 <a href=\"${ADO_REPO_URL}\">Source repo</a> — Azure DevOps (<code>webfront</code>)</li><li>🔄 <a href=\"${ADO_BUILDS_URL}\">Pipeline runs</a> — watch the publisher</li></ul>" >/dev/null
+
+ok "quick links added"
+
+say "section 4 — browse by topic (three columns)…"
+m365 spo page section add \
+  --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
+  --sectionTemplate ThreeColumn --order 4 >/dev/null
+
+# Staff onboarding is featured in its own section (section 2); the freed card
+# slot becomes the API documentation card. Row 1 groups the technical topics:
+# Microsoft 365 · DevOps · API documentation.
+m365 spo page text add \
+  --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
+  --section 4 --column 1 --order 1 \
+  --text "<h3>🆔 Microsoft 365 &amp; Entra</h3><p>Tenant setup, identity model, shared mailboxes, SharePoint auto-publish.</p><p><a href=\"$(doc_open webfront/docs/365/entra-id.md)\"><strong>Entra ID &amp; identity →</strong></a></p>" >/dev/null
+
+m365 spo page text add \
+  --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
+  --section 4 --column 2 --order 1 \
+  --text "<h3>🔧 DevOps &amp; CI/CD</h3><p>Azure DevOps as primary, GitHub mirror, CI workflow migration, post-mortems.</p><p><a href=\"$(doc_open webfront/docs/devops/README.md)\"><strong>DevOps overview →</strong></a></p>" >/dev/null
+
+m365 spo page text add \
+  --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
+  --section 4 --column 3 --order 1 \
+  --text "<h3>🧩 API documentation</h3><p>Interactive REST reference for the Skin Tyee app backend — contract-first (OpenAPI), served live from the API server.</p><p><a href=\"${API_URL}/docs\"><strong>Swagger UI →</strong></a>&nbsp;·&nbsp;<a href=\"${API_URL}/openapi.json\">OpenAPI spec</a></p>" >/dev/null
+
+ok "topic blocks added"
+
+say "section 5 — reference (three columns)…"
+m365 spo page section add \
+  --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
+  --sectionTemplate ThreeColumn --order 5 >/dev/null
+
+m365 spo page text add \
+  --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
+  --section 5 --column 1 --order 1 \
+  --text "<h3>📐 Architecture decisions</h3><p>ADRs — major architectural choices, dated and reversible.</p><p><a href=\"$(doc_open webfront/docs/architecture-decisions.md)\"><strong>architecture-decisions →</strong></a></p>" >/dev/null
+
+m365 spo page text add \
+  --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
+  --section 5 --column 2 --order 1 \
+  --text "<h3>💰 Hosting costs</h3><p>Azure + Microsoft 365 + domains pricing rationale (tax-deductible expense tracking for NGO).</p><p><a href=\"$(doc_open webfront/docs/hosting-costs.md)\"><strong>hosting-costs →</strong></a></p>" >/dev/null
+
+m365 spo page text add \
+  --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
+  --section 5 --column 3 --order 1 \
+  --text "<h3>📱 Community app</h3><p>Proposal, build plan, roadmap, testing strategy for the Skin Tyee app.</p><p><a href=\"$(doc_open webfront/docs/app-plan.md)\"><strong>app-plan →</strong></a></p>" >/dev/null
+
+ok "reference blocks added"
+
+# ----- section 6 — app downloads (desktop, then mobile stacked below) ---------
+# Desktop links point at installers published by the build-desktop pipeline
+# (scripts/publish-desktop-to-sharepoint.sh → webfront/desktop/build-desktop/);
+# mobile is a coming-soon placeholder. One column, two stacked blocks, so mobile
+# sits directly under desktop with no inter-section gap.
+DL_BASE="${SITE_URL}/Shared%20Documents/webfront/desktop/build-desktop"
+
+say "section 6 — app downloads (desktop, then mobile; one column, soft shading)…"
+m365 spo page section add \
+  --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
+  --sectionTemplate OneColumn --order 6 --zoneEmphasis Soft >/dev/null
 
 m365 spo page text add \
   --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
@@ -213,10 +214,10 @@ m365 spo page text add \
 
 m365 spo page text add \
   --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
-  --section 6 --column 2 --order 1 \
+  --section 6 --column 1 --order 2 \
   --text "<h2>📱 Mobile app downloads <em>(coming soon)</em></h2><p>The Skin Tyee app will ship to phones &amp; tablets — the same app as the web and desktop versions:</p><ul><li>🍎 <strong>iOS</strong> — Apple App Store / TestFlight <em>(coming soon)</em></li><li>🤖 <strong>Android</strong> — Google Play <em>(coming soon)</em></li></ul><p style=\"font-size:12px;color:#666\">Published via EAS Build once the app clears store review. In the meantime use the <strong>desktop</strong> or web app.</p>" >/dev/null
 
-ok "app downloads section added (desktop + mobile)"
+ok "app downloads section added (desktop, then mobile)"
 
 # ----- section 7 — how this page is published ---------------------------------
 say "section 7 — how this page is published (one column, neutral shading)…"
