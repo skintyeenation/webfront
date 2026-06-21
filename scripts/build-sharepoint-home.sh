@@ -27,6 +27,9 @@ ADO_REPO_URL="${ADO_REPO_URL:-https://dev.azure.com/skintyeenation/devops/_git/w
 ADO_BUILDS_URL="${ADO_BUILDS_URL:-https://dev.azure.com/skintyeenation/devops/_build}"
 # Live API server (Swagger UI + OpenAPI spec) for the developer/API docs card.
 API_URL="${API_URL:-https://api.skintyee.ca}"
+# Skin Tyee crest shown left of the intro heading (uploaded to Site Assets:
+#   m365 spo file add --webUrl <site> --folder SiteAssets --path app/assets/skintyee-logo.png ).
+LOGO_URL="${LOGO_URL:-${SITE_URL}/SiteAssets/skintyee-logo.png}"
 
 # ----- link helpers -----------------------------------------------------------
 # Linking a file directly (either the raw .md — no inline viewer — or the
@@ -105,6 +108,18 @@ for i in $(seq 1 50); do
 done
 say "removed $REMOVED existing section(s) from $PAGE_NAME"
 
+# ----- 1b) ensure the intro logo is in Site Assets ----------------------------
+# The intro heading embeds ${LOGO_URL} (SiteAssets/skintyee-logo.png). Upload it
+# from the repo so a fresh run is self-contained. Idempotent (overwrites).
+if [ -f "app/assets/skintyee-logo.png" ]; then
+  say "uploading intro logo to Site Assets…"
+  m365 spo file add --webUrl "$SITE_URL" --folder "SiteAssets" \
+    --path "app/assets/skintyee-logo.png" --overwrite >/dev/null 2>&1 \
+    && ok "logo uploaded" || warn "logo upload skipped (already present?)"
+else
+  warn "app/assets/skintyee-logo.png not found — intro logo may 404 (run from repo root)"
+fi
+
 # ----- 2) build sections ------------------------------------------------------
 #
 # Final layout (every section UNSHADED / white — no zoneEmphasis):
@@ -136,7 +151,7 @@ ok "7 section shells added"
 say "section 1 — intro…"
 m365 spo page text add --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
   --section 1 --column 1 --order 1 \
-  --text "<h1>Skin Tyee First Nation — Digital Platform</h1><p>This is the internal documentation hub for Skin Tyee First Nation's digital platform: the <strong>skintyee.ca</strong> website, the Microsoft 365 environment, and the <strong>Skin Tyee community app</strong> — the project that moves the Nation off the old hosted site onto a self-hosted, Band-owned stack.</p><p>The <strong>community app</strong> gives Band members, staff, and administrators one place for the Nation's day-to-day — a dashboard, member directory, community events, notifications (health &amp; safety, council, programs, news), band meetings, public-records &amp; financial transparency, time keeping, and polls/surveys — built once and delivered on <strong>web, desktop, and (soon) mobile</strong>. Access is role-gated for Public, Band Member, and Admin/Staff.</p><p>Use the links below to browse onboarding guides, Microsoft 365 &amp; identity docs, DevOps runbooks, the API reference, and the app downloads.</p>" >/dev/null
+  --text "<h1><img src=\"${LOGO_URL}\" alt=\"Skin Tyee First Nation crest\" style=\"height:56px;vertical-align:middle;margin-right:14px\">Skin Tyee First Nation — Digital Platform</h1><p>This is the internal documentation hub for Skin Tyee First Nation's digital platform: the <strong>skintyee.ca</strong> website, the Microsoft 365 environment, and the <strong>Skin Tyee community app</strong> — the project that moves the Nation off the old hosted site onto a self-hosted, Band-owned stack.</p><p>The <strong>community app</strong> gives Band members, staff, and administrators one place for the Nation's day-to-day — a dashboard, member directory, community events, notifications (health &amp; safety, council, programs, news), band meetings, public-records &amp; financial transparency, time keeping, expense reporting, Microsoft 365 &amp; Entra license assignments, and polls/surveys — built once and delivered on <strong>web, desktop, and (soon) mobile</strong>. Access is role-gated for Public, Band Member, and Admin/Staff.</p><p>Use the links below to browse onboarding guides, Microsoft 365 &amp; identity docs, DevOps runbooks, the API reference, and the app downloads.</p>" >/dev/null
 ok "intro added"
 
 # --- section 2: onboarding documentation --------------------------------------
