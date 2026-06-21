@@ -123,9 +123,12 @@ say "configuring SPA + native redirect URIs…"
 #   that too so testing in the simulator works without an EAS build.
 #
 # Desktop (Electron): the packaged app serves the web build over a loopback
-#   http://localhost:8123/ server (app/electron/main.js) so window.location
-#   .origin is a valid scheme — file:// triggers AADSTS500111. Register that
-#   exact loopback URI (trailing slash = origin + '/') as an SPA redirect.
+#   http://localhost:<port>/ server (app/electron/main.js) so window.location
+#   .origin is a valid scheme — file:// triggers AADSTS500111. On Windows,
+#   Hyper-V/WSL/Docker reserve machine-specific port ranges, so a single fixed
+#   port can be unbindable; main.js tries 8123–8132 and uses the first that binds.
+#   Register that whole range (trailing slash = origin + '/') as SPA redirects;
+#   keep it in sync with LOOPBACK_PORTS in app/electron/main.js.
 
 if [ "$DRY_RUN" -eq 0 ]; then
   BODY=$(cat <<EOF
@@ -136,7 +139,16 @@ if [ "$DRY_RUN" -eq 0 ]; then
       "${WEB_URL}/auth",
       "http://localhost:19006",
       "http://localhost:8081",
-      "http://localhost:8123/"
+      "http://localhost:8123/",
+      "http://localhost:8124/",
+      "http://localhost:8125/",
+      "http://localhost:8126/",
+      "http://localhost:8127/",
+      "http://localhost:8128/",
+      "http://localhost:8129/",
+      "http://localhost:8130/",
+      "http://localhost:8131/",
+      "http://localhost:8132/"
     ]
   },
   "publicClient": {

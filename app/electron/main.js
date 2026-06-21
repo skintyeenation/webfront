@@ -24,10 +24,16 @@ const path = require('path');
 const isDev = !app.isPackaged && process.env.ELECTRON_DEV === '1';
 const DEV_URL = process.env.ELECTRON_DEV_URL || 'http://localhost:19006';
 
-// Fixed loopback port for the packaged app. MUST stay in sync with the
-// http://localhost:<port>/ entry registered as an Entra SPA redirect URI in
-// scripts/setup-app-signin.sh — OAuth redirect matching is exact.
-const LOOPBACK_PORT = Number(process.env.ELECTRON_LOOPBACK_PORT || 8123);
+// Loopback ports for the packaged app. We try several (not one) because on
+// Windows, Hyper-V/WSL/Docker reserve large, machine-specific TCP port ranges —
+// a single fixed port can be unbindable, the bind fails, and sign-in silently
+// breaks under file:// (AADSTS500111). macOS/Linux don't reserve ports, so one
+// would do there. EVERY port in this list MUST be registered as an Entra SPA
+// redirect URI (trailing slash) in scripts/setup-app-signin.sh — OAuth redirect
+// matching is exact. Keep the two lists in sync.
+const LOOPBACK_PORTS = (process.env.ELECTRON_LOOPBACK_PORTS ||
+  '8123,8124,8125,8126,8127,8128,8129,8130,8131,8132')
+  .split(',').map((s) => Number(s.trim())).filter(Boolean);
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -53,40 +59,53 @@ const MIME = {
 
 // Minimal static file server on 127.0.0.1 for the exported web bundle. SPA
 // fallback: anything that isn't a real file (incl. the OAuth callback at "/?
-// code=…") serves index.html. Resolves to the base URL, or null on failure
-// (caller falls back to file://, so the app still opens without sign-in).
-function startStaticServer(rootDir) {
+// code=…") serves index.html. Tries each port in `ports` and resolves to the
+// base URL of the first that binds, or null if they all fail (only then does the
+// caller fall back to file://, where sign-in won't work).
+function startStaticServer(rootDir, ports) {
+  const handler = (req, res) => {
+    let pathname = '/';
+    try {
+      pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
+    } catch {
+      /* keep '/' on malformed URL */
+    }
+    // Resolve within rootDir and block path traversal.
+    let filePath = path.normalize(path.join(rootDir, pathname));
+    if (!filePath.startsWith(rootDir) || pathname === '/' ||
+        !fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+      filePath = path.join(rootDir, 'index.html');
+    }
+    fs.readFile(filePath, (err, data) => {
+      if (err) {
+        res.writeHead(404, { 'content-type': 'text/plain' });
+        res.end('Not found');
+        return;
+      }
+      res.writeHead(200, { 'content-type': MIME[path.extname(filePath).toLowerCase()] || 'application/octet-stream' });
+      res.end(data);
+    });
+  };
   return new Promise((resolve) => {
-    const server = http.createServer((req, res) => {
-      let pathname = '/';
-      try {
-        pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
-      } catch {
-        /* keep '/' on malformed URL */
+    const tryPort = (i) => {
+      if (i >= ports.length) {
+        console.error(`[skintyee] loopback server could not bind any of: ${ports.join(', ')}`);
+        resolve(null);
+        return;
       }
-      // Resolve within rootDir and block path traversal.
-      let filePath = path.normalize(path.join(rootDir, pathname));
-      if (!filePath.startsWith(rootDir) || pathname === '/' ||
-          !fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
-        filePath = path.join(rootDir, 'index.html');
-      }
-      fs.readFile(filePath, (err, data) => {
-        if (err) {
-          res.writeHead(404, { 'content-type': 'text/plain' });
-          res.end('Not found');
-          return;
-        }
-        res.writeHead(200, { 'content-type': MIME[path.extname(filePath).toLowerCase()] || 'application/octet-stream' });
-        res.end(data);
+      const port = ports[i];
+      const server = http.createServer(handler);
+      server.once('error', (err) => {
+        console.error(`[skintyee] loopback :${port} failed — ${err.code || err.message}; trying next`);
+        try { server.close(); } catch { /* ignore */ }
+        tryPort(i + 1);
       });
-    });
-    server.on('error', (err) => {
-      console.error(`[skintyee] loopback server failed on :${LOOPBACK_PORT} — ${err.code || err.message}`);
-      resolve(null);
-    });
-    server.listen(LOOPBACK_PORT, '127.0.0.1', () => {
-      resolve(`http://localhost:${LOOPBACK_PORT}/`);
-    });
+      server.listen(port, '127.0.0.1', () => {
+        console.log(`[skintyee] loopback server on http://localhost:${port}/`);
+        resolve(`http://localhost:${port}/`);
+      });
+    };
+    tryPort(0);
   });
 }
 
@@ -135,9 +154,22 @@ app.whenReady().then(async () => {
   if (isDev) {
     loadTarget = { url: DEV_URL };
   } else {
-    const base = await startStaticServer(path.join(__dirname, '..', 'web-build'));
-    if (base) loadTarget = { url: base };
-    // base === null → loadTarget stays null → createWindow falls back to file://
+    const base = await startStaticServer(path.join(__dirname, '..', 'web-build'), LOOPBACK_PORTS);
+    if (base) {
+      loadTarget = { url: base };
+    } else {
+      // All loopback ports failed → we can only fall back to file://, where
+      // Entra sign-in is broken (file:// origin → AADSTS500111). Surface it
+      // loudly instead of failing silently.
+      console.error('[skintyee] no loopback port available — sign-in will be unavailable (file:// fallback)');
+      try {
+        const { dialog } = require('electron');
+        dialog.showErrorBox('Skin Tyee — sign-in unavailable',
+          `Could not start the local sign-in helper on any of ports ${LOOPBACK_PORTS.join(', ')}.\n\n` +
+          'The app will open, but Microsoft sign-in will not work until one of those ports is free. ' +
+          'Close other apps using them (or restart) and reopen Skin Tyee.');
+      } catch { /* dialog unavailable */ }
+    }
   }
 
   createWindow(loadTarget);
