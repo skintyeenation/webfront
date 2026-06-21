@@ -215,6 +215,43 @@ security-filtered to **XYNTAX-FMS2** only. Add machines by re-running with more
 `-TargetComputers`; remove one by clearing its Apply permission in the GPO's
 security filtering.
 
+### Skin Tyee desktop app (Electron) deployment
+
+The same GPO/`Install-Apps.ps1` also installs the **Skin Tyee desktop app** (the
+Electron build of `@skintyee/app`, see `app/docs/desktop-electron.md`). It is
+**electron-builder NSIS** — `productName: "Skin Tyee"`, artifact
+`SkinTyee-<version>-<arch>.exe`, built per-user (`perMachine: false`), so
+`Install-Apps.ps1` runs it as SYSTEM with **`/S /allusers`** to force a silent
+**machine-wide** install. Install is idempotent (detected by the `Skin Tyee`
+uninstall-registry entry), and a Public Desktop shortcut is created (icon =
+`stfn-setup/skintyee.ico`, generated from `app/assets/skintyee-logo.png` — though
+the exe already embeds the logo, since the Electron build sets it as its app icon).
+
+To enable it, the installer just needs to be in the NETLOGON payload folder
+(`\\STFN.local\NETLOGON\OfficeDeploy\SkinTyee-*.exe`). Tune via
+`-AppName` / `-AppSetupFile` / `-AppInstallArgs` if the build changes.
+
+**Getting the installer from SharePoint — `fetch-sharepoint-installer.ps1`.** The
+official build lives in SharePoint at
+`it-project-docs > Shared Documents/webfront/desktop/build-desktop`, which needs an
+M365 sign-in (a headless session can't auth, and per-PC SYSTEM can't either). This
+helper does a **device-code sign-in** (raw OAuth + Graph REST — no modules needed),
+then downloads the newest `SkinTyee-*.exe` straight into NETLOGON. Run it
+interactively (in Claude Code, prefix with `!` so the sign-in surfaces in-session):
+
+```powershell
+! powershell -ExecutionPolicy Bypass -File "C:\Workspaces\webfront\stfn-setup\fetch-sharepoint-installer.ps1"
+```
+
+It prints a `microsoft.com/devicelogin` code; sign in with a **skintyeenation**
+account and consent to `Sites.Read.All` / `Files.Read.All`. Override the source
+with `-SiteHost` / `-SitePath` / `-FolderPath` / `-Pattern`, or add
+`-Tenant skintyeenation.onmicrosoft.com` if the account picker lands on the wrong
+tenant. (Alternatively, just download the exe from SharePoint in a browser and
+copy it into `\\STFN.local\NETLOGON\OfficeDeploy\` — the script matches
+`SkinTyee-*.exe`.) After the exe is staged, re-run `deploy-office-gpo.ps1` to
+regenerate `Install-Apps.ps1`, then it installs on the targeted PCs.
+
 ## Rollback
 - Modules: `Uninstall-Module Microsoft.Graph.* -AllVersions; Uninstall-Module Microsoft.Entra -AllVersions`
 - MSI: delete `C:\Users\stfnadmin\Downloads\AzureADConnect.msi`
