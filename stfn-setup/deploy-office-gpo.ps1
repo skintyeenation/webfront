@@ -109,7 +109,7 @@ param(
     # PC runs it machine-wide as SYSTEM. Args default to electron-builder NSIS
     # machine-wide silent ('/S /allusers'); for Inno Setup use '/VERYSILENT /ALLUSERS'.
     [string]$AppName = 'Skin Tyee',
-    [string]$AppSetupFile = 'SkinTyeeApp-Setup.exe',
+    [string]$AppSetupFile = 'SkinTyee-*.exe',   # electron-builder artifactName SkinTyee-<ver>-<arch>.exe (wildcard => any version)
     [string]$AppInstallArgs = '/S /allusers'
 )
 
@@ -300,9 +300,10 @@ else {
   } else { Log "Chrome MSI not found at $msi" }
 }
 
-# --- Skin Tyee app (machine-wide installer staged in NETLOGON by an admin) ---
+# --- Skin Tyee app (electron-builder installer staged in NETLOGON by an admin) ---
 $appName  = '__APPNAME__'
-$appSetup = Join-Path $src '__APPSETUP__'
+# resolve the installer by pattern (SkinTyee-<version>-<arch>.exe); newest wins
+$appSetup = Get-ChildItem (Join-Path $src '__APPSETUP__') -ErrorAction SilentlyContinue | Sort-Object Name -Descending | Select-Object -First 1
 function Get-AppInstall($displayLike) {
   $keys = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*',
           'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*'
@@ -310,12 +311,12 @@ function Get-AppInstall($displayLike) {
 }
 $appReg = Get-AppInstall "*$appName*"
 if ($appReg) { Log "$appName already installed" }
-elseif (Test-Path $appSetup) {
-  Log "Installing $appName from $appSetup"
-  $p = Start-Process $appSetup -ArgumentList '__APPARGS__' -Wait -PassThru
+elseif ($appSetup) {
+  Log "Installing $appName from $($appSetup.Name)"
+  $p = Start-Process $appSetup.FullName -ArgumentList '__APPARGS__' -Wait -PassThru
   Log ("$appName installer exit code: " + $p.ExitCode)
   $appReg = Get-AppInstall "*$appName*"   # re-check so the shortcut can resolve its exe
-} else { Log "$appName setup not found at $appSetup (drop the exe into NETLOGON to enable)" }
+} else { Log "$appName installer (__APPSETUP__) not found in NETLOGON - drop it there to enable" }
 
 # --- Desktop shortcuts for ALL users (Public Desktop); only for apps present ---
 $desktop = Join-Path $env:PUBLIC 'Desktop'
