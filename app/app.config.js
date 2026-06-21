@@ -39,8 +39,17 @@ module.exports = {
     extra: {
       // The api/ base URL. Production: https://api.skintyee.ca. Local dev:
       // 'http://localhost:4000' to hit `pnpm --filter @skintyee/api dev`.
-      // 'mock' selects the in-memory MockApiService (default fallback).
-      apiServer: process.env.EXPO_PUBLIC_API_SERVER || 'mock',
+      // 'mock' selects the in-memory MockApiService.
+      //
+      // A *desktop* build (ELECTRON_BUILD=1) is a real, distributed artifact —
+      // it must never silently fall back to 'mock' (that strands sign-in role
+      // lookups on deriveRoleLocally, so an admin shows as 'member'). So when
+      // EXPO_PUBLIC_API_SERVER is unset, desktop builds default to the prod API
+      // while web/dev keep the 'mock' fallback. Override the env to point a
+      // desktop build elsewhere (e.g. localhost:4000 / staging).
+      apiServer:
+        process.env.EXPO_PUBLIC_API_SERVER ||
+        (process.env.ELECTRON_BUILD === '1' ? 'https://api.skintyee.ca' : 'mock'),
       // Microsoft Entra sign-in. The appId + tenantId are PUBLIC values
       // (no secret — public client + PKCE). Defaults are the production
       // skintyeenation tenant + skintyee-app-signin Entra app provisioned
