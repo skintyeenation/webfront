@@ -29,13 +29,20 @@ ADO_BUILDS_URL="${ADO_BUILDS_URL:-https://dev.azure.com/skintyeenation/devops/_b
 API_URL="${API_URL:-https://api.skintyee.ca}"
 
 # ----- link helpers -----------------------------------------------------------
-# A direct .md URL makes the browser DOWNLOAD it (no inline viewer). The docs
-# publisher (publish-docs-to-sharepoint.sh) renders a pandoc .html sibling next
-# to every .md for exactly this reason — link the .html so the doc OPENS and
-# renders in the browser. doc_open maps an .md path to its published .html URL.
-doc_open() {  # $1 = .md path under the library root, e.g. webfront/docs/x.md
-  local rel="${1%.md}.html"
-  printf '%s/Shared%%20Documents/%s' "$SITE_URL" "${rel// /%20}"
+# Linking a file directly (either the raw .md — no inline viewer — or the
+# rendered .html — SharePoint serves it as a download) does NOT open the doc in
+# the browser. What works is SharePoint's own "open file" URL:
+#   Forms/AllItems.aspx?viewid=<libraryView>&id=<file>&parent=<folder>
+# — the same link the library UI produces on click; it opens the file's
+# in-browser preview. doc_open builds that for a path under the library root.
+SP_LIB="/sites/it-project-docs/Shared Documents"
+# Default view of the "Documents" library (stable per-site; same for every doc).
+VIEW_ID="${VIEW_ID:-24011ae8-612f-4497-abf4-55566ea723fe}"
+urlenc() { local p="$1"; p="${p// /%20}"; p="${p//\//%2F}"; printf '%s' "$p"; }
+doc_open() {  # $1 = file path under the library root, e.g. webfront/docs/x.md
+  local rel="$1" parent="${1%/*}"
+  printf '%s/Shared%%20Documents/Forms/AllItems.aspx?viewid=%s&amp;id=%s&amp;parent=%s' \
+    "$SITE_URL" "$VIEW_ID" "$(urlenc "$SP_LIB/$rel")" "$(urlenc "$SP_LIB/$parent")"
 }
 # Desktop installers published by the build-desktop pipeline.
 DL_BASE="${SITE_URL}/Shared%20Documents/webfront/desktop/build-desktop"
@@ -136,50 +143,50 @@ ok "intro added"
 say "section 2 — onboarding documentation…"
 m365 spo page text add --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
   --section 2 --column 1 --order 1 \
-  --text "<h2>🚀 Onboarding documentation</h2><p>Everything a new staff member needs to get set up on the Nation's digital platform — work through it <strong>in order</strong>. Each step has a dedicated page with screenshots of the exact dialogs you'll see.</p><ul><li><strong>1 · Activate your <code>@skintyee.ca</code> account</strong> — first sign-in, set your password, register MFA. → <a href=\"$(doc_open webfront/docs/onboarding/outlook-skintyee-ca.md)\">Outlook setup</a></li><li><strong>1b · Install Microsoft 365</strong> — Outlook, Word, Excel, PowerPoint, Teams, OneNote. Your <code>@skintyee.ca</code> license unlocks the install (<a href=\"https://www.microsoft.com/en-us/microsoft-365/download-office\">download</a>).</li><li><strong>2 · Install &amp; sign into 1Password</strong> — your personal vault plus the shared vaults your role needs. → <a href=\"$(doc_open webfront/docs/onboarding/1password.md)\">1Password setup</a></li><li><strong>3 · Shared mailboxes &amp; band software</strong> — <code>info@</code>/<code>chief@</code>/<code>admin@</code> access and per-app invites (the Skin Tyee app, WordPress, Azure DevOps), granted by your admin.</li></ul><p>📖 <a href=\"$(doc_open webfront/docs/onboarding/README.md)\"><strong>Start here — onboarding overview</strong></a></p>" >/dev/null
+  --text "<h2>🚀 Onboarding documentation</h2><p>Everything a new staff member needs to get set up on the Nation's digital platform — work through it <strong>in order</strong>. Each step has a dedicated page with screenshots of the exact dialogs you'll see.</p><ul><li><strong>1 · Activate your <code>@skintyee.ca</code> account</strong> — first sign-in, set your password, register MFA. → <a target=\"_blank\" rel=\"noopener\" href=\"$(doc_open webfront/docs/onboarding/outlook-skintyee-ca.md)\">Outlook setup</a></li><li><strong>1b · Install Microsoft 365</strong> — Outlook, Word, Excel, PowerPoint, Teams, OneNote. Your <code>@skintyee.ca</code> license unlocks the install (<a target=\"_blank\" rel=\"noopener\" href=\"https://www.microsoft.com/en-us/microsoft-365/download-office\">download</a>).</li><li><strong>2 · Install &amp; sign into 1Password</strong> — your personal vault plus the shared vaults your role needs. → <a target=\"_blank\" rel=\"noopener\" href=\"$(doc_open webfront/docs/onboarding/1password.md)\">1Password setup</a></li><li><strong>3 · Shared mailboxes &amp; band software</strong> — <code>info@</code>/<code>chief@</code>/<code>admin@</code> access and per-app invites (the Skin Tyee app, WordPress, Azure DevOps), granted by your admin.</li></ul><p>📖 <a target=\"_blank\" rel=\"noopener\" href=\"$(doc_open webfront/docs/onboarding/README.md)\"><strong>Start here — onboarding overview</strong></a></p>" >/dev/null
 ok "onboarding added"
 
 # --- section 3: read the docs (col 1) + behind the scenes (col 2) -------------
 say "section 3 — quick links (two columns)…"
 m365 spo page text add --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
   --section 3 --column 1 --order 1 \
-  --text "<h2>📚 Read the docs</h2><ul><li>📘 <a href=\"$(doc_open webfront/README.md)\">README</a> — project overview, layout, pricing, onboarding</li><li>📂 <a href=\"${ALL_DOCS}\">All docs</a> — browse the full <code>docs/</code> tree</li></ul>" >/dev/null
+  --text "<h2>📚 Read the docs</h2><ul><li>📘 <a target=\"_blank\" rel=\"noopener\" href=\"$(doc_open webfront/README.md)\">README</a> — project overview, layout, pricing, onboarding</li><li>📂 <a target=\"_blank\" rel=\"noopener\" href=\"${ALL_DOCS}\">All docs</a> — browse the full <code>docs/</code> tree</li></ul>" >/dev/null
 m365 spo page text add --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
   --section 3 --column 2 --order 1 \
-  --text "<h2>⚙️ Behind the scenes</h2><ul><li>🔗 <a href=\"${ADO_REPO_URL}\">Source repo</a> — Azure DevOps (<code>webfront</code>)</li><li>🔄 <a href=\"${ADO_BUILDS_URL}\">Pipeline runs</a> — watch the publisher</li></ul>" >/dev/null
+  --text "<h2>⚙️ Behind the scenes</h2><ul><li>🔗 <a target=\"_blank\" rel=\"noopener\" href=\"${ADO_REPO_URL}\">Source repo</a> — Azure DevOps (<code>webfront</code>)</li><li>🔄 <a target=\"_blank\" rel=\"noopener\" href=\"${ADO_BUILDS_URL}\">Pipeline runs</a> — watch the publisher</li></ul>" >/dev/null
 ok "quick links added"
 
 # --- section 4: Community app | API documentation | DevOps & CI/CD ------------
 say "section 4 — cards row 1 (Community · API · DevOps)…"
 m365 spo page text add --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
   --section 4 --column 1 --order 1 \
-  --text "<h3>📱 Community app</h3><p>Proposal, build plan, roadmap, testing strategy for the Skin Tyee app.</p><p><a href=\"$(doc_open webfront/docs/app-plan.md)\"><strong>app-plan →</strong></a></p>" >/dev/null
+  --text "<h3>📱 Community app</h3><p>Proposal, build plan, roadmap, testing strategy for the Skin Tyee app.</p><p><a target=\"_blank\" rel=\"noopener\" href=\"$(doc_open webfront/docs/app-plan.md)\"><strong>app-plan →</strong></a></p>" >/dev/null
 m365 spo page text add --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
   --section 4 --column 2 --order 1 \
-  --text "<h3>🧩 API documentation</h3><p>Interactive REST reference for the Skin Tyee app backend — contract-first (OpenAPI), served live from the API server.</p><p><a href=\"${API_URL}/docs\"><strong>Swagger UI →</strong></a>&nbsp;·&nbsp;<a href=\"${API_URL}/openapi.json\">OpenAPI spec</a></p>" >/dev/null
+  --text "<h3>🧩 API documentation</h3><p>Interactive REST reference for the Skin Tyee app backend — contract-first (OpenAPI), served live from the API server.</p><p><a target=\"_blank\" rel=\"noopener\" href=\"${API_URL}/docs\"><strong>Swagger UI →</strong></a>&nbsp;·&nbsp;<a target=\"_blank\" rel=\"noopener\" href=\"${API_URL}/openapi.json\">OpenAPI spec</a></p>" >/dev/null
 m365 spo page text add --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
   --section 4 --column 3 --order 1 \
-  --text "<h3>🔧 DevOps &amp; CI/CD</h3><p>Azure DevOps as primary, GitHub mirror, CI workflow migration, post-mortems.</p><p><a href=\"$(doc_open webfront/docs/devops/README.md)\"><strong>DevOps overview →</strong></a></p>" >/dev/null
+  --text "<h3>🔧 DevOps &amp; CI/CD</h3><p>Azure DevOps as primary, GitHub mirror, CI workflow migration, post-mortems.</p><p><a target=\"_blank\" rel=\"noopener\" href=\"$(doc_open webfront/docs/devops/README.md)\"><strong>DevOps overview →</strong></a></p>" >/dev/null
 ok "cards row 1 added"
 
 # --- section 5: Architecture | Hosting costs | Microsoft 365 & Entra ----------
 say "section 5 — cards row 2 (Architecture · Hosting · Microsoft 365)…"
 m365 spo page text add --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
   --section 5 --column 1 --order 1 \
-  --text "<h3>📐 Architecture decisions</h3><p>ADRs — major architectural choices, dated and reversible.</p><p><a href=\"$(doc_open webfront/docs/architecture-decisions.md)\"><strong>architecture-decisions →</strong></a></p>" >/dev/null
+  --text "<h3>📐 Architecture decisions</h3><p>ADRs — major architectural choices, dated and reversible.</p><p><a target=\"_blank\" rel=\"noopener\" href=\"$(doc_open webfront/docs/architecture-decisions.md)\"><strong>architecture-decisions →</strong></a></p>" >/dev/null
 m365 spo page text add --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
   --section 5 --column 2 --order 1 \
-  --text "<h3>💰 Hosting costs</h3><p>Azure + Microsoft 365 + domains pricing rationale (tax-deductible expense tracking for NGO).</p><p><a href=\"$(doc_open webfront/docs/hosting-costs.md)\"><strong>hosting-costs →</strong></a></p>" >/dev/null
+  --text "<h3>💰 Hosting costs</h3><p>Azure + Microsoft 365 + domains pricing rationale (tax-deductible expense tracking for NGO).</p><p><a target=\"_blank\" rel=\"noopener\" href=\"$(doc_open webfront/docs/hosting-costs.md)\"><strong>hosting-costs →</strong></a></p>" >/dev/null
 m365 spo page text add --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
   --section 5 --column 3 --order 1 \
-  --text "<h3>🆔 Microsoft 365 &amp; Entra</h3><p>Tenant setup, identity model, shared mailboxes, SharePoint auto-publish.</p><p><a href=\"$(doc_open webfront/docs/365/entra-id.md)\"><strong>Entra ID &amp; identity →</strong></a></p>" >/dev/null
+  --text "<h3>🆔 Microsoft 365 &amp; Entra</h3><p>Tenant setup, identity model, shared mailboxes, SharePoint auto-publish.</p><p><a target=\"_blank\" rel=\"noopener\" href=\"$(doc_open webfront/docs/365/entra-id.md)\"><strong>Entra ID &amp; identity →</strong></a></p>" >/dev/null
 ok "cards row 2 added"
 
 # --- section 6: app downloads — desktop, then mobile (stacked) ----------------
 say "section 6 — app downloads (desktop, then mobile)…"
 m365 spo page text add --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
   --section 6 --column 1 --order 1 \
-  --text "<h2>💻 Desktop app downloads</h2><p>Install the Skin Tyee desktop app (the same app as the web version, packaged for desktop). Latest build:</p><ul><li>🪟 <a href=\"${DL_BASE}/SkinTyee-0.0.0-x64.exe\"><strong>Windows</strong></a> — installer (<code>.exe</code>)</li><li>🍎 <a href=\"${DL_BASE}/SkinTyee-0.0.0-x64.dmg\"><strong>macOS</strong></a> — disk image (<code>.dmg</code>)</li><li>🐧 <a href=\"${DL_BASE}/SkinTyee-0.0.0-x86_64.AppImage\"><strong>Linux</strong></a> — <code>AppImage</code> (portable) or <a href=\"${DL_BASE}/SkinTyee-0.0.0-amd64.deb\"><strong>.deb</strong></a> (Debian/Ubuntu)</li></ul><p style=\"font-size:12px;color:#666\">These builds aren't code-signed yet: on <strong>macOS</strong> right-click → Open the first time; on <strong>Windows</strong> choose &quot;More info → Run anyway&quot;. Rebuilt by the <a href=\"${ADO_BUILDS_URL}\">build-desktop</a> pipeline.</p>" >/dev/null
+  --text "<h2>💻 Desktop app downloads</h2><p>Install the Skin Tyee desktop app (the same app as the web version, packaged for desktop). Latest build:</p><ul><li>🪟 <a target=\"_blank\" rel=\"noopener\" href=\"${DL_BASE}/SkinTyee-0.0.0-x64.exe\"><strong>Windows</strong></a> — installer (<code>.exe</code>)</li><li>🍎 <a target=\"_blank\" rel=\"noopener\" href=\"${DL_BASE}/SkinTyee-0.0.0-x64.dmg\"><strong>macOS</strong></a> — disk image (<code>.dmg</code>)</li><li>🐧 <a target=\"_blank\" rel=\"noopener\" href=\"${DL_BASE}/SkinTyee-0.0.0-x86_64.AppImage\"><strong>Linux</strong></a> — <code>AppImage</code> (portable) or <a target=\"_blank\" rel=\"noopener\" href=\"${DL_BASE}/SkinTyee-0.0.0-amd64.deb\"><strong>.deb</strong></a> (Debian/Ubuntu)</li></ul><p style=\"font-size:12px;color:#666\">These builds aren't code-signed yet: on <strong>macOS</strong> right-click → Open the first time; on <strong>Windows</strong> choose &quot;More info → Run anyway&quot;. Rebuilt by the <a target=\"_blank\" rel=\"noopener\" href=\"${ADO_BUILDS_URL}\">build-desktop</a> pipeline.</p>" >/dev/null
 m365 spo page text add --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
   --section 6 --column 1 --order 2 \
   --text "<h2>📱 Mobile app downloads <em>(coming soon)</em></h2><p>The Skin Tyee app will ship to phones &amp; tablets — the same app as the web and desktop versions:</p><ul><li>🍎 <strong>iOS</strong> — Apple App Store / TestFlight <em>(coming soon)</em></li><li>🤖 <strong>Android</strong> — Google Play <em>(coming soon)</em></li></ul><p style=\"font-size:12px;color:#666\">Published via EAS Build once the app clears store review. In the meantime use the <strong>desktop</strong> or web app.</p>" >/dev/null
