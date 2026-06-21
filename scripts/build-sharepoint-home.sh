@@ -29,17 +29,13 @@ ADO_BUILDS_URL="${ADO_BUILDS_URL:-https://dev.azure.com/skintyeenation/devops/_b
 API_URL="${API_URL:-https://api.skintyee.ca}"
 
 # ----- link helpers -----------------------------------------------------------
-# A direct file URL (…/Shared Documents/webfront/docs/x.md) makes the browser
-# DOWNLOAD a .md (no inline viewer for that type). The SharePoint "open file"
-# form — Forms/AllItems.aspx?id=<file>&parent=<folder> — opens the file in
-# SharePoint's in-browser preview instead (same URL the library UI produces on
-# click). doc_open builds that link for a path relative to the document library.
-SP_LIB="/sites/it-project-docs/Shared Documents"
-urlenc_path() { local p="$1"; p="${p// /%20}"; p="${p//\//%2F}"; printf '%s' "$p"; }
-doc_open() {  # $1 = path under the library root, e.g. webfront/docs/x.md
-  local rel="$1" parent="${1%/*}"
-  printf '%s/Shared%%20Documents/Forms/AllItems.aspx?id=%s&amp;parent=%s' \
-    "$SITE_URL" "$(urlenc_path "$SP_LIB/$rel")" "$(urlenc_path "$SP_LIB/$parent")"
+# A direct .md URL makes the browser DOWNLOAD it (no inline viewer). The docs
+# publisher (publish-docs-to-sharepoint.sh) renders a pandoc .html sibling next
+# to every .md for exactly this reason — link the .html so the doc OPENS and
+# renders in the browser. doc_open maps an .md path to its published .html URL.
+doc_open() {  # $1 = .md path under the library root, e.g. webfront/docs/x.md
+  local rel="${1%.md}.html"
+  printf '%s/Shared%%20Documents/%s' "$SITE_URL" "${rel// /%20}"
 }
 
 # ----- styling helpers --------------------------------------------------------
@@ -116,7 +112,7 @@ m365 spo page section add \
 m365 spo page text add \
   --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
   --section 1 --column 1 --order 1 \
-  --text "<h1>IT Project Documentation</h1><p>This site mirrors the documentation from the <strong>webfront</strong> Git repository on Azure DevOps. Every push to <code>master</code> that touches <code>docs/</code> or the root README triggers an Azure Pipeline that re-publishes the entire tree here, with each Markdown file rendered to HTML alongside the source.</p><p>Edits go through the Git repo — not in SharePoint directly. To update a doc: change the <code>.md</code> file in the repo, push to <code>master</code>, and the new version appears here within ~2–3 minutes.</p>" >/dev/null
+  --text "<h1>Skin Tyee First Nation — Digital Platform</h1><p>This is the internal documentation hub for Skin Tyee First Nation's digital platform: the <strong>skintyee.ca</strong> website, the Microsoft 365 environment, and the <strong>Skin Tyee community app</strong> — the project that moves the Nation off the old hosted site onto a self-hosted, Band-owned stack.</p><p>The <strong>community app</strong> gives Band members, staff, and administrators one place for the Nation's day-to-day — a dashboard, member directory, community events, notifications (health &amp; safety, council, programs, news), band meetings, public-records &amp; financial transparency, time keeping, and polls/surveys — built once and delivered on <strong>web, desktop, and (soon) mobile</strong>. Access is role-gated for Public, Band Member, and Admin/Staff.</p><p>Use the links below to browse onboarding guides, Microsoft 365 &amp; identity docs, DevOps runbooks, the API reference, and the app downloads.</p>" >/dev/null
 
 ok "intro added"
 
@@ -148,12 +144,12 @@ m365 spo page section add \
 m365 spo page text add \
   --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
   --section 3 --column 1 --order 1 \
-  --text "<h3>🆔 Microsoft 365 &amp; Entra</h3><p>Tenant setup, identity model, shared mailboxes, SharePoint auto-publish.</p><p><a href=\"${SITE_URL}/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2Fit-project-docs%2FShared%20Documents%2Fwebfront%2Fdocs%2F365\"><strong>docs/365/ →</strong></a></p>" >/dev/null
+  --text "<h3>🆔 Microsoft 365 &amp; Entra</h3><p>Tenant setup, identity model, shared mailboxes, SharePoint auto-publish.</p><p><a href=\"$(doc_open webfront/docs/365/entra-id.md)\"><strong>Entra ID &amp; identity →</strong></a></p>" >/dev/null
 
 m365 spo page text add \
   --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
   --section 3 --column 2 --order 1 \
-  --text "<h3>🔧 DevOps &amp; CI/CD</h3><p>Azure DevOps as primary, GitHub mirror, CI workflow migration, post-mortems.</p><p><a href=\"${SITE_URL}/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2Fit-project-docs%2FShared%20Documents%2Fwebfront%2Fdocs%2Fdevops\"><strong>docs/devops/ →</strong></a></p>" >/dev/null
+  --text "<h3>🔧 DevOps &amp; CI/CD</h3><p>Azure DevOps as primary, GitHub mirror, CI workflow migration, post-mortems.</p><p><a href=\"$(doc_open webfront/docs/devops/README.md)\"><strong>DevOps overview →</strong></a></p>" >/dev/null
 
 m365 spo page text add \
   --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
@@ -184,7 +180,10 @@ m365 spo page text add \
 
 ok "reference blocks added"
 
-say "section 5 — how updates work (one column, neutral shading)…"
+# ----- section 5 — onboarding documentation (featured on its own) -------------
+# The new-hire sequence with deep links to the published (rendered .html)
+# docs/onboarding/ pages. Staff onboarding has no teaser card — it lives here.
+say "section 5 — onboarding documentation (one column, neutral shading)…"
 m365 spo page section add \
   --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
   --sectionTemplate OneColumn --order 5 --zoneEmphasis Neutral >/dev/null
@@ -192,44 +191,45 @@ m365 spo page section add \
 m365 spo page text add \
   --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
   --section 5 --column 1 --order 1 \
-  --text "<h2>🔄 How updates work</h2><p><strong>Update flow:</strong> edit <code>.md</code> in the repo → push to <code>master</code> → Azure Pipeline runs → SharePoint updates within ~2–3 minutes.</p><p><strong>Deletions are not propagated</strong> — removing a doc from the repo leaves its SharePoint copy alone (version history is preserved). Delete manually in SharePoint if needed.</p><p><strong>This page</strong> is built by <code>scripts/build-sharepoint-home.sh</code>. To restructure, edit the script, run it, commit the changes.</p>" >/dev/null
+  --text "<h2>🚀 Onboarding documentation</h2><p>Everything a new staff member needs to get set up on the Nation's digital platform — work through it <strong>in order</strong>. Each step has a dedicated page with screenshots of the exact dialogs you'll see.</p><ul><li><strong>1 · Activate your <code>@skintyee.ca</code> account</strong> — first sign-in, set your password, register MFA. → <a href=\"$(doc_open webfront/docs/onboarding/outlook-skintyee-ca.md)\">Outlook setup</a></li><li><strong>1b · Install Microsoft 365</strong> — Outlook, Word, Excel, PowerPoint, Teams, OneNote. Your <code>@skintyee.ca</code> license unlocks the install (<a href=\"https://www.microsoft.com/en-us/microsoft-365/download-office\">download</a>).</li><li><strong>2 · Install &amp; sign into 1Password</strong> — your personal vault plus the shared vaults your role needs. → <a href=\"$(doc_open webfront/docs/onboarding/1password.md)\">1Password setup</a></li><li><strong>3 · Shared mailboxes &amp; band software</strong> — <code>info@</code>/<code>chief@</code>/<code>admin@</code> access and per-app invites (the Skin Tyee app, WordPress, Azure DevOps), granted by your admin.</li></ul><p>📖 <a href=\"$(doc_open webfront/docs/onboarding/README.md)\"><strong>Start here — onboarding overview</strong></a></p>" >/dev/null
 
-ok "updates section added"
+ok "onboarding section added"
 
-# ----- section 6 — onboarding documentation (fills the gap before downloads) --
-# A fuller companion to the staff-onboarding theme: the new-hire sequence with
-# deep links to the published docs/onboarding/ pages (open in-browser, not
-# download). Staff onboarding no longer has a teaser card — it lives here.
-ONB_FOLDER="${SITE_URL}/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2Fit-project-docs%2FShared%20Documents%2Fwebfront%2Fdocs%2Fonboarding"
+# ----- section 6 — app downloads (desktop + mobile, side by side) -------------
+# Desktop links point at installers published by the build-desktop pipeline
+# (scripts/publish-desktop-to-sharepoint.sh → webfront/desktop/build-desktop/);
+# mobile is a coming-soon placeholder. Two columns so the two sit together.
+DL_BASE="${SITE_URL}/Shared%20Documents/webfront/desktop/build-desktop"
 
-say "section 6 — onboarding documentation (one column, neutral shading)…"
+say "section 6 — app downloads (two columns: desktop | mobile, soft shading)…"
 m365 spo page section add \
   --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
-  --sectionTemplate OneColumn --order 6 --zoneEmphasis Neutral >/dev/null
+  --sectionTemplate TwoColumn --order 6 --zoneEmphasis Soft >/dev/null
 
 m365 spo page text add \
   --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
   --section 6 --column 1 --order 1 \
-  --text "<h2>🚀 Onboarding documentation</h2><p>Everything a new staff member needs to get set up on the Nation's digital platform — work through it <strong>in order</strong>. Each step has a dedicated page with screenshots of the exact dialogs you'll see.</p><ul><li><strong>1 · Activate your <code>@skintyee.ca</code> account</strong> — first sign-in, set your password, register MFA. → <a href=\"$(doc_open webfront/docs/onboarding/outlook-skintyee-ca.md)\">Outlook setup</a></li><li><strong>1b · Install Microsoft 365</strong> — Outlook, Word, Excel, PowerPoint, Teams, OneNote. Your <code>@skintyee.ca</code> license unlocks the install (<a href=\"https://www.microsoft.com/en-us/microsoft-365/download-office\">download</a>).</li><li><strong>2 · Install &amp; sign into 1Password</strong> — your personal vault plus the shared vaults your role needs. → <a href=\"$(doc_open webfront/docs/onboarding/1password.md)\">1Password setup</a></li><li><strong>3 · Shared mailboxes &amp; band software</strong> — <code>info@</code>/<code>chief@</code>/<code>admin@</code> access and per-app invites (the Skin Tyee app, WordPress, Azure DevOps), granted by your admin.</li></ul><p>📖 <a href=\"$(doc_open webfront/docs/onboarding/README.md)\"><strong>Start here — onboarding overview</strong></a>&nbsp;·&nbsp;📂 <a href=\"${ONB_FOLDER}\">Browse all onboarding docs</a></p>" >/dev/null
+  --text "<h2>💻 Desktop app downloads</h2><p>Install the Skin Tyee desktop app (the same app as the web version, packaged for desktop). Latest build:</p><ul><li>🪟 <a href=\"${DL_BASE}/SkinTyee-0.0.0-x64.exe\"><strong>Windows</strong></a> — installer (<code>.exe</code>)</li><li>🍎 <a href=\"${DL_BASE}/SkinTyee-0.0.0-x64.dmg\"><strong>macOS</strong></a> — disk image (<code>.dmg</code>)</li><li>🐧 <a href=\"${DL_BASE}/SkinTyee-0.0.0-x86_64.AppImage\"><strong>Linux</strong></a> — <code>AppImage</code> (portable) or <a href=\"${DL_BASE}/SkinTyee-0.0.0-amd64.deb\"><strong>.deb</strong></a> (Debian/Ubuntu)</li></ul><p style=\"font-size:12px;color:#666\">These builds aren't code-signed yet: on <strong>macOS</strong> right-click → Open the first time; on <strong>Windows</strong> choose &quot;More info → Run anyway&quot;. Rebuilt by the <a href=\"${ADO_BUILDS_URL}\">build-desktop</a> pipeline.</p>" >/dev/null
 
-ok "onboarding section added"
+m365 spo page text add \
+  --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
+  --section 6 --column 2 --order 1 \
+  --text "<h2>📱 Mobile app downloads <em>(coming soon)</em></h2><p>The Skin Tyee app will ship to phones &amp; tablets — the same app as the web and desktop versions:</p><ul><li>🍎 <strong>iOS</strong> — Apple App Store / TestFlight <em>(coming soon)</em></li><li>🤖 <strong>Android</strong> — Google Play <em>(coming soon)</em></li></ul><p style=\"font-size:12px;color:#666\">Published via EAS Build once the app clears store review. In the meantime use the <strong>desktop</strong> or web app.</p>" >/dev/null
 
-# ----- section 7 — desktop app downloads (its own section, after onboarding) --
-# Links point at the installers published by the build-desktop pipeline
-# (scripts/publish-desktop-to-sharepoint.sh → webfront/desktop/build-desktop/).
-DL_BASE="${SITE_URL}/Shared%20Documents/webfront/desktop/build-desktop"
+ok "app downloads section added (desktop + mobile)"
 
-say "section 7 — desktop app downloads (one column, soft shading)…"
+# ----- section 7 — how this page is published ---------------------------------
+say "section 7 — how this page is published (one column, neutral shading)…"
 m365 spo page section add \
   --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
-  --sectionTemplate OneColumn --order 7 --zoneEmphasis Soft >/dev/null
+  --sectionTemplate OneColumn --order 7 --zoneEmphasis Neutral >/dev/null
 
 m365 spo page text add \
   --pageName "$PAGE_NAME" --webUrl "$SITE_URL" \
   --section 7 --column 1 --order 1 \
-  --text "<h2>💻 Desktop app downloads</h2><p>Install the Skin Tyee desktop app (the same app as the web version, packaged for desktop). Latest build:</p><ul><li>🪟 <a href=\"${DL_BASE}/SkinTyee-0.0.0-x64.exe\"><strong>Windows</strong></a> — installer (<code>.exe</code>)</li><li>🍎 <a href=\"${DL_BASE}/SkinTyee-0.0.0-x64.dmg\"><strong>macOS</strong></a> — disk image (<code>.dmg</code>)</li><li>🐧 <a href=\"${DL_BASE}/SkinTyee-0.0.0-x86_64.AppImage\"><strong>Linux</strong></a> — <code>AppImage</code> (portable) or <a href=\"${DL_BASE}/SkinTyee-0.0.0-amd64.deb\"><strong>.deb</strong></a> (Debian/Ubuntu)</li></ul><p style=\"font-size:12px;color:#666\">These builds aren't code-signed yet: on <strong>macOS</strong> right-click → Open the first time; on <strong>Windows</strong> choose &quot;More info → Run anyway&quot;. Rebuilt by the <a href=\"${ADO_BUILDS_URL}\">build-desktop</a> pipeline.</p>" >/dev/null
+  --text "<h2>🔄 How this page is published</h2><p>This site mirrors the documentation from the <strong>webfront</strong> Git repository on Azure DevOps. Every push to <code>master</code> that touches <code>docs/</code> or the root README triggers an Azure Pipeline that re-publishes the entire tree here, with each Markdown file rendered to HTML alongside the source.</p><p>Edits go through the Git repo — <strong>not in SharePoint directly</strong>. To update a doc: change the <code>.md</code> file in the repo, push to <code>master</code>, and the new version appears here within ~2–3 minutes.</p><p style=\"font-size:12px;color:#666\">This landing page is built by <code>scripts/build-sharepoint-home.sh</code>; deleting a doc in the repo leaves its SharePoint copy in place (version history is preserved).</p>" >/dev/null
 
-ok "downloads section added"
+ok "publish-info section added"
 
 # ----- 3) publish -------------------------------------------------------------
 
