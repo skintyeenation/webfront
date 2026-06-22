@@ -195,10 +195,14 @@ export class DirectoryController {
     }
   }
 
-  @Get() async list() {
+  @Get() async list(@Req() req?: any) {
     if (this.prisma.isAvailable) {
+      // Admins see locked accounts (enabled:false) too — otherwise a locked
+      // member vanishes from the directory and there's no way to navigate to
+      // EditMember to unlock them. Non-admins only see active members.
+      const isAdmin = callerRole(req) === 'admin';
       const rows = await this.prisma.bandMember.findMany({
-        where: { enabled: true },
+        where: isAdmin ? undefined : { enabled: true },
         orderBy: { name: 'asc' },
       });
       // Empty table → kick off async seed; current request still returns [].

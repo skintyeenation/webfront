@@ -278,6 +278,10 @@ export default function Directory({ navigation }: any) {
             ItemSeparatorComponent={() => <Divider />}
             renderItem={({ item }: { item: any }) => {
               const isShared = item.accountType === 'shared-inbox';
+              // Locked = Entra accountEnabled false. Only admins receive these
+              // rows from the api (DirectoryController.list gates on role); show
+              // them dimmed with a Locked chip so they can be unlocked.
+              const locked = item.enabled === false;
               const allMemberships: string[] = Array.isArray(item.mailboxMemberships) ? item.mailboxMemberships : [];
               // Drop mailbox entries already represented by an M365 group
               // chip — those are the same Entra object surfaced twice
@@ -291,7 +295,10 @@ export default function Directory({ navigation }: any) {
                 return !m365MailsAlreadyShown.has(mail);
               });
               return (
-                <TouchableOpacity onPress={() => navigation.navigate('memberDetail', { id: item._id })}>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('memberDetail', { id: item._id })}
+                  style={locked ? { opacity: 0.55 } : undefined}
+                >
                   <List.Item
                     title={item.name}
                     description={() => {
@@ -402,7 +409,16 @@ export default function Directory({ navigation }: any) {
                       />
                     )}
                     right={() =>
-                      isShared ? (
+                      locked ? (
+                        <Chip
+                          compact
+                          icon="lock"
+                          style={{ alignSelf: 'center', marginRight: 8, backgroundColor: theme.colors.error }}
+                          textStyle={{ fontSize: 10 }}
+                        >
+                          Locked
+                        </Chip>
+                      ) : isShared ? (
                         <Chip
                           compact
                           icon="email-multiple-outline"
