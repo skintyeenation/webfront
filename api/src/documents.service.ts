@@ -127,12 +127,17 @@ export class DocumentsService implements OnApplicationBootstrap {
 
   // ---- Form seed (CRA / Service Canada) -----------------------------------
 
-  private async documentExistsByTitle(title: string): Promise<boolean> {
+  // Dedupe the seed on the stable linkUrl (the canada.ca form URL), NOT the
+  // title. Title is the user-facing label and can be renamed in the editor;
+  // keying on it would re-create the form as a "duplicate" after any rename,
+  // and a user upload sharing the title would silently block the seed. linkUrl
+  // is unique per form and never changes, so titles are safe to edit.
+  private async documentExistsByLink(linkUrl: string): Promise<boolean> {
     if (this.prisma.isAvailable) {
-      const r = await this.prisma.document.findFirst({ where: { title }, select: { id: true } });
+      const r = await this.prisma.document.findFirst({ where: { linkUrl }, select: { id: true } });
       return !!r;
     }
-    for (const d of this.memDocs.values()) if (d.title === title) return true;
+    for (const d of this.memDocs.values()) if (d.linkUrl === linkUrl) return true;
     return false;
   }
 
@@ -154,7 +159,7 @@ export class DocumentsService implements OnApplicationBootstrap {
     let created = 0;
     for (const f of FORM_SEED) {
       try {
-        if (await this.documentExistsByTitle(f.title)) continue;
+        if (await this.documentExistsByLink(f.linkUrl)) continue;
         const tagId = await this.recordsTagId(f.categorySlug);
         const b64 = f.pdfKey ? FORM_PDF_B64[f.pdfKey] : undefined;
         const file = b64
