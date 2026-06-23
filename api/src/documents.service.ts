@@ -373,7 +373,7 @@ export class DocumentsService implements OnApplicationBootstrap {
 
   async update(id: string, patch: Partial<{
     title: string; description: string | null; linkUrl: string | null;
-    audience: string; companyId: string | null; tagIds: string[];
+    audience: string; companyId: string | null; tagIds: string[]; fileName: string;
   }>): Promise<DocumentRecord | null> {
     if (this.prisma.isAvailable) {
       const data: any = {};
@@ -382,6 +382,7 @@ export class DocumentsService implements OnApplicationBootstrap {
       if (patch.linkUrl !== undefined) data.linkUrl = patch.linkUrl;
       if (patch.audience != null) data.audience = patch.audience;
       if (patch.companyId !== undefined) data.companyId = patch.companyId;
+      if (patch.fileName != null) data.fileName = patch.fileName;
       if (patch.tagIds) data.tags = { set: patch.tagIds.map((id) => ({ id })) };
       const row = await this.prisma.document.update({
         where: { id },
@@ -398,6 +399,7 @@ export class DocumentsService implements OnApplicationBootstrap {
     if (patch.linkUrl !== undefined) next.linkUrl = patch.linkUrl;
     if (patch.audience != null) next.audience = patch.audience;
     if (patch.companyId !== undefined) next.companyId = patch.companyId;
+    if (patch.fileName != null) next.fileName = patch.fileName;
     if (patch.tagIds) next.tagIds = patch.tagIds.slice();
     next.updatedAt = new Date().toISOString();
     this.memDocs.set(id, next);

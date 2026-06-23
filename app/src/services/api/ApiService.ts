@@ -367,6 +367,7 @@ export interface ApiService {
       audience: DocumentAudience;
       companyId: string | null;
       tagIds: string[];
+      fileName: string; // download/display file slug: A-Za-z0-9._- only
     }>): Promise<DocumentDto>;
     delete(id: string): Promise<void>;
     /** Stream the PDF/file bytes through the api/. Same Blob pattern as

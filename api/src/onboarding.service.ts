@@ -846,14 +846,17 @@ export class OnboardingService implements OnApplicationBootstrap {
     stepId: string,
     file: { fileName: string; mimeType: string; bytes: Buffer },
   ): Promise<StepStateRecord | null> {
-    const up = await this.storage.upload(file);
+    // Rename the upload to a self-describing slug:
+    //   <doc-name>_<yyyy-mm-dd>_<last>_<first>.<ext>
+    const fileName = await this.userUploadFileName(assignmentId, stepId, file.fileName);
+    const up = await this.storage.upload({ ...file, fileName });
     if (this.prisma.isAvailable) {
       const r = await this.prisma.onboardingStepState.update({
         where: { assignmentId_stepId: { assignmentId, stepId } },
         data: {
           personStorage: this.storage.driver,
           personFileKey: up.key, personFileUrl: up.url,
-          personFileName: file.fileName,
+          personFileName: fileName,
           personMimeType: up.mimeType ?? file.mimeType,
           personSizeBytes: up.sizeBytes ?? file.bytes.length,
           status: 'in_progress',
@@ -866,12 +869,50 @@ export class OnboardingService implements OnApplicationBootstrap {
     if (!s) return null;
     s.personFileKey = up.key;
     s.personFileUrl = up.url;
-    s.personFileName = file.fileName;
+    s.personFileName = fileName;
     s.personMimeType = up.mimeType ?? file.mimeType;
     s.personSizeBytes = up.sizeBytes ?? file.bytes.length;
     s.status = 'in_progress';
     return s;
   }
+
+  // Build <doc-name>_<yyyy-mm-dd>_<last>_<first>.<ext> from the step title +
+  // the assignee's display name. Best-effort: falls back to the original
+  // filename (and is a no-op in the no-db path where context isn't loaded).
+  private async userUploadFileName(assignmentId: string, stepId: string, originalName: string): Promise<string> {
+    if (!this.prisma.isAvailable) return originalName;
+    try {
+      const a = await this.prisma.onboardingAssignment.findUnique({
+        where: { id: assignmentId },
+        select: { person: { select: { displayName: true } } },
+      });
+      const st = await this.prisma.onboardingStep.findUnique({
+        where: { id: stepId },
+        select: { title: true },
+      });
+      return buildUserDocFileName({ docName: st?.title, personName: a?.person?.displayName, originalName });
+    } catch {
+      return originalName;
+    }
+  }
+}
+
+// Self-describing filename for a user-uploaded onboarding document:
+//   <doc-name>_<yyyy-mm-dd>_<last>_<first>.<ext>
+// Each segment is slugified to [a-z0-9-]; segments are joined with "_". The
+// person's display name ("First Last") becomes <last>_<first>. Missing pieces
+// are dropped gracefully.
+function buildUserDocFileName(opts: { docName?: string | null; personName?: string | null; originalName: string }): string {
+  const slug = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  const now = new Date();
+  const ymd = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`;
+  const ext = (opts.originalName.match(/\.([A-Za-z0-9]+)$/)?.[1] ?? 'pdf').toLowerCase();
+  const doc = slug(opts.docName || opts.originalName.replace(/\.[^.]+$/, '')) || 'document';
+  const parts = (opts.personName ?? '').trim().split(/\s+/).filter(Boolean);
+  const first = parts.length ? slug(parts[0]) : '';
+  const last = parts.length > 1 ? slug(parts[parts.length - 1]) : '';
+  const nameSeg = [last, first].filter(Boolean).join('_');
+  return [doc, ymd, nameSeg].filter(Boolean).join('_') + '.' + ext;
 }
 
 // ---- mappers --------------------------------------------------------------

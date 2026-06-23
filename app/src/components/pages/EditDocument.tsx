@@ -29,6 +29,10 @@ const CATEGORY_LABEL: Record<string, string> = {
   records: 'Records',
 };
 
+// Filenames: letters, digits, dot, underscore, hyphen only — no spaces or
+// other special characters. Enforced live as the user types and on the server.
+const sanitizeFileName = (s: string) => s.replace(/[^A-Za-z0-9._-]/g, '');
+
 export default function EditDocument({ navigation, route }: any) {
   const editingId: string | undefined = route?.params?.id;
   const isEdit = !!editingId;
@@ -40,6 +44,7 @@ export default function EditDocument({ navigation, route }: any) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
+  const [fileName, setFileName] = useState('');
   const [audience, setAudience] = useState<DocumentAudience>('staff');
   const [tagIds, setTagIds] = useState<Set<string>>(new Set());
   const [file, setFile] = useState<{ uri: string; name: string; mimeType: string; sizeBytes?: number } | undefined>();
@@ -69,6 +74,7 @@ export default function EditDocument({ navigation, route }: any) {
           setTitle(d.title);
           setDescription(d.description ?? '');
           setLinkUrl(d.linkUrl ?? '');
+          setFileName(d.fileName ?? '');
           setAudience(d.audience);
           setTagIds(new Set(d.tagIds));
         }
@@ -110,6 +116,7 @@ export default function EditDocument({ navigation, route }: any) {
         const reader = new FileReader();
         reader.onload = () => {
           setFile({ uri: reader.result as string, name: f.name, mimeType: f.type || 'application/pdf', sizeBytes: f.size });
+          setFileName((cur) => cur || sanitizeFileName(f.name));
         };
         reader.readAsDataURL(f);
       };
@@ -122,6 +129,7 @@ export default function EditDocument({ navigation, route }: any) {
       if (res.canceled || !res.assets?.[0]) return;
       const a = res.assets[0];
       setFile({ uri: a.uri, name: a.name, mimeType: a.mimeType ?? 'application/pdf', sizeBytes: a.size });
+      setFileName((cur) => cur || sanitizeFileName(a.name));
     } catch (e: any) {
       setError(e?.message ?? String(e));
     }
@@ -144,6 +152,7 @@ export default function EditDocument({ navigation, route }: any) {
           linkUrl: linkUrl.trim() || null,
           audience,
           tagIds: Array.from(tagIds),
+          ...(fileName.trim() ? { fileName: fileName.trim() } : {}),
         });
         showToast('Saved');
       } else {
@@ -199,8 +208,24 @@ export default function EditDocument({ navigation, route }: any) {
   return (
     <PageContainer>
       <PageContent>
-        <TextInput label="Title" value={title} onChangeText={setTitle} mode="outlined" style={{ marginBottom: 10 }} />
+        <TextInput label="Display name" value={title} onChangeText={setTitle} mode="outlined" style={{ marginBottom: 10 }} />
         <TextInput label="Description (optional)" value={description} onChangeText={setDescription} mode="outlined" multiline numberOfLines={3} style={{ marginBottom: 10 }} />
+
+        {/* File name — the download/display slug, distinct from the display
+            name. Only relevant for file-backed docs. Charset enforced live. */}
+        {(existing?.fileKey || file) ? (
+          <View style={{ marginBottom: 10 }}>
+            <TextInput
+              label="File name"
+              value={fileName}
+              onChangeText={(v) => setFileName(sanitizeFileName(v))}
+              mode="outlined"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <HelperText type="info">Letters, numbers, dot, underscore, hyphen — no spaces or special characters.</HelperText>
+          </View>
+        ) : null}
 
         {/* PDF picker */}
         <Text style={{ color: theme.colors.text, fontSize: 14, fontWeight: '600', marginBottom: 6 }}>
