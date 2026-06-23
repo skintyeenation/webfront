@@ -142,6 +142,13 @@ export class DocumentsController {
     if (body.audience && !VALID_AUDIENCES.includes(body.audience)) {
       throw new BadRequestException(`audience must be one of ${VALID_AUDIENCES.join(', ')}`);
     }
+    // Filename is the download/display file slug — letters, digits, dot,
+    // underscore, hyphen only. No spaces or other special characters.
+    if (body.fileName != null) {
+      if (typeof body.fileName !== 'string' || !/^[A-Za-z0-9._-]+$/.test(body.fileName)) {
+        throw new BadRequestException('fileName may contain only letters, numbers, dot, underscore, and hyphen (no spaces).');
+      }
+    }
     const updated = await this.docs.update(id, {
       title: body.title,
       description: body.description,
@@ -149,6 +156,7 @@ export class DocumentsController {
       audience: body.audience,
       companyId: body.companyId,
       tagIds: body.tagIds,
+      fileName: body.fileName,
     });
     if (!updated) throw new NotFoundException();
     return updated;
