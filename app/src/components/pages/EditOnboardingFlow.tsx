@@ -294,6 +294,9 @@ export default function EditOnboardingFlow({ navigation, route }: any) {
               <Switch value={active} onValueChange={setActive} color={theme.colors.primary} />
               <Text style={{ color: theme.colors.text, marginLeft: 8 }}>{active ? 'Active' : 'Inactive'}</Text>
               <View style={{ flex: 1 }} />
+              <Button compact mode="outlined" textColor={theme.colors.text} onPress={() => navigation.goBack()} disabled={saving} style={{ marginRight: 8, borderColor: theme.colors.secondary }}>
+                Cancel
+              </Button>
               <Button compact mode="contained" icon="content-save" buttonColor={theme.colors.primary} textColor="#fff" onPress={saveHeader} loading={saving} disabled={saving || !title.trim()}>
                 {flow ? 'Save' : 'Create flow'}
               </Button>
