@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import { DOCUMENT_STORAGE } from './storage/storage.module';
 import { DocumentStorageAdapter } from './storage/document-storage';
@@ -101,7 +101,7 @@ export interface DocumentTagRecord {
 }
 
 @Injectable()
-export class DocumentsService implements OnModuleInit {
+export class DocumentsService implements OnApplicationBootstrap {
   private readonly log = new Logger(DocumentsService.name);
 
   // In-memory fallback — used when Prisma isn't available so the POC can
@@ -116,7 +116,11 @@ export class DocumentsService implements OnModuleInit {
     @Inject(DOCUMENT_STORAGE) private readonly storage: DocumentStorageAdapter,
   ) {}
 
-  async onModuleInit() {
+  // Seed on bootstrap (NOT onModuleInit): PrismaService connects asynchronously
+  // and `prisma.isAvailable` is still false during onModuleInit, so seeding
+  // there lands in the in-memory fallback instead of Postgres. onApplicationBootstrap
+  // runs after connections are up — same hook OnboardingService uses.
+  async onApplicationBootstrap() {
     await this.seedTagsIfNeeded();
     await this.seedDocumentsIfNeeded();
   }
