@@ -376,10 +376,10 @@ export interface ApiService {
   };
   documentTags: {
     list(): Promise<{
-      categories: Array<{ slug: 'gov' | 'gov_sector' | 'department'; displayName: string; description: string }>;
+      categories: Array<{ slug: 'gov' | 'gov_sector' | 'department' | 'records'; displayName: string; description: string }>;
       tags: DocumentTagDto[];
     }>;
-    create(input: { category: 'gov' | 'gov_sector' | 'department'; slug: string; displayName: string }): Promise<DocumentTagDto>;
+    create(input: { category: 'gov' | 'gov_sector' | 'department' | 'records'; slug: string; displayName: string }): Promise<DocumentTagDto>;
     update(id: string, patch: { slug?: string; displayName?: string }): Promise<DocumentTagDto>;
     delete(id: string): Promise<void>; // 409 if inUseCount > 0 on the server.
   };
@@ -550,7 +550,7 @@ export interface TimesheetReportSummary {
 
 export interface DocumentTagDto {
   id: string;
-  category: 'gov' | 'gov_sector' | 'department';
+  category: 'gov' | 'gov_sector' | 'department' | 'records';
   slug: string;
   displayName: string;
   /** Server-side count of documents using this tag. UI uses it to show

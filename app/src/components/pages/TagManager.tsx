@@ -13,16 +13,18 @@ import { theme } from 'skintyee/styles';
 // Delete button disabled, surfacing the 409 the server would throw.
 // ----------------------------------------------------------------------------
 
-const CATEGORY_ORDER: Array<'gov' | 'gov_sector' | 'department'> = ['gov', 'gov_sector', 'department'];
+const CATEGORY_ORDER: Array<'gov' | 'gov_sector' | 'department' | 'records' | 'records'> = ['gov', 'gov_sector', 'department', 'records'];
 const CATEGORY_LABEL: Record<string, string> = {
   gov: 'Government',
   gov_sector: 'Sector',
   department: 'Department',
+  records: 'Records',
 };
 const CATEGORY_DESC: Record<string, string> = {
   gov: 'Flag a document as government-issued.',
   gov_sector: 'Which government domain the document concerns.',
   department: 'Which internal Skin Tyee department owns it.',
+  records: 'Accounts-payable / payroll document type (EFTs, payroll slips, expense sheets, mileage, timesheets).',
 };
 
 export default function TagManager({ navigation }: any) {
@@ -31,12 +33,12 @@ export default function TagManager({ navigation }: any) {
   }, [navigation]);
 
   const [tags, setTags] = useState<DocumentTagDto[]>([]);
-  const [categories, setCategories] = useState<Array<{ slug: 'gov' | 'gov_sector' | 'department'; displayName: string; description: string }>>([]);
+  const [categories, setCategories] = useState<Array<{ slug: 'gov' | 'gov_sector' | 'department' | 'records'; displayName: string; description: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>();
   const { showToast, toastNode } = useToast();
 
-  const [editing, setEditing] = useState<{ id?: string; category: 'gov' | 'gov_sector' | 'department'; slug: string; displayName: string } | null>(null);
+  const [editing, setEditing] = useState<{ id?: string; category: 'gov' | 'gov_sector' | 'department' | 'records'; slug: string; displayName: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
 
@@ -57,12 +59,12 @@ export default function TagManager({ navigation }: any) {
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const tagsByCategory = useMemo(() => {
-    const out: Record<string, DocumentTagDto[]> = { gov: [], gov_sector: [], department: [] };
+    const out: Record<string, DocumentTagDto[]> = { gov: [], gov_sector: [], department: [], records: [] };
     for (const t of tags) (out[t.category] ??= []).push(t);
     return out;
   }, [tags]);
 
-  const openCreate = (category: 'gov' | 'gov_sector' | 'department') => {
+  const openCreate = (category: 'gov' | 'gov_sector' | 'department' | 'records') => {
     setEditing({ category, slug: '', displayName: '' });
     setFormError(undefined);
   };

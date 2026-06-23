@@ -10,7 +10,7 @@
 // concrete is bound in DocumentsModule via a factory provider that
 // reads STORAGE_DRIVER at boot.
 
-export type StorageDriver = 'blob' | 'sharepoint';
+export type StorageDriver = 'blob' | 'sharepoint' | 'local';
 
 export interface UploadInput {
   fileName: string;

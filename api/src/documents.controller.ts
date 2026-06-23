@@ -146,25 +146,14 @@ export class DocumentsController {
       throw new ForbiddenException('Not visible to your role.');
     }
     if (!row.fileKey) throw new NotFoundException('No file on this document.');
-    // Resolve a fresh URL via the adapter, then fetch the bytes
-    // server-side. For mem:// the adapter's internal store has the
-    // buffer; for HTTPS we proxy the response inline.
-    const url = await this.storage.urlFor(row.fileKey);
-    let bytes: Buffer;
-    if (url && url.startsWith('http')) {
-      const r = await fetch(url);
-      if (!r.ok) throw new NotFoundException();
-      bytes = Buffer.from(await r.arrayBuffer());
-    } else {
-      // In-memory adapter exposes `inMemory` Map via an undocumented
-      // getter we cast through `any` so the streaming path stays
-      // functional without the SAS-backed URL.
-      const mem = (this.storage as any).inMemory as Map<string, { bytes: Buffer; mimeType: string; fileName: string }> | undefined;
-      const blob = mem?.get(row.fileKey);
-      if (!blob) throw new NotFoundException('File not available.');
-      bytes = blob.bytes;
-    }
-    res.setHeader('Content-Type', row.mimeType || 'application/pdf');
+    // Stream the bytes through the api/ via the adapter's read() — driver
+    // agnostic (blob fetches its SAS URL, local reads disk, sharepoint reads
+    // the drive item). A null result means the key is unknown / the bytes are
+    // gone (e.g. uploaded under the old RAM-only mode before a restart).
+    const file = await this.storage.read(row.fileKey);
+    if (!file) throw new NotFoundException('File not available.');
+    const bytes = file.bytes;
+    res.setHeader('Content-Type', row.mimeType || file.mimeType || 'application/pdf');
     res.setHeader('Content-Disposition', `${download === '1' ? 'attachment' : 'inline'}; filename="${row.fileName || (row.title + '.pdf')}"`);
     res.setHeader('Content-Length', String(bytes.length));
     res.send(bytes);
@@ -198,7 +187,7 @@ export class DocumentTagsController {
     if (!body.category || !body.slug || !body.displayName) {
       throw new BadRequestException('category, slug, displayName required');
     }
-    if (!['gov', 'gov_sector', 'department'].includes(body.category)) {
+    if (!['gov', 'gov_sector', 'department', 'records'].includes(body.category)) {
       throw new BadRequestException('Unknown category');
     }
     try {

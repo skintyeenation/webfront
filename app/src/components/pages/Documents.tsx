@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Linking, ScrollView, View } from 'react-native';
+import { Linking, Platform, ScrollView, View } from 'react-native';
 import { ActivityIndicator, Button, Card, Chip, HelperText, IconButton, SegmentedButtons, Text, TextInput } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import dayjs from 'dayjs';
@@ -31,12 +31,28 @@ const audienceColor = (a: string) =>
   : a === 'band_member' ? theme.colors.primary
   : theme.colors.success;
 
-const CATEGORY_ORDER: Array<'gov' | 'gov_sector' | 'department'> = ['gov', 'gov_sector', 'department'];
+const CATEGORY_ORDER: Array<'gov' | 'gov_sector' | 'department' | 'records'> = ['gov', 'gov_sector', 'department', 'records'];
 const CATEGORY_LABEL: Record<string, string> = {
   gov: 'Government',
   gov_sector: 'Sector',
   department: 'Department',
+  records: 'Records',
 };
+
+// Open a Blob in a new tab on web (object URL). Mirrors the Timekeeping /
+// Expense report screens. We must stream the bytes through the api/ (with
+// the x-role/x-upn/auth headers) rather than open the document's fileUrl
+// directly — locally that fileUrl is a `mem://` URL the browser can't open,
+// and even a real storage URL would arrive header-less → 403 on the
+// audience-gated /pdf endpoint.
+function openBlob(blob: Blob) {
+  if (Platform.OS === 'web' && typeof URL !== 'undefined') {
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    // Keep the object URL alive long enough for the new tab to render.
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  }
+}
 
 export default function Documents({ navigation }: any) {
   const role = useAppSelector((s) => s.auth.role);
@@ -47,6 +63,7 @@ export default function Documents({ navigation }: any) {
   const [activeTagId, setActiveTagId] = useState<string | undefined>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>();
+  const [openingId, setOpeningId] = useState<string | undefined>();
 
   const loadAll = useCallback(async () => {
     setError(undefined);
@@ -68,8 +85,24 @@ export default function Documents({ navigation }: any) {
 
   useFocusEffect(useCallback(() => { loadAll(); }, [loadAll]));
 
+  // Stream the file through the api/ (carries x-role/x-upn/auth) and open the
+  // returned blob, instead of opening the document's raw fileUrl (which is a
+  // browser-unopenable `mem://` URL in local dev).
+  const openPdf = useCallback(async (id: string) => {
+    setError(undefined);
+    setOpeningId(id);
+    try {
+      const { blob } = await apiFactory().documents.fetchPdf(id);
+      openBlob(blob);
+    } catch (e: any) {
+      setError(e?.message ?? String(e));
+    } finally {
+      setOpeningId(undefined);
+    }
+  }, []);
+
   const tagsByCategory = useMemo(() => {
-    const out: Record<string, DocumentTagDto[]> = { gov: [], gov_sector: [], department: [] };
+    const out: Record<string, DocumentTagDto[]> = { gov: [], gov_sector: [], department: [], records: [] };
     for (const t of tagCat.tags) (out[t.category] ??= []).push(t);
     return out;
   }, [tagCat.tags]);
@@ -176,7 +209,7 @@ export default function Documents({ navigation }: any) {
                 ) : null}
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
                   {d.fileUrl ? (
-                    <Button compact mode="contained" icon="download" buttonColor={theme.colors.primary} textColor="#fff" onPress={() => Linking.openURL(d.fileUrl!)}>
+                    <Button compact mode="contained" icon="download" buttonColor={theme.colors.primary} textColor="#fff" loading={openingId === d.id} disabled={openingId === d.id} onPress={() => openPdf(d.id)}>
                       Open PDF
                     </Button>
                   ) : null}
