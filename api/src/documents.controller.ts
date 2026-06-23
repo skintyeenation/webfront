@@ -24,6 +24,8 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { Roles, callerRole, audiencesVisibleTo, canSeeAudience, DocumentAudience } from './roles';
 import { DocumentsService } from './documents.service';
 import { TAG_CATEGORIES } from './documents.seed';
+import { PrismaService } from './prisma.service';
+import { SettingsService } from './settings.service';
 
 // ---- /v1/documents --------------------------------------------------------
 //
@@ -31,7 +33,7 @@ import { TAG_CATEGORIES } from './documents.seed';
 // reads — filtered by the document's audience tier vs the caller's role.
 // See docs/features/documents-and-onboarding.md for the full plan.
 
-const VALID_AUDIENCES: DocumentAudience[] = ['admin', 'staff', 'band_member', 'public'];
+const VALID_AUDIENCES: DocumentAudience[] = ['admin', 'staff', 'band_member', 'public', 'finance'];
 
 function readCallerUpn(req: any): string {
   return (req.headers['x-upn'] as string | undefined) || 'unknown';
@@ -42,10 +44,30 @@ export class DocumentsController {
   constructor(
     private readonly docs: DocumentsService,
     @Inject(DOCUMENT_STORAGE) private readonly storage: DocumentStorageAdapter,
+    private readonly prisma: PrismaService,
+    private readonly settings: SettingsService,
   ) {}
 
+  // Resolve the finance-visibility context for the caller: their Entra group
+  // slugs (from BandMember.bandGroups) + the configured finance group slugs.
+  // Tolerant in no-db / unknown-caller modes (groups=[] ⇒ finance docs stay
+  // admin-only). Mirrors the finance check in expenses.controller.
+  private async audienceCtx(req: any): Promise<{ groups: string[]; financeGroups: string[] }> {
+    const financeGroups = await this.settings.financeDocumentGroups();
+    if (!this.prisma.isAvailable) return { groups: [], financeGroups };
+    const upn = readCallerUpn(req);
+    if (!upn || upn === 'unknown') return { groups: [], financeGroups };
+    try {
+      const me = await this.prisma.bandMember.findUnique({ where: { upn }, select: { bandGroups: true } });
+      const groups = (me?.bandGroups ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+      return { groups, financeGroups };
+    } catch {
+      return { groups: [], financeGroups };
+    }
+  }
+
   // GET /v1/documents — list visible documents.
-  // Audience filter applied server-side based on x-role; admin sees all.
+  // Audience filter applied server-side based on role + finance group scope.
   // Query params: ?tag=<tagId>&search=<title-substring>
   @Get() async list(
     @Query('tag') tag?: string,
@@ -53,8 +75,9 @@ export class DocumentsController {
     @Req() req?: any,
   ) {
     const role = callerRole(req);
+    const ctx = await this.audienceCtx(req);
     return this.docs.list({
-      audiences: audiencesVisibleTo(role),
+      audiences: audiencesVisibleTo(role, ctx),
       tagId: tag,
       search,
     });
@@ -65,7 +88,8 @@ export class DocumentsController {
     const row = await this.docs.get(id);
     if (!row) throw new NotFoundException();
     const role = callerRole(req);
-    if (!canSeeAudience(role, row.audience as DocumentAudience)) {
+    const ctx = await this.audienceCtx(req);
+    if (!canSeeAudience(role, row.audience as DocumentAudience, ctx)) {
       throw new ForbiddenException('Not visible to your role.');
     }
     return row;
@@ -142,7 +166,8 @@ export class DocumentsController {
     const row = await this.docs.get(id);
     if (!row) throw new NotFoundException();
     const role = callerRole(req);
-    if (!canSeeAudience(role, row.audience as DocumentAudience)) {
+    const ctx = await this.audienceCtx(req);
+    if (!canSeeAudience(role, row.audience as DocumentAudience, ctx)) {
       throw new ForbiddenException('Not visible to your role.');
     }
     if (!row.fileKey) throw new NotFoundException('No file on this document.');

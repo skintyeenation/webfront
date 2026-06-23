@@ -67,27 +67,50 @@ export const callerRole = (req: any): Role =>
 
 // Per-document audience values. Matches the `audience` column on Document
 // and is used by the documents + onboarding features for read gating.
-export type DocumentAudience = 'admin' | 'staff' | 'band_member' | 'public';
+// `finance` is a lateral, group-scoped tier (NOT on the public<…<admin
+// ladder): only admins and members of a configured finance group see it.
+export type DocumentAudience = 'admin' | 'staff' | 'band_member' | 'public' | 'finance';
+
+// Optional context for finance-scoped visibility. Both fields default safely:
+// without ctx, only admins can see `finance` docs — so existing callers that
+// don't pass it (e.g. onboarding) never leak finance docs to plain staff.
+export interface DocAudienceCtx {
+  groups?: string[];        // the caller's Entra security-group slugs (bandGroups)
+  financeGroups?: string[]; // group slugs configured to grant finance-doc access (default ['finance'])
+}
+
+function seesFinance(role: Role, ctx?: DocAudienceCtx): boolean {
+  if (role === 'admin') return true;
+  const finance = ctx?.financeGroups ?? ['finance'];
+  return (ctx?.groups ?? []).some((g) => finance.includes(g));
+}
 
 // Whether the caller's role is allowed to see a document tagged with
-// `audience`. Strict tier: admin > staff > member > public. A caller's
-// role grants access to everything at-or-below their tier.
-export function canSeeAudience(role: Role, audience: DocumentAudience): boolean {
+// `audience`. The public>member>staff>admin ladder grants everything
+// at-or-below the caller's tier; `finance` is handled separately as a
+// group scope (admin OR a configured finance group).
+export function canSeeAudience(role: Role, audience: DocumentAudience, ctx?: DocAudienceCtx): boolean {
+  if (audience === 'finance') return seesFinance(role, ctx);
   const rank: Record<Role, number> = { public: 0, member: 1, staff: 2, admin: 3 };
+  // `finance` carries a sentinel rank but is never read (handled above).
   const audRank: Record<DocumentAudience, number> = {
     public: 0,
     band_member: 1,
     staff: 2,
     admin: 3,
+    finance: 3,
   };
   return rank[role] >= audRank[audience];
 }
 
 // SQL "IN" clause helper for filtering documents by what the caller can
 // see — used inside Prisma `where: { audience: { in: ... } }` predicates.
-export function audiencesVisibleTo(role: Role): DocumentAudience[] {
-  if (role === 'admin') return ['admin', 'staff', 'band_member', 'public'];
-  if (role === 'staff') return ['staff', 'band_member', 'public'];
-  if (role === 'member') return ['band_member', 'public'];
-  return ['public'];
+export function audiencesVisibleTo(role: Role, ctx?: DocAudienceCtx): DocumentAudience[] {
+  const base: DocumentAudience[] =
+    role === 'admin' ? ['admin', 'staff', 'band_member', 'public']
+    : role === 'staff' ? ['staff', 'band_member', 'public']
+    : role === 'member' ? ['band_member', 'public']
+    : ['public'];
+  if (seesFinance(role, ctx)) base.push('finance');
+  return base;
 }

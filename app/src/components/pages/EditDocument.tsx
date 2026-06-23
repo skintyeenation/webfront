@@ -15,6 +15,7 @@ import { theme } from 'skintyee/styles';
 
 const AUDIENCES: { value: DocumentAudience; label: string; description: string }[] = [
   { value: 'admin',       label: 'Admin only',  description: 'Only admins can see this.' },
+  { value: 'finance',     label: 'Finance',     description: 'Finance group members (and admins) — payroll/AP documents.' },
   { value: 'staff',       label: 'Staff +',     description: 'Staff and admins can see this.' },
   { value: 'band_member', label: 'Members +',   description: 'Verified band members, staff, and admins.' },
   { value: 'public',      label: 'Public',      description: 'Visible to everyone, signed in or not.' },

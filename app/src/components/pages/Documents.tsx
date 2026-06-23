@@ -21,12 +21,14 @@ import { theme } from 'skintyee/styles';
 
 const AUDIENCE_LABEL: Record<string, string> = {
   admin: 'Admin only',
+  finance: 'Finance',
   staff: 'Staff +',
   band_member: 'Members +',
   public: 'Public',
 };
 const audienceColor = (a: string) =>
   a === 'admin' ? theme.colors.error
+  : a === 'finance' ? '#C9A227' // gold — distinct from staff's orange
   : a === 'staff' ? theme.colors.accent
   : a === 'band_member' ? theme.colors.primary
   : theme.colors.success;

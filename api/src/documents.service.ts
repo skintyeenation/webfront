@@ -3,6 +3,67 @@ import { PrismaService } from './prisma.service';
 import { DOCUMENT_STORAGE } from './storage/storage.module';
 import { DocumentStorageAdapter } from './storage/document-storage';
 import { DOCUMENT_TAG_SEED } from './documents.seed';
+import { FORM_PDF_B64 } from './documents-form-assets';
+
+// CRA / Service Canada forms seeded into the library on boot (idempotent by
+// title), all finance-scoped (audience:'finance'). The three with a `pdfKey`
+// embed the flat blank PDF AND keep the canada.ca link; the rest are link-only
+// because no public blank exists (ROE Web portal, mailed INS5097, the PDOC web
+// tool, CRA mileage guidance). `categorySlug` is a tag under the 'records'
+// bucket (see documents.seed.ts).
+interface FormSeed {
+  title: string;
+  description: string;
+  linkUrl: string;
+  categorySlug: string;
+  pdfKey?: string;
+  fileName?: string;
+}
+
+const FORM_SEED: FormSeed[] = [
+  {
+    title: 'T4 — Statement of Remuneration Paid',
+    categorySlug: 'payroll-slips', pdfKey: 't4', fileName: 't4-25e.pdf',
+    linkUrl: 'https://www.canada.ca/en/revenue-agency/services/forms-publications/forms/t4.html',
+    description: 'CRA T4 slip employers issue to employees. Embedded flat blank; the canada.ca link has the current-year and fillable versions.',
+  },
+  {
+    title: 'T4 Summary — Summary of Remuneration Paid',
+    categorySlug: 'payroll-slips', pdfKey: 't4sum', fileName: 't4sum-25e.pdf',
+    linkUrl: 'https://www.canada.ca/en/revenue-agency/services/forms-publications/forms/t4sum.html',
+    description: 'CRA T4 Summary (T4SUM) — the employer summary filed with the T4 slips.',
+  },
+  {
+    title: 'Record of Employment (ROE)',
+    categorySlug: 'payroll-slips',
+    linkUrl: 'https://www.canada.ca/en/employment-social-development/programs/ei/ei-list/ei-roe.html',
+    description: 'Service Canada ROE — issued through the ROE Web portal; there is no public blank PDF. Link to the overview + ROE Web access.',
+  },
+  {
+    title: 'Request for Record of Employment (INS3166)',
+    categorySlug: 'payroll-slips', pdfKey: 'ins3166', fileName: 'SC-INS3166.pdf',
+    linkUrl: 'https://catalogue.servicecanada.gc.ca/content/EForms/en/Detail.html?Form=INS3166',
+    description: 'Worker-side form to request an ROE a former employer has not issued. Embedded blank + Service Canada catalogue link.',
+  },
+  {
+    title: 'Request for Payroll Information (INS5097)',
+    categorySlug: 'payroll-slips',
+    linkUrl: 'https://www.canada.ca/en/employment-social-development/programs/ei/ei-list/ei-employers-payroll-info-form.html',
+    description: 'Service Canada mails this per EI claim to validate an ROE; no public blank. Link to the employer instructions.',
+  },
+  {
+    title: 'Payroll Deductions Online Calculator (PDOC)',
+    categorySlug: 'payroll-slips',
+    linkUrl: 'https://www.canada.ca/en/revenue-agency/services/e-services/digital-services-businesses/payroll-deductions-online-calculator.html',
+    description: 'CRA web tool — calculates CPP, EI, and income tax. Web-only (nothing to download).',
+  },
+  {
+    title: 'Mileage / Motor-Vehicle Records (CRA guidance)',
+    categorySlug: 'mileage-records',
+    linkUrl: 'https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/sole-proprietorships-partnerships/business-expenses/motor-vehicle-expenses/motor-vehicle-records.html',
+    description: 'CRA logbook requirements (date, destination, purpose, km, odometer). No official template — keep your own band-branded sheet.',
+  },
+];
 
 // Application-level Documents service. Wraps Prisma + the storage
 // adapter, and gracefully falls back to an in-memory store when Postgres
@@ -57,6 +118,59 @@ export class DocumentsService implements OnModuleInit {
 
   async onModuleInit() {
     await this.seedTagsIfNeeded();
+    await this.seedDocumentsIfNeeded();
+  }
+
+  // ---- Form seed (CRA / Service Canada) -----------------------------------
+
+  private async documentExistsByTitle(title: string): Promise<boolean> {
+    if (this.prisma.isAvailable) {
+      const r = await this.prisma.document.findFirst({ where: { title }, select: { id: true } });
+      return !!r;
+    }
+    for (const d of this.memDocs.values()) if (d.title === title) return true;
+    return false;
+  }
+
+  private async recordsTagId(slug: string): Promise<string | null> {
+    if (this.prisma.isAvailable) {
+      const t = await this.prisma.documentTag.findUnique({
+        where: { category_slug: { category: 'records', slug } },
+      });
+      return t?.id ?? null;
+    }
+    const id = `tag-records-${slug}`;
+    return this.memTags.has(id) ? id : null;
+  }
+
+  // Seed the payroll/AP forms once (idempotent by title). Uses the public
+  // create() path so the embedded blanks go through the storage adapter and
+  // serve via /pdf identically to user uploads. Best-effort per form.
+  async seedDocumentsIfNeeded(): Promise<void> {
+    let created = 0;
+    for (const f of FORM_SEED) {
+      try {
+        if (await this.documentExistsByTitle(f.title)) continue;
+        const tagId = await this.recordsTagId(f.categorySlug);
+        const b64 = f.pdfKey ? FORM_PDF_B64[f.pdfKey] : undefined;
+        const file = b64
+          ? { fileName: f.fileName ?? `${f.pdfKey}.pdf`, mimeType: 'application/pdf', bytes: Buffer.from(b64, 'base64') }
+          : undefined;
+        await this.create({
+          title: f.title,
+          description: f.description,
+          linkUrl: f.linkUrl,
+          audience: 'finance',
+          tagIds: tagId ? [tagId] : [],
+          createdBy: 'system-seed',
+          file,
+        });
+        created++;
+      } catch (e: any) {
+        this.log.warn(`seedDocuments: "${f.title}" failed: ${e?.message ?? e}`);
+      }
+    }
+    if (created) this.log.log(`Document seed: created ${created} CRA/Service Canada form(s), finance-scoped.`);
   }
 
   // ---- Tag catalog --------------------------------------------------------
