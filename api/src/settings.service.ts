@@ -52,6 +52,22 @@ function coerceBool(v: unknown, fallback: boolean): boolean {
   return typeof v === 'boolean' ? v : fallback;
 }
 
+// Document-library settings — a second AppSetting JSON blob, separate from
+// notification-settings. Admin-configurable so the band can widen/narrow which
+// Entra groups get the payroll/AP (audience:'finance') document scope without a
+// code change.
+export interface DocumentSettings {
+  // Entra security-group slugs whose members can see audience:'finance'
+  // documents. Admins always can, regardless of this list.
+  financeDocumentGroups: string[];
+}
+
+const DOC_SETTINGS_KEY = 'document-settings';
+
+function docDefaults(): DocumentSettings {
+  return { financeDocumentGroups: ['finance'] };
+}
+
 @Injectable()
 export class SettingsService {
   private readonly log = new Logger(SettingsService.name);
@@ -121,5 +137,58 @@ export class SettingsService {
   async replyTo(): Promise<string | undefined> {
     const s = await this.load();
     return s.replyTo || undefined;
+  }
+
+  // ---- Document settings (financeDocumentGroups) --------------------------
+
+  private docCache: DocumentSettings | null = null;
+
+  private async loadDoc(): Promise<DocumentSettings> {
+    if (this.docCache) return this.docCache;
+    let stored: Partial<DocumentSettings> = {};
+    if (this.prisma.isAvailable) {
+      try {
+        const row = await this.prisma.appSetting.findUnique({ where: { key: DOC_SETTINGS_KEY } });
+        if (row?.value) stored = JSON.parse(row.value);
+      } catch (e: any) {
+        this.log.warn(`load document-settings failed; using defaults: ${e?.message ?? e}`);
+      }
+    }
+    const merged = { ...docDefaults(), ...stored };
+    if (!Array.isArray(merged.financeDocumentGroups)) {
+      merged.financeDocumentGroups = docDefaults().financeDocumentGroups;
+    }
+    this.docCache = merged;
+    return this.docCache;
+  }
+
+  async getDocumentSettings(): Promise<DocumentSettings> {
+    return { ...(await this.loadDoc()) };
+  }
+
+  async updateDocumentSettings(patch: Partial<DocumentSettings>): Promise<DocumentSettings> {
+    const cur = await this.loadDoc();
+    const groups = Array.isArray(patch.financeDocumentGroups)
+      ? patch.financeDocumentGroups.map((s) => String(s).trim()).filter(Boolean)
+      : cur.financeDocumentGroups;
+    const next: DocumentSettings = { financeDocumentGroups: groups };
+    this.docCache = next;
+    if (this.prisma.isAvailable) {
+      try {
+        await this.prisma.appSetting.upsert({
+          where:  { key: DOC_SETTINGS_KEY },
+          create: { key: DOC_SETTINGS_KEY, value: JSON.stringify(next) },
+          update: { value: JSON.stringify(next) },
+        });
+      } catch (e: any) {
+        this.log.warn(`persist document-settings failed (kept in memory): ${e?.message ?? e}`);
+      }
+    }
+    return { ...next };
+  }
+
+  /** Entra group slugs whose members can see audience:'finance' documents. */
+  async financeDocumentGroups(): Promise<string[]> {
+    return (await this.loadDoc()).financeDocumentGroups;
   }
 }

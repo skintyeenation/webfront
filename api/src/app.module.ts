@@ -18,7 +18,7 @@ import { StaffAuthController } from './staff-auth.controller';
 import { DevicesController } from './devices.controller';
 import { MailgunService } from './mailgun.service';
 import { SettingsService } from './settings.service';
-import { SettingsController } from './settings.controller';
+import { SettingsController, DocumentSettingsController } from './settings.controller';
 import { ExpensesController } from './expenses.controller';
 import { ExpensesService } from './expenses.service';
 import { ExpenseReportsService } from './expense-reports.service';
@@ -33,6 +33,7 @@ import { AnthropicService } from './anthropic.service';
     StaffAuthController,  // staff-auth feature — public /v1/auth/staff/*
     DevicesController,    // System → Devices (Entra devices, seeded; admin-only)
     SettingsController,   // System → Configure Notifications (admin-only)
+    DocumentSettingsController, // System → finance-doc group scope (admin-only)
     ExpensesController,   // Expenses module — claims/receipts/tags (mirrors TimeKeeping)
   ],
   providers: [

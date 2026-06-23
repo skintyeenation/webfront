@@ -509,7 +509,7 @@ export interface OnboardingStepStateDto {
 
 // ---- Documents DTOs --------------------------------------------------------
 
-export type DocumentAudience = 'admin' | 'staff' | 'band_member' | 'public';
+export type DocumentAudience = 'admin' | 'staff' | 'band_member' | 'public' | 'finance';
 
 export interface DocumentDto {
   id: string;
