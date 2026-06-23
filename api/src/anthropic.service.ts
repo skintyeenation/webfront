@@ -5,8 +5,12 @@ import { Injectable, Logger } from '@nestjs/common';
 // deps — Node 20 global fetch, no SDK (matches graph-feed.service.ts). Config
 // via env; secrets are Container App secrets in prod:
 //
-//   ANTHROPIC_API_KEY  (required)  Anthropic API key
-//   ANTHROPIC_MODEL    (optional)  default claude-haiku-4-5-20251001
+//   ANTHROPIC_API_KEY    (required)  Anthropic API key
+//   ANTHROPIC_MODEL      (optional)  default claude-haiku-4-5-20251001
+//   ANTHROPIC_MAX_TOKENS (optional)  output-token cap per call; default 32768,
+//                                    clamped to [512, 64000]. This is a CAP,
+//                                    not a charge — you pay only for tokens
+//                                    actually generated (see docs/pricing-overview.md).
 //
 // Best-effort: when the key is unset OR anything fails, returns all-nulls so the
 // submitter can still enter the receipt manually.
@@ -54,6 +58,16 @@ export class AnthropicService {
 
   private get model(): string {
     return process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001';
+  }
+
+  // Output-token ceiling per receipt extraction. A CAP (not a charge): cost is
+  // driven by tokens actually generated, so a generous cap only prevents the
+  // lineItems array from truncating mid-stream on long receipts. Clamped so a
+  // stray env value can't truncate to nothing or exceed Haiku 4.5's 64K cap.
+  private get maxTokens(): number {
+    const raw = parseInt(process.env.ANTHROPIC_MAX_TOKENS ?? '', 10);
+    if (!Number.isFinite(raw)) return 32768;
+    return Math.min(Math.max(raw, 512), 64000);
   }
 
   async extractReceipt(
@@ -128,7 +142,13 @@ export class AnthropicService {
         },
         body: JSON.stringify({
           model: this.model,
-          max_tokens: 512,
+          // record_receipt emits lineItems LAST, so a tight cap truncates the
+          // tool_use input mid-array — the scalar fields (amount/vendor/date)
+          // survive but line items come back partial or empty. An itemised
+          // grocery/hardware receipt can run well past 512 output tokens; the
+          // default 32768 leaves ample headroom (override via ANTHROPIC_MAX_TOKENS;
+          // Haiku 4.5 allows up to 64K). It's a cap, not a charge — see maxTokens.
+          max_tokens: this.maxTokens,
           tools: [tool],
           tool_choice: { type: 'tool', name: 'record_receipt' },
           messages: [{ role: 'user', content: [media, { type: 'text', text: prompt }] }],
@@ -148,6 +168,12 @@ export class AnthropicService {
         return empty('failed', msg);
       }
       const data: any = await res.json();
+      // stop_reason === 'max_tokens' means the response was cut off — the
+      // tool_use input is likely incomplete, so line items may be partial.
+      // Log it so a recurring truncation is visible rather than silent.
+      if (data.stop_reason === 'max_tokens') {
+        this.log.warn('extractReceipt: hit max_tokens — line items may be truncated; consider raising max_tokens');
+      }
       const toolUse = (data.content ?? []).find((c: any) => c.type === 'tool_use');
       const inp = toolUse?.input ?? {};
       const out: ReceiptExtraction = {

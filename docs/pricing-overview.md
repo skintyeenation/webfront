@@ -27,6 +27,7 @@ Canadian law (current expenses, not capital — see each doc; not tax advice).
 | **Claude (Anthropic) Max** | AI coding assistant — Claude Code (1 seat) | per month | **~US $100/mo** (~CAD $136) | [`developer-tools.md`](developer-tools.md) |
 | **ImprovMX** | Email forwarding (aliases / secondary domains → M365) | per month | **$0** (Free) — or ~US $9/mo Premium | [`improvmx/`](improvmx/README.md) |
 | **Mailgun** | Transactional / app outbound email | usage-based | **$0** (free/low volume) — or ~US $15–35/mo | [`mailgun/`](mailgun/README.md) |
+| **Anthropic API** (Claude Haiku 4.5) | App **runtime** — AI receipt scanner in Expenses (reads a receipt image → structured data) | usage-based | **~$0** until wired to a funded key — order of **≤ 1¢ per receipt** | see *Notes* below |
 
 ## Worked example — 9 staff (4 Premium + 5 Standard) + 3 app-only contractors
 
@@ -70,3 +71,18 @@ Plus a **one-time** Google Play registration of ~CAD $34 at setup. Apple's
   Azure is quoted in USD. Confirm CAD on the invoices.
 - **Evidence for tax:** the authoritative records are the **invoices** from each
   provider — keep them with these docs.
+- **Anthropic API (runtime AI receipt scanning)** — the app's **Expenses**
+  receipt scanner calls **Claude Haiku 4.5** (vision) to turn a receipt photo
+  into structured data (amount, vendor, date, tax, line items). This is the
+  **pay-as-you-go Anthropic API** and is **distinct from the Claude Max dev
+  seat** above (that's the developer's Claude Code subscription, not a runtime
+  cost). Haiku 4.5 pricing is roughly **US $1 / 1M input tokens** and **US $5 /
+  1M output tokens**, so a single receipt — a vision image plus a short prompt
+  in, a few hundred JSON tokens out — costs on the order of **US $0.005–0.01**.
+  Even at hundreds of receipts per month this is a few dollars. **`max_tokens`
+  is a cap, not a charge:** you pay only for the tokens the model actually
+  generates, so the default output cap of **32768** (override with
+  `ANTHROPIC_MAX_TOKENS`) — raised from 512 to stop long itemised receipts from
+  truncating mid-list — does **not** increase the per-receipt cost. The feature
+  stays at **$0** until `ANTHROPIC_API_KEY` is pointed at a funded account; with
+  no key the scanner cleanly degrades to manual entry.

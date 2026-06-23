@@ -18,8 +18,8 @@ const AUDIENCES: { value: DocumentAudience; label: string }[] = [
   { value: 'band_member', label: 'Members +' },
   { value: 'public',      label: 'Public' },
 ];
-const TAG_CATEGORY_ORDER: Array<'gov' | 'gov_sector' | 'department'> = ['gov', 'gov_sector', 'department'];
-const TAG_CATEGORY_LABEL: Record<string, string> = { gov: 'Government', gov_sector: 'Sector', department: 'Department' };
+const TAG_CATEGORY_ORDER: Array<'gov' | 'gov_sector' | 'department' | 'records'> = ['gov', 'gov_sector', 'department', 'records'];
+const TAG_CATEGORY_LABEL: Record<string, string> = { gov: 'Government', gov_sector: 'Sector', department: 'Department', records: 'Records' };
 
 // ----------------------------------------------------------------------------
 // EditOnboardingFlow — admin screen to design / edit a flow.
@@ -82,7 +82,7 @@ export default function EditOnboardingFlow({ navigation, route }: any) {
   const [uploadingDoc, setUploadingDoc] = useState(false);
 
   const uTagsByCategory = useMemo(() => {
-    const out: Record<string, DocumentTagDto[]> = { gov: [], gov_sector: [], department: [] };
+    const out: Record<string, DocumentTagDto[]> = { gov: [], gov_sector: [], department: [], records: [] };
     for (const t of docTags) (out[t.category] ??= []).push(t);
     return out;
   }, [docTags]);

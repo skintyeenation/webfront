@@ -6,3 +6,6 @@ dist/
 
 # EXO cert + password (cert auth for Exchange Online PowerShell)
 .exo-cert/
+
+# Local-disk document storage (LocalFileStorageAdapter dev fallback)
+.storage/

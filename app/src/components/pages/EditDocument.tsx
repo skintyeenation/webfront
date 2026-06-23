@@ -20,11 +20,12 @@ const AUDIENCES: { value: DocumentAudience; label: string; description: string }
   { value: 'public',      label: 'Public',      description: 'Visible to everyone, signed in or not.' },
 ];
 
-const CATEGORY_ORDER: Array<'gov' | 'gov_sector' | 'department'> = ['gov', 'gov_sector', 'department'];
+const CATEGORY_ORDER: Array<'gov' | 'gov_sector' | 'department' | 'records'> = ['gov', 'gov_sector', 'department', 'records'];
 const CATEGORY_LABEL: Record<string, string> = {
   gov: 'Government',
   gov_sector: 'Sector',
   department: 'Department',
+  records: 'Records',
 };
 
 export default function EditDocument({ navigation, route }: any) {
@@ -80,7 +81,7 @@ export default function EditDocument({ navigation, route }: any) {
   }, [editingId]);
 
   const tagsByCategory = useMemo(() => {
-    const out: Record<string, DocumentTagDto[]> = { gov: [], gov_sector: [], department: [] };
+    const out: Record<string, DocumentTagDto[]> = { gov: [], gov_sector: [], department: [], records: [] };
     for (const t of tagCat.tags) (out[t.category] ??= []).push(t);
     return out;
   }, [tagCat.tags]);

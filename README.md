@@ -443,6 +443,17 @@ Azure, the **Apple/Google app-store** accounts, and developer tools) — each
 linking to its detailed cost record, with a worked example. All are 100%
 tax-deductible operating expenses under Canadian law.
 
+> **Runtime AI cost — receipt scanning.** The Expenses **receipt scanner** calls
+> the **Anthropic API** (Claude Haiku 4.5 vision) to read a receipt image into
+> structured data. This is a usage-based runtime cost — on the order of **a cent
+> or less per receipt** — and is **separate from the Claude Max dev seat**. The
+> per-call output limit is configurable via **`ANTHROPIC_MAX_TOKENS`** (default
+> 32768; raised from 512 so long itemised receipts don't truncate). `max_tokens`
+> is a **cap, not a charge** — you pay only for tokens generated, so the higher
+> cap doesn't raise per-receipt cost. The only place the app sets a token limit
+> is [`api/src/anthropic.service.ts`](api/src/anthropic.service.ts). Details:
+> [`docs/pricing-overview.md`](docs/pricing-overview.md).
+
 ## Conventions
 
 Default branch is `master`. Work on `feature/*` branches and merge with
