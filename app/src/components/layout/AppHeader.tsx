@@ -2,7 +2,8 @@ import React from 'react';
 import { TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { Appbar, Avatar } from 'react-native-paper';
 import { Logo } from './Logo';
-import { useAppSelector } from 'skintyee/store';
+import { useAppSelector, useAppDispatch } from 'skintyee/store';
+import { setNavPosition } from 'skintyee/store/modules/appState';
 import Config from 'skintyee/config';
 import { theme, APP_MAX_WIDTH } from 'skintyee/styles';
 
@@ -49,6 +50,9 @@ export function AppHeader({ title, navigation, back, options, showAccount = true
   const headerTitle = long && width >= LONG_TITLE_BREAKPOINT ? long : short;
   const { name, signedIn, user } = useAppSelector((s) => s.auth);
   const directory = useAppSelector((s) => s.directory.entities);
+  const dispatch = useAppDispatch();
+  const navPosition = useAppSelector((s) => s.app.navPosition);
+  const wideEnoughForRail = width >= 900; // desktop only — show the nav-placement toggle
 
   const myUpn = (user?.upn ?? '').toLowerCase();
   const me = myUpn
@@ -66,6 +70,16 @@ export function AppHeader({ title, navigation, back, options, showAccount = true
       </View>
       {back ? <Appbar.BackAction onPress={() => navigation?.goBack()} /> : null}
       <Appbar.Content title={headerTitle} titleStyle={{ color: theme.colors.text, fontSize: 16 }} />
+
+      {/* Desktop-only: toggle the nav between the bottom bar and a left rail. */}
+      {wideEnoughForRail ? (
+        <Appbar.Action
+          icon={navPosition === 'left' ? 'dock-bottom' : 'dock-left'}
+          color={theme.colors.primary}
+          accessibilityLabel={navPosition === 'left' ? 'Move navigation to the bottom' : 'Move navigation to the left'}
+          onPress={() => dispatch(setNavPosition(navPosition === 'left' ? 'bottom' : 'left'))}
+        />
+      ) : null}
 
       {showAccount ? (
         photoSrc ? (
