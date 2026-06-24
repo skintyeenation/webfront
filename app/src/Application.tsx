@@ -1,8 +1,8 @@
 import 'react-native-gesture-handler';
 import React, { useEffect, useState } from 'react';
-import { NavigationContainer, DarkTheme as NavDarkTheme } from '@react-navigation/native';
+import { NavigationContainer, DarkTheme as NavDarkTheme, useNavigationBuilder, TabRouter, TabActions, createNavigatorFactory } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { createMaterialBottomTabNavigator } from '@react-navigation/material-bottom-tabs';
+import { StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { StatusBar } from 'expo-status-bar';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -169,33 +169,91 @@ const tabComponents: Record<string, React.ComponentType<any>> = {
   Meetings: MeetingsNavigation,
 };
 
-const Tabs = createMaterialBottomTabNavigator();
+// Custom tab navigator: renders the same tab screens but with the nav as a
+// bottom bar (default) OR a left side rail on desktop, toggled via the persisted
+// `navPosition` preference (set from the header on wide screens). All screens
+// stay mounted (display-toggled) so per-tab state survives switching.
+function ShellTabs({ initialRouteName, children, screenOptions }: any) {
+  const { state, navigation, descriptors, NavigationContent } = useNavigationBuilder(TabRouter, {
+    initialRouteName, children, screenOptions,
+  });
+  const navPosition = useAppSelector((s) => s.app.navPosition);
+  const { width } = useWindowDimensions();
+  const leftRail = navPosition === 'left' && width >= 900;
+
+  const renderTabButton = (route: any, i: number, vertical: boolean) => {
+    const focused = state.index === i;
+    const color = focused ? theme.colors.text : theme.colors.primary;
+    const icon = descriptors[route.key].options.tabBarIcon;
+    const onPress = () => {
+      const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+      if (!focused && !(event as any).defaultPrevented) {
+        navigation.dispatch({ ...TabActions.jumpTo(route.name), target: state.key });
+      }
+    };
+    return (
+      <TouchableOpacity
+        key={route.key}
+        accessibilityRole="button"
+        accessibilityState={{ selected: focused }}
+        onPress={onPress}
+        style={[
+          { alignItems: 'center', justifyContent: 'center' },
+          vertical ? { paddingVertical: 8, marginBottom: 18 } : { flex: 1, paddingVertical: 8 },
+        ]}
+      >
+        {icon ? icon({ focused, color, size: 24 }) : null}
+        {/* Bottom bar keeps text labels; the left rail is icon-only. */}
+        {!vertical ? <Text style={{ color, fontSize: 10, marginTop: 3 }} numberOfLines={1}>{route.name}</Text> : null}
+      </TouchableOpacity>
+    );
+  };
+
+  return (
+    <NavigationContent>
+      <View style={{ flex: 1, flexDirection: leftRail ? 'row' : 'column', backgroundColor: theme.colors.background }}>
+        {leftRail ? (
+          <View style={{ width: 64, backgroundColor: theme.colors.darkDefault, paddingTop: 6 }}>
+            {state.routes.map((r, i) => renderTabButton(r, i, true))}
+          </View>
+        ) : null}
+        <View style={{ flex: 1 }}>
+          {state.routes.map((route, i) => (
+            <View key={route.key} style={[StyleSheet.absoluteFill, { display: state.index === i ? 'flex' : 'none' }]}>
+              {descriptors[route.key].render()}
+            </View>
+          ))}
+        </View>
+        {!leftRail ? (
+          <View style={{ flexDirection: 'row', backgroundColor: theme.colors.background, width: '100%', maxWidth: APP_MAX_WIDTH, alignSelf: 'center' }}>
+            {state.routes.map((r, i) => renderTabButton(r, i, false))}
+          </View>
+        ) : null}
+      </View>
+    </NavigationContent>
+  );
+}
+const createShellTabNavigator = createNavigatorFactory(ShellTabs as any);
+
+const Tabs = createShellTabNavigator();
 const MainTabs = () => {
   const role = useAppSelector((s) => s.auth.role);
   const overflow = role === 'admin' ? 'Admin' : 'More';
   return (
-    <Tabs.Navigator
-      activeColor={theme.colors.text}
-      inactiveColor={theme.colors.primary}
-      // Cap the bar to the app's 1200px max content width and centre it, so on
-      // wide / 4K screens the tabs don't stretch edge-to-edge. No effect on
-      // phones (narrower than the cap).
-      barStyle={{ backgroundColor: theme.colors.background, width: '100%', maxWidth: APP_MAX_WIDTH, alignSelf: 'center' }}
-      shifting={false}
-    >
+    <Tabs.Navigator>
       {CORE_TABS.map((name) => (
         <Tabs.Screen
           key={name}
           name={name}
           component={tabComponents[name]}
-          options={{ tabBarIcon: ({ color }: { color: string }) => <MaterialCommunityIcons name={tabIcons[name]} color={color} size={22} /> }}
+          options={{ tabBarIcon: ({ color }: { color: string }) => <MaterialCommunityIcons name={tabIcons[name]} color={color} size={24} /> }}
         />
       ))}
       <Tabs.Screen
         key={overflow}
         name={overflow}
         component={MoreNavigation}
-        options={{ tabBarIcon: ({ color }: { color: string }) => <MaterialCommunityIcons name={tabIcons[overflow]} color={color} size={22} /> }}
+        options={{ tabBarIcon: ({ color }: { color: string }) => <MaterialCommunityIcons name={tabIcons[overflow]} color={color} size={24} /> }}
       />
     </Tabs.Navigator>
   );

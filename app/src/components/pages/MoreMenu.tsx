@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
-import { Badge, Divider, List, Text } from 'react-native-paper';
-import { View } from 'react-native';
+import { Badge, Card, Divider, List, Text } from 'react-native-paper';
+import { useWindowDimensions, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { PageContainer, PageContent } from 'skintyee/components/layout';
 import { useAppSelector } from 'skintyee/store';
@@ -83,24 +83,47 @@ const COMMUNITY_ITEMS: MoreItem[] = [
 
 function Section({ title, items, role, navigation }: { title?: string; items: MoreItem[]; role: Role; navigation: any }) {
   const visible = items.filter((it) => it.roles.includes(role));
+  const { width } = useWindowDimensions();
+  const wide = width >= 768; // desktop → card grid; phone → list rows
   if (visible.length === 0) return null;
   return (
     <>
       {title ? <Text style={{ color: theme.colors.accent, fontSize: 12, fontWeight: '700', marginTop: 14, marginBottom: 4, marginLeft: 4 }}>{title.toUpperCase()}</Text> : null}
-      {visible.map((it, i) => (
-        <React.Fragment key={it.route}>
-          {i > 0 ? <Divider /> : null}
-          <List.Item
-            title={it.label}
-            description={it.description}
-            titleStyle={{ color: theme.colors.text }}
-            descriptionStyle={{ color: theme.colors.textDarker }}
-            left={() => <List.Icon icon={it.icon} color={theme.colors.primary} />}
-            right={() => <List.Icon icon="chevron-right" color={theme.colors.textDarker} />}
-            onPress={() => navigation.navigate(it.route)}
-          />
-        </React.Fragment>
-      ))}
+      {wide ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 2 }}>
+          {visible.map((it) => (
+            <Card
+              key={it.route}
+              mode="contained"
+              style={{ width: 240, marginRight: 10, marginBottom: 10, backgroundColor: theme.colors.darkDefault }}
+              onPress={() => navigation.navigate(it.route)}
+            >
+              <Card.Content style={{ paddingVertical: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <List.Icon icon={it.icon} color={theme.colors.primary} style={{ margin: 0, marginRight: 4 }} />
+                  <Text style={{ color: theme.colors.text, fontWeight: '600', flex: 1 }}>{it.label}</Text>
+                </View>
+                {it.description ? <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginTop: 4 }}>{it.description}</Text> : null}
+              </Card.Content>
+            </Card>
+          ))}
+        </View>
+      ) : (
+        visible.map((it, i) => (
+          <React.Fragment key={it.route}>
+            {i > 0 ? <Divider /> : null}
+            <List.Item
+              title={it.label}
+              description={it.description}
+              titleStyle={{ color: theme.colors.text }}
+              descriptionStyle={{ color: theme.colors.textDarker }}
+              left={() => <List.Icon icon={it.icon} color={theme.colors.primary} />}
+              right={() => <List.Icon icon="chevron-right" color={theme.colors.textDarker} />}
+              onPress={() => navigation.navigate(it.route)}
+            />
+          </React.Fragment>
+        ))
+      )}
     </>
   );
 }
