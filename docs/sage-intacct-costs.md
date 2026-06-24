@@ -67,12 +67,15 @@ figure**, not a USD×FX conversion. Estimates, not a quote.
 ## Non-profit discount
 
 - **Sage Foundation "NPO Success" → ~20% off Sage Intacct** (excludes the Intacct
-  *Starter* edition), validated through partner **Percent**. A **Canadian** NPO
-  Success page exists. **Apply via Percent to confirm the specific band entity
-  qualifies** — probable, not automatic.
-- **TechSoup / TechSoup Canada does NOT donate or discount Sage Intacct** (its
-  Sage program is payment-processing only). The discount path is Sage
-  Foundation/Percent, a separate channel — don't conflate them.
+  *Starter* edition), validated through partner **Percent** —
+  [Canada NPO Success page](https://www.sage.com/en-ca/company/sage-foundation/products/)
+  · [UK page (confirms the 20% Intacct line)](https://www.sage.com/en-gb/company/sage-foundation/products/).
+  **Apply via Percent to confirm the specific band entity qualifies** — probable,
+  not automatic.
+- **TechSoup / TechSoup Canada does NOT donate or discount Sage Intacct** — its
+  [Sage program](https://www.techsoup.org/sage) is payment-processing only, and
+  [TechSoup Canada](https://www.techsoup.ca/) lists no Sage product. The discount
+  path is Sage Foundation/Percent, a separate channel — don't conflate them.
 
 ## Canada & First Nations fit
 
@@ -100,3 +103,42 @@ figure**, not a USD×FX conversion. Estimates, not a quote.
   form for the 20% nonprofit discount; (3) confirm the **API-integration
   licensing** so contractors stay off Intacct seats.
 - **Evidence for tax:** the **Sage / VAR invoice** is the authoritative record.
+
+## Sources & confidence
+
+Sage Intacct is quote-only, so these are **third-party estimates**, cross-checked
+across independent resellers/VARs + aggregators. The strongest single anchor is
+RKL's documented sample config (**5 Business + 10 Employee users + 2 entities ≈
+US \$25k/yr**).
+
+**Pricing estimates (subscription + implementation):**
+- Sage — official pricing page (confirms quote-only, no figures): <https://www.sage.com/en-us/sage-business-cloud/intacct/pricing/>
+- Cargas — Sage Intacct pricing: <https://cargas.com/software/sage-intacct/pricing/>
+- RKL eSolutions — Sage Intacct cost (the ~\$25k anchor config): <https://www.rklesolutions.com/sage-intacct-cost>
+- Rand Group — Sage Intacct pricing: <https://www.randgroup.com/insights/sage/sage-intacct/sage-intacct-pricing/>
+- gotomyerp — Sage Intacct pricing: <https://www.gotomyerp.com/sage-intacct-pricing/>
+- ERP Research — Sage Intacct pricing (per-user + per-module bands): <https://www.erpresearch.com/pricing/sage-intacct>
+- G2 Learn — Sage Intacct pricing: <https://learn.g2.com/sage-intacct-pricing>
+- BT Partners — how much does Sage Intacct cost: <https://www.btpartners.com/technology-blogs/how-much-does-sage-intacct-cost>
+
+**User model (Business vs Employee users; time/expense needs a license):**
+- Sage docs — link an employee to a user for timesheet/expense access: <https://www.intacct.com/ia/docs/en_US/help_action/Administration/Users/make-an-employee-a-user.htm>
+- Stitchflow — Sage user types: <https://www.stitchflow.com/user-management/sage/manual>
+
+**Non-profit discount:**
+- Sage Foundation "NPO Success" — Canada: <https://www.sage.com/en-ca/company/sage-foundation/products/> · UK (confirms the 20% Intacct line): <https://www.sage.com/en-gb/company/sage-foundation/products/>
+- Sage Intacct for Nonprofits (edition): <https://www.sage.com/en-us/sage-business-cloud/intacct/industry/nonprofit/>
+- TechSoup — Sage (payment-processing only, **not** Intacct): <https://www.techsoup.org/sage> · TechSoup Canada: <https://www.techsoup.ca/>
+
+**Canada & First Nations:**
+- Sage — Canadian data centre press release (Montreal, 2021): <https://www.sage.com/en-ca/news/press-releases/2021/05/sage-launches-its-first-sage-intacct-data-centre-presence-in-canada/>
+- Capterra Canada — Intacct: <https://www.capterra.ca/software/76/intacct>
+- MNP Digital — **Mattagami First Nation** (Sage 300 → Intacct, FMB certification): <https://mnpdigital.ca/insights/mattagami/>
+- SAC-ISC — First Nations reporting (PSAS basis): <https://www.sac-isc.gc.ca/eng/1322056355024/1565374106591>
+
+**Confidence:** **high** on — quote-only model; the two user tiers; time/expense
+needs a license (or the API avoids it); core ~US \$9–15k; small-deployment total
+~US \$15–35k; implementation ~1.0–1.5× subscription; the ~20% non-profit discount
+(via Percent); Intacct sold/served in Canada. **Low / verify-in-quote** on — the
+exact ~US \$400–800/user/mo (single-sourced & derived); per-module dollar figures
+(none published individually); and the specific band's discount eligibility.
