@@ -84,6 +84,9 @@ jobs:
           EXO_FUNCTION_KEY:    $(EXO_FUNCTION_KEY)
           PG_PASSWORD:         $(PG_PASSWORD)
           MAILGUN_API_KEY:     $(MAILGUN_API_KEY)
+          # Document storage SAS (secret). Optional — if unset in the variable
+          # group, the blob block below is skipped and the api uses local disk.
+          AZURE_STORAGE_DOCUMENTS_SAS: $(AZURE_STORAGE_DOCUMENTS_SAS)
         inputs:
           azureSubscription: skintyee-prod-azure
           scriptType: bash
@@ -121,6 +124,32 @@ jobs:
                 "MAILGUN_FROM=${MAILGUN_FROM:-Skin Tyee First Nation <it@skintyee.ca>}" \
                 "APP_SIGNIN_URL=${APP_SIGNIN_URL:-https://app.skintyee.ca}" \
               --output none
+
+            # Durable document storage (Azure Blob). Optional: only configured
+            # when AZURE_STORAGE_DOCUMENTS_ACCOUNT + _SAS are set in the variable
+            # group. Without it the api falls back to the container's local disk,
+            # which is WIPED whenever ACA replaces the revision (every deploy) —
+            # so seeded/uploaded document files would not survive. Set both vars
+            # (ACCOUNT as plain, SAS as a secret) to make documents durable.
+            DOC_ACCOUNT="${AZURE_STORAGE_DOCUMENTS_ACCOUNT:-}"
+            DOC_SAS="${AZURE_STORAGE_DOCUMENTS_SAS:-}"
+            case "$DOC_SAS" in '$('*) DOC_SAS='';; esac  # unresolved ADO macro ⇒ treat as unset
+            if [ -n "$DOC_ACCOUNT" ] && [ -n "$DOC_SAS" ]; then
+              echo "▸ configuring Azure Blob document storage (account=$DOC_ACCOUNT)…"
+              az containerapp secret set \
+                --name "$AZURE_CONTAINERAPP" --resource-group "$AZURE_RG" \
+                --secrets "documents-sas=$DOC_SAS" --output none
+              az containerapp update \
+                --name "$AZURE_CONTAINERAPP" --resource-group "$AZURE_RG" \
+                --set-env-vars \
+                  "STORAGE_DRIVER=blob" \
+                  "AZURE_STORAGE_DOCUMENTS_ACCOUNT=$DOC_ACCOUNT" \
+                  "AZURE_STORAGE_DOCUMENTS_CONTAINER=${AZURE_STORAGE_DOCUMENTS_CONTAINER:-skintyee-app-documents}" \
+                  "AZURE_STORAGE_DOCUMENTS_SAS=secretref:documents-sas" \
+                --output none
+            else
+              echo "▸ Azure Blob document storage NOT configured (set AZURE_STORAGE_DOCUMENTS_ACCOUNT + _SAS in the skintyee-prod-azure variable group) — using container-local disk, which is ephemeral across deploys."
+            fi
 
       - task: AzureCLI@2
         displayName: Update Container App revision
