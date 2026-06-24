@@ -63,6 +63,37 @@ API Server for data.
   Services). Likely surfaced through the API Server. See ADR-5 in
   `../docs/architecture-decisions.md`.
 
+## 2f. Sage Intacct sync — stubbed (→ Sage Intacct XML Web Services)
+
+- **What:** when finance/admins **approve** a timesheet or expense claim, the api/
+  pushes it into **Sage Intacct** (a TIMESHEET / EEXPENSES record) so approved
+  time + expenses post to the accounting system automatically.
+- **Where (api/ — `@skintyee/api`):**
+  - `api/src/sage-intacct/sage-intacct-client.ts` — the client contract +
+    `SAGE_INTACCT_CLIENT` DI token + Intacct DTO types (`IntacctTimesheet` →
+    `TIMESHEET`/`TIMESHEETENTRY`, `IntacctExpenseReport` → `EEXPENSES`/`EEXPENSESITEM`,
+    line `glAccount` from `ExpenseTag.glAccount`).
+  - `api/src/sage-intacct/stub-sage-intacct.client.ts` — `StubSageIntacctClient`:
+    logs the mapped payload, returns a canned `TS-STUB-<n>` / `EE-STUB-<n>` key,
+    **no real HTTP**.
+  - `api/src/sage-intacct/sage-intacct-sync.service.ts` — `SageIntacctSyncService`
+    (`syncTimesheet` / `syncExpenseClaim`): loads the row from Prisma, maps
+    app→Intacct DTOs (workerUpn/submitterUpn → employeeId, tagSlug → GL account),
+    calls the client. Best-effort — catches + logs, never throws.
+  - Wired in `api/src/app.module.ts` (factory keyed on `SAGE_INTACCT_DRIVER`) and
+    called from the approve handlers in `api/src/controllers.ts`
+    (`TimeKeepingController.approve`) and `api/src/expenses.controller.ts`
+    (`ExpensesController.approve`) — search `// STUB:`.
+- **STUB:** the bound client is `'stub'` (`SAGE_INTACCT_DRIVER` default / unset).
+  It logs and returns a synthetic key instead of posting anything; setting
+  `SAGE_INTACCT_DRIVER=live` warns and falls back to the stub (no live client yet).
+- **Replace with:** a `LiveSageIntacctClient implements SageIntacctClient` that
+  XML-POSTs to the Intacct Web Services Gateway (session auth via
+  `SAGE_INTACCT_SENDER_ID`/`_SENDER_PASSWORD`/`_COMPANY_ID`/`_USER_ID`/
+  `_USER_PASSWORD`, as Container App secrets), bound when `SAGE_INTACCT_DRIVER=live`.
+  No sync-service or controller changes needed — they depend only on the
+  `SageIntacctClient` interface. (Complements the Adagio / Sage 300 GL mapping in §2b.)
+
 ## 2c. Notifications feed — mocked (→ skintyee.ca WordPress)
 
 - **What:** the in-app Notifications inbox and its categories.

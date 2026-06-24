@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { DataService } from './data.service';
 import { RolesGuard } from './roles';
@@ -23,6 +23,9 @@ import { ExpensesController } from './expenses.controller';
 import { ExpensesService } from './expenses.service';
 import { ExpenseReportsService } from './expense-reports.service';
 import { AnthropicService } from './anthropic.service';
+import { SAGE_INTACCT_CLIENT, SageIntacctDriver } from './sage-intacct/sage-intacct-client';
+import { StubSageIntacctClient } from './sage-intacct/stub-sage-intacct.client';
+import { SageIntacctSyncService } from './sage-intacct/sage-intacct-sync.service';
 
 @Module({
   imports: [StorageModule],
@@ -51,6 +54,26 @@ import { AnthropicService } from './anthropic.service';
     TimekeepingReportsService, // Time Keeping > Reports — PDF + CSV per pay period
     StaffAuthService,  // Password hashing + JWT for the non-Entra sign-in path (docs/features/staff-auth.md)
     MailgunService,    // Transactional email (staff OTP onboarding, band-member notifications)
+    // Sage Intacct sync — pushes approved timesheets/claims to Intacct (STUBBED).
+    // Registered here (not a sub-module) so it shares this module's PrismaService.
+    StubSageIntacctClient,
+    {
+      // Bind the SAGE_INTACCT_CLIENT token by SAGE_INTACCT_DRIVER, mirroring the
+      // DOCUMENT_STORAGE factory in storage.module.ts. Only 'stub' ships today;
+      // 'live' falls back to the stub with a warning until the XML client lands.
+      provide: SAGE_INTACCT_CLIENT,
+      inject: [StubSageIntacctClient],
+      useFactory: (stub: StubSageIntacctClient) => {
+        const log = new Logger('SageIntacctModule');
+        const driver = (process.env.SAGE_INTACCT_DRIVER as SageIntacctDriver | undefined) ?? 'stub';
+        if (driver === 'live') {
+          log.warn('SAGE_INTACCT_DRIVER=live but the live XML client is not implemented — using the stub.');
+        }
+        log.log(`Sage Intacct driver: ${stub.driver}`);
+        return stub;
+      },
+    },
+    SageIntacctSyncService, // syncTimesheet / syncExpenseClaim, called on approve
     // Role guard runs on every route; handlers without @Roles are public.
     { provide: APP_GUARD, useClass: RolesGuard },
   ],

@@ -11,6 +11,7 @@ import { MailboxReconcileService } from './mailbox-reconcile.service';
 import { StaffAuthService } from './staff-auth.service';
 import { MailgunService } from './mailgun.service';
 import { SettingsService } from './settings.service';
+import { SageIntacctSyncService } from './sage-intacct/sage-intacct-sync.service';
 import { renderStaffOtpEmail, renderNotificationEmail, renderTimesheetEventEmail, renderPasswordResetEmail, TimesheetEvent } from './email-template';
 
 // Band members in a given Entra group slug (e.g. 'admins', 'band-members') →
@@ -1356,6 +1357,7 @@ export class TimeKeepingController {
     private people: OnboardingService,
     private mailgun: MailgunService,
     private settings: SettingsService,
+    private intacct: SageIntacctSyncService,
   ) {}
 
   // Notify the worker + the admins group of a timesheet lifecycle event, with
@@ -1694,6 +1696,9 @@ export class TimeKeepingController {
       include: { entries: true },
     });
     await this.emailTimesheetEvent('approved', updated, ['Status: submitted → approved'], { actor: approverUpn });
+    // STUB: push the approved timesheet to Sage Intacct (no-op stub, best-effort —
+    // the service swallows its own errors, so this never fails the approval).
+    await this.intacct.syncTimesheet(updated.id);
     return updated;
   }
 

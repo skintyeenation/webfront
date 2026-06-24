@@ -7,6 +7,7 @@ import { Roles } from './roles';
 import { PrismaService } from './prisma.service';
 import { ExpensesService } from './expenses.service';
 import { ExpenseReportsService } from './expense-reports.service';
+import { SageIntacctSyncService } from './sage-intacct/sage-intacct-sync.service';
 import { OnboardingService } from './onboarding.service';
 import { MailgunService } from './mailgun.service';
 import { SettingsService } from './settings.service';
@@ -37,6 +38,7 @@ export class ExpensesController {
     private readonly people: OnboardingService,
     private readonly mailgun: MailgunService,
     private readonly settings: SettingsService,
+    private readonly intacct: SageIntacctSyncService,
   ) {}
 
   // Approvers = admins OR members of the 'finance' Entra group.
@@ -233,6 +235,9 @@ export class ExpensesController {
     await this.assertCanApprove(req);
     const claim = await this.svc.approve(id, callerUpn(req));
     await this.emailExpenseEvent('approved', claim, { actor: callerUpn(req) });
+    // STUB: push the approved claim to Sage Intacct (no-op stub, best-effort —
+    // the service swallows its own errors, so this never fails the approval).
+    await this.intacct.syncExpenseClaim(claim.id);
     return claim;
   }
 
