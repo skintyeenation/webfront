@@ -45,6 +45,11 @@ const theme = {
   },
 } as const;
 
+// Max content width for the app shell (header, page content, bottom tab bar).
+// On wide / 4K screens everything is capped here and centred so it doesn't
+// stretch edge-to-edge. No effect on phones (narrower than this).
+export const APP_MAX_WIDTH = 1200;
+
 const styles: any = StyleSheet.create({
   pageContainer: {
     height: '100%',
@@ -69,6 +74,9 @@ const styles: any = StyleSheet.create({
   },
   visibleContent: {
     padding: 15,
+    width: '100%',
+    maxWidth: APP_MAX_WIDTH,
+    alignSelf: 'center',
   },
   listItem: {
     display: 'flex',

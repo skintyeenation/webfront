@@ -4,7 +4,7 @@ import { Appbar, Avatar } from 'react-native-paper';
 import { Logo } from './Logo';
 import { useAppSelector } from 'skintyee/store';
 import Config from 'skintyee/config';
-import { theme } from 'skintyee/styles';
+import { theme, APP_MAX_WIDTH } from 'skintyee/styles';
 
 export interface AppHeaderProps {
   title?: string;
@@ -59,7 +59,7 @@ export function AppHeader({ title, navigation, back, options, showAccount = true
   const hasName = !!(name && name.trim() && ini !== '?');
 
   return (
-    <Appbar.Header style={{ backgroundColor: theme.colors.darkDefault }} dark>
+    <Appbar.Header style={{ backgroundColor: theme.colors.darkDefault, width: '100%', maxWidth: APP_MAX_WIDTH, alignSelf: 'center' }} dark>
       {/* Skintyee logo, top-left. Back action (when present) sits just after it. */}
       <View style={{ paddingLeft: 12, paddingRight: 4 }}>
         <Logo size={26} />
