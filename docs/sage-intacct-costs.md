@@ -107,6 +107,55 @@ portability clause, and itemized line items** (the vendor's response already
 concedes data ownership, Canadian residency, and openness on exit terms). Term
 trade-off detail: see the [Cantatus response §G + Supporting Exhibit](sage-intacct-cantatus-response.md).
 
+### Where the money goes
+
+**5-year total (committed basis, ~\$340k CAD).** Sage's **Tier-1 support is bundled
+into the subscription**; **Cantatus is the Tier-2** advisory / implementation /
+audit-recovery layer. So ~two-thirds is software (Sage) and ~one-third is services
+(Cantatus):
+
+```mermaid
+pie showData title 5-year cost split (committed, CAD)
+    "Sage Intacct subscription (incl. Sage Tier-1 support)" : 207596
+    "Cantatus services (Tier-2 advisory + audit recovery)" : 108000
+    "AccessPay (bank feeds)" : 13814
+    "Orchid EFT (vendor payments)" : 11051
+```
+
+| Slice (committed basis) | Y1 | Y2 | Y3 | Y4 | Y5 | 5-yr | Share |
+|---|--:|--:|--:|--:|--:|--:|--:|
+| Sage Intacct subscription (incl. Tier-1 support) | 37,570 | 39,448 | 41,420 | 43,492 | 45,666 | 207,596 | ~61% |
+| Cantatus services (Tier-2, committed 2-yr) | 72,000 | 36,000 | — | — | — | 108,000 | ~32% |
+| AccessPay (bank feeds, base) | 2,500 | 2,625 | 2,756 | 2,894 | 3,039 | 13,814 | ~4% |
+| Orchid EFT (vendor payments) | 2,000 | 2,100 | 2,205 | 2,315 | 2,431 | 11,051 | ~3% |
+| **Annual total (committed, low)** | **114,070** | **80,173** | **46,381** | **48,701** | **51,136** | **340,461** | 100% |
+
+*Software lines escalate at Sage's 5%/yr cap. Cantatus's committed fee is front-
+loaded into Years 1–2; Years 3–5 show \$0 committed (optional advisory renewals
+add +\$36k/yr Year 3, +\$18k/yr Years 4–5 = +\$72k if elected). Excludes one-time
+AP-Automation catch-up (~\$3–6k), taxes, and disbursements.*
+
+**Inside the annual Sage subscription (\$37,570/yr) — estimated** from the order-
+schedule per-unit rates (Cantatus response §E; the "core + support" slice is the
+residual, since the schedule gives unit rates but not a full line-item split):
+
+```mermaid
+pie showData title Inside the Sage subscription, yr 1 (estimated, CAD)
+    "Core platform + Grants + AP Automation + bank feeds + Sage Tier-1 support" : 18892
+    "3 Business Users" : 9102
+    "8 additional entities" : 6144
+    "1 Limited Use License" : 1896
+    "Employee User 10-pack" : 1536
+```
+
+| Component | CAD/yr | Share |
+|---|--:|--:|
+| Core platform + Grants module + AP Automation + bank feeds + **Sage Tier-1 support** | ~18,892 | ~50% |
+| 3 Business Users (@ ~\$3,034) | ~9,102 | ~24% |
+| 8 additional entities (@ ~\$768) | ~6,144 | ~16% |
+| 1 Limited Use License | ~1,896 | ~5% |
+| Employee User 10-pack | ~1,536 | ~4% |
+
 ## Non-profit discount
 
 - **Sage Foundation "NPO Success" → ~20% off Sage Intacct** (excludes the Intacct
