@@ -64,6 +64,49 @@ figure**, not a USD×FX conversion. Estimates, not a quote.
 > **Canadian VAR quote (in CAD) is the authoritative number** (Intacct is sold in
 > CAD with a Montreal data centre).
 
+## Where this deal sits — provider / cost spectrum
+
+The **actual vendor quote** (Cantatus, Quote Q-920627) is recorded in
+[`sage-intacct-cantatus-response.md`](sage-intacct-cantatus-response.md). Here is
+where it lands against the alternatives — all CAD, estimates pending firm quotes:
+
+| Option | Software / yr | Services | 5-yr ballpark | What you get |
+|---|--:|--:|--:|---|
+| **Sage 300** (current/legacy — cheapest sticker) | ~\$25–45k/yr hosted (10 users) | impl ~\$15–50k; **historical recovery extra** | ~\$140–270k+ | Legacy/on-prem ERP. **No** non-profit discount, weaker fund/multi-entity reporting, support unbundled, no clean FMB path. |
+| **Sage Intacct — direct / market** | ~US \$15–35k (~CAD \$20–48k) | impl ~1.0–1.75× yr-1 | ~\$160–330k | Cloud, non-profit-endorsed fund accounting; **bare** small-deployment config. |
+| **This deal (Cantatus + Intacct)** | **\$37,570/yr** (9 entities, grants, mixed users; **33.8%** off) | **\$108k fixed / 2 yr** incl. **multi-year audit recovery** + training | **~\$340–355k** | Intacct **+ reconstruction of ~4–5 yrs of books for audit across 9 entities + FMB-oriented capacity building + 2-yr managed advisory**, fixed-fee. |
+
+*Sage 300 figures: IWI Consulting, BAASS, ERP Research (quote-only estimates). No
+non-profit discount exists for Sage 300 — only Intacct carries the 20% Sage
+Foundation discount.*
+
+**Verdict — middle-to-upper-middle of the spectrum, and defensible:**
+
+- **Software (the Intacct subscription, ~\$37,570/yr): fair / market — not high.**
+  The cost driver is the **9-entity multi-entity structure + grants module**, not
+  padding, and the **33.8% discount beats the standard 20% NFP rate**. A bare
+  single-entity Intacct is cheaper but wouldn't match the Nation's entity structure.
+- **Services (\$108k / 2 yr): priced for the scope, not a vanilla install.** A
+  plain Intacct implementation is ~\$27–55k — this is **~2–4× that**, but it bundles
+  **multi-year historical reconstruction for audit across 9 entities + audit-
+  readiness + training + 2 years of advisory**, on a **fixed fee that absorbs the
+  recovery risk**. A CPA firm rebuilding years of damaged books easily justifies the
+  premium — and you'd pay for that recovery under *any* platform, including Sage 300.
+- **vs Sage 300 (cheapest sticker):** Sage 300 looks ~half the software cost, but
+  it's **legacy, has no non-profit discount, weaker multi-entity/fund reporting,
+  still needs the same expensive historical recovery, and doesn't advance FMB
+  certification**. The Intacct premium buys the platform built for what the Nation
+  is trying to become.
+
+**Bottom line: you are not overpaying for software** (it's market, better-than-
+standard discount) **and the services premium is justified by a heavy
+audit-recovery scope** you'd incur anywhere. **The real lever is the 5-year term,
+not the rate** — managed terms of 60 months sit outside the 1–3-yr industry norm,
+so the negotiation should target a **CPI-capped escalator, a clean exit + data-
+portability clause, and itemized line items** (the vendor's response already
+concedes data ownership, Canadian residency, and openness on exit terms). Term
+trade-off detail: see the [Cantatus response §G + Supporting Exhibit](sage-intacct-cantatus-response.md).
+
 ## Non-profit discount
 
 - **Sage Foundation "NPO Success" → ~20% off Sage Intacct** (excludes the Intacct
