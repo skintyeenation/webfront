@@ -55,6 +55,12 @@ export interface SeedStep {
     fileName: string;
     description: string;
     bodyLines: string[];
+    // When set, seed the real embedded blank from FORM_PDF_B64[pdfKey] (e.g. the
+    // fillable TD1/TD1BC) instead of a generated placeholder, and attach linkUrl
+    // (the canada.ca form page) to the document. Used for steps that have a real
+    // government form — those drop the "(sample)" suffix.
+    pdfKey?: string;
+    linkUrl?: string;
   };
 }
 
@@ -82,17 +88,12 @@ const STEPS: SeedStep[] = [
     instructions: 'Fill out the federal TD1, sign it, and upload the completed form so payroll can set your deductions.',
     completion: 'person_uploads',
     doc: {
-      title: 'TD1 — Federal Personal Tax Credits Return (sample)',
-      fileName: 'sample-td1.pdf',
-      description: 'Sample placeholder for the CRA TD1. Replace with the current-year TD1 (docs/form-samples) via the uploader.',
-      bodyLines: [
-        'SAMPLE TEMPLATE - replace with the current-year CRA TD1.',
-        'Personal Tax Credits Return (federal).',
-        'Fill in your basic personal amount and any additional credits,',
-        'then sign and date on the last page.',
-        '',
-        'Signature: __________________________   Date: ____________',
-      ],
+      title: 'TD1 — Federal Personal Tax Credits Return',
+      fileName: 'td1-fill-26e.pdf',
+      description: 'CRA TD1 (federal Personal Tax Credits Return). Fillable blank; the canada.ca link has the current-year version.',
+      pdfKey: 'td1',
+      linkUrl: 'https://www.canada.ca/en/revenue-agency/services/forms-publications/forms/td1.html',
+      bodyLines: [],
     },
   },
   {
@@ -100,17 +101,12 @@ const STEPS: SeedStep[] = [
     instructions: 'Fill out the British Columbia TD1BC, sign it, and upload the completed form.',
     completion: 'person_uploads',
     doc: {
-      title: 'TD1BC — BC Personal Tax Credits Return (sample)',
-      fileName: 'sample-td1bc.pdf',
-      description: 'Sample placeholder for the BC TD1BC. Replace with the current-year TD1BC (docs/form-samples) via the uploader.',
-      bodyLines: [
-        'SAMPLE TEMPLATE - replace with the current-year TD1BC.',
-        'Personal Tax Credits Return (British Columbia).',
-        'Fill in your provincial basic personal amount and credits,',
-        'then sign and date on the last page.',
-        '',
-        'Signature: __________________________   Date: ____________',
-      ],
+      title: 'TD1BC — BC Personal Tax Credits Return',
+      fileName: 'td1bc-fill-26e.pdf',
+      description: 'CRA TD1BC (British Columbia Personal Tax Credits Return). Fillable blank; the canada.ca link has the current-year version.',
+      pdfKey: 'td1bc',
+      linkUrl: 'https://www.canada.ca/en/revenue-agency/services/forms-publications/forms/td1bc.html',
+      bodyLines: [],
     },
   },
   {
