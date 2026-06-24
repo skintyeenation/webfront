@@ -1,0 +1,102 @@
+# Sage Intacct cost record — financial backend (~10 users)
+
+**Purpose:** cost basis for **Sage Intacct** as the band's financial system of
+record (AP/AR, EFTs, audit-logged approvals) — the backend the app's timesheet
+and expense data syncs into. Architecture + compliance: **ADR-17** and
+[`esign-compliance.md`](esign-compliance.md) §5. One-page summary:
+[`pricing-overview.md`](pricing-overview.md).
+
+Ordinary operating expense, **100% tax-deductible** (current expense — same s.9 /
+s.18(1)(a) framing as the other infra). Not tax/accounting advice.
+
+> ⚠️ **Sage Intacct is quote-only.** Sage publishes **no list price** — every
+> figure below is a **third-party market estimate** (resellers/VARs: Cargas, Rand
+> Group, RKL eSolutions, gotomyerp; aggregators: ERP Research, G2). Figures
+> cluster tightly enough to plan against, but **an exact number needs a partner
+> quote** (Canadian VARs — e.g. MNP Digital — quote in CAD). Last researched
+> 2026-06.
+
+## The cost lever — why the app + sync matters most
+
+Sage Intacct is **named-user** licensed, in two tiers:
+
+| User type | Access | For | Per-user estimate (CAD) |
+|---|---|---|---|
+| **Business User** | Full financials (GL/AP/AR/Cash, reporting) | Finance/admin staff | **~\$540–\$1,090/user/mo** (~\$6,500–\$13,000/yr) ≈ US \$400–800/mo · ⚠️ low-confidence, single-sourced & derived |
+| **Employee User** (sold in 10-packs) | Read-only + **enter timesheets / expenses** only | Self-service staff | **No public per-seat rate** — quote-only; much cheaper, sold in 10-packs |
+| **API integration user** (our design) | none — the app writes on their behalf | the hundreds of contractors | **\$0** — they are never Intacct named users |
+
+> **Per-user caveat:** resellers quote **packages, not per-seat** — 10 *full*
+> Business Users at the directional rate implies ~\$65k–\$130k CAD/yr in seats
+> alone, but real deployments **blend** a few full users with cheap Employee packs
+> (the ~\$34k-CAD anchor config = 5 Business + 10 Employee). **Use the package
+> total in the estimate table below, not per-seat × 10.**
+
+**There is no free time/expense-entry tier inside Intacct** — anyone whose data
+lands *directly* in Intacct must be a licensed (even if cheap) user. So if
+hundreds of contractors entered time/expense **in Intacct**, each would need an
+Employee-User seat (e.g. 200 contractors ≈ 20 ten-packs).
+
+**Our architecture avoids that entirely:** contractors and most staff enter
+time/expense in **our app**, which writes to Intacct over the **API integration
+(a single service/integration user)** on approval. The potentially **hundreds of
+contractors are never Intacct named users** — we stay at **~10 Business Users +
+the integration**. This is the single biggest cost lever in the whole estimate.
+(Confirm the API/integration-user licensing in the quote.)
+
+## Estimated cost — ~10 Business Users, Core Financials + Time & Expense
+
+**CAD** — FX-converted from USD market estimates (~1.36). Canadian VARs (e.g. MNP
+Digital) quote **directly in CAD**, so **treat a CAD partner quote as the real
+figure**, not a USD×FX conversion. Estimates, not a quote.
+
+| Line item | Estimate (CAD) | Notes |
+|---|---|---|
+| Core Financials (GL/AP/AR/Cash, 1 entity) | **~\$12,000–\$20,000/yr** (modal ~\$16k) | ≈ US \$9k–\$15k; 5 independent sources |
+| ~10 Business Users + Time & Expense module | bundled into total below | Time & Expense ≈ ~\$4k–\$14k (advanced-module band) |
+| **Annual subscription (all-in, ~10 users)** | **~\$27,000–\$55,000/yr** | toward ~\$60k if all 10 are full-access seats; anchor: a "5 Business + 10 Employee + 2 entities" config ≈ ~\$34k (US \$25k) |
+| **Implementation (one-time, via partner)** | **~\$27,000–\$55,000** | ~1.0–1.5× year-one subscription; small/clean ~\$14k–\$41k; ~4–12 weeks |
+| **Year 1 all-in** | **~\$54,000–\$110,000** | subscription + implementation |
+| **Ongoing (year 2+)** | **~\$27,000–\$55,000/yr** | subscription only |
+| Extra legal entities | + per-entity surcharge | first entity included; each extra billed |
+
+> ⚠️ CAD figures are mechanical ~1.36 FX conversions of USD market estimates — a
+> **Canadian VAR quote (in CAD) is the authoritative number** (Intacct is sold in
+> CAD with a Montreal data centre).
+
+## Non-profit discount
+
+- **Sage Foundation "NPO Success" → ~20% off Sage Intacct** (excludes the Intacct
+  *Starter* edition), validated through partner **Percent**. A **Canadian** NPO
+  Success page exists. **Apply via Percent to confirm the specific band entity
+  qualifies** — probable, not automatic.
+- **TechSoup / TechSoup Canada does NOT donate or discount Sage Intacct** (its
+  Sage program is payment-processing only). The discount path is Sage
+  Foundation/Percent, a separate channel — don't conflate them.
+
+## Canada & First Nations fit
+
+- **Officially served in Canada:** Sage Intacct has a **Canadian data centre**
+  (AWS Montreal, since 2021) for data residency, native **CAD**, CRA tax support
+  (GST/HST/PST, T5018), accredited Canadian VARs (MNP Digital, etc.).
+- **First Nations precedent:** **Mattagami First Nation** migrated **Sage 300 →
+  Sage Intacct** (via MNP Digital) and used it toward **First Nations Financial
+  Management Board (FMB) certification** — the closest analog to Skin Tyee.
+- ⚠️ **Standards gap to flag:** Canadian bands report under **PSAS** (Public
+  Sector Accounting Standards), audited consolidated statements within 120 days
+  of year-end — **not** US FASB/GASB. Intacct's out-of-box nonprofit templates
+  are FASB-958-oriented, so **PSAS / FMB reporting leans on dimensions + partner
+  configuration** (the Mattagami pattern), not a built-in template.
+
+## Notes
+
+- **Supersedes ADR-5** (Ferrus ASAP / Adagio / Sage 300) — Sage 300 → Sage
+  Intacct is exactly the documented First-Nation migration path; reconcile ADR-5.
+- **What the app saves** (see [`pricing-overview.md`](pricing-overview.md)
+  cost-savings note): hundreds of avoided Employee-User seats, plus self-hosted
+  e-signatures (vs DocuSign) and \$0 SharePoint storage (in M365).
+- **Action items for a hard number:** (1) partner quote (MNP Digital / the cited
+  VARs — get the Employee-User 10-pack + module rates); (2) Percent eligibility
+  form for the 20% nonprofit discount; (3) confirm the **API-integration
+  licensing** so contractors stay off Intacct seats.
+- **Evidence for tax:** the **Sage / VAR invoice** is the authoritative record.
