@@ -597,7 +597,8 @@ Decision record for the Skin Tyee app (`@skintyee/app`, in `app/`). Lives in the
   community edition** — later enhancement, pending verification; may need a paid
   tier.
 
-- **Legal / compliance basis (Canada · BC):**
+- **Legal / compliance basis (Canada · BC)** — full citations + verification
+  record in [`esign-compliance.md`](./esign-compliance.md):
   - For Skin Tyee's document types a **simple/standard electronic signature** is
     legally sufficient under **BC's Electronic Transactions Act** (SBC 2001, s.11
     — a signature requirement is met by an e-signature) and **PIPEDA Part 2**
