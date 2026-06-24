@@ -14,6 +14,7 @@ own as soon as it's built.
 
 - **Phase 1 — Documents:** ✅ shipped — see commits `6b418aa` (API + storage) and `4c9f6e0` (UI screens).
 - **Phase 2 — Onboarding flows:** ✅ shipped — schema, API, admin UI, public tokenised contractor link, and a seeded sample flow (one step: "Sign Non-Disclosure (NDA)" with a generated 1-page PDF attached via the active storage adapter).
+- **Phase 3 — E-signatures, financial sync & audit export:** 🔵 planned — self-hosted OpenSign (ADR-17), Sage Intacct timesheet/expense sync, per-entity audit export. See [Phase 3](#phase-3--e-signatures-financial-sync--audit-export).
 - A POC-grade demo is now live end-to-end. Hardenings tracked in [Open questions](#open-questions).
 
 ## System overview
@@ -631,6 +632,43 @@ Roughly two iterations. Each one is a single PR + branch.
    Contractors, AssignmentTimeline.
 4. **Contractor link page** — public timeline + upload (no auth).
 5. **Documentation** — onboarding admin runbook in `docs/onboarding/`.
+
+## Phase 3 — E-signatures, financial sync & audit export
+
+Phase 3 reframes Documents+Onboarding as a full **electronic document storage &
+retrieval portal** with three external integrations. Decision + cited compliance:
+**[ADR-17](../architecture-decisions.md)** + **[esign-compliance.md](../esign-compliance.md)**.
+**Status: planned.**
+
+**The portal, end to end:**
+- **SharePoint** stores the files (signed PDFs, supporting invoices/receipts,
+  policies); the **app** retrieves/manages them (role-gated). SharePoint = $0
+  incremental (already in M365).
+- **OpenSign** (self-hosted, `esig.skintyee.ca`) is the **e-signature component**
+  for the *signature ceremony* — onboarding/NDA/policy acknowledgements, TD1/TD1BC.
+  Sealed PDF + certificate of completion → SharePoint. Setup:
+  [esign-opensign-runbook.md](../esign-opensign-runbook.md); cost:
+  [esign-costs.md](../esign-costs.md).
+- **Sage Intacct** is the **financial backend** for AP/AR, EFTs, and the
+  audit-logged approval of **timesheets + expenses**.
+
+**Timesheet / expense sync (the seat-avoidance design):**
+- Intacct seats are expensive, so **not everyone gets one.** Only ~10 finance/admin
+  staff have Intacct accounts. The potentially **hundreds of contractors** and
+  growing band staff **self-track timesheets + expenses in the app** (its own
+  tables), which get **approved and submitted to Intacct via a sync service**.
+- This is the rationale for the **Sage Intacct sync stub** (api/) — the app is the
+  front-end of record for time/expense capture; Intacct is the accounting backend.
+  Sync maps the app's records to Intacct `TIMESHEET`/`TIMESHEETENTRY` and
+  `EEXPENSES`/`EEXPENSESITEM` objects via the XML Web Services gateway (stubbed in
+  the POC). Cost basis: `sage-intacct-costs.md` (in progress).
+
+**Audit export (per entity):** for any given entity — vendor, employee, program,
+funding agreement — the app can **generate/trigger an export** of the full
+documentation a federal auditor needs: SharePoint documents **+** the linked
+Intacct financial records (approvals, audit trail, proof of payment), assembled
+into one package. Retention basis: 6 yr CRA (ITA s.230 / IC78-10R5), longer per
+ISC funding agreement / FNFMA — see esign-compliance.md §5.
 
 ## Open questions
 

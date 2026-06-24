@@ -7,6 +7,20 @@ The site is a self-hosted WordPress install migrated from the previous
 Site123-hosted `skintyeefirstnation.org`. The app is a React Native + Expo
 proof-of-concept built for the proposal.
 
+> ## ⚖️ E-signatures & compliance
+> Documents are signed via a **self-hosted [OpenSign](docs/esign-opensign-runbook.md)**
+> stack (`esig.skintyee.ca`) and stored in **SharePoint**. For Skin Tyee's
+> documents — onboarding forms, NDAs, **CRA TD1/TD1BC** — a **simple electronic
+> signature is legally sufficient** under **BC's Electronic Transactions Act +
+> PIPEDA**, and **CRA accepts e-signed and electronically-stored TD1** (signer
+> email-OTP satisfies its identity-authentication requirement). The legal basis is
+> a **cited, verifiable record**, and we deliberately **don't overclaim** the
+> federal "secure"/PKI form or "qualified" timestamps.
+>
+> **→ [E-signature compliance record (with primary-source citations)](docs/esign-compliance.md)**
+> · decision + caveats: **[ADR-17](docs/architecture-decisions.md)** · setup:
+> [runbook](docs/esign-opensign-runbook.md) · cost: [esign-costs.md](docs/esign-costs.md)
+
 ## Contents
 
 | Section | What's in it |
@@ -18,6 +32,7 @@ proof-of-concept built for the proposal.
 | &nbsp;&nbsp;&nbsp;&nbsp;[Layout](#layout) | Repo / workspace structure |
 | **Infrastructure & people** | |
 | &nbsp;&nbsp;&nbsp;&nbsp;[Microsoft 365 integration](#microsoft-365-integration) | Entra ID, shared mailboxes, SharePoint docs auto-publish |
+| &nbsp;&nbsp;&nbsp;&nbsp;[⚖️ E-signatures & compliance](docs/esign-compliance.md) | Self-hosted OpenSign + SharePoint; legal basis (BC ETA / PIPEDA / CRA TD1), **cited** |
 | &nbsp;&nbsp;&nbsp;&nbsp;[Source control & CI/CD](#source-control--cicd) | Azure DevOps primary, GitHub mirror (per ADR-9) + the SharePoint publisher Pipeline |
 | &nbsp;&nbsp;&nbsp;&nbsp;[Staff onboarding](#staff-onboarding) | New-staff sequence: Outlook (with mandatory password change) → 1Password → shared mailboxes → band apps |
 | &nbsp;&nbsp;&nbsp;&nbsp;[Password management](#password-management) | Vaults, groups, recovery (1Password Business) |

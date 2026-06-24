@@ -25,6 +25,15 @@ signature with intent + attribution + integrity + audit trail** is legally
 sufficient, and OpenSign clears that bar. We do **not** claim the federal
 "secure electronic signature" form or "qualified/TSA timestamps."
 
+> **Scope — not every band document needs a signature.** OpenSign handles the
+> *signature ceremony* only (NDA, onboarding/policy acknowledgement, TD1).
+> **Financial approvals** (timesheets, expenses, **AP/AR, EFTs**) run through
+> **Sage Intacct** (audit-logged, segregation of duties); **Records of
+> Employment** through **ROE Web** (checkbox attestation, no paper copy).
+> Documents are **stored in SharePoint and surfaced in the app**, which can
+> generate a **per-entity audit export**. Full breakdown:
+> [§5 — Document & approval responsibility matrix](#5-document--approval-responsibility-matrix).
+
 ## Sources
 
 | # | Source | URL |
@@ -38,6 +47,11 @@ sufficient, and OpenSign clears that bar. We do **not** claim the federal
 | S7 | OpenSign — README (audit trail, P12 sealing, OTP) | https://github.com/OpenSignLabs/OpenSign |
 | S8 | OpenSign — FAQ (certificate of completion, sealing, editions) | https://www.opensignlabs.com/faqs |
 | S9 | OpenSign — self-signed document-signing certificate guide | https://docs.opensignlabs.com/docs/self-host/guides/how-to-generate-self-signed-document-signing-certificate/ |
+| S10 | CRA — Keeping records (retention; IC78-10R5 / ITA s. 230) | https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/keeping-records.html |
+| S11 | Service Canada — Employers: how to complete the ROE (electronic = Block 22 attestation; keep data 6 yr) | https://www.canada.ca/en/employment-social-development/programs/ei/ei-list/reports/roe-guide.html |
+| S12 | First Nations Fiscal Management Act (SC 2005, c. 9) | https://laws-lois.justice.gc.ca/eng/acts/F-11.67/ |
+| S13 | RCAANC — Financial Reporting Requirements (funding-agreement records) | https://www.rcaanc-cirnac.gc.ca/eng/1770316369535/1770316482534 |
+| S14 | Service Canada — EI Record of Employment (electronic copy sufficient; no paper copy required) | https://www.canada.ca/en/employment-social-development/programs/ei/ei-list/ei-roe.html |
 
 ## 1. Federal framework — PIPEDA Part 2 + SOR/2005-30 [S1, S2]
 
@@ -114,7 +128,74 @@ employer to **store it electronically.** Verbatim [S5]:
   **T183 family** (T183 / T183CORP / T183TRUST, T2183), conditioned on the
   receiving party **verifying the signer's identity** first.
 
-## 5. What we deliberately do NOT claim
+## 5. Document & approval responsibility matrix
+
+The whole system is an **electronic document storage & retrieval portal**:
+**SharePoint** stores the files, the **app** retrieves/manages them (role-gated)
+and can **generate a per-entity audit export**, **OpenSign** is the *e-signature
+component* (onboarding docs etc.), and **Sage Intacct** is the **financial
+backend**. Not every document is a signature — each type is handled by the system
+built for it.
+
+**Separation of concerns**
+- **OpenSign** — signature ceremony for documents that need a genuine signature:
+  **NDAs, onboarding / policy acknowledgements, TD1 / TD1BC.** Output: a sealed
+  PDF → SharePoint.
+- **Sage Intacct** — the **financial backend** / system of record: **audit-logged
+  approval workflows with segregation of duties**, AP/AR, payables, **EFT
+  authorizations**, plus the audit trail + retention. **Timesheets and expenses
+  are captured in the app's own tables and *sync* with Intacct** (which
+  facilitates the audit-logged approval) — they are not signed in OpenSign.
+- **SharePoint** — document storage for ease of access; the **system of record
+  for files** (signed PDFs, supporting invoices/receipts, policies). **Surfaced
+  in the app** via the documents feature (role-gated).
+- **ROE Web (Service Canada)** — Records of Employment: electronic submission via
+  a **Block 22 checkbox attestation** (no signature), sent straight to Service
+  Canada. **No paper copy required** — keep the electronic record **6 years** (ROE
+  Web itself retains ROEs 11 years); store the employer copy in SharePoint.
+  [S11, S14]
+- **The app** — surfaces SharePoint documents and *initiates* OpenSign signature
+  requests; it is **not** itself the financial or signature system of record.
+
+| Document | Signature? | Handled by | What's on file (record of truth) | Retention |
+|---|---|---|---|---|
+| NDA | ✅ ceremony | OpenSign | Sealed PDF + certificate of completion → SharePoint | Employment + limitation period |
+| Onboarding / policy acknowledgement | ✅ ceremony | OpenSign | Signed PDF → SharePoint | Employment + 6 yr |
+| **TD1 / TD1BC** | ⚠️ identity-auth, not signature | OpenSign (email-OTP) or self-service portal | Completed TD1 → SharePoint; employer retains | While employed + **6 yr** [S5, S10] |
+| Timesheets | ❌ approval | **App tables ⇄ Sage Intacct** (sync; Intacct audit-logged approval) | Timesheet in the app's tables, synced to Intacct + its audit trail; report copy in SharePoint | **6 yr** (payroll) [S10] |
+| Expense sheets / mileage | ❌ approval | **App tables ⇄ Sage Intacct** (sync) + receipt | Expense in app tables synced to Intacct; receipt (source doc) in SharePoint; Intacct approval/audit | **6 yr** [S10] |
+| **EFT / payable (AP)** | ❌ authorization (dual control) | **Sage Intacct** approval; bank executes the EFT | **Invoice** + Intacct approval (segregation of duties) + **proof of payment** (EFT/bank confirmation) | **6 yr** + funding-agreement term [S10, S13] |
+| **Receivable (AR)** | ❌ | **Sage Intacct** (AR) | **Funding agreement / contract** establishing the amount + issued invoice + deposit/receipt record | **6 yr** + funding agreement [S10, S13] |
+| Payroll slips | ❌ | Payroll / Intacct | Electronic pay statement (no signature needed) | **6 yr** [S10] |
+| **Record of Employment (ROE)** | ❌ checkbox attestation | **ROE Web** | ROE Web submission (to Service Canada) + employer copy in SharePoint | **6 yr** [S11] |
+
+**What must be on file for a band payable / receivable** — keep the full chain so
+each transaction is audit-defensible:
+1. **Source document** — vendor invoice / receipt (payable); funding agreement /
+   contract / issued invoice (receivable).
+2. **Authorization** — the **Sage Intacct** approval, with **segregation of
+   duties** (different people initiate / approve / pay).
+3. **Coding** — GL + **program / fund** allocation (this also feeds the app's
+   transparency reporting).
+4. **Proof of payment / receipt** — EFT or bank confirmation; deposit record.
+
+Retain **6 years** under CRA (ITA s. 230 / IC78-10R5) [S10] — **longer** where a
+**funding agreement** (ISC / Canada) requires it [S13], or where the band is under
+an **FNFMA financial administration law** [S12]; program-level retention follows
+the standards under the *Library and Archives Canada Act*.
+
+**Audit export (planned).** For **any given entity** — a vendor, employee,
+program, or funding agreement — the app can **generate / trigger an export** of
+the full documentation a federal auditor needs: the SharePoint documents (signed
+PDFs, invoices, receipts, policies) **plus** the linked Sage Intacct financial
+records (approvals, audit trail, proof of payment) for that entity, assembled into
+one package. This is what makes the portal *audit-ready*, not just a file store.
+
+> **Finance-system note:** the financial system named here is **Sage Intacct**
+> (current direction). This **supersedes** the Ferrus ASAP / Adagio / Sage 300
+> assumption in **ADR-5** — to be reconciled there.
+
+## 6. What we deliberately do NOT claim
 
 - ❌ **Federal "secure electronic signature."** OpenSign uses a **self-signed
   P12**, not a Treasury-Board-listed-CA certificate (S2). Only needed for
@@ -128,10 +209,12 @@ employer to **store it electronically.** Verbatim [S5]:
   PIPEDA require reliability / integrity / audit trail, which the P12 seal + audit
   log provide — but represent them accurately.
 
-## 6. Verification status / open items
+## 7. Verification status / open items
 
 - ✅ **Verified against primary sources** (2026-06-24): PIPEDA + SOR/2005-30 (S1,
-  S2), BC ETA (S3), Gov-Canada guidance (S4), CRA TD1 + e-signatures (S5, S6).
+  S2), BC ETA (S3), Gov-Canada guidance (S4), CRA TD1 + e-signatures (S5, S6),
+  CRA record retention (S10), ROE electronic filing + no-paper-copy + 6-yr
+  retention (S11, S14), FNFMA + funding-agreement records (S12, S13).
 - ⚠️ **OpenSign feature claims** (S7–S9) are the **vendor's own docs** — audit
   trail, P12 sealing, certificate of completion, email-OTP. Confirm hands-on
   during the runbook's Phase 8 (sign a test envelope; verify the seal breaks on
