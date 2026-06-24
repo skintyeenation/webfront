@@ -667,8 +667,11 @@ retrieval portal** with three external integrations. Decision + cited compliance
 funding agreement — the app can **generate/trigger an export** of the full
 documentation a federal auditor needs: SharePoint documents **+** the linked
 Intacct financial records (approvals, audit trail, proof of payment), assembled
-into one package. Retention basis: 6 yr CRA (ITA s.230 / IC78-10R5), longer per
-ISC funding agreement / FNFMA — see esign-compliance.md §5.
+into one package. Retention basis: **6 yr** CRA ([keeping records — ITA s.230 /
+IC78-10R5](https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/keeping-records.html)),
+longer per [ISC funding agreement](https://www.rcaanc-cirnac.gc.ca/eng/1770316369535/1770316482534)
+or [FNFMA](https://laws-lois.justice.gc.ca/eng/acts/F-11.67/) — see
+[esign-compliance.md §5](../esign-compliance.md#5-document--approval-responsibility-matrix).
 
 ## Open questions
 
