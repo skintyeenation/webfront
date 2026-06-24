@@ -547,6 +547,108 @@ Decision record for the Skin Tyee app (`@skintyee/app`, in `app/`). Lives in the
   provisioning — stays cloud-native), ADR-5 (Ferrus/Xyntax finance systems — the
   on-prem anchor), [`docs/365/entra-id.md`](365/entra-id.md).
 
+### ADR-17 — E-signatures: self-hosted OpenSign on an Azure VM, SharePoint as system of record
+
+- **Decision:** stand up **OpenSign** (open-source e-signature platform,
+  AGPL-3.0) **self-hosted** on a single small **Azure VM** (Docker Compose),
+  reached at **`esig.skintyee.ca`**, to collect signatures on band documents
+  (onboarding forms, NDAs, TD1/TD1BC, employment records). The completed,
+  cryptographically **sealed PDF + certificate of completion** is handed off to
+  the **SharePoint** Documents library, which remains the **system of record**.
+  OpenSign is the **signing engine only** — not a document repository.
+
+- **Topology (chosen — "all-in-one VM"):** OpenSign's containers — Parse Server
+  backend, React UI, **MongoDB**, and **Caddy** (reverse proxy with automatic
+  Let's Encrypt TLS) — run via Docker Compose on one **B2s** VM. Mirrors the
+  existing WordPress host (VM + Compose), so the ops / backup / runbook patterns
+  carry over.
+  - **Persistence — Azure Files (required):** OpenSign's bundled MongoDB is
+    **ephemeral by default** (cleared on restart), so durable storage is
+    mandatory. Azure Files persistent volumes are mounted on the VM for the Mongo
+    data dir and OpenSign's local document store, so data survives VM rebuilds
+    and is backed up independently.
+    - ⚠️ **Caveat:** MongoDB does not officially support its data files on
+      SMB/Azure Files. Acceptable for a low-traffic internal tool **only with
+      frequent logical `mongodump` backups to Blob** as the recovery source of
+      truth; a managed OS **disk** for the Mongo volume is the lower-risk swap if
+      corruption is ever seen.
+  - **Not Azure Container Apps:** evaluated (ADR-10 pattern), but MongoDB needs a
+    real block filesystem and ACA's only volume type is Azure Files (SMB) — a VM
+    is needed for Mongo regardless, so ACA would add a second hosting model
+    without removing the VM.
+
+- **Storage reconciliation (the main friction):** OpenSign supports **only a
+  local volume or S3-compatible** storage — **no Azure Blob or SharePoint
+  backend exists.** "Documents in SharePoint" is therefore realised as a
+  **completion hand-off**, not native storage: OpenSign holds the in-flight +
+  sealed PDF on its Azure Files volume; on completion the sealed PDF +
+  certificate are pushed into the SharePoint library via Microsoft Graph (the
+  documents feature's SharePoint adapter / `skintyee-app-graph` app,
+  `Sites.Selected` — same plumbing as ADR-8).
+  - ⚠️ **Go/no-go risk:** OpenSign's **API / programmatic access may be paywalled
+    even on the self-hosted build** (community reports; not maintainer-confirmed).
+    The hand-off assumes API or webhook access. **Verify before building the
+    app→OpenSign integration.** POC fallback: drive OpenSign through its UI and
+    upload the completed PDF to SharePoint manually (or via the documents
+    uploader).
+
+- **Auth:** **local OpenSign admin/staff accounts + 2FA** to start. **Entra ID
+  SSO (OIDC)** is desired (same tenant as ADR-1) but **not confirmed in the
+  community edition** — later enhancement, pending verification; may need a paid
+  tier.
+
+- **Legal / compliance basis (Canada · BC):**
+  - For Skin Tyee's document types a **simple/standard electronic signature** is
+    legally sufficient under **BC's Electronic Transactions Act** (SBC 2001, s.11
+    — a signature requirement is met by an e-signature) and **PIPEDA Part 2**
+    (federal recognition of electronic signatures). None of the BC ETA s.2(4)–(5)
+    exclusions (wills, powers of attorney, land transfers, negotiable instruments)
+    apply.
+  - OpenSign covers the pillars courts look for: **intent to sign**,
+    **attribution** (signer email OTP), **integrity / tamper-evidence** (PDF
+    sealed with a P12 certificate — any change invalidates it; verifiable in
+    Acrobat), and a retained **audit trail + certificate of completion**
+    (timestamps, IPs, emails). **Consent to transact electronically** is a UX
+    step we add (a recorded consent checkbox).
+  - **CRA TD1:** CRA permits employees to complete + e-sign and the employer to
+    **store the TD1 electronically**; the required control is **identity
+    authentication** of the submitter (password / self-service portal), which
+    OpenSign's email-OTP + audit trail satisfies. The employer **retains** the
+    TD1 (not filed with CRA).
+  - **Scope limit — don't overclaim:** OpenSign's seal is a **self-signed P12**
+    (not a certificate chaining to a **Treasury-Board-listed CA**) and its
+    timestamps are **application-recorded, not RFC-3161 TSA-anchored**. Fine for
+    the *ordinary* e-signature bar above, but it does **not** meet PIPEDA's
+    **"secure electronic signature"** form — only *required* for federal
+    **original / oath / statutory-declaration / witnessed** documents
+    (SOR/2005-30), which Skin Tyee's use cases don't include. Vendor
+    "ESIGN/UETA/eIDAS compliant" claims are **self-asserted**, not third-party
+    certifications — don't represent them as such.
+
+- **Cost:** ~**CAD $55–70/mo** — a **B2s** VM + Standard SSD + Azure Files + low
+  egress; **MongoDB runs in a container on the VM ($0 DB licence)**; **SharePoint
+  storage is $0 incremental** (already in M365); TLS is free (Caddy/Let's
+  Encrypt); DNS uses the existing Azure zone. Detail + tiers:
+  [`esign-costs.md`](./esign-costs.md). 100% deductible (NGO operating expense,
+  same s.9 / s.18(1)(a) framing as the other infra).
+
+- **SaaS equivalent (rejected):** DocuSign / Adobe Acrobat Sign — per-seat SaaS,
+  ongoing cost, signer data off-tenant. Self-hosting OpenSign keeps signer data
+  in the band's own tenant for a small fixed VM cost — fits the NGO
+  own-your-data + auditability priority.
+
+- **Status:** **planned; not yet deployed.** Setup:
+  [`esign-opensign-runbook.md`](./esign-opensign-runbook.md). Two go/no-go checks
+  before app integration: (1) self-host **API access** (paywall?), (2) **Entra
+  OIDC** support.
+
+- **What it relates to:** ADR-1 (Entra ID — same tenant; SSO target + Graph app
+  identity), ADR-2 / ADR-7 (storage + DB direction — SharePoint is the doc store
+  of record; OpenSign keeps its own Mongo), ADR-8 (SharePoint via Graph
+  `Sites.Selected` — same plumbing for the completion hand-off), ADR-10 (Container
+  Apps — evaluated, not chosen, see Topology), and the documents + onboarding
+  feature (the app surface that sends docs for signature).
+
 ## Summary: ppt → Skin Tyee service swaps
 
 | Concern | ppt (AWS) | Skin Tyee (Azure) | Status |
@@ -560,3 +662,4 @@ Decision record for the Skin Tyee app (`@skintyee/app`, in `app/`). Lives in the
 | Docs distribution | — | **SharePoint mirror via GitHub Actions + Graph (Sites.Selected)** | implemented; pending 1× Azure app + Sites.Selected grant (ADR-8) — to be ported to Azure Pipelines per ADR-9 |
 | Source control | _(GitHub-as-primary, implicit)_ | **Azure DevOps primary + GitHub mirror** | documented; pending 1× org + repo creation (ADR-9) |
 | Task management + meetings feed | _(none)_ | **Microsoft Planner + Teams meetings via Graph API, merged with app events into a single homescreen feed** | Planning doc done (ADR-14); `skintyee-app-graph` Entra app + NestJS `GraphFeedService` to be scaffolded |
+| E-signatures | _(none)_ | **Self-hosted OpenSign on an Azure VM (`esig.skintyee.ca`); sealed PDFs handed off to SharePoint (system of record)** | Planned (ADR-17); runbook + cost record written; pending VM provision + 2 go/no-go checks (API access, Entra OIDC) |

@@ -28,6 +28,8 @@ Canadian law (current expenses, not capital — see each doc; not tax advice).
 | **ImprovMX** | Email forwarding (aliases / secondary domains → M365) | per month | **$0** (Free) — or ~US $9/mo Premium | [`improvmx/`](improvmx/README.md) |
 | **Mailgun** | Transactional / app outbound email | usage-based | **$0** (free/low volume) — or ~US $15–35/mo | [`mailgun/`](mailgun/README.md) |
 | **Anthropic API** (Claude Haiku 4.5) | App **runtime** — AI receipt scanner in Expenses (reads a receipt image → structured data) | usage-based | **~$0** until wired to a funded key — order of **≤ 1¢ per receipt** | see *Notes* below |
+| **OpenSign** e-signatures (self-hosted) | E-signature collection — onboarding / NDA / TD1 signing; sealed PDFs handed to SharePoint | per month (fixed VM) | **~$55–70/mo** (~$660–840/yr) | [`esign-costs.md`](esign-costs.md) |
+| **Document storage** (SharePoint) | Band document library + signed-document store of record | included in **Microsoft 365** | **$0 incremental** | [`365/pricing.md`](365/pricing.md) |
 
 ## Worked example — 9 staff (4 Premium + 5 Standard) + 3 app-only contractors
 
@@ -86,3 +88,13 @@ Plus a **one-time** Google Play registration of ~CAD $34 at setup. Apple's
   truncating mid-list — does **not** increase the per-receipt cost. The feature
   stays at **$0** until `ANTHROPIC_API_KEY` is pointed at a funded account; with
   no key the scanner cleanly degrades to manual entry.
+- **E-signatures + document storage (OpenSign + SharePoint)** — the band's
+  documents live in **SharePoint** (inside the Microsoft 365 subscription, so
+  **$0 incremental** storage), and signatures are collected by a **self-hosted
+  OpenSign** instance on a small **Azure VM** (`esig.skintyee.ca`) — order
+  **~$55–70/mo** all-in (B2s VM + Standard SSD + Azure Files; MongoDB runs in a
+  container, so $0 DB licence; TLS is free via Caddy/Let's Encrypt; DNS uses the
+  existing zone). This **replaces a per-seat SaaS** like DocuSign/Adobe Acrobat
+  Sign (which would run hundreds of dollars/year and keep signer data
+  off-tenant). Rationale + compliance: **ADR-17**; cost detail + tiers:
+  [`esign-costs.md`](esign-costs.md).
