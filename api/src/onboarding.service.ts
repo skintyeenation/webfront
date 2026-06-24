@@ -4,6 +4,15 @@ import { PrismaService } from './prisma.service';
 import { DOCUMENT_STORAGE } from './storage/storage.module';
 import { DocumentStorageAdapter } from './storage/document-storage';
 import { ONBOARDING_SEED } from './onboarding.seed';
+import { FORM_PDF_B64 } from './documents-form-assets';
+
+// Seed-document bytes: the real embedded blank (FORM_PDF_B64[pdfKey], e.g. the
+// fillable TD1/TD1BC) when the step declares one, else a generated placeholder.
+function seedDocBytes(step: { doc: { title: string; bodyLines: string[]; pdfKey?: string } }): Buffer {
+  const key = step.doc.pdfKey;
+  if (key && FORM_PDF_B64[key]) return Buffer.from(FORM_PDF_B64[key], 'base64');
+  return ONBOARDING_SEED.buildSamplePdf(step.doc.title.replace(/ \(sample\)$/, ''), step.doc.bodyLines);
+}
 
 // Application-level Onboarding service. Wraps Prisma + the storage
 // adapter (reused from Documents). Like DocumentsService, gracefully
@@ -151,13 +160,14 @@ export class OnboardingService implements OnApplicationBootstrap {
         // Ensure the step's document exists (reuse by title; upload if missing).
         let doc = await this.prisma.document.findFirst({ where: { title: step.doc.title } });
         if (!doc) {
-          const bytes = ONBOARDING_SEED.buildSamplePdf(step.doc.title.replace(/ \(sample\)$/, ''), step.doc.bodyLines);
+          const bytes = seedDocBytes(step);
           const up = await this.storage.upload({ fileName: step.doc.fileName, mimeType: 'application/pdf', bytes });
           doc = await this.prisma.document.create({
             data: {
               title: step.doc.title, description: step.doc.description,
               storage: this.storage.driver, fileKey: up.key, fileUrl: up.url,
               fileName: step.doc.fileName, mimeType: 'application/pdf', sizeBytes: bytes.length,
+              linkUrl: step.doc.linkUrl ?? null,
               audience: 'staff', createdBy: ONBOARDING_SEED.SEED_AUTHOR_UPN,
             },
           });
@@ -184,7 +194,7 @@ export class OnboardingService implements OnApplicationBootstrap {
     const steps: any[] = [];
     let order = 0;
     for (const step of ONBOARDING_SEED.STEPS) {
-      const bytes = ONBOARDING_SEED.buildSamplePdf(step.doc.title.replace(/ \(sample\)$/, ''), step.doc.bodyLines);
+      const bytes = seedDocBytes(step);
       const up = await this.storage.upload({ fileName: step.doc.fileName, mimeType: 'application/pdf', bytes });
       const docId = `seed-doc-${Math.random().toString(36).slice(2, 8)}`;
       if (!this.memSeededDocId) this.memSeededDocId = docId;
@@ -198,7 +208,7 @@ export class OnboardingService implements OnApplicationBootstrap {
         id: docId, title: step.doc.title, description: step.doc.description,
         storage: this.storage.driver, fileKey: up.key, fileUrl: up.url,
         fileName: step.doc.fileName, mimeType: 'application/pdf', sizeBytes: bytes.length,
-        linkUrl: null, audience: 'staff', companyId: null, tagIds: [],
+        linkUrl: step.doc.linkUrl ?? null, audience: 'staff', companyId: null, tagIds: [],
         createdAt: now, createdBy: ONBOARDING_SEED.SEED_AUTHOR_UPN, updatedAt: now,
       }];
     }
