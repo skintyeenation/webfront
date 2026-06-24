@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Linking, Platform, ScrollView, View } from 'react-native';
+import { Linking, Platform, View } from 'react-native';
 import { ActivityIndicator, Button, Card, Chip, HelperText, IconButton, SegmentedButtons, Text, TextInput } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import dayjs from 'dayjs';
@@ -153,7 +153,7 @@ export default function Documents({ navigation }: any) {
               <Text style={{ color: theme.colors.textDarker, fontSize: 10, letterSpacing: 1 }}>
                 {CATEGORY_LABEL[cat].toUpperCase()}
               </Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 4 }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 4 }}>
                 {tags.map((t) => {
                   const on = activeTagId === t.id;
                   return (
@@ -164,6 +164,7 @@ export default function Documents({ navigation }: any) {
                       onPress={() => setActiveTagId(on ? undefined : t.id)}
                       style={{
                         marginRight: 6,
+                        marginBottom: 6,
                         backgroundColor: on ? theme.colors.primary : theme.colors.secondary,
                       }}
                       textStyle={{ color: on ? '#000' : theme.colors.text, fontSize: 11 }}
@@ -172,7 +173,7 @@ export default function Documents({ navigation }: any) {
                     </Chip>
                   );
                 })}
-              </ScrollView>
+              </View>
             </View>
           );
         })}

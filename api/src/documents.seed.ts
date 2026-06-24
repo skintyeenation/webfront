@@ -24,12 +24,19 @@ export const DOCUMENT_TAG_SEED: SeedTag[] = [
   { category: 'gov_sector', slug: 'child-family-services',       displayName: 'Child & Family Services' },
   { category: 'gov_sector', slug: 'health',                     displayName: 'Health' },
 
-  // Departments — mirrors Skin Tyee's internal departments
-  // (intersection with skintyee-groups.ts).
-  { category: 'department', slug: 'housing',  displayName: 'Housing' },
-  { category: 'department', slug: 'forestry', displayName: 'Forestry' },
-  { category: 'department', slug: 'finance',  displayName: 'Finance' },
-  { category: 'department', slug: 'gis',      displayName: 'GIS' },
+  // Departments — Skin Tyee's internal departments / shared mailboxes
+  // (M365 groups + matching Entra security groups in skintyee-groups.ts).
+  { category: 'department', slug: 'band-manager',   displayName: 'Band Manager' },
+  { category: 'department', slug: 'chief',          displayName: 'Chief' },
+  { category: 'department', slug: 'council',        displayName: 'Council' },
+  { category: 'department', slug: 'finance',        displayName: 'Finance' },
+  { category: 'department', slug: 'fire-chief',     displayName: 'Fire Chief' },
+  { category: 'department', slug: 'forestry',       displayName: 'Forestry' },
+  { category: 'department', slug: 'housing',        displayName: 'Housing' },
+  { category: 'department', slug: 'land-resources', displayName: 'Land Resources' },
+  { category: 'department', slug: 'gis',            displayName: 'Mapping (GIS)' },
+  { category: 'department', slug: 'media',          displayName: 'Media' },
+  { category: 'department', slug: 'referrals',      displayName: 'Referrals' },
 
   // Records — accounts-payable / payroll document types managed by the app
   // (Band Admin EFTs, payroll slips, expense sheets, mileage logs, timesheets).
