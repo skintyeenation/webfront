@@ -1,13 +1,13 @@
 import 'react-native-gesture-handler';
 import React, { useEffect, useState } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DarkTheme as NavDarkTheme } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createMaterialBottomTabNavigator } from '@react-navigation/material-bottom-tabs';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { StatusBar } from 'expo-status-bar';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
-import { theme } from 'skintyee/styles';
+import { theme, APP_MAX_WIDTH } from 'skintyee/styles';
 import { routeConfig } from 'skintyee/routes';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { refreshStoreForSignedInUser } from 'skintyee/store/refresh';
@@ -177,7 +177,10 @@ const MainTabs = () => {
     <Tabs.Navigator
       activeColor={theme.colors.text}
       inactiveColor={theme.colors.primary}
-      barStyle={{ backgroundColor: theme.colors.background }}
+      // Cap the bar to the app's 1200px max content width and centre it, so on
+      // wide / 4K screens the tabs don't stretch edge-to-edge. No effect on
+      // phones (narrower than the cap).
+      barStyle={{ backgroundColor: theme.colors.background, width: '100%', maxWidth: APP_MAX_WIDTH, alignSelf: 'center' }}
       shifting={false}
     >
       {CORE_TABS.map((name) => (
@@ -246,6 +249,19 @@ export default function Application() {
       // bug Lucas hit on app.skintyee.ca's first sign-in.
       <NavigationContainer
         key={allowedIn ? 'authed' : 'guest'}
+        // Dark nav theme so the area behind the (1200px-capped) bottom tab bar
+        // and screens is the app background, not React Navigation's default
+        // light grey — which showed as a white band on wide/4K screens.
+        theme={{
+          ...NavDarkTheme,
+          colors: {
+            ...NavDarkTheme.colors,
+            background: theme.colors.background,
+            card: theme.colors.darkDefault,
+            text: theme.colors.text,
+            primary: theme.colors.primary,
+          },
+        }}
         // Browser-tab title format: "Skin Tyee · <Page>". Without this,
         // React Navigation web defaults to just the route's title — so
         // the user saw "Account" instead of "Skin Tyee · Account". The
