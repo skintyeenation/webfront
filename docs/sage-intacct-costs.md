@@ -44,6 +44,27 @@ contractors are never Intacct named users** — we stay at **~10 Business Users 
 the integration**. This is the single biggest cost lever in the whole estimate.
 (Confirm the API/integration-user licensing in the quote.)
 
+**Seat-avoidance savings at scale.** Each contractor who enters time/expense
+*directly in Intacct* needs an **Employee User** licence (cheapest tier, sold in
+10-packs at the band's discounted **~\$1,536/pack ≈ \$154/user/yr**, per the
+Cantatus order schedule). Keeping them in the app instead avoids that entirely:
+
+| Contractors via the app | Employee seats avoided | Saved / yr | Saved over 5 yr (@ 5%/yr) |
+|---|--:|--:|--:|
+| **25** | 3 ten-packs* | **~\$4,608** | **~\$25,500** |
+| **50** | 5 ten-packs | **~\$7,680** | **~\$42,400** |
+| **100** | 10 ten-packs | **~\$15,360** | **~\$84,900** |
+
+<sub>*Employee Users are bought in 10-packs (~\$1,536 each), so 25 contractors rounds up to 3 packs; 50 and 100 land on exact pack boundaries. Per-user rate ~\$154/yr.</sub>
+
+At **100 contractors that's ~a quarter of the entire 5-year deal** (~\$340k)
+avoided — and it **grows with headcount** while the deal's other costs are largely
+fixed. This is the *licensing* saving only; the app's other value (role-gated UX,
+the per-entity audit export, data in our own DB) is on top. The offset is that the
+band **builds + maintains the sync** — net value stays strongly positive at these
+volumes. (Confirm the Employee-User tier + integration-user licensing in the
+quote.)
+
 ## Estimated cost — ~10 Business Users, Core Financials + Time & Expense
 
 **CAD** — FX-converted from USD market estimates (~1.36). Canadian VARs (e.g. MNP
