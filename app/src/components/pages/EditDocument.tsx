@@ -24,7 +24,7 @@ const AUDIENCES: { value: DocumentAudience; label: string; description: string }
 const CATEGORY_ORDER: Array<'gov' | 'gov_sector' | 'department' | 'records'> = ['gov', 'gov_sector', 'department', 'records'];
 const CATEGORY_LABEL: Record<string, string> = {
   gov: 'Government',
-  gov_sector: 'Sector',
+  gov_sector: 'Categories',
   department: 'Department',
   records: 'Records',
 };

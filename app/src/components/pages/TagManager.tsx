@@ -16,13 +16,13 @@ import { theme } from 'skintyee/styles';
 const CATEGORY_ORDER: Array<'gov' | 'gov_sector' | 'department' | 'records' | 'records'> = ['gov', 'gov_sector', 'department', 'records'];
 const CATEGORY_LABEL: Record<string, string> = {
   gov: 'Government',
-  gov_sector: 'Sector',
+  gov_sector: 'Categories',
   department: 'Department',
   records: 'Records',
 };
 const CATEGORY_DESC: Record<string, string> = {
   gov: 'Flag a document as government-issued.',
-  gov_sector: 'Which government domain the document concerns.',
+  gov_sector: 'Which band governance domain this document concerns.',
   department: 'Which internal Skin Tyee department owns it.',
   records: 'Accounts-payable / payroll document type (EFTs, payroll slips, expense sheets, mileage, timesheets).',
 };
