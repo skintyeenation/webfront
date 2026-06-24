@@ -19,7 +19,7 @@ const AUDIENCES: { value: DocumentAudience; label: string }[] = [
   { value: 'public',      label: 'Public' },
 ];
 const TAG_CATEGORY_ORDER: Array<'gov' | 'gov_sector' | 'department' | 'records'> = ['gov', 'gov_sector', 'department', 'records'];
-const TAG_CATEGORY_LABEL: Record<string, string> = { gov: 'Government', gov_sector: 'Sector', department: 'Department', records: 'Records' };
+const TAG_CATEGORY_LABEL: Record<string, string> = { gov: 'Government', gov_sector: 'Categories', department: 'Department', records: 'Records' };
 
 // ----------------------------------------------------------------------------
 // EditOnboardingFlow — admin screen to design / edit a flow.

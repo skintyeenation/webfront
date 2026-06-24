@@ -14,10 +14,15 @@ export const DOCUMENT_TAG_SEED: SeedTag[] = [
   // Single gov flag — present means "this is a government doc".
   { category: 'gov', slug: 'gov', displayName: 'Gov' },
 
-  // Gov sectors — federal/provincial domains we file under.
-  { category: 'gov_sector', slug: 'indigenous-services',  displayName: 'Indigenous Services' },
-  { category: 'gov_sector', slug: 'health',               displayName: 'Health' },
-  { category: 'gov_sector', slug: 'natural-resources',    displayName: 'Natural Resources' },
+  // Sectors — Skin Tyee's program/funding areas (mirrors the ISC First Nations
+  // program sectors). These are the top-level sector tags.
+  { category: 'gov_sector', slug: 'registration-governance',     displayName: 'Registration & Governance' },
+  { category: 'gov_sector', slug: 'education',                   displayName: 'Education' },
+  { category: 'gov_sector', slug: 'lands-economic-development',  displayName: 'Lands & Economic Development' },
+  { category: 'gov_sector', slug: 'social',                      displayName: 'Social' },
+  { category: 'gov_sector', slug: 'housing',                    displayName: 'Housing' },
+  { category: 'gov_sector', slug: 'child-family-services',       displayName: 'Child & Family Services' },
+  { category: 'gov_sector', slug: 'health',                     displayName: 'Health' },
 
   // Departments — mirrors Skin Tyee's internal departments
   // (intersection with skintyee-groups.ts).
@@ -39,7 +44,7 @@ export const DOCUMENT_TAG_SEED: SeedTag[] = [
 // Category labels for the UI catalog endpoint.
 export const TAG_CATEGORIES: Array<{ slug: 'gov' | 'gov_sector' | 'department' | 'records'; displayName: string; description: string }> = [
   { slug: 'gov',         displayName: 'Government',  description: 'Flag a document as government-issued (single tag, on/off).' },
-  { slug: 'gov_sector',  displayName: 'Gov sector',  description: 'Which government domain the doc concerns (Indigenous Services, Health, …).' },
+  { slug: 'gov_sector',  displayName: 'Categories',  description: 'Skin Tyee program/funding sector the document concerns (Registration & Governance, Education, Health, …).' },
   { slug: 'department',  displayName: 'Department',  description: 'Which internal Skin Tyee department owns it.' },
   { slug: 'records',     displayName: 'Records',     description: 'Accounts-payable / payroll document type (EFTs, payroll slips, expense sheets, mileage, timesheets).' },
 ];
