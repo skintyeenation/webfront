@@ -592,10 +592,16 @@ Decision record for the Skin Tyee app (`@skintyee/app`, in `app/`). Lives in the
     upload the completed PDF to SharePoint manually (or via the documents
     uploader).
 
-- **Auth:** **local OpenSign admin/staff accounts + 2FA** to start. **Entra ID
-  SSO (OIDC)** is desired (same tenant as ADR-1) but **not confirmed in the
-  community edition** — later enhancement, pending verification; may need a paid
-  tier.
+- **Auth — two distinct populations (don't conflate them):**
+  - **Band staff/admins** (the people who create + send envelopes): **local
+    OpenSign accounts + 2FA** to start; **Entra ID SSO (OIDC)** is the desired
+    upgrade (same tenant as ADR-1) but **not confirmed in the community edition**
+    — later enhancement, pending verification, may need a paid tier. SSO scope is
+    **only** this internal handful of users.
+  - **External signers** (band members / contractors signing a document): always
+    authenticate via **email-OTP** — they are **not** tenant users, so SSO never
+    applies to them. (This OTP is also the **identity-authentication control CRA
+    requires for the TD1**, per [`esign-compliance.md`](./esign-compliance.md) §4.)
 
 - **Legal / compliance basis (Canada · BC)** — full citations + verification
   record in [`esign-compliance.md`](./esign-compliance.md):
