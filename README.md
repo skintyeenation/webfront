@@ -36,6 +36,7 @@ proof-of-concept built for the proposal.
 | &nbsp;&nbsp;&nbsp;&nbsp;[Source control & CI/CD](#source-control--cicd) | Azure DevOps primary, GitHub mirror (per ADR-9) + the SharePoint publisher Pipeline |
 | &nbsp;&nbsp;&nbsp;&nbsp;[Staff onboarding](#staff-onboarding) | New-staff sequence: Outlook (with mandatory password change) → 1Password → shared mailboxes → band apps |
 | &nbsp;&nbsp;&nbsp;&nbsp;[Password management](#password-management) | Vaults, groups, recovery (1Password Business) |
+| &nbsp;&nbsp;&nbsp;&nbsp;[Password policy (Entra)](docs/365/password-policy.md) | Entra cloud + on-prem AD password rules — complexity, **never-expire**, smart lockout (live values) |
 | &nbsp;&nbsp;&nbsp;&nbsp;[Domains (GoDaddy)](#domains-godaddy) | `skintyee.ca` registrar + Azure DNS |
 | &nbsp;&nbsp;&nbsp;&nbsp;[Developer tools](#developer-tools) | IntelliJ Ultimate + Claude Max |
 | **Reference** | |
