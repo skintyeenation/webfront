@@ -114,11 +114,20 @@ API Server for data.
   `DeviceDetailDto` / `DeviceUserDto`), `fixtures.ts` (`devices`),
   `MockApiService.ts` (`devices`), `HttpApiService.ts` (`devices` → `/v1/devices`),
   `components/pages/Devices.tsx` + `DeviceDetail.tsx`, menu entry in `MoreMenu.tsx`.
-- **STUB:** the mock serves hand-authored device fixtures. The real path expects
-  the api/ to expose `GET /v1/devices` and `GET /v1/devices/:id` backed by
-  Microsoft Graph (`/devices`, `/registeredOwners`, `/registeredUsers` —
-  `Device.Read.All`). **That api/ endpoint does not exist yet** — a follow-up to
-  wire to the live tenant (consistent with the other Graph-backed surfaces).
+- **STUB:** the mock serves hand-authored device fixtures. The real path is the
+  api/'s `GET /v1/devices` + `GET /v1/devices/:id`, backed by Microsoft Graph
+  (`/devices`, `/registeredOwners`, `/registeredUsers` — `Device.Read.All`). The
+  api/ consolidates duplicate Entra objects per machine by name and preserves
+  the `isCompliant` tri-state — see
+  [`docs/365/device-identity-vs-management.md`](../../docs/365/device-identity-vs-management.md).
+- **Remote desktop:** `DeviceDetail` generates a cross-platform `.rdp` file
+  (`services/rdp.ts`, configurable LAN/VPN vs RD Gateway via `Config.rdpGatewayHost`).
+  No backend — pure client-side file generation.
+- **IP + geolocation (partly real):** the detail's IP/location come from the
+  Entra **sign-in logs** (`/auditLogs/signIns`, `AuditLog.Read.All` + Entra ID
+  P1) in `graph-feed.service.ts` (`latestSignInTelemetry`); the mock serves
+  sample values on two fixtures. Source of truth, not a live GPS fix. See
+  [`docs/features/remote-desktop-and-device-telemetry.md`](../../docs/features/remote-desktop-and-device-telemetry.md).
 
 ## 2d. Admin authoring (create/manage) — in-memory only
 

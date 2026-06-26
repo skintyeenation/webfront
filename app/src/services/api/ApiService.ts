@@ -618,9 +618,23 @@ export interface DeviceRegistrationDto {
   isPrimary: boolean;
 }
 
+/** Network location of a device's most recent Entra sign-in (from the sign-in
+ * logs — not a live GPS fix). Any field may be absent. */
+export interface DeviceGeoLocation {
+  city?: string;
+  state?: string;
+  country?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
 export interface DeviceDetailDto extends DeviceDto {
   /** The Entra device objects consolidated into this physical machine — only
    * present on the detail view. `registrationCount === registrations.length`.
    * Non-primary entries are stale duplicates safe to delete in Entra. */
   registrations?: DeviceRegistrationDto[];
+  /** IP address of the device's most recent Entra sign-in (sign-in logs). */
+  lastSignInIp?: string;
+  /** Geolocation of that most recent sign-in (city/country, + coords if known). */
+  lastSignInLocation?: DeviceGeoLocation;
 }

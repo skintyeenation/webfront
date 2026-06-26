@@ -302,6 +302,9 @@ export const devices: Array<Omit<DeviceDetailDto, 'userCount'>> = [
     users: [
       { id: 'm3', displayName: 'Sandra Williams', email: 'admin@skintyee.ca', accessType: 'owner' },
     ],
+    // Sign-in telemetry (Entra sign-in logs) — band office, Burns Lake BC.
+    lastSignInIp: '142.179.64.12',
+    lastSignInLocation: { city: 'Burns Lake', state: 'British Columbia', country: 'CA', latitude: 54.2289, longitude: -125.7600 },
   },
   {
     id: 'dev-chief-surface', displayName: 'CHIEF-SURFACE',
@@ -322,6 +325,8 @@ export const devices: Array<Omit<DeviceDetailDto, 'userCount'>> = [
       { id: 'm5', displayName: 'Annie Michell', email: 'a.michell@skintyee.ca', accessType: 'user' },
       { id: 'm2', displayName: 'Daniel Pierre', email: 'd.pierre@skintyee.ca', accessType: 'user' },
     ],
+    lastSignInIp: '142.179.64.12',
+    lastSignInLocation: { city: 'Burns Lake', state: 'British Columbia', country: 'CA', latitude: 54.2289, longitude: -125.7600 },
   },
   {
     id: 'dev-lands-laptop', displayName: 'LANDS-LAPTOP',

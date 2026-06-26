@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
-import { View } from 'react-native';
-import { ActivityIndicator, Avatar, Card, Chip, Divider, HelperText, List, Text } from 'react-native-paper';
+import { Linking, View } from 'react-native';
+import { ActivityIndicator, Avatar, Button, Card, Chip, Divider, HelperText, List, Text } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import dayjs from 'dayjs';
 import { PageContainer, PageContent, NoContent } from 'skintyee/components/layout';
@@ -9,6 +9,7 @@ import { DeviceDetailDto } from 'skintyee/services/api/ApiService';
 import { theme } from 'skintyee/styles';
 import { deviceIcon, complianceColor, TRUST_LABEL } from 'skintyee/components/pages/Devices';
 import { osDisplay, isServer, complianceState, COMPLIANCE_UI } from 'skintyee/components/pages/device-os';
+import { canDownloadRdp, downloadRdp } from 'skintyee/services/rdp';
 
 // ----------------------------------------------------------------------------
 // DeviceDetail — one Entra device: its properties + the access list (who can
@@ -98,6 +99,31 @@ export default function DeviceDetail({ route }: any) {
             <Row label="Enabled" value={device.enabled ? 'Yes' : 'No — cannot sign in'} />
             <Row label="Last sign-in" value={dayjs(device.approximateLastSignInDateTime).format('MMM D, YYYY h:mm A')} />
             <Row label="Registered" value={dayjs(device.registrationDateTime).format('MMM D, YYYY')} />
+            {device.lastSignInIp ? <Row label="IP address" value={device.lastSignInIp} /> : null}
+            {device.lastSignInLocation ? (
+              <View style={{ flexDirection: 'row', marginTop: 6 }}>
+                <Text style={{ color: theme.colors.textDarker, fontSize: 12, width: 132 }}>Location</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: theme.colors.text, fontSize: 12 }}>
+                    {[device.lastSignInLocation.city, device.lastSignInLocation.state, device.lastSignInLocation.country]
+                      .filter(Boolean)
+                      .join(', ') || 'Unknown'}
+                  </Text>
+                  {device.lastSignInLocation.latitude != null && device.lastSignInLocation.longitude != null ? (
+                    <Text
+                      onPress={() =>
+                        Linking.openURL(
+                          `https://www.google.com/maps/search/?api=1&query=${device.lastSignInLocation!.latitude},${device.lastSignInLocation!.longitude}`,
+                        )
+                      }
+                      style={{ color: theme.colors.primary, fontSize: 11, marginTop: 2 }}
+                    >
+                      View on map
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+            ) : null}
             {(device.registrationCount ?? 1) > 1 ? (
               <>
                 <Divider style={{ marginVertical: 8 }} />
@@ -115,6 +141,28 @@ export default function DeviceDetail({ route }: any) {
             ) : null}
           </Card.Content>
         </Card>
+
+        {/windows/i.test(device.operatingSystem) ? (
+          <View style={{ marginTop: 12, alignItems: 'flex-start' }}>
+            <Button
+              mode="contained"
+              icon="remote-desktop"
+              compact
+              disabled={!canDownloadRdp()}
+              onPress={() => downloadRdp(device)}
+              buttonColor={theme.colors.primary}
+              textColor="#000"
+              style={{ alignSelf: 'flex-start' }}
+            >
+              Remote desktop (.rdp)
+            </Button>
+            <HelperText type="info" visible style={{ color: theme.colors.textDarker, fontSize: 11 }}>
+              {canDownloadRdp()
+                ? 'Downloads a connection file. Opens in Remote Desktop on Windows, or the free Windows App on Mac / iOS / Android.'
+                : 'Open this device on the desktop or web app to download the connection file.'}
+            </HelperText>
+          </View>
+        ) : null}
 
         {device.registrations && device.registrations.length > 1 ? (
           <>

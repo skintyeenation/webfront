@@ -1540,7 +1540,8 @@ export class GraphFeedService {
       logical.find((d) => d.memberIds.includes(id)) ?? logical.find((d) => d.id === id);
     if (found) {
       const { memberIds, ...rest } = found;
-      return rest; // includes users + userCount + registrationCount
+      const telemetry = await this.latestSignInTelemetry(rest.displayName, rest.users);
+      return { ...rest, ...telemetry }; // users + counts + registrations + ip/geo
     }
     // Unknown id (e.g. paged out, or deleted between calls) — fall back to a
     // direct fetch so the error/shape matches Graph's.
@@ -1550,6 +1551,53 @@ export class GraphFeedService {
       this.graph<any>(`/devices/${safeId}?$expand=registeredUsers`),
     ]);
     const users = this.mapUsers(dOwners.registeredOwners ?? [], dUsers.registeredUsers ?? []);
-    return { ...this.mapDeviceBase(dOwners), users, userCount: users.length, registrationCount: 1 };
+    const base = this.mapDeviceBase(dOwners);
+    const telemetry = await this.latestSignInTelemetry(base.displayName, users);
+    return { ...base, users, userCount: users.length, registrationCount: 1, ...telemetry };
+  }
+
+  // IP + geolocation for a device, from the Entra sign-in logs. The device
+  // object itself carries no IP/location, so we read the most recent sign-in of
+  // the device's registered user (signIns can't be filtered by deviceId) and
+  // match it back to the device by name. Best-effort: returns {} when there's no
+  // user to query by, the AuditLog.Read.All permission is missing, or no
+  // matching sign-in exists — the UI then hides the rows. Requires Entra ID P1.
+  private async latestSignInTelemetry(
+    displayName: string,
+    users: Array<{ email?: string; accessType?: string }>,
+  ): Promise<{ lastSignInIp?: string; lastSignInLocation?: any }> {
+    const upn = (users.find((u) => u.accessType === 'owner') ?? users[0])?.email;
+    if (!upn || !upn.includes('@')) return {};
+    try {
+      const filter = encodeURIComponent(`userPrincipalName eq '${upn}'`);
+      const page = await this.graph<{ value: any[] }>(
+        `/auditLogs/signIns?$filter=${filter}&$top=25&$orderby=createdDateTime desc`,
+      );
+      const rows = page.value ?? [];
+      const match =
+        rows.find(
+          (r) => (r.deviceDetail?.displayName ?? '').toLowerCase() === displayName.toLowerCase(),
+        ) ?? rows[0];
+      if (!match) return {};
+      const loc = match.location ?? {};
+      const geo = loc.geoCoordinates ?? {};
+      const hasLoc =
+        loc.city || loc.state || loc.countryOrRegion || geo.latitude != null;
+      return {
+        lastSignInIp: match.ipAddress ?? undefined,
+        lastSignInLocation: hasLoc
+          ? {
+              city: loc.city ?? undefined,
+              state: loc.state ?? undefined,
+              country: loc.countryOrRegion ?? undefined,
+              latitude: geo.latitude ?? undefined,
+              longitude: geo.longitude ?? undefined,
+            }
+          : undefined,
+      };
+    } catch (e) {
+      this.log.warn(`signIns telemetry for ${displayName} unavailable: ${e}`);
+      return {};
+    }
   }
 }

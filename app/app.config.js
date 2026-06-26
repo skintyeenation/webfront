@@ -59,6 +59,13 @@ module.exports = {
       // Google Maps JS API key for the location picker. Read from the env at
       // startup — keep the real key in an (untracked) .env / shell, not in git.
       googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+      // Remote-desktop (.rdp) generation for Assets → Devices. The AD domain
+      // suffix appended to a bare PC name (STFN.local), and an optional RD
+      // Gateway host — set it to switch the same button from LAN/VPN reach to
+      // secure remote access over TLS/443. See
+      // docs/features/remote-desktop-and-device-telemetry.md.
+      rdpDomainSuffix: process.env.EXPO_PUBLIC_RDP_DOMAIN_SUFFIX || 'stfn.local',
+      rdpGatewayHost: process.env.EXPO_PUBLIC_RDP_GATEWAY_HOST || '',
     },
   },
 };
