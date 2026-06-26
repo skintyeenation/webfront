@@ -1,0 +1,63 @@
+# Apache Guacamole stack — browser-based remote desktop for skintyee.ca.
+# Brought up by deploy-guacamole.sh on a LAN-reachable host (on-prem box or an
+# Azure VM with a VPN to the office). See README.md.
+#
+# Services: guacd (RDP proxy) · postgres (auth/connections) · guacamole (web app)
+# · caddy (auto-TLS reverse proxy for ${GUAC_DOMAIN}). Values come from .env.
+
+services:
+  guacd:
+    image: guacamole/guacd:1.5.5
+    restart: unless-stopped
+    # No published ports — only the guacamole web app talks to it (internal).
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${DB_NAME:-guacamole_db}
+      POSTGRES_USER: ${DB_USER:-guacamole}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  guacamole:
+    image: guacamole/guacamole:1.5.5
+    depends_on: [guacd, postgres]
+    environment:
+      GUACD_HOSTNAME: guacd
+      WEBAPP_CONTEXT: ROOT # serve at https://${GUAC_DOMAIN}/ (not /guacamole)
+      POSTGRESQL_HOSTNAME: postgres
+      POSTGRESQL_DATABASE: ${DB_NAME:-guacamole_db}
+      POSTGRESQL_USER: ${DB_USER:-guacamole}
+      POSTGRESQL_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+      # The app is served under /guacamole by default; Caddy strips/forwards it.
+      # --- Entra ID (OpenID Connect) SSO: sign in with skintyee.ca ---
+      OPENID_AUTHORIZATION_ENDPOINT: https://login.microsoftonline.com/${ENTRA_TENANT_ID}/oauth2/v2.0/authorize
+      OPENID_JWKS_ENDPOINT: https://login.microsoftonline.com/${ENTRA_TENANT_ID}/discovery/v2.0/keys
+      OPENID_ISSUER: https://login.microsoftonline.com/${ENTRA_TENANT_ID}/v2.0
+      OPENID_CLIENT_ID: ${ENTRA_CLIENT_ID}
+      OPENID_REDIRECT_URI: https://${GUAC_DOMAIN}
+      OPENID_USERNAME_CLAIM_TYPE: preferred_username
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    depends_on: [guacamole]
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      GUAC_DOMAIN: ${GUAC_DOMAIN:?set GUAC_DOMAIN in .env}
+    # Auto-TLS (Let's Encrypt) for GUAC_DOMAIN, reverse-proxied to the web app.
+    command: |
+      caddy reverse-proxy --from ${GUAC_DOMAIN} --to guacamole:8080
+    volumes:
+      - caddydata:/data
+      - caddyconfig:/config
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  caddydata:
+  caddyconfig:

@@ -64,6 +64,27 @@ All prices approximate, USD, Canada Central, as of 2026-05-21. Source:
 | Blob + egress | | $5 | $60 |
 | **Total — headroom tier** | | **~$100** | **~$1,200** |
 
+## Optional add-on — Remote desktop (Apache Guacamole)
+
+Browser-based remote desktop into band PCs — the app's **Assets → Devices →
+Browser** connect mode. The software is free; the cost is the host plus, if it's
+cloud-hosted, a VPN back to the office so it can reach the on-prem PCs. Full
+breakdown + deploy: [`guacamole/README.md`](../guacamole/README.md).
+
+| Line item | Spec | Monthly | Annual (×12) |
+|---|---|--:|--:|
+| Apache Guacamole | Apache 2.0 OSS — unlimited users | \$0 | \$0 |
+| Host — **on-prem** LAN box (recommended) | reuse existing server | \$0 | \$0 |
+| Host — Azure VM alternative | `B1ms` 1 vCPU / 2 GB | \$15 | \$180 |
+| Database | reuse `skintyee-prod-pg` (new `guacamole_db`) | \$0 | \$0 |
+| VPN to office (**only** if cloud-hosted) | Azure VPN Gateway *Basic* | \$27 | \$324 |
+| **Total — on-prem host** | | **~\$0** | **~\$0** |
+| **Total — Azure-hosted** | | **~\$42** | **~\$504** |
+
+On-prem hosting is \$0 extra and is the only option that reaches the on-prem
+fleet without a VPN; Azure hosting adds the VM + a site-to-site VPN. Not deployed
+yet — costs apply only if/when the Browser connect mode is turned on.
+
 ## Notes
 
 - One-time / usage-based items not included above: domain registration

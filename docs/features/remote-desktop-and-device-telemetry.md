@@ -104,6 +104,10 @@ isn't granted, the fields degrade gracefully to "unavailable".
 
 ## See also
 
+- [`guacamole/README.md`](../../guacamole/README.md) — standing up the Browser
+  (Guacamole) mode: stack, cost, reachability, deploy script + ADO pipeline.
+- [`docs/hosting-costs.md`](../hosting-costs.md) — the Guacamole cost line in the
+  project cost record.
 - `app/STUBS.md` §2cc — the devices feature + its Graph mapping.
 - [`docs/365/device-identity-vs-management.md`](../365/device-identity-vs-management.md)
   — join vs management vs compliance; duplicate-registration consolidation.
