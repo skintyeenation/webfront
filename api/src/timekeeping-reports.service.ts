@@ -8,13 +8,14 @@ import { TIMESHEET_LOGO } from './timesheet-logo';
 import { BRAND } from './email-template';
 import dayjs from 'dayjs';
 
-// Overtime is calculated OVER THE TWO WEEKS — i.e. per-week hours beyond the
-// weekly threshold (40h) in each of the period's two weeks — NOT as total hours
-// over 80 across the timesheet. Computed here from week1/week2 so the PDF is
+// Overtime is calculated OVER THE TWO-WEEK PERIOD: hours beyond 80 (2 weeks ×
+// the 40h weekly threshold) across the whole timesheet — bi-weekly averaging,
+// NOT per-week. A heavy week offset by a light week is not overtime
+// (e.g. 24h + 46h = 70h < 80h ⇒ 0 OT). Computed from week1/week2 so the PDF is
 // authoritative and immune to any stale stored overtimeHours value.
-function weeklyOvertime(t: any): number {
-  const th = PAY_PERIOD_CONFIG.overtimeWeeklyHoursThreshold;
-  const ot = Math.max(0, (t.week1Hours ?? 0) - th) + Math.max(0, (t.week2Hours ?? 0) - th);
+function periodOvertime(t: any): number {
+  const total = (t.week1Hours ?? 0) + (t.week2Hours ?? 0);
+  const ot = Math.max(0, total - 2 * PAY_PERIOD_CONFIG.overtimeWeeklyHoursThreshold);
   return Math.round(ot * 100) / 100;
 }
 
@@ -281,7 +282,7 @@ export class TimekeepingReportsService {
         lines.push([
           t.workerUpn, t.workerName, '', '', '', '', '',
           t.status, t.week1Hours, t.week2Hours, t.totalHours,
-          weeklyOvertime(t), t.requiresAdminApproval,
+          periodOvertime(t), t.requiresAdminApproval,
           t.submittedAt?.toISOString() ?? '', t.approvedBy ?? '',
           t.approvedAt?.toISOString() ?? '', t.rejectedReason ?? '',
         ].map(esc).join(','));
@@ -292,7 +293,7 @@ export class TimekeepingReportsService {
           t.workerUpn, t.workerName, e.date, e.task,
           e.timeIn ?? '', e.timeOut ?? '', e.hours,
           t.status, t.week1Hours, t.week2Hours, t.totalHours,
-          weeklyOvertime(t), t.requiresAdminApproval,
+          periodOvertime(t), t.requiresAdminApproval,
           t.submittedAt?.toISOString() ?? '', t.approvedBy ?? '',
           t.approvedAt?.toISOString() ?? '', t.rejectedReason ?? '',
         ].map(esc).join(','));
@@ -370,7 +371,7 @@ export class TimekeepingReportsService {
       const totalHours = timesheets.reduce((s, t) => s + (t.totalHours ?? 0), 0);
       page.lines.push({ size: 11, y, center: true, text: `Total hours: ${Math.round(totalHours * 100) / 100}` });
       y -= 15;
-      const totalOT = timesheets.reduce((s, t) => s + weeklyOvertime(t), 0);
+      const totalOT = timesheets.reduce((s, t) => s + periodOvertime(t), 0);
       page.lines.push({ size: 11, y, center: true, text: `Total OT: ${Math.round(totalOT * 100) / 100}` });
       y -= 26;
       page.lines.push({ size: 9, y, center: true, text: `Generated ${dayjs().format('YYYY-MM-DD HH:mm')}  ·  Skin Tyee Time Keeping` });
@@ -388,7 +389,7 @@ export class TimekeepingReportsService {
         const t = meta.t;
         page.lines.push({ size: 10, y, text: `${t.workerUpn}  ·  ${period.label}` });
         y -= 14;
-        page.lines.push({ size: 10, y, text: `Status: ${(t.status as string).toUpperCase()} - Total ${t.totalHours}h - OT ${weeklyOvertime(t)}h - W1 ${t.week1Hours}h - W2 ${t.week2Hours}h` });
+        page.lines.push({ size: 10, y, text: `Status: ${(t.status as string).toUpperCase()} - Total ${t.totalHours}h - OT ${periodOvertime(t)}h - W1 ${t.week1Hours}h - W2 ${t.week2Hours}h` });
         y -= 18;
         if (t.submittedAt) {
           page.lines.push({ size: 9, y, text: `Submitted ${dayjs(t.submittedAt).format('YYYY-MM-DD HH:mm')}${t.approvedBy ? ` - Approved by ${t.approvedBy}` : ''}${t.rejectedReason ? ` - Rejected: ${t.rejectedReason}` : ''}` });
