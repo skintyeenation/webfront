@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { TouchableOpacity, View } from 'react-native';
+import { Platform, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { Badge, Button, Card, Chip, ProgressBar, SegmentedButtons, Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import moment from 'moment';
@@ -299,6 +299,12 @@ export default function Dashboard({ navigation }: any) {
 
   const [view, setView] = useState<FeedView>('list');
 
+  // "My projects" + "My tasks" sit side by side on DESKTOP only. Gate on
+  // Platform.OS === 'web' so the native tablet app (iOS/Android) always keeps
+  // the stacked layout — tablet portrait *and* landscape stay single-column.
+  const { width } = useWindowDimensions();
+  const twoCol = Platform.OS === 'web' && width >= 1024;
+
   // Pull this week's feed on mount; staff/admin also pull Planner + time.
   useEffect(() => {
     const from = moment().startOf('day').toISOString();
@@ -478,6 +484,8 @@ export default function Dashboard({ navigation }: any) {
 
         {/* ── 2. MY PROJECTS — Planner plans as project bars ────────────── */}
         {showPlannerWidgets ? (
+          <View style={twoCol ? { flexDirection: 'row', alignItems: 'flex-start' } : undefined}>
+          <View style={twoCol ? { flex: 1, marginRight: 8 } : undefined}>
           <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 16 }}>
             <Card.Content>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
@@ -517,7 +525,8 @@ export default function Dashboard({ navigation }: any) {
               )}
             </Card.Content>
           </Card>
-        ) : null}
+          </View>
+          <View style={twoCol ? { flex: 1, marginLeft: 8 } : undefined}>
 
         {/* ── 3. MY TASKS — Planner tasks, list / calendar toggle ─────────
             Gated on showPlannerWidgets — externals (staff-auth, no
@@ -570,6 +579,9 @@ export default function Dashboard({ navigation }: any) {
           <CalendarView items={taskItems} />
         )}
         </> : null}
+          </View>
+          </View>
+        ) : null}
 
       </PageContent>
     </PageContainer>
