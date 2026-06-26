@@ -282,14 +282,27 @@ function ShellTabs({ initialRouteName, children, screenOptions }: any) {
     );
   };
 
+  const railWidth = navExpanded ? 248 : 64;
   return (
     <NavigationContent>
-      <View style={{ flex: 1, flexDirection: leftRail ? 'row' : 'column', backgroundColor: theme.colors.background }}>
+      {/* On very wide screens (e.g. 4K) centre the whole shell — rail + content
+          — as one block, capped at railWidth + APP_MAX_WIDTH. Without this the
+          rail hugs the far-left edge while the (1200-capped) content centres in
+          the middle, leaving a huge dead gap between the menu and the content. */}
+      <View style={{ flex: 1, backgroundColor: theme.colors.background, alignItems: leftRail ? 'center' : 'stretch' }}>
+        <View
+          style={{
+            flex: 1,
+            width: '100%',
+            maxWidth: leftRail ? railWidth + APP_MAX_WIDTH : undefined,
+            flexDirection: leftRail ? 'row' : 'column',
+          }}
+        >
         {leftRail ? (
           <ScrollView
             // flexGrow/Shrink:0 — RN-web ScrollView defaults to flex:1, which
             // would make it grow past the fixed width and eat the content area.
-            style={{ width: navExpanded ? 248 : 64, flexGrow: 0, flexShrink: 0, backgroundColor: theme.colors.darkDefault }}
+            style={{ width: railWidth, flexGrow: 0, flexShrink: 0, backgroundColor: theme.colors.darkDefault }}
             contentContainerStyle={{ paddingTop: 6, paddingBottom: 24 }}
             showsVerticalScrollIndicator={false}
           >
@@ -340,6 +353,7 @@ function ShellTabs({ initialRouteName, children, screenOptions }: any) {
             {state.routes.map((r, i) => renderTabButton(r, i, false))}
           </View>
         ) : null}
+        </View>
       </View>
     </NavigationContent>
   );
