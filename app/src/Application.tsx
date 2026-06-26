@@ -11,6 +11,8 @@ import { theme, APP_MAX_WIDTH } from 'skintyee/styles';
 import { routeConfig } from 'skintyee/routes';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { refreshStoreForSignedInUser } from 'skintyee/store/refresh';
+import { setNavPosition, DEFAULT_NAV_POSITION } from 'skintyee/store/modules/appState';
+import { loadNavPosition } from 'skintyee/store/navPrefs';
 import { SplashScreen, AppHeader } from 'skintyee/components/layout';
 import { Role } from 'skintyee/models';
 
@@ -277,7 +279,7 @@ export default function Application() {
   // Initial launch: signedIn=false, bypassed=false → render the Account
   // screen full-page (which has both the Microsoft button + dev role
   // switcher). After either path completes, the tabs appear.
-  const { signedIn, bypassed, role } = useAppSelector((s) => s.auth);
+  const { signedIn, bypassed, role, user } = useAppSelector((s) => s.auth);
   const allowedIn = signedIn || bypassed;
 
   // When the user transitions from anonymous → signed-in (or boots into
@@ -287,9 +289,15 @@ export default function Application() {
   // and the user lands on screens with no data + no apparent buttons.
   const dispatch = useAppDispatch();
   useEffect(() => {
-    if (!signedIn) return;
+    if (!signedIn) {
+      // Logged out → reset to the default placement (the toggle is hidden anyway).
+      dispatch(setNavPosition(DEFAULT_NAV_POSITION));
+      return;
+    }
     refreshStoreForSignedInUser(dispatch, role);
-  }, [dispatch, signedIn, role]);
+    // Load this user's saved nav placement (per-user, cross-platform via AsyncStorage).
+    loadNavPosition(user?.upn).then((p) => dispatch(setNavPosition(p)));
+  }, [dispatch, signedIn, role, user?.upn]);
 
   return (
     <PaperProvider theme={customTheme} settings={{ icon: (props: any) => <MaterialCommunityIcons {...props} /> }}>

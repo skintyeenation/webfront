@@ -4,6 +4,7 @@ import { Appbar, Avatar } from 'react-native-paper';
 import { Logo } from './Logo';
 import { useAppSelector, useAppDispatch } from 'skintyee/store';
 import { setNavPosition } from 'skintyee/store/modules/appState';
+import { saveNavPosition } from 'skintyee/store/navPrefs';
 import Config from 'skintyee/config';
 import { theme, APP_MAX_WIDTH } from 'skintyee/styles';
 
@@ -52,7 +53,9 @@ export function AppHeader({ title, navigation, back, options, showAccount = true
   const directory = useAppSelector((s) => s.directory.entities);
   const dispatch = useAppDispatch();
   const navPosition = useAppSelector((s) => s.app.navPosition);
-  const wideEnoughForRail = width >= 900; // desktop only — show the nav-placement toggle
+  // Show the nav-placement toggle only on desktop AND when signed in — the login
+  // screen has no app nav bar to reposition, so the switch is hidden when logged out.
+  const wideEnoughForRail = width >= 900 && signedIn;
 
   const myUpn = (user?.upn ?? '').toLowerCase();
   const me = myUpn
@@ -77,7 +80,11 @@ export function AppHeader({ title, navigation, back, options, showAccount = true
           icon={navPosition === 'left' ? 'dock-bottom' : 'dock-left'}
           color={theme.colors.primary}
           accessibilityLabel={navPosition === 'left' ? 'Move navigation to the bottom' : 'Move navigation to the left'}
-          onPress={() => dispatch(setNavPosition(navPosition === 'left' ? 'bottom' : 'left'))}
+          onPress={() => {
+            const next = navPosition === 'left' ? 'bottom' : 'left';
+            dispatch(setNavPosition(next));
+            saveNavPosition(user?.upn, next); // persist per-user (cross-platform)
+          }}
         />
       ) : null}
 

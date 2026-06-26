@@ -461,6 +461,10 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
   return (
     <PageContainer>
       <PageContent>
+        {/* Constrain the Account column on large screens so the logged-out login
+            form (tabs / Microsoft button) and the role switcher don't stretch
+            edge-to-edge. Tighter when logged out (a login form), roomier signed in. */}
+        <View style={{ width: '100%', maxWidth: signedIn ? 640 : 460, alignSelf: 'center' }}>
         {/* Header: avatar + name + role chip ----------------------------- */}
         <View style={{ alignItems: 'center', marginBottom: 16 }}>
           <View style={{ position: 'relative', width: 72, height: 72 }}>
@@ -797,6 +801,7 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
         ) : null}
         </>
         ) : null}
+        </View>
       </PageContent>
     </PageContainer>
   );

@@ -8,17 +8,17 @@ export const loading = createAction<boolean>('loading');
 export const setError = createAction<any>('set_error');
 export const clearError = createAction('clear_error');
 
-// Desktop nav placement: bottom tab bar (default) or left side rail. Persisted
-// to localStorage on web so the choice sticks across reloads (no-op on native).
+// Desktop nav placement: left side rail (default on desktop) or bottom tab bar.
+// `setNavPosition` only updates state — persistence is **per-user** via the
+// AsyncStorage helper in `store/navPrefs.ts` (cross-platform: web/Electron via
+// localStorage, native via AsyncStorage), loaded on sign-in and saved on toggle.
+// Default is 'left' → left rail on desktop (width ≥ 900), bottom on phones (the
+// nav navigator only shows the rail above that width, so 'left' is harmless on
+// mobile). The toggle is hidden when logged out, so anonymous always sees default.
 export type NavPosition = 'bottom' | 'left';
 export const setNavPosition = createAction<NavPosition>('set_nav_position');
 
-const NAV_POS_KEY = 'stfn.navPosition';
-function readNavPosition(): NavPosition {
-  try {
-    return typeof localStorage !== 'undefined' && localStorage.getItem(NAV_POS_KEY) === 'left' ? 'left' : 'bottom';
-  } catch { return 'bottom'; }
-}
+export const DEFAULT_NAV_POSITION: NavPosition = 'left';
 
 export interface AppState {
   loading: boolean;
@@ -29,7 +29,7 @@ export interface AppState {
 export const appStateInitialState: AppState = {
   loading: false,
   error: null,
-  navPosition: readNavPosition(),
+  navPosition: DEFAULT_NAV_POSITION,
 };
 
 const appStateSlice = createSlice({
@@ -40,10 +40,7 @@ const appStateSlice = createSlice({
     builder.addCase(loading, (state, action) => ({ ...state, loading: action.payload }));
     builder.addCase(setError, (state, action) => ({ ...state, loading: false, error: action.payload }));
     builder.addCase(clearError, (state) => ({ ...state, error: null }));
-    builder.addCase(setNavPosition, (state, action) => {
-      try { if (typeof localStorage !== 'undefined') localStorage.setItem(NAV_POS_KEY, action.payload); } catch { /* native */ }
-      return { ...state, navPosition: action.payload };
-    });
+    builder.addCase(setNavPosition, (state, action) => ({ ...state, navPosition: action.payload }));
   },
 });
 
