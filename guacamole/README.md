@@ -13,6 +13,42 @@ trade-off is you must run a server.
 
 ---
 
+## Remote-access options (Skin Tyee runs UniFi)
+
+A VPN is needed **only when Guacamole runs in Azure** (cloud → on-prem reach).
+On-prem, guacd is already on the LAN with the PCs, so **no VPN**. And because
+Skin Tyee owns a **UniFi gateway** (UDM / UDM-Pro / UXG / Dream Router) there's
+already a free VPN server on hand — which makes Guacamole **optional**:
+
+| # | Option | Path | New infra | Cost | Client |
+|---|---|---|---|---|---|
+| **A** | **UniFi VPN + native RDP** | UniFi **WireGuard / Teleport** into the LAN → the app's **LAN/VPN** `.rdp` opens mstsc / Windows App | **none** (hardware you own) | **\$0** | VPN app + RDP |
+| **B** | **On-prem Guacamole, public 443** | Browser → `remote.skintyee.ca` (UniFi forwards 443) → Guacamole on a LAN box | 1 Linux box/VM | ~\$0 (one-time) | **browser only** |
+| **C** | **On-prem Guacamole behind the VPN** | UniFi VPN in → internal Guacamole URL (nothing public) | Linux box + VPN | \$0 | VPN app + browser |
+| **D** | **Azure Guacamole + VPN** | cloud, tunnel back to office | Azure VM + VPN gateway | ~\$47–62/mo | browser |
+
+**Zero-cost path that works today — Option A.** The app's **LAN/VPN** connect
+mode is already enabled and ships the `.rdp`; turn on **UniFi Teleport**
+(one-click, no per-user config) or WireGuard and remote desktop works with **no
+new servers, no Azure, no monthly cost**. There's nothing to deploy from this
+folder for Option A — just enable the UniFi VPN and use the app's LAN/VPN button.
+
+Choose **Guacamole (B/C)** only when the **clientless browser** experience matters
+(Chromebooks, locked-down machines, no client install). Prefer **C** (Guacamole
+reachable only over the UniFi VPN — nothing public) for the tightest security, or
+**B** (public 443) if users need access without first connecting a VPN. Choose
+**Azure (D)** only if you refuse any on-site box — it's the only option with a
+recurring bill, ironically to tunnel back to the office the PCs already sit in.
+
+The rest of this README covers the Guacamole options (B / C / D).
+
+> UniFi specifics depend on the gateway + firmware: recent UniFi Network has a
+> built-in **WireGuard** server + **Teleport** (WireGuard-based, zero-config);
+> older setups have **OpenVPN** / **L2TP**. Teleport is easiest for staff;
+> site-to-site (for D's Azure tunnel) is IPsec/WireGuard.
+
+---
+
 ## Cost
 
 **Apache Guacamole itself is \$0** — open source (Apache 2.0), self-hosted, no
