@@ -287,7 +287,9 @@ function ShellTabs({ initialRouteName, children, screenOptions }: any) {
       <View style={{ flex: 1, flexDirection: leftRail ? 'row' : 'column', backgroundColor: theme.colors.background }}>
         {leftRail ? (
           <ScrollView
-            style={{ width: navExpanded ? 248 : 64, backgroundColor: theme.colors.darkDefault }}
+            // flexGrow/Shrink:0 — RN-web ScrollView defaults to flex:1, which
+            // would make it grow past the fixed width and eat the content area.
+            style={{ width: navExpanded ? 248 : 64, flexGrow: 0, flexShrink: 0, backgroundColor: theme.colors.darkDefault }}
             contentContainerStyle={{ paddingTop: 6, paddingBottom: 24 }}
             showsVerticalScrollIndicator={false}
           >
@@ -306,7 +308,7 @@ function ShellTabs({ initialRouteName, children, screenOptions }: any) {
               }}
             >
               <MaterialCommunityIcons
-                name={navExpanded ? 'chevron-double-left' : 'view-grid-outline'}
+                name={navExpanded ? 'menu-open' : 'menu'}
                 color={theme.colors.text}
                 size={24}
               />
