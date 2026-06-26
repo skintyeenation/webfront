@@ -2,11 +2,21 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import { DOCUMENT_STORAGE } from './storage/storage.module';
 import { DocumentStorageAdapter } from './storage/document-storage';
-import { recentPayPeriods, payPeriodFor, PayPeriod } from './skintyee-pay-periods';
+import { recentPayPeriods, payPeriodFor, PayPeriod, PAY_PERIOD_CONFIG } from './skintyee-pay-periods';
 import { buildPdf, PdfLine, PdfRect, PdfImage, PDF_CONST } from './pdf-builder';
 import { TIMESHEET_LOGO } from './timesheet-logo';
 import { BRAND } from './email-template';
 import dayjs from 'dayjs';
+
+// Overtime is calculated OVER THE TWO WEEKS — i.e. per-week hours beyond the
+// weekly threshold (40h) in each of the period's two weeks — NOT as total hours
+// over 80 across the timesheet. Computed here from week1/week2 so the PDF is
+// authoritative and immune to any stale stored overtimeHours value.
+function weeklyOvertime(t: any): number {
+  const th = PAY_PERIOD_CONFIG.overtimeWeeklyHoursThreshold;
+  const ot = Math.max(0, (t.week1Hours ?? 0) - th) + Math.max(0, (t.week2Hours ?? 0) - th);
+  return Math.round(ot * 100) / 100;
+}
 
 // ---- PDF layout helpers ----------------------------------------------------
 
@@ -271,7 +281,7 @@ export class TimekeepingReportsService {
         lines.push([
           t.workerUpn, t.workerName, '', '', '', '', '',
           t.status, t.week1Hours, t.week2Hours, t.totalHours,
-          t.overtimeHours, t.requiresAdminApproval,
+          weeklyOvertime(t), t.requiresAdminApproval,
           t.submittedAt?.toISOString() ?? '', t.approvedBy ?? '',
           t.approvedAt?.toISOString() ?? '', t.rejectedReason ?? '',
         ].map(esc).join(','));
@@ -282,7 +292,7 @@ export class TimekeepingReportsService {
           t.workerUpn, t.workerName, e.date, e.task,
           e.timeIn ?? '', e.timeOut ?? '', e.hours,
           t.status, t.week1Hours, t.week2Hours, t.totalHours,
-          t.overtimeHours, t.requiresAdminApproval,
+          weeklyOvertime(t), t.requiresAdminApproval,
           t.submittedAt?.toISOString() ?? '', t.approvedBy ?? '',
           t.approvedAt?.toISOString() ?? '', t.rejectedReason ?? '',
         ].map(esc).join(','));
@@ -360,7 +370,7 @@ export class TimekeepingReportsService {
       const totalHours = timesheets.reduce((s, t) => s + (t.totalHours ?? 0), 0);
       page.lines.push({ size: 11, y, center: true, text: `Total hours: ${Math.round(totalHours * 100) / 100}` });
       y -= 15;
-      const totalOT = timesheets.reduce((s, t) => s + (t.overtimeHours ?? 0), 0);
+      const totalOT = timesheets.reduce((s, t) => s + weeklyOvertime(t), 0);
       page.lines.push({ size: 11, y, center: true, text: `Total OT: ${Math.round(totalOT * 100) / 100}` });
       y -= 26;
       page.lines.push({ size: 9, y, center: true, text: `Generated ${dayjs().format('YYYY-MM-DD HH:mm')}  ·  Skin Tyee Time Keeping` });
@@ -378,7 +388,7 @@ export class TimekeepingReportsService {
         const t = meta.t;
         page.lines.push({ size: 10, y, text: `${t.workerUpn}  ·  ${period.label}` });
         y -= 14;
-        page.lines.push({ size: 10, y, text: `Status: ${(t.status as string).toUpperCase()} - Total ${t.totalHours}h - OT ${t.overtimeHours}h - W1 ${t.week1Hours}h - W2 ${t.week2Hours}h` });
+        page.lines.push({ size: 10, y, text: `Status: ${(t.status as string).toUpperCase()} - Total ${t.totalHours}h - OT ${weeklyOvertime(t)}h - W1 ${t.week1Hours}h - W2 ${t.week2Hours}h` });
         y -= 18;
         if (t.submittedAt) {
           page.lines.push({ size: 9, y, text: `Submitted ${dayjs(t.submittedAt).format('YYYY-MM-DD HH:mm')}${t.approvedBy ? ` - Approved by ${t.approvedBy}` : ''}${t.rejectedReason ? ` - Rejected: ${t.rejectedReason}` : ''}` });
@@ -425,7 +435,18 @@ export class TimekeepingReportsService {
     // Per-worker pages. Entries flow across pages; the TASK column WRAPS (never
     // truncated) so long descriptions stay intact; notes + signatures follow.
     for (const t of timesheets) {
-      const all = (t.entries ?? []) as Array<any>;
+      // Sort by date (then time-in) so a day's entries are contiguous, and
+      // pre-sum per day so days with multiple entries get a "Day total" line.
+      const all = ((t.entries ?? []) as Array<any>)
+        .slice()
+        .sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.timeIn ?? '').localeCompare(String(b.timeIn ?? '')));
+      const dayCount: Record<string, number> = {};
+      const daySum: Record<string, number> = {};
+      for (const e of all) {
+        const d = String(e.date);
+        dayCount[d] = (dayCount[d] ?? 0) + 1;
+        daySum[d] = (daySum[d] ?? 0) + (Number(e.hours) || 0);
+      }
       let { page, y } = newWorkerPage(t.workerName, { t });
       y = tableHeader(page, y);
 
@@ -433,7 +454,8 @@ export class TimekeepingReportsService {
         page.lines.push({ size: 10, y, text: '(no entries)' });
         y -= LINE_H;
       } else {
-        for (const e of all) {
+        for (let idx = 0; idx < all.length; idx++) {
+          const e = all[idx];
           const taskLines = wrapText(String(e.task ?? ''), TASK_MAX_CHARS);
           if (taskLines.length === 0) taskLines.push('-');
           const rowH = taskLines.length * LINE_H;
@@ -451,6 +473,34 @@ export class TimekeepingReportsService {
             page.lines.push({ size: 10, x: TASK_X, y: y - i * LINE_H, text: tl });
           });
           y -= rowH;
+
+          // End of a day: show the day's total hours (when it had more than one
+          // entry) and a horizontal rule to clearly separate days.
+          const d = String(e.date);
+          const lastOfDay = idx === all.length - 1 || String(all[idx + 1].date) !== d;
+          if (lastOfDay) {
+            if (dayCount[d] > 1) {
+              if (y - LINE_H < ENTRY_FLOOR) {
+                pages.push(page);
+                ({ page, y } = newWorkerPage(`${t.workerName} (cont.)`));
+                y = tableHeader(page, y);
+              }
+              page.lines.push({ size: 9, x: PAGE_MARGIN + 300, y, text: `Day total ${e.date}:` });
+              page.lines.push({ size: 9, x: PAGE_MARGIN + 420, y, text: `${Math.round(daySum[d] * 100) / 100}h` });
+              y -= LINE_H;
+            }
+            // Horizontal rule separating this day from the next (not trailing).
+            if (idx !== all.length - 1) {
+              if (y - 12 < ENTRY_FLOOR) {
+                pages.push(page);
+                ({ page, y } = newWorkerPage(`${t.workerName} (cont.)`));
+                y = tableHeader(page, y);
+              }
+              y -= 4;
+              page.rects.push({ x: PAGE_MARGIN, y, w: PAGE_W - PAGE_MARGIN * 2, h: 0.6 });
+              y -= 9;
+            }
+          }
         }
       }
 
