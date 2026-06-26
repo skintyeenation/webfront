@@ -26,20 +26,23 @@ Because the fleet is **Hybrid Entra-joined**, the file sets
 identity** (no separate local password). See
 [`docs/365/device-identity-vs-management.md`](../365/device-identity-vs-management.md).
 
-### Reachability (the real decision)
+### Reachability (a runtime dropdown)
 
-RDP/3389 must never face the internet. The `.rdp` generator is **configurable**
-so it fits whichever path Skin Tyee runs, set via env at build time:
+RDP/3389 must never face the internet. The device-detail screen has a **"Connect
+via" dropdown** with three modes; the action button adapts to the choice. Which
+modes are *selectable* is gated by config (an unconfigured mode is shown but
+disabled):
 
-| Mode | Config | `.rdp` contains | Infra |
+| Mode | Enabled when | Action | Infra |
 |---|---|---|---|
-| **LAN / VPN** (default) | `rdpGatewayHost` empty | `full address:s:<host>.stfn.local` | none — admin must be on the LAN or VPN |
-| **RD Gateway** (recommended for remote) | `rdpGatewayHost=rdgw.skintyee.ca` | adds `gatewayhostname` + `gatewayusagemethod:i:1` → RDP tunneled over TLS/443, gated by Entra + Conditional Access/MFA | an RD Gateway server |
-| **Browser (Guacamole)** (future) | n/a | — (button would open a Guacamole URL instead of a file) | an Apache Guacamole host + per-device connection config |
+| **LAN / VPN** (always) | — | downloads `.rdp` → `full address:s:<host>.stfn.local` | none — admin must be on the LAN or VPN |
+| **RD Gateway** (recommended for remote) | `rdpGatewayHost` set | downloads `.rdp` with `gatewayhostname` + `gatewayusagemethod:i:1` → RDP tunneled over TLS/443, gated by Entra + Conditional Access/MFA | an RD Gateway server |
+| **Browser (Guacamole)** | `rdpBrowserBaseUrl` set | opens a clientless Guacamole URL (`open-in-new`) — no file, no client app | an Apache Guacamole host + per-device connection config |
 
-Default is **LAN/VPN** (no new infra, correct for the POC). Set
-`EXPO_PUBLIC_RDP_GATEWAY_HOST` to switch the same button to secure remote access
-with no app change. Guacamole is noted as a future clientless option.
+Default mode = **RD Gateway if configured, else LAN/VPN**. The gateway host and
+Guacamole base URL come from env (`EXPO_PUBLIC_RDP_GATEWAY_HOST`,
+`EXPO_PUBLIC_RDP_BROWSER_BASE_URL`) so enabling a mode is a build-config change,
+not a code change.
 
 ### Implementation
 
