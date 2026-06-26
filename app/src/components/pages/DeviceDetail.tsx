@@ -98,8 +98,74 @@ export default function DeviceDetail({ route }: any) {
             <Row label="Enabled" value={device.enabled ? 'Yes' : 'No — cannot sign in'} />
             <Row label="Last sign-in" value={dayjs(device.approximateLastSignInDateTime).format('MMM D, YYYY h:mm A')} />
             <Row label="Registered" value={dayjs(device.registrationDateTime).format('MMM D, YYYY')} />
+            {(device.registrationCount ?? 1) > 1 ? (
+              <>
+                <Divider style={{ marginVertical: 8 }} />
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Chip
+                    compact
+                    icon="content-duplicate"
+                    style={{ backgroundColor: theme.colors.accent }}
+                    textStyle={{ color: '#000', fontSize: 10 }}
+                  >
+                    {`${device.registrationCount} registrations`}
+                  </Chip>
+                </View>
+              </>
+            ) : null}
           </Card.Content>
         </Card>
+
+        {device.registrations && device.registrations.length > 1 ? (
+          <>
+            <Text style={{ color: theme.colors.accent, fontSize: 12, fontWeight: '700', marginTop: 16, marginBottom: 4, marginLeft: 4 }}>
+              {`ENTRA REGISTRATIONS (${device.registrations.length})`}
+            </Text>
+            <HelperText type="info" visible style={{ color: theme.colors.textDarker, fontSize: 11, marginLeft: 0, marginBottom: 2 }}>
+              This one computer has {device.registrations.length} Entra device records. The
+              current record is kept; the rest are stale duplicates (typically a Workplace
+              registration left behind after Hybrid Entra Join) — safe to delete in Entra.
+            </HelperText>
+            <Card style={{ backgroundColor: theme.colors.darkDefault }}>
+              <Card.Content style={{ paddingVertical: 4 }}>
+                {[...device.registrations]
+                  .sort((a, b) => (a.isPrimary === b.isPrimary ? 0 : a.isPrimary ? -1 : 1))
+                  .map((r, i) => (
+                    <React.Fragment key={r.id}>
+                      {i > 0 ? <Divider /> : null}
+                      <List.Item
+                        title={`${TRUST_LABEL[r.trustType]}${r.isManaged ? ' · Intune-managed' : ''}`}
+                        description={
+                          `Registered ${dayjs(r.registrationDateTime).format('MMM D, YYYY')}` +
+                          ` · last sign-in ${dayjs(r.approximateLastSignInDateTime).format('MMM D, YYYY')}` +
+                          ` · ${r.userCount} ${r.userCount === 1 ? 'user' : 'users'}` +
+                          `\n${r.id}`
+                        }
+                        titleStyle={{ color: theme.colors.text, fontSize: 13 }}
+                        descriptionNumberOfLines={2}
+                        descriptionStyle={{ color: theme.colors.textDarker, fontSize: 11 }}
+                        left={() => (
+                          <List.Icon
+                            icon={r.isPrimary ? 'check-decagram' : 'content-duplicate'}
+                            color={r.isPrimary ? theme.colors.success : theme.colors.accent}
+                          />
+                        )}
+                        right={() => (
+                          <Chip
+                            compact
+                            style={{ alignSelf: 'center', backgroundColor: r.isPrimary ? theme.colors.success : theme.colors.accent }}
+                            textStyle={{ color: '#000', fontSize: 10 }}
+                          >
+                            {r.isPrimary ? 'Current' : 'Stale'}
+                          </Chip>
+                        )}
+                      />
+                    </React.Fragment>
+                  ))}
+              </Card.Content>
+            </Card>
+          </>
+        ) : null}
 
         <Text style={{ color: theme.colors.accent, fontSize: 12, fontWeight: '700', marginTop: 16, marginBottom: 4, marginLeft: 4 }}>
           {`WHO CAN ACCESS (${device.users.length})`}

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import Svg, { Circle, G, Path } from 'react-native-svg';
@@ -6,47 +6,62 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { hierarchy, tree, HierarchyPointNode } from 'd3-hierarchy';
 import { linkVertical } from 'd3-shape';
 import { theme } from 'skintyee/styles';
-import { DeviceDto, DeviceTrustType } from 'skintyee/services/api/ApiService';
+import { DeviceDto } from 'skintyee/services/api/ApiService';
 import { deviceIcon } from 'skintyee/components/pages/Devices';
-import { complianceState, COMPLIANCE_UI } from 'skintyee/components/pages/device-os';
+import { complianceState, COMPLIANCE_UI, isServer } from 'skintyee/components/pages/device-os';
 
 // ----------------------------------------------------------------------------
-// DeviceNetworkMap — a top-down tree of the Entra estate, mirroring the
-// ADR-16 hybrid-identity topology:
+// DeviceNetworkMap — a top-down tree of the Entra estate showing HOW each
+// device relates to Entra, the on-prem DC, and the domain (ADR-16 hybrid
+// identity). Layout per join type (trustType):
 //
-//   Skin Tyee · Entra tenant
-//     ├─ On-prem AD — STFN.local   (Hybrid)   ── "Entra Connect sync"
-//     ├─ Entra-joined              (AzureAd)
-//     └─ Personal / BYOD           (Workplace)
-//          └─ <device leaf nodes, colour-coded by compliance>
+//   Skin Tyee · Entra tenant (cloud)
+//     ├─ STFN-DC  ── "Entra Connect sync" (dashed) ── on-prem domain controller
+//     │    └─ Hybrid-joined PCs           (domain-joined, managed by GP on the DC)
+//     ├─ Workplace devices                (Entra-registered only — dotted)
+//     └─ AzureAd devices                  (cloud-only Entra joined — dashed)
 //
-// Layout is delegated to d3-hierarchy (`hierarchy()` + `tree()`): we feed it a
-// nested data object and it returns x/y for every node. Connectors are drawn
-// with d3-shape's `linkVertical()` (an SVG path generator). We only render —
-// no hand-rolled geometry. Tapping a device leaf → DeviceDetail.
+// The DC is detected by name (…-DC…), not trustType (Graph reports the DC as
+// Workplace until/unless it's itself hybrid-joined). Edge STYLE + the legend
+// convey the relationship; the unique Entra Connect sync edge is also labelled.
+//
+// Layout is delegated to d3-hierarchy (`hierarchy()` + `tree()`); connectors use
+// d3-shape's `linkVertical()`. The canvas is centred in the viewport via
+// onLayout (minWidth = container width) and only scrolls when it overflows.
+// Tapping a device leaf → DeviceDetail.
 // ----------------------------------------------------------------------------
 
 type NodeKind = 'root' | 'group' | 'device';
+type EdgeKind = 'sync' | 'domain' | 'registered' | 'cloud-join';
 
 interface MapNode {
   key: string;
   kind: NodeKind;
   label: string;
   sub?: string;
-  linkLabel?: string;        // label drawn on the edge from the parent
+  edgeKind?: EdgeKind;        // relationship to the parent (drives edge style)
+  linkLabel?: string;        // text drawn on the edge from the parent
   device?: DeviceDto;        // present for kind === 'device'
   children?: MapNode[];
 }
 
 // Layout constants (pixels).
-const NODE_V_GAP = 130;      // vertical distance between tree depths
+const NODE_V_GAP = 132;      // vertical distance between tree depths
 const LEAF_W = 150;          // nominal horizontal slot per device leaf
 const PAD_X = 24;
-const PAD_TOP = 48;          // room so the root node (r=26) + icon isn't clipped at the top
-const PAD_BOTTOM = 56;       // room for the legend
+const PAD_TOP = 52;          // room so the root node (r=26) + icon isn't clipped
+const PAD_BOTTOM = 64;       // room for the legend
 const ROOT_R = 26;
 const GROUP_R = 22;
 const LEAF_R = 20;
+
+// Edge appearance per relationship kind. dash is an SVG strokeDasharray string.
+const EDGE_STYLE: Record<EdgeKind, { stroke: string; dash?: string; width: number }> = {
+  sync:         { stroke: theme.colors.accent,     dash: '7,5', width: 2.5 }, // Entra Connect
+  domain:       { stroke: theme.colors.primary,    width: 1.75 },             // domain-joined (solid)
+  registered:   { stroke: theme.colors.textDarker, dash: '2,5', width: 1.5 }, // registered only
+  'cloud-join': { stroke: theme.colors.success,    dash: '7,5', width: 1.5 }, // Entra joined
+};
 
 interface Props {
   devices: DeviceDto[];
@@ -54,51 +69,65 @@ interface Props {
 }
 
 export default function DeviceNetworkMap({ devices, navigation }: Props) {
-  const { laidOut, width, height } = useMemo(() => {
+  // Viewport width (for centring). 0 until first layout.
+  const [containerW, setContainerW] = useState(0);
+
+  const { laidOut, width, canvasWidth, height } = useMemo(() => {
     // 1. Build the nested data the way d3-hierarchy expects.
-    const deviceLeaf = (d: DeviceDto): MapNode => ({
+    const deviceLeaf = (d: DeviceDto, edgeKind?: EdgeKind): MapNode => ({
       key: `dev-${d.id}`,
       kind: 'device' as const,
       label: d.displayName,
       device: d,
+      edgeKind,
     });
-    // True on-prem topology: the domain-joined machines hang off the domain
-    // controller (a Hybrid device whose name carries a "DC" token, e.g. STFN-DC),
-    // which is itself synced up to Entra. If no DC is detected, list them flat.
-    const isDomainController = (name: string) => /\bdc\d*\b/i.test(name.replace(/[-_]/g, ' '));
 
-    // These are ALL band domain machines. Graph's trustType is unreliable here
-    // (Hybrid Entra Join isn't fully configured, so domain machines/servers come
-    // back as "Workplace"/null) — so group by the domain CONTROLLER (by name,
-    // e.g. STFN-DC), NOT by trustType. Every other machine is a domain member
-    // hanging off the DC, which syncs up to Entra. No BYOD / personal devices.
+    // The DC is the on-prem hub. Detected by name (e.g. STFN-DC), NOT trustType
+    // — Graph reports the DC itself as Workplace/null.
+    const isDomainController = (name: string) =>
+      /\bdc\d*\b/i.test((name ?? '').replace(/[-_]/g, ' '));
+
     const dc = devices.find((d) => isDomainController(d.displayName));
-    const groupNodes: MapNode[] = [];
+    const nonDc = devices.filter((d) => d.id !== dc?.id);
+
+    // Place strictly by join type.
+    const hybrid = nonDc.filter((d) => d.trustType === 'Hybrid');     // domain-joined → under DC
+    const registered = nonDc.filter((d) => d.trustType === 'Workplace'); // registered → under Entra
+    const cloud = nonDc.filter((d) => d.trustType === 'AzureAd');     // cloud-only → under Entra
+
+    const rootChildren: MapNode[] = [];
     if (dc) {
-      const others = devices.filter((d) => d.id !== dc.id);
-      groupNodes.push({
-        ...deviceLeaf(dc),
-        sub: 'Windows Server · domain controller',
+      rootChildren.push({
+        ...deviceLeaf(dc, 'sync'),
+        sub: 'domain controller',
         linkLabel: 'Entra Connect sync',
-        children: others.map(deviceLeaf),
+        children: hybrid.map((d) => deviceLeaf(d, 'domain')),
       });
-    } else {
-      groupNodes.push({
-        key: 'group-domain', kind: 'group', label: 'STFN.local domain',
-        sub: 'on-prem', linkLabel: 'Entra Connect sync', children: devices.map(deviceLeaf),
+    } else if (hybrid.length) {
+      // No DC object in Entra yet, but we have domain/hybrid machines — show a
+      // domain group hub so the sync relationship still reads.
+      rootChildren.push({
+        key: 'group-domain',
+        kind: 'group',
+        label: 'STFN.local domain',
+        sub: 'on-prem',
+        edgeKind: 'sync',
+        linkLabel: 'Entra Connect sync',
+        children: hybrid.map((d) => deviceLeaf(d, 'domain')),
       });
     }
+    for (const d of registered) rootChildren.push(deviceLeaf(d, 'registered'));
+    for (const d of cloud) rootChildren.push(deviceLeaf(d, 'cloud-join'));
 
     const data: MapNode = {
       key: 'root',
       kind: 'root',
       label: 'Skin Tyee',
-      sub: 'Entra tenant',
-      children: groupNodes,
+      sub: 'Entra tenant · skintyee.ca',
+      children: rootChildren,
     };
 
-    // 2. Lay it out with d3-hierarchy. nodeSize gives a fixed slot per node;
-    //    we map d3's (x, y) onto our canvas. tree() returns x across, y = depth.
+    // 2. Lay it out with d3-hierarchy. nodeSize gives a fixed slot per node.
     const root = hierarchy<MapNode>(data, (n) => n.children);
     const layout = tree<MapNode>().nodeSize([LEAF_W, NODE_V_GAP]);
     layout(root);
@@ -115,21 +144,22 @@ export default function DeviceNetworkMap({ devices, navigation }: Props) {
     const maxDepth = Math.max(...nodes.map((n) => n.depth));
     const h = PAD_TOP + maxDepth * NODE_V_GAP + PAD_BOTTOM + 36;
 
+    // Centre the tree in the viewport: if the canvas is narrower than the
+    // container, shift every node right by half the slack (so it sits centred);
+    // otherwise it fills its natural width and scrolls.
+    const centerShift = Math.max(0, (containerW - w) / 2);
+    const effectiveWidth = Math.max(w, containerW);
+
     const place = (n: HierarchyPointNode<MapNode>) => ({
       node: n,
-      x: n.x + offsetX,
+      x: n.x + offsetX + centerShift,
       y: PAD_TOP + n.y,
     });
 
-    return {
-      laidOut: nodes.map(place),
-      width: w,
-      height: h,
-    };
-  }, [devices]);
+    return { laidOut: nodes.map(place), width: effectiveWidth, canvasWidth: w, height: h };
+  }, [devices, containerW]);
 
-  // d3-shape link generator: produces a smooth vertical SVG path string between
-  // a parent (source) and child (target), each {x, y}.
+  // d3-shape link generator: a smooth vertical SVG path between two {x, y}.
   const link = useMemo(
     () =>
       linkVertical<unknown, { x: number; y: number }>()
@@ -160,15 +190,11 @@ export default function DeviceNetworkMap({ devices, navigation }: Props) {
   };
 
   return (
-    <View style={{ marginTop: 16 }}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={width > 360}
-        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
-      >
-        <ScrollView showsVerticalScrollIndicator contentContainerStyle={{ height }}>
+    <View style={{ marginTop: 16 }} onLayout={(e) => setContainerW(e.nativeEvent.layout.width)}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={canvasWidth > containerW}>
+        <ScrollView showsVerticalScrollIndicator contentContainerStyle={{ height }} style={{ width }}>
           <View style={{ width, height }}>
-            {/* SVG: connectors + node rings/dots (non-interactive backdrop). */}
+            {/* SVG: connectors + node rings (non-interactive backdrop). */}
             <Svg width={width} height={height}>
               <G>
                 {laidOut.map((p) => {
@@ -176,6 +202,7 @@ export default function DeviceNetworkMap({ devices, navigation }: Props) {
                   if (!parent) return null;
                   const src = byKey.get(parent.data.key);
                   if (!src) return null;
+                  const style = EDGE_STYLE[p.node.data.edgeKind ?? 'domain'];
                   const d = link({
                     source: { x: src.x, y: src.y + radiusFor(src.node.data.kind) },
                     target: { x: p.x, y: p.y - radiusFor(p.node.data.kind) },
@@ -184,8 +211,9 @@ export default function DeviceNetworkMap({ devices, navigation }: Props) {
                     <Path
                       key={`edge-${p.node.data.key}`}
                       d={d ?? undefined}
-                      stroke={theme.colors.secondary}
-                      strokeWidth={1.5}
+                      stroke={style.stroke}
+                      strokeWidth={style.width}
+                      strokeDasharray={style.dash}
                       fill="none"
                     />
                   );
@@ -212,30 +240,72 @@ export default function DeviceNetworkMap({ devices, navigation }: Props) {
               </G>
             </Svg>
 
-            {/* Overlay: icons, labels and tap targets positioned over the SVG.
-                RN views are used here so taps work reliably on web + native. */}
+            {/* Overlay: edge labels, icons, node labels, tap targets. RN views so
+                taps work reliably on web + native. */}
+
+            {/* Edge labels (e.g. "Entra Connect sync") at the edge midpoint. */}
+            {laidOut.map((p) => {
+              const parent = p.node.parent;
+              if (!parent || !p.node.data.linkLabel) return null;
+              const src = byKey.get(parent.data.key);
+              if (!src) return null;
+              const midX = (src.x + p.x) / 2;
+              const midY = (src.y + p.y) / 2;
+              return (
+                <View
+                  key={`elabel-${p.node.data.key}`}
+                  pointerEvents="none"
+                  style={{
+                    position: 'absolute',
+                    left: midX - 70,
+                    top: midY - 9,
+                    width: 140,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: theme.colors.accent,
+                      fontSize: 9,
+                      fontWeight: '700',
+                      backgroundColor: theme.colors.darkDefault,
+                      paddingHorizontal: 4,
+                      paddingVertical: 1,
+                      borderRadius: 4,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {p.node.data.linkLabel}
+                  </Text>
+                </View>
+              );
+            })}
+
+            {/* Glyphs + labels — positioned in CANVAS coords for every node
+                (NOT nested inside the tap target, which would re-anchor them). */}
             {laidOut.map((p) => {
               const { node } = p;
               const r = radiusFor(node.data.kind);
               const isDevice = node.data.kind === 'device';
-              const dimmed = isDevice && node.data.device?.enabled === false;
               const dev = node.data.device;
+              const server = isDevice && dev ? isServer(dev.operatingSystem, dev.osVersion) : false;
+              const dimmed = isDevice && dev?.enabled === false;
               const icon = isDevice && dev
                 ? deviceIcon(dev.operatingSystem, dev.osVersion)
                 : node.data.kind === 'root'
                   ? 'cloud-outline'
-                  : 'lan';
+                  : 'server-network';
               const iconColor =
                 node.data.kind === 'root'
                   ? theme.colors.primary
                   : node.data.kind === 'group'
                     ? theme.colors.accent
-                    : theme.colors.text;
+                    : server
+                      ? theme.colors.accent
+                      : theme.colors.text;
 
-              const labelTop = p.y + r + 4;
-
-              const content = (
-                <>
+              return (
+                <React.Fragment key={`lbl-${node.data.key}`}>
                   {/* Centred glyph over the circle. */}
                   <View
                     pointerEvents="none"
@@ -250,7 +320,7 @@ export default function DeviceNetworkMap({ devices, navigation }: Props) {
                       opacity: dimmed ? 0.5 : 1,
                     }}
                   >
-                    <MaterialCommunityIcons name={icon} size={r} color={iconColor} />
+                    <MaterialCommunityIcons name={icon} size={Math.round(r * 0.95)} color={iconColor} />
                   </View>
                   {/* Label below the node. */}
                   <View
@@ -258,7 +328,7 @@ export default function DeviceNetworkMap({ devices, navigation }: Props) {
                     style={{
                       position: 'absolute',
                       left: p.x - LEAF_W / 2,
-                      top: labelTop,
+                      top: p.y + r + 4,
                       width: LEAF_W,
                       alignItems: 'center',
                       opacity: dimmed ? 0.5 : 1,
@@ -268,8 +338,8 @@ export default function DeviceNetworkMap({ devices, navigation }: Props) {
                       numberOfLines={1}
                       style={{
                         color: theme.colors.text,
-                        fontSize: node.data.kind === 'device' ? 11 : 12,
-                        fontWeight: node.data.kind === 'device' ? '400' : '700',
+                        fontSize: isDevice ? 11 : 12,
+                        fontWeight: isDevice ? '500' : '700',
                         textAlign: 'center',
                       }}
                     >
@@ -284,66 +354,57 @@ export default function DeviceNetworkMap({ devices, navigation }: Props) {
                       </Text>
                     ) : null}
                     {isDevice && dev ? (
-                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 1 }}>
-                        <MaterialCommunityIcons
-                          name="account-multiple"
-                          size={9}
-                          color={theme.colors.textDarker}
-                        />
-                        <Text
-                          numberOfLines={1}
-                          style={{ color: theme.colors.textDarker, fontSize: 9, marginLeft: 3, textAlign: 'center' }}
-                        >
-                          {dev.userCount} {dev.userCount === 1 ? 'user' : 'users'}
-                        </Text>
-                      </View>
+                      <Text
+                        numberOfLines={1}
+                        style={{ color: theme.colors.textDarker, fontSize: 9, textAlign: 'center', marginTop: 1 }}
+                      >
+                        {dev.userCount} {dev.userCount === 1 ? 'user' : 'users'}
+                        {(dev.registrationCount ?? 1) > 1 ? `  ·  ${dev.registrationCount} reg` : ''}
+                      </Text>
                     ) : null}
                   </View>
-                </>
+                </React.Fragment>
               );
+            })}
 
-              if (isDevice && dev) {
-                return (
-                  <TouchableOpacity
-                    key={`hit-${node.data.key}`}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Device ${dev.displayName}`}
-                    activeOpacity={0.6}
-                    onPress={() => navigation.navigate('deviceDetail', { id: dev.id })}
-                    style={{
-                      position: 'absolute',
-                      left: p.x - LEAF_W / 2,
-                      top: p.y - r,
-                      width: LEAF_W,
-                      height: r * 2 + 48,
-                    }}
-                  >
-                    {content}
-                  </TouchableOpacity>
-                );
-              }
-              return <React.Fragment key={`grp-${node.data.key}`}>{content}</React.Fragment>;
+            {/* Device tap targets — transparent, on top, in canvas coords. */}
+            {laidOut.map((p) => {
+              const dev = p.node.data.device;
+              if (p.node.data.kind !== 'device' || !dev) return null;
+              const r = radiusFor(p.node.data.kind);
+              return (
+                <TouchableOpacity
+                  key={`hit-${p.node.data.key}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Device ${dev.displayName}`}
+                  activeOpacity={0.6}
+                  onPress={() => navigation.navigate('deviceDetail', { id: dev.id })}
+                  style={{
+                    position: 'absolute',
+                    left: p.x - LEAF_W / 2,
+                    top: p.y - r,
+                    width: LEAF_W,
+                    height: r * 2 + 48,
+                  }}
+                />
+              );
             })}
           </View>
         </ScrollView>
       </ScrollView>
 
-      {/* Legend */}
-      <View
-        style={{
-          flexDirection: 'row',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          marginTop: 10,
-          paddingHorizontal: 4,
-        }}
-      >
-        <LegendDot color={theme.colors.success} label={COMPLIANCE_UI.compliant.label} />
-        <LegendDot color={theme.colors.error} label={COMPLIANCE_UI.noncompliant.label} />
-        <LegendDot color={theme.colors.textDarker} label={COMPLIANCE_UI.unknown.label} />
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 14, marginTop: 4 }}>
-          <MaterialCommunityIcons name="server-network" size={14} color={theme.colors.accent} />
-          <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginLeft: 4 }}>Server</Text>
+      {/* Legend — compliance (node rings) + relationships (edges). */}
+      <View style={{ marginTop: 10, paddingHorizontal: 4 }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' }}>
+          <LegendDot color={theme.colors.success} label={COMPLIANCE_UI.compliant.label} />
+          <LegendDot color={theme.colors.error} label={COMPLIANCE_UI.noncompliant.label} />
+          <LegendDot color={theme.colors.accent} label={COMPLIANCE_UI.unknown.label} />
+        </View>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginTop: 4 }}>
+          <LegendLine style={EDGE_STYLE.sync} label="Entra Connect sync" />
+          <LegendLine style={EDGE_STYLE.domain} label="Domain-joined (Hybrid)" />
+          <LegendLine style={EDGE_STYLE.registered} label="Registered" />
+          <LegendLine style={EDGE_STYLE['cloud-join']} label="Entra joined" />
         </View>
       </View>
     </View>
@@ -364,6 +425,27 @@ function LegendDot({ color, label }: { color: string; label: string }) {
           marginRight: 5,
         }}
       />
+      <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>{label}</Text>
+    </View>
+  );
+}
+
+// A short line sample (solid or dashed) for the edge legend.
+function LegendLine({ style, label }: { style: { stroke: string; dash?: string; width: number }; label: string }) {
+  const dashed = !!style.dash;
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 14, marginTop: 4 }}>
+      <View style={{ width: 18, height: 2, marginRight: 5, flexDirection: 'row', justifyContent: 'space-between' }}>
+        {dashed ? (
+          <>
+            <View style={{ width: 5, height: 2, backgroundColor: style.stroke }} />
+            <View style={{ width: 5, height: 2, backgroundColor: style.stroke }} />
+            <View style={{ width: 5, height: 2, backgroundColor: style.stroke }} />
+          </>
+        ) : (
+          <View style={{ width: 18, height: Math.max(2, style.width), backgroundColor: style.stroke }} />
+        )}
+      </View>
       <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>{label}</Text>
     </View>
   );

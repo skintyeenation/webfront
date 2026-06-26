@@ -155,6 +155,16 @@ export default function Devices({ navigation }: any) {
           <Chip compact style={{ marginRight: 6, backgroundColor: theme.colors.secondary }} textStyle={{ color: theme.colors.text, fontSize: 10 }}>
             {TRUST_LABEL[d.trustType]}
           </Chip>
+          {(d.registrationCount ?? 1) > 1 ? (
+            <Chip
+              compact
+              icon="content-duplicate"
+              style={{ marginRight: 6, backgroundColor: theme.colors.accent }}
+              textStyle={{ color: '#000', fontSize: 10 }}
+            >
+              {d.registrationCount} registrations
+            </Chip>
+          ) : null}
           <Chip
             compact
             icon="account-multiple"

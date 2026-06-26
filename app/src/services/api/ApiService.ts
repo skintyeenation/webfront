@@ -592,8 +592,35 @@ export interface DeviceDto {
   registrationDateTime: string;          // ISO 8601
   /** Count of registered owners + users — shown on the list row. */
   userCount: number;
+  /** Number of Entra device objects consolidated into this logical device.
+   * >1 means the same physical machine is registered more than once (e.g. a
+   * stale Workplace registration left behind after a Hybrid Entra Join — the
+   * API merges them by computer name and flags the duplicate to clean up). */
+  registrationCount?: number;
   /** Registered owners + users — who can access this device. */
   users: DeviceUserDto[];
 }
 
-export interface DeviceDetailDto extends DeviceDto {}
+/** One underlying Entra device object behind a logical (consolidated) device.
+ * The `isPrimary` object is the canonical/current registration; any others are
+ * stale duplicates (e.g. a Workplace registration left after Hybrid Entra Join)
+ * an admin can delete in Entra. */
+export interface DeviceRegistrationDto {
+  id: string;
+  trustType: DeviceTrustType;
+  isManaged: boolean;
+  isCompliant: boolean | null;
+  enabled: boolean;
+  approximateLastSignInDateTime: string; // ISO 8601
+  registrationDateTime: string;          // ISO 8601
+  userCount: number;
+  /** The canonical object this logical device is keyed on (newest sign-in). */
+  isPrimary: boolean;
+}
+
+export interface DeviceDetailDto extends DeviceDto {
+  /** The Entra device objects consolidated into this physical machine — only
+   * present on the detail view. `registrationCount === registrations.length`.
+   * Non-primary entries are stale duplicates safe to delete in Entra. */
+  registrations?: DeviceRegistrationDto[];
+}

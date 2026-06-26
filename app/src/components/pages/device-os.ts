@@ -99,6 +99,12 @@ export function complianceState(
   isCompliant: boolean | null | undefined,
   isManaged?: boolean | null,
 ): ComplianceState {
+  // No Intune policy evaluated this device (Graph returns null) → "No Intune
+  // policy", never red. This holds even when isManaged is true: a device can be
+  // MDM-enrolled yet have no compliance policy assigned, so Graph leaves
+  // isCompliant null — that's "not evaluated", not a failure. (Skin Tyee runs no
+  // Intune policies per ADR-16, so this is the common case for hybrid machines.)
+  if (isCompliant === null || isCompliant === undefined) return 'unknown';
   // Skin Tyee's compliance bar is "domain-joined + Entra-registered" — those
   // machines are org-managed and count as compliant. Intune is a BONUS, not the
   // bar. So red is reserved for a GENUINE Intune failure: Intune is actively

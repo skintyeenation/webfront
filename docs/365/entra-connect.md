@@ -426,3 +426,6 @@ See [`stfn-setup/entra-connect/README.md`](../../stfn-setup/entra-connect/README
 - [`../features/member-provisioning.md`](../features/member-provisioning.md) —
   the app's cloud user-creation flow (ADR-15)
 - [`pricing.md`](pricing.md) — M365 licensing (the Intune/Business Premium note)
+- [`device-identity-vs-management.md`](device-identity-vs-management.md) — why
+  Hybrid joined != Intune managed, the `isCompliant` tri-state, and duplicate
+  device registrations (stale `Workplace` objects after Hybrid Join)
