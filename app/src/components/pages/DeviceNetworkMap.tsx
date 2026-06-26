@@ -47,9 +47,9 @@ interface GroupDef {
 
 // Trust-type groups, in display order. Empty ones are dropped before layout.
 const GROUPS: GroupDef[] = [
-  { trustType: 'Hybrid', label: 'On-prem AD', sub: 'STFN.local', linkLabel: 'Entra Connect sync' },
-  { trustType: 'AzureAd', label: 'Entra-joined', sub: '' },
-  { trustType: 'Workplace', label: 'Personal / BYOD', sub: '' },
+  { trustType: 'Hybrid', label: 'STFN.local domain', sub: 'controlled by STFN-DC', linkLabel: 'Entra Connect sync' },
+  { trustType: 'AzureAd', label: 'Entra-joined', sub: 'cloud-only' },
+  { trustType: 'Workplace', label: 'Contractor BYOD', sub: 'personal devices' },
 ];
 
 // Layout constants (pixels).
@@ -70,20 +70,38 @@ interface Props {
 export default function DeviceNetworkMap({ devices, navigation }: Props) {
   const { laidOut, width, height } = useMemo(() => {
     // 1. Build the nested data the way d3-hierarchy expects.
+    const deviceLeaf = (d: DeviceDto): MapNode => ({
+      key: `dev-${d.id}`,
+      kind: 'device' as const,
+      label: d.displayName,
+      device: d,
+    });
+    // True on-prem topology: the domain-joined machines hang off the domain
+    // controller (a Hybrid device whose name carries a "DC" token, e.g. STFN-DC),
+    // which is itself synced up to Entra. If no DC is detected, list them flat.
+    const isDomainController = (name: string) => /\bdc\d*\b/i.test(name.replace(/[-_]/g, ' '));
+
     const groupNodes: MapNode[] = GROUPS.map((g) => {
       const members = devices.filter((d) => d.trustType === g.trustType);
+      let children: MapNode[];
+      if (g.trustType === 'Hybrid') {
+        const dc = members.find((d) => isDomainController(d.displayName));
+        if (dc) {
+          const others = members.filter((d) => d.id !== dc.id);
+          children = [{ ...deviceLeaf(dc), children: others.map(deviceLeaf) }];
+        } else {
+          children = members.map(deviceLeaf);
+        }
+      } else {
+        children = members.map(deviceLeaf);
+      }
       return {
         key: `group-${g.trustType}`,
         kind: 'group' as const,
         label: g.label,
         sub: g.sub,
         linkLabel: g.linkLabel,
-        children: members.map((d) => ({
-          key: `dev-${d.id}`,
-          kind: 'device' as const,
-          label: d.displayName,
-          device: d,
-        })),
+        children,
       };
     }).filter((g) => (g.children?.length ?? 0) > 0); // hide empty groups
 
@@ -159,11 +177,11 @@ export default function DeviceNetworkMap({ devices, navigation }: Props) {
   };
 
   return (
-    <View style={{ marginTop: 8 }}>
+    <View style={{ marginTop: 16 }}>
       <ScrollView
         horizontal={width > 360}
         showsHorizontalScrollIndicator
-        contentContainerStyle={{ minWidth: width }}
+        contentContainerStyle={{ minWidth: width, flexGrow: 1, justifyContent: 'center' }}
       >
         <ScrollView showsVerticalScrollIndicator contentContainerStyle={{ height }}>
           <View style={{ width, height }}>
@@ -282,6 +300,21 @@ export default function DeviceNetworkMap({ devices, navigation }: Props) {
                         {node.data.sub}
                       </Text>
                     ) : null}
+                    {isDevice && dev ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 1 }}>
+                        <MaterialCommunityIcons
+                          name="account-multiple"
+                          size={9}
+                          color={theme.colors.textDarker}
+                        />
+                        <Text
+                          numberOfLines={1}
+                          style={{ color: theme.colors.textDarker, fontSize: 9, marginLeft: 3, textAlign: 'center' }}
+                        >
+                          {dev.userCount} {dev.userCount === 1 ? 'user' : 'users'}
+                        </Text>
+                      </View>
+                    ) : null}
                   </View>
                 </>
               );
@@ -299,7 +332,7 @@ export default function DeviceNetworkMap({ devices, navigation }: Props) {
                       left: p.x - LEAF_W / 2,
                       top: p.y - r,
                       width: LEAF_W,
-                      height: r * 2 + 34,
+                      height: r * 2 + 48,
                     }}
                   >
                     {content}

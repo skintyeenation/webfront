@@ -101,5 +101,5 @@ export function complianceState(
 export const COMPLIANCE_UI: Record<ComplianceState, { label: string; icon: string }> = {
   compliant: { label: 'Compliant', icon: 'shield-check' },
   noncompliant: { label: 'Non-compliant', icon: 'shield-alert' },
-  unknown: { label: 'Not evaluated', icon: 'shield-off-outline' },
+  unknown: { label: 'No Intune policy', icon: 'shield-off-outline' },
 };

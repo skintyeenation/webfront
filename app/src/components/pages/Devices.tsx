@@ -5,7 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import dayjs from 'dayjs';
 import { PageContainer, PageContent, NoContent } from 'skintyee/components/layout';
 import { apiFactory } from 'skintyee/store/apis';
-import { DeviceDto, DeviceTrustType } from 'skintyee/services/api/ApiService';
+import { DeviceDto, DeviceTrustType, DeviceUserDto } from 'skintyee/services/api/ApiService';
 import { theme } from 'skintyee/styles';
 import {
   osDisplay,
@@ -65,6 +65,19 @@ export default function Devices({ navigation }: any) {
   // out and let the admin toggle them out of the way.
   const [showDisabled, setShowDisabled] = useState(true);
   const [view, setView] = useState<'list' | 'map'>('list');
+  // Device ids whose account-chip list is expanded on the card.
+  const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
+
+  // Toggle a device id in/out of the expanded set. Returns a NEW Set so React
+  // sees a fresh reference and re-renders.
+  const toggleUsers = useCallback((id: string) => {
+    setExpandedUsers((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
 
   const load = useCallback(async () => {
     setError(undefined);
@@ -132,7 +145,13 @@ export default function Devices({ navigation }: any) {
           <Chip compact style={{ marginRight: 6, backgroundColor: theme.colors.secondary }} textStyle={{ color: theme.colors.text, fontSize: 10 }}>
             {TRUST_LABEL[d.trustType]}
           </Chip>
-          <Chip compact icon="account-multiple" style={{ backgroundColor: theme.colors.secondary }} textStyle={{ color: theme.colors.text, fontSize: 10 }}>
+          <Chip
+            compact
+            icon="account-multiple"
+            onPress={() => toggleUsers(d.id)}
+            style={{ backgroundColor: expandedUsers.has(d.id) ? theme.colors.primary : theme.colors.secondary }}
+            textStyle={{ color: expandedUsers.has(d.id) ? '#000' : theme.colors.text, fontSize: 10 }}
+          >
             {d.userCount} {d.userCount === 1 ? 'user' : 'users'}
           </Chip>
           <View style={{ flex: 1 }} />
@@ -140,6 +159,21 @@ export default function Devices({ navigation }: any) {
             Last seen {dayjs(d.approximateLastSignInDateTime).format('MMM D, YYYY')}
           </Text>
         </View>
+        {expandedUsers.has(d.id) ? (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 6 }}>
+            {d.users.map((u: DeviceUserDto) => (
+              <Chip
+                key={u.id}
+                compact
+                icon={u.accessType === 'owner' ? 'account-key' : 'account'}
+                style={{ marginRight: 6, marginBottom: 6, backgroundColor: theme.colors.secondary }}
+                textStyle={{ color: theme.colors.text, fontSize: 10 }}
+              >
+                {u.displayName}
+              </Chip>
+            ))}
+          </View>
+        ) : null}
       </Card.Content>
     </Card>
     );

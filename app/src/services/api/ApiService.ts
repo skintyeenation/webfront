@@ -592,9 +592,8 @@ export interface DeviceDto {
   registrationDateTime: string;          // ISO 8601
   /** Count of registered owners + users — shown on the list row. */
   userCount: number;
-}
-
-export interface DeviceDetailDto extends DeviceDto {
   /** Registered owners + users — who can access this device. */
   users: DeviceUserDto[];
 }
+
+export interface DeviceDetailDto extends DeviceDto {}
