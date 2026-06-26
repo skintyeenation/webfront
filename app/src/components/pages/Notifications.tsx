@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View } from 'react-native';
-import { Badge, Button, Card, SegmentedButtons, Text } from 'react-native-paper';
+import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Badge, Button, Card, IconButton, Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import moment from 'moment';
 import { PageContainer, PageContent, NoContent, MonthCalendar, AdminAddButton, useConfirm } from 'skintyee/components/layout';
@@ -68,7 +68,11 @@ export default function Notifications({ navigation }: any) {
   const { entities, loading, loaded } = useAppSelector((s) => s.notifications);
   const isAdmin = useAppSelector((s) => s.auth.role) === 'admin';
   const { confirm, ConfirmHost } = useConfirm();
-  const [view, setView] = useState<ViewMode>('list');
+  // Calendar is a full-content overlay (toggled), not an inline tab. Splits
+  // calendar 1/3 · cards 2/3 on tablet + desktop (width ≥ 768), stacked on phone.
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const { width } = useWindowDimensions();
+  const calendarSplit = width >= 768;
 
   const confirmDelete = (item: AppNotification) =>
     confirm({ title: 'Delete notification?', message: `"${item.title}" will be permanently deleted.`, confirmLabel: 'Delete', destructive: true, onConfirm: () => dispatch(removeNotification(item._id)) });
@@ -95,44 +99,72 @@ export default function Notifications({ navigation }: any) {
     if (entities.length) setSelectedDate(dateKey(entities[0].createdAt));
   }, [loaded]);
 
-  const dayItems = entities.filter((n) => dateKey(n.createdAt) === selectedDate);
+  // Notification cards — shared by the inline list + the calendar overlay's
+  // right column.
+  const renderNotifications = () =>
+    entities.map((item) => (
+      <NotificationCard
+        key={item._id}
+        item={item}
+        isAdmin={isAdmin}
+        onEdit={() => navigation.navigate('notificationEdit', { id: item._id })}
+        onDelete={() => confirmDelete(item)}
+      />
+    ));
 
   return (
     <PageContainer>
       <PageContent>
         <AdminAddButton label="Post notification" icon="bullhorn" onPress={() => navigation.navigate('notificationCreate')} />
-        <SegmentedButtons
-          value={view}
-          onValueChange={(v) => setView(v as ViewMode)}
-          density="small"
-          style={{ marginBottom: 14 }}
-          buttons={[
-            { value: 'list', label: 'List', icon: 'view-list' },
-            { value: 'calendar', label: 'Calendar', icon: 'calendar' },
-          ]}
-        />
+        {entities.length > 0 ? (
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 12 }}>
+            <Button
+              compact mode="text" icon="calendar-month"
+              textColor={theme.colors.primary}
+              onPress={() => setCalendarOpen(true)}
+            >
+              Show calendar
+            </Button>
+          </View>
+        ) : null}
 
         {entities.length === 0 ? (
           <NoContent loading={loading || !loaded} message="No notifications." />
-        ) : view === 'list' ? (
-          entities.map((item) => <NotificationCard key={item._id} item={item} isAdmin={isAdmin} onEdit={() => navigation.navigate("notificationEdit", { id: item._id })} onDelete={() => confirmDelete(item)} />)
         ) : (
-          <>
-            <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 14 }}>
-              <Card.Content>
-                <MonthCalendar marks={marks} selected={selectedDate} onSelect={setSelectedDate} initialMonth={latestKey} />
-              </Card.Content>
-            </Card>
-            <Text style={{ color: theme.colors.text, fontSize: 15, marginBottom: 8 }}>{moment(selectedDate).format('dddd, MMMM D')}</Text>
-            {dayItems.length === 0 ? (
-              <NoContent message="No notifications on this day." />
-            ) : (
-              dayItems.map((item) => <NotificationCard key={item._id} item={item} isAdmin={isAdmin} onEdit={() => navigation.navigate("notificationEdit", { id: item._id })} onDelete={() => confirmDelete(item)} />)
-            )}
-          </>
+          renderNotifications()
         )}
         <ConfirmHost />
       </PageContent>
+
+      {/* Calendar overlay — fills the content area (below the app header, right
+          of the sidebar). Calendar 1/3 · notification cards 2/3 on tablet +
+          desktop (width ≥ 768); stacked on phone. */}
+      {calendarOpen ? (
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.colors.background, zIndex: 20 }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: theme.colors.secondary }}>
+            <MaterialCommunityIcons name="calendar-month" size={18} color={theme.colors.primary} style={{ marginRight: 6 }} />
+            <Text style={{ color: theme.colors.text, fontSize: 16, flex: 1 }}>Notifications · calendar</Text>
+            <IconButton icon="close" size={22} iconColor={theme.colors.text} onPress={() => setCalendarOpen(false)} />
+          </View>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 12 }}>
+            {calendarSplit ? (
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                <View style={{ flex: 1, marginRight: 16 }}>
+                  <MonthCalendar marks={marks} selected={selectedDate} onSelect={setSelectedDate} initialMonth={latestKey} />
+                </View>
+                <View style={{ flex: 2 }}>
+                  {renderNotifications()}
+                </View>
+              </View>
+            ) : (
+              <>
+                <MonthCalendar marks={marks} selected={selectedDate} onSelect={setSelectedDate} initialMonth={latestKey} />
+                <View style={{ marginTop: 12 }}>{renderNotifications()}</View>
+              </>
+            )}
+          </ScrollView>
+        </View>
+      ) : null}
     </PageContainer>
   );
 }
