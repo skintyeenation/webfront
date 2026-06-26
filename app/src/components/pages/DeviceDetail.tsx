@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { Linking, View } from 'react-native';
-import { ActivityIndicator, Avatar, Button, Card, Chip, Divider, HelperText, List, Text } from 'react-native-paper';
+import { ActivityIndicator, Avatar, Button, Card, Chip, Divider, HelperText, List, Menu, Text } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import dayjs from 'dayjs';
 import { PageContainer, PageContent, NoContent } from 'skintyee/components/layout';
@@ -9,7 +9,16 @@ import { DeviceDetailDto } from 'skintyee/services/api/ApiService';
 import { theme } from 'skintyee/styles';
 import { deviceIcon, complianceColor, TRUST_LABEL } from 'skintyee/components/pages/Devices';
 import { osDisplay, isServer, complianceState, COMPLIANCE_UI } from 'skintyee/components/pages/device-os';
-import { canDownloadRdp, downloadRdp } from 'skintyee/services/rdp';
+import {
+  canDownloadRdp,
+  downloadRdp,
+  browserRdpUrl,
+  browserConfigured,
+  gatewayConfigured,
+  defaultRdpMode,
+  RDP_MODE_LABEL,
+  RdpMode,
+} from 'skintyee/services/rdp';
 
 // ----------------------------------------------------------------------------
 // DeviceDetail — one Entra device: its properties + the access list (who can
@@ -29,6 +38,9 @@ export default function DeviceDetail({ route }: any) {
   const [device, setDevice] = useState<DeviceDetailDto | undefined>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>();
+  // Remote-desktop reachability picker (RD Gateway / LAN / Browser).
+  const [rdpMode, setRdpMode] = useState<RdpMode>(defaultRdpMode());
+  const [rdpMenu, setRdpMenu] = useState(false);
 
   const load = useCallback(async () => {
     setError(undefined);
@@ -142,27 +154,84 @@ export default function DeviceDetail({ route }: any) {
           </Card.Content>
         </Card>
 
-        {/windows/i.test(device.operatingSystem) ? (
-          <View style={{ marginTop: 12, alignItems: 'flex-start' }}>
-            <Button
-              mode="contained"
-              icon="remote-desktop"
-              compact
-              disabled={!canDownloadRdp()}
-              onPress={() => downloadRdp(device)}
-              buttonColor={theme.colors.primary}
-              textColor="#000"
-              style={{ alignSelf: 'flex-start' }}
-            >
-              Remote desktop (.rdp)
-            </Button>
-            <HelperText type="info" visible style={{ color: theme.colors.textDarker, fontSize: 11 }}>
-              {canDownloadRdp()
-                ? 'Downloads a connection file. Opens in Remote Desktop on Windows, or the free Windows App on Mac / iOS / Android.'
-                : 'Open this device on the desktop or web app to download the connection file.'}
-            </HelperText>
-          </View>
-        ) : null}
+        {/windows/i.test(device.operatingSystem) ? (() => {
+          const isBrowser = rdpMode === 'browser';
+          const actionDisabled = isBrowser ? !browserConfigured() : !canDownloadRdp();
+          const onConnect = () => {
+            if (isBrowser) {
+              const url = browserRdpUrl(device);
+              if (url) Linking.openURL(url);
+            } else {
+              downloadRdp(device, rdpMode);
+            }
+          };
+          const helper = isBrowser
+            ? browserConfigured()
+              ? 'Opens a clientless RDP session in your browser (Guacamole) — no client app needed.'
+              : 'Browser access isn’t configured (no Guacamole host set).'
+            : canDownloadRdp()
+              ? `Downloads a .rdp for ${RDP_MODE_LABEL[rdpMode]}. Opens in Remote Desktop (Windows) or the free Windows App (Mac / iOS / Android).`
+              : 'Open the desktop or web app to download the connection file.';
+          return (
+            <View style={{ marginTop: 14 }}>
+              <Text style={{ color: theme.colors.accent, fontSize: 12, fontWeight: '700', marginBottom: 6, marginLeft: 4 }}>
+                REMOTE DESKTOP
+              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
+                <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginRight: 8 }}>Connect via</Text>
+                <Menu
+                  visible={rdpMenu}
+                  onDismiss={() => setRdpMenu(false)}
+                  anchor={
+                    <Button
+                      mode="outlined"
+                      compact
+                      icon="chevron-down"
+                      contentStyle={{ flexDirection: 'row-reverse' }}
+                      textColor={theme.colors.primary}
+                      onPress={() => setRdpMenu(true)}
+                      style={{ marginRight: 8 }}
+                    >
+                      {RDP_MODE_LABEL[rdpMode]}
+                    </Button>
+                  }
+                >
+                  <Menu.Item
+                    title="RD Gateway"
+                    leadingIcon="shield-lock-outline"
+                    disabled={!gatewayConfigured()}
+                    onPress={() => { setRdpMode('gateway'); setRdpMenu(false); }}
+                  />
+                  <Menu.Item
+                    title="LAN / VPN"
+                    leadingIcon="lan-connect"
+                    onPress={() => { setRdpMode('lan'); setRdpMenu(false); }}
+                  />
+                  <Menu.Item
+                    title="Browser (Guacamole)"
+                    leadingIcon="web"
+                    disabled={!browserConfigured()}
+                    onPress={() => { setRdpMode('browser'); setRdpMenu(false); }}
+                  />
+                </Menu>
+                <Button
+                  mode="contained"
+                  compact
+                  icon={isBrowser ? 'open-in-new' : 'remote-desktop'}
+                  disabled={actionDisabled}
+                  onPress={onConnect}
+                  buttonColor={theme.colors.primary}
+                  textColor="#000"
+                >
+                  {isBrowser ? 'Open in browser' : 'Download .rdp'}
+                </Button>
+              </View>
+              <HelperText type="info" visible style={{ color: theme.colors.textDarker, fontSize: 11 }}>
+                {helper}
+              </HelperText>
+            </View>
+          );
+        })() : null}
 
         {device.registrations && device.registrations.length > 1 ? (
           <>

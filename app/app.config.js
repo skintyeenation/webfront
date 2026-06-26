@@ -66,6 +66,9 @@ module.exports = {
       // docs/features/remote-desktop-and-device-telemetry.md.
       rdpDomainSuffix: process.env.EXPO_PUBLIC_RDP_DOMAIN_SUFFIX || 'stfn.local',
       rdpGatewayHost: process.env.EXPO_PUBLIC_RDP_GATEWAY_HOST || '',
+      // Clientless RDP-in-browser (Apache Guacamole) base URL — enables the
+      // "Browser" connect option in the device-detail dropdown.
+      rdpBrowserBaseUrl: process.env.EXPO_PUBLIC_RDP_BROWSER_BASE_URL || '',
     },
   },
 };

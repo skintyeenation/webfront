@@ -39,6 +39,9 @@ const Config = {
   // Gateway fields when set. See docs/features/remote-desktop-and-device-telemetry.md.
   rdpDomainSuffix: (extra.rdpDomainSuffix as string) ?? 'stfn.local',
   rdpGatewayHost:  (extra.rdpGatewayHost  as string) ?? '',
+  // Clientless RDP-in-browser (Apache Guacamole) base URL. Empty -> the
+  // "Browser" connect option is disabled.
+  rdpBrowserBaseUrl: (extra.rdpBrowserBaseUrl as string) ?? '',
 };
 
 export default Config;
