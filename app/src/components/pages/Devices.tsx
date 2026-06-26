@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
-import { View } from 'react-native';
-import { ActivityIndicator, Card, Chip, HelperText, IconButton, List, SegmentedButtons, Switch, Text } from 'react-native-paper';
+import { Linking, View } from 'react-native';
+import { ActivityIndicator, Card, Chip, HelperText, IconButton, List, Menu, SegmentedButtons, Switch, Text } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import dayjs from 'dayjs';
 import { PageContainer, PageContent, NoContent } from 'skintyee/components/layout';
@@ -15,6 +15,14 @@ import {
   type ComplianceState,
 } from 'skintyee/components/pages/device-os';
 import DeviceNetworkMap from 'skintyee/components/pages/DeviceNetworkMap';
+import {
+  canDownloadRdp,
+  downloadRdp,
+  browserRdpUrl,
+  browserConfigured,
+  gatewayConfigured,
+  RdpMode,
+} from 'skintyee/services/rdp';
 
 // ----------------------------------------------------------------------------
 // Devices (Assets) — admin inventory of Entra-registered devices.
@@ -71,6 +79,18 @@ export default function Devices({ navigation }: any) {
   // count, not `users`, so we pull the device detail when a card is expanded.
   // `undefined` = not fetched yet (spinner); `[]` = fetched, none.
   const [fetchedUsers, setFetchedUsers] = useState<Record<string, DeviceUserDto[]>>({});
+  // Which device's remote-desktop dropdown is open (by id), and the connect
+  // action: a .rdp download (LAN/Gateway) or a clientless browser URL.
+  const [rdpMenuFor, setRdpMenuFor] = useState<string | null>(null);
+  const connectRdp = useCallback((d: DeviceDto, mode: RdpMode) => {
+    setRdpMenuFor(null);
+    if (mode === 'browser') {
+      const url = browserRdpUrl(d);
+      if (url) Linking.openURL(url);
+    } else {
+      downloadRdp(d, mode);
+    }
+  }, []);
 
   // Toggle a device's account-chip list. On expand, fetch its users if the list
   // row didn't include them. Best-effort — never throws into render.
@@ -140,6 +160,43 @@ export default function Devices({ navigation }: any) {
               {ui.label}
             </Chip>
           )}
+          {/windows/i.test(d.operatingSystem) ? (
+            <Menu
+              visible={rdpMenuFor === d.id}
+              onDismiss={() => setRdpMenuFor(null)}
+              anchor={
+                <IconButton
+                  icon="remote-desktop"
+                  size={18}
+                  iconColor={theme.colors.primary}
+                  accessibilityLabel={`Remote desktop ${d.displayName}`}
+                  // stopPropagation so tapping the icon opens the menu instead of
+                  // bubbling to the Card's onPress (which navigates to detail).
+                  onPress={(e?: any) => { e?.stopPropagation?.(); setRdpMenuFor(d.id); }}
+                  style={{ margin: 0, marginLeft: 2 }}
+                />
+              }
+            >
+              <Menu.Item
+                title="RD Gateway (.rdp)"
+                leadingIcon="shield-lock-outline"
+                disabled={!gatewayConfigured() || !canDownloadRdp()}
+                onPress={() => connectRdp(d, 'gateway')}
+              />
+              <Menu.Item
+                title="LAN / VPN (.rdp)"
+                leadingIcon="lan-connect"
+                disabled={!canDownloadRdp()}
+                onPress={() => connectRdp(d, 'lan')}
+              />
+              <Menu.Item
+                title="Browser (Guacamole)"
+                leadingIcon="web"
+                disabled={!browserConfigured()}
+                onPress={() => connectRdp(d, 'browser')}
+              />
+            </Menu>
+          ) : null}
         </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
           {server ? (
