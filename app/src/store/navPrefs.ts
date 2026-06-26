@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { DEFAULT_NAV_POSITION, NavPosition } from 'skintyee/store/modules/appState';
+import { DEFAULT_NAV_POSITION, DEFAULT_NAV_EXPANDED, NavPosition } from 'skintyee/store/modules/appState';
 
 // Per-user persistence for the nav-placement preference.
 //
@@ -28,6 +28,29 @@ export async function loadNavPosition(upn?: string | null): Promise<NavPosition>
 export async function saveNavPosition(upn: string | null | undefined, pos: NavPosition): Promise<void> {
   try {
     await AsyncStorage.setItem(keyFor(upn), pos);
+  } catch {
+    /* best-effort; non-fatal if storage is unavailable */
+  }
+}
+
+// Per-user persistence for the left-rail expanded/collapsed preference. Same
+// pattern + storage as nav position, keyed separately.
+const expandedKeyFor = (upn?: string | null) => `navExpanded:${(upn ?? '').toLowerCase() || 'default'}`;
+
+/** Load a user's saved rail expanded state (default collapsed). */
+export async function loadNavExpanded(upn?: string | null): Promise<boolean> {
+  try {
+    const v = await AsyncStorage.getItem(expandedKeyFor(upn));
+    return v === null ? DEFAULT_NAV_EXPANDED : v === '1';
+  } catch {
+    return DEFAULT_NAV_EXPANDED;
+  }
+}
+
+/** Persist a user's rail expanded state under their own key. Best-effort. */
+export async function saveNavExpanded(upn: string | null | undefined, expanded: boolean): Promise<void> {
+  try {
+    await AsyncStorage.setItem(expandedKeyFor(upn), expanded ? '1' : '0');
   } catch {
     /* best-effort; non-fatal if storage is unavailable */
   }
