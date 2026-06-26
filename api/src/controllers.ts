@@ -1341,8 +1341,9 @@ function summarize(entries: SubmitBody['entries'], period: PayPeriod) {
     else                w2 += Number(e.hours) || 0;
   }
   const total = w1 + w2;
-  const ot = Math.max(0, w1 - PAY_PERIOD_CONFIG.overtimeWeeklyHoursThreshold) +
-             Math.max(0, w2 - PAY_PERIOD_CONFIG.overtimeWeeklyHoursThreshold);
+  // Overtime over the two-week period: hours beyond 80 (2 weeks x the 40h weekly
+  // threshold) — bi-weekly averaging, NOT per-week. So 24h + 46h = 70h is 0 OT.
+  const ot = Math.max(0, total - 2 * PAY_PERIOD_CONFIG.overtimeWeeklyHoursThreshold);
   return { w1, w2, total, ot };
 }
 
@@ -1785,8 +1786,9 @@ export class TimeKeepingController {
     for (const e of entries) {
       if (e.date < split) w1 += e.hours; else w2 += e.hours;
     }
-    const ot = Math.max(0, w1 - PAY_PERIOD_CONFIG.overtimeWeeklyHoursThreshold) +
-               Math.max(0, w2 - PAY_PERIOD_CONFIG.overtimeWeeklyHoursThreshold);
+    // Overtime over the two-week period: hours beyond 80 (2 weeks x the 40h
+    // weekly threshold) — bi-weekly averaging, NOT per-week. 24h + 46h = 0 OT.
+    const ot = Math.max(0, (w1 + w2) - 2 * PAY_PERIOD_CONFIG.overtimeWeeklyHoursThreshold);
     const total = Math.round((w1 + w2) * 100) / 100;
     const updated = await this.prisma.$transaction(async (tx) => {
       await tx.timesheetEntry.deleteMany({ where: { timesheetId: id } });
