@@ -34,6 +34,11 @@ const Config = {
   // Google Maps JS API key (web location picker). Read from the environment via
   // app.config.js — never hardcoded/committed. Empty -> picker shows a fallback.
   googleMapsApiKey: (extra.googleMapsApiKey as string) ?? '',
+  // Remote-desktop (.rdp) generation. `rdpDomainSuffix` is the AD domain
+  // appended to a bare PC name; `rdpGatewayHost` (empty = LAN/VPN reach) adds RD
+  // Gateway fields when set. See docs/features/remote-desktop-and-device-telemetry.md.
+  rdpDomainSuffix: (extra.rdpDomainSuffix as string) ?? 'stfn.local',
+  rdpGatewayHost:  (extra.rdpGatewayHost  as string) ?? '',
 };
 
 export default Config;

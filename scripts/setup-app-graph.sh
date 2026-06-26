@@ -81,6 +81,8 @@ PERMS=(
   "b633e1c5-b582-4048-a93e-9f11b44c7e96=Role:Mail.Send"             # Staff-auth: forgot-password reset link emails sent from info@skintyee.ca
   "5facf0c1-8979-4e95-abcf-ff3d079771c0=Role:LicenseAssignment.ReadWrite.All"  # EditMember license toggles — assign/remove SKUs (Business Standard, Entra ID P1)
   "498476ce-e0fe-48b0-b801-37ba7e2685c6=Role:Organization.Read.All" # Read subscribedSkus — license catalog + seat availability for EditMember
+  "7438b122-aefc-4978-80ed-43db9fcc7715=Role:Device.Read.All"       # Assets → Devices: /devices + registeredOwners/Users inventory
+  "b0afded3-3588-46d8-8b3d-9842eff778da=Role:AuditLog.Read.All"     # Device detail IP + geolocation from sign-in logs (/auditLogs/signIns; needs Entra ID P1)
 )
 # Note: Group.ReadWrite.All (62a82d76-…) is a superset of Group.Read.All
 # (5b567255-…). Granted because the api/'s EditMember screen writes
