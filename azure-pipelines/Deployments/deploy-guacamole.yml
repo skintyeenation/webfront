@@ -1,0 +1,96 @@
+name: deploy-guacamole
+
+# Deploys the Apache Guacamole stack (guacamole/) to a LAN-reachable host over
+# SSH — the browser-based remote-desktop service behind the app's
+# Assets → Devices "Browser" connect mode. Mirrors website/azure-pipelines.yml's
+# SSH deploy pattern; the deploy steps match guacamole/deploy-guacamole.sh.
+#
+# Manual trigger only — infra, not every commit.
+#
+# SETUP REQUIRED (one-time):
+#   - The HOST must reach the band PCs on RDP/3389 (on the STFN.local LAN, or an
+#     Azure VM with a site-to-site VPN). See guacamole/README.md.
+#   - SSH service connection `skintyee-guac-host` (to that host).
+#   - Variable group `skintyee-guacamole` in ADO Library with:
+#       DEPLOY_PATH, GUAC_DOMAIN, DB_NAME, DB_USER, DB_PASSWORD (secret),
+#       ENTRA_TENANT_ID, ENTRA_CLIENT_ID
+#   - DNS A record for GUAC_DOMAIN → the host (Caddy auto-issues TLS).
+#   - Entra app `skintyee-guacamole` with redirect URI https://<GUAC_DOMAIN>.
+
+trigger: none
+pr: none
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  - group: skintyee-guacamole
+
+jobs:
+  - job: deploy
+    displayName: Deploy Guacamole stack
+    steps:
+      - checkout: self
+        fetchDepth: 1
+
+      # 1. Sync the stack (compose + Caddyfile/README); never the local .env.
+      - task: CopyFilesOverSSH@0
+        displayName: "Sync guacamole/ to host"
+        inputs:
+          sshEndpoint: skintyee-guac-host
+          sourceFolder: guacamole
+          contents: |
+            **
+            !.env
+            !.git/**
+          targetFolder: $(DEPLOY_PATH)
+          cleanTargetFolder: false
+          overwrite: true
+
+      # 2. Write the host .env from the variable group (DB_PASSWORD is masked).
+      - task: SSH@0
+        displayName: "Write .env on host"
+        inputs:
+          sshEndpoint: skintyee-guac-host
+          runOptions: commands
+          commands: |
+            set -e
+            umask 077
+            cat > "$(DEPLOY_PATH)/.env" <<EOF
+            GUAC_DOMAIN=$(GUAC_DOMAIN)
+            DB_NAME=$(DB_NAME)
+            DB_USER=$(DB_USER)
+            DB_PASSWORD=$(DB_PASSWORD)
+            ENTRA_TENANT_ID=$(ENTRA_TENANT_ID)
+            ENTRA_CLIENT_ID=$(ENTRA_CLIENT_ID)
+            EOF
+
+      # 3. Pull + (re)start the stack.
+      - task: SSH@0
+        displayName: "docker compose up -d"
+        inputs:
+          sshEndpoint: skintyee-guac-host
+          runOptions: commands
+          commands: |
+            set -e
+            cd "$(DEPLOY_PATH)"
+            docker compose pull
+            docker compose up -d
+
+      # 4. Load the Guacamole DB schema once (idempotent via a sentinel file).
+      - task: SSH@0
+        displayName: "Init Guacamole DB schema (first run only)"
+        inputs:
+          sshEndpoint: skintyee-guac-host
+          runOptions: commands
+          commands: |
+            set -e
+            cd "$(DEPLOY_PATH)"
+            if [ ! -f .db-initialized ]; then
+              docker compose run --rm guacamole /opt/guacamole/bin/initdb.sh --postgresql \
+                | docker compose exec -T postgres psql -U "$(DB_USER)" -d "$(DB_NAME)"
+              touch .db-initialized
+              echo "schema loaded"
+            else
+              echo "schema already initialised"
+            fi
