@@ -2,7 +2,7 @@ import 'react-native-gesture-handler';
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer, DarkTheme as NavDarkTheme, useNavigationBuilder, TabRouter, TabActions, createNavigatorFactory } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { StatusBar } from 'expo-status-bar';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -11,8 +11,9 @@ import { theme, APP_MAX_WIDTH } from 'skintyee/styles';
 import { routeConfig } from 'skintyee/routes';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { refreshStoreForSignedInUser } from 'skintyee/store/refresh';
-import { setNavPosition, DEFAULT_NAV_POSITION } from 'skintyee/store/modules/appState';
-import { loadNavPosition } from 'skintyee/store/navPrefs';
+import { setNavPosition, setNavExpanded, DEFAULT_NAV_POSITION } from 'skintyee/store/modules/appState';
+import { loadNavPosition, loadNavExpanded, saveNavExpanded } from 'skintyee/store/navPrefs';
+import { moreSectionsFor } from 'skintyee/components/pages/moreMenuItems';
 import { SplashScreen, AppHeader } from 'skintyee/components/layout';
 import { Role } from 'skintyee/models';
 
@@ -180,10 +181,22 @@ function ShellTabs({ initialRouteName, children, screenOptions }: any) {
     initialRouteName, children, screenOptions,
   });
   const navPosition = useAppSelector((s) => s.app.navPosition);
+  const navExpanded = useAppSelector((s) => s.app.navExpanded);
+  const role = useAppSelector((s) => s.auth.role);
+  const upn = useAppSelector((s) => s.auth.user?.upn);
+  const dispatch = useAppDispatch();
   const { width } = useWindowDimensions();
   const leftRail = navPosition === 'left' && width >= 900;
 
-  const renderTabButton = (route: any, i: number, vertical: boolean) => {
+  const toggleExpanded = () => {
+    const next = !navExpanded;
+    dispatch(setNavExpanded(next));
+    saveNavExpanded(upn, next); // persist per-user (cross-platform)
+  };
+
+  // `expanded` only applies to the vertical (left-rail) variant: it renders the
+  // tab name beside the icon instead of icon-only.
+  const renderTabButton = (route: any, i: number, vertical: boolean, expanded = false) => {
     const focused = state.index === i;
     const color = focused ? theme.colors.text : theme.colors.primary;
     const icon = descriptors[route.key].options.tabBarIcon;
@@ -193,6 +206,31 @@ function ShellTabs({ initialRouteName, children, screenOptions }: any) {
         navigation.dispatch({ ...TabActions.jumpTo(route.name), target: state.key });
       }
     };
+    if (vertical && expanded) {
+      return (
+        <TouchableOpacity
+          key={route.key}
+          accessibilityRole="button"
+          accessibilityState={{ selected: focused }}
+          onPress={onPress}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingVertical: 10,
+            paddingHorizontal: 14,
+            marginHorizontal: 6,
+            marginBottom: 2,
+            borderRadius: 8,
+            backgroundColor: focused ? theme.colors.background : 'transparent',
+          }}
+        >
+          {icon ? icon({ focused, color, size: 24 }) : null}
+          <Text style={{ color, fontSize: 13, fontWeight: focused ? '700' : '500', marginLeft: 16 }} numberOfLines={1}>
+            {route.name}
+          </Text>
+        </TouchableOpacity>
+      );
+    }
     return (
       <TouchableOpacity
         key={route.key}
@@ -205,9 +243,42 @@ function ShellTabs({ initialRouteName, children, screenOptions }: any) {
         ]}
       >
         {icon ? icon({ focused, color, size: 24 }) : null}
-        {/* Bottom bar keeps text labels; the left rail is icon-only. */}
+        {/* Bottom bar keeps text labels; the collapsed left rail is icon-only. */}
         {!vertical ? <Text style={{ color, fontSize: 10, marginTop: 3 }} numberOfLines={1}>{route.name}</Text> : null}
       </TouchableOpacity>
+    );
+  };
+
+  // Expanded-rail only: the overflow (Admin/More) subsections as labelled rows.
+  // Tapping one jumps to the overflow tab and deep-navigates its nested stack.
+  const renderSubsections = (overflowName: string) => {
+    const sections = moreSectionsFor(role, { includeAccount: false });
+    return (
+      <View style={{ marginTop: 2, marginBottom: 6 }}>
+        {sections.map((sec) => (
+          <View key={sec.title}>
+            {sec.title ? (
+              <Text style={{ color: theme.colors.accent, fontSize: 10, fontWeight: '700', letterSpacing: 0.5, marginTop: 10, marginBottom: 2, marginLeft: 18 }}>
+                {sec.title.toUpperCase()}
+              </Text>
+            ) : null}
+            {sec.items.map((it) => (
+              <TouchableOpacity
+                key={it.route}
+                accessibilityRole="button"
+                accessibilityLabel={it.label}
+                onPress={() => (navigation as any).navigate(overflowName, { screen: it.route })}
+                style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 7, paddingLeft: 24, paddingRight: 12 }}
+              >
+                <MaterialCommunityIcons name={it.icon} color={theme.colors.primary} size={18} />
+                <Text style={{ color: theme.colors.text, fontSize: 12, marginLeft: 12 }} numberOfLines={1}>
+                  {it.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        ))}
+      </View>
     );
   };
 
@@ -215,9 +286,45 @@ function ShellTabs({ initialRouteName, children, screenOptions }: any) {
     <NavigationContent>
       <View style={{ flex: 1, flexDirection: leftRail ? 'row' : 'column', backgroundColor: theme.colors.background }}>
         {leftRail ? (
-          <View style={{ width: 64, backgroundColor: theme.colors.darkDefault, paddingTop: 6 }}>
-            {state.routes.map((r, i) => renderTabButton(r, i, true))}
-          </View>
+          <ScrollView
+            style={{ width: navExpanded ? 248 : 64, backgroundColor: theme.colors.darkDefault }}
+            contentContainerStyle={{ paddingTop: 6, paddingBottom: 24 }}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Apps/squares toggle — expands the rail to show labels + subsections. */}
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={navExpanded ? 'Collapse menu' : 'Expand menu'}
+              onPress={toggleExpanded}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: navExpanded ? 'flex-start' : 'center',
+                paddingVertical: 10,
+                paddingHorizontal: navExpanded ? 18 : 0,
+                marginBottom: 10,
+              }}
+            >
+              <MaterialCommunityIcons
+                name={navExpanded ? 'chevron-double-left' : 'view-grid-outline'}
+                color={theme.colors.text}
+                size={24}
+              />
+              {navExpanded ? (
+                <Text style={{ color: theme.colors.text, fontSize: 13, fontWeight: '700', marginLeft: 14 }}>Menu</Text>
+              ) : null}
+            </TouchableOpacity>
+
+            {state.routes.map((r, i) => {
+              const isOverflow = r.name === 'Admin' || r.name === 'More';
+              return (
+                <React.Fragment key={r.key}>
+                  {renderTabButton(r, i, true, navExpanded)}
+                  {navExpanded && isOverflow ? renderSubsections(r.name) : null}
+                </React.Fragment>
+              );
+            })}
+          </ScrollView>
         ) : null}
         <View style={{ flex: 1 }}>
           {state.routes.map((route, i) => (
@@ -290,13 +397,16 @@ export default function Application() {
   const dispatch = useAppDispatch();
   useEffect(() => {
     if (!signedIn) {
-      // Logged out → reset to the default placement (the toggle is hidden anyway).
+      // Logged out → reset to the default placement + collapsed (toggle is hidden).
       dispatch(setNavPosition(DEFAULT_NAV_POSITION));
+      dispatch(setNavExpanded(false));
       return;
     }
     refreshStoreForSignedInUser(dispatch, role);
-    // Load this user's saved nav placement (per-user, cross-platform via AsyncStorage).
+    // Load this user's saved nav placement + rail expanded state (per-user,
+    // cross-platform via AsyncStorage).
     loadNavPosition(user?.upn).then((p) => dispatch(setNavPosition(p)));
+    loadNavExpanded(user?.upn).then((e) => dispatch(setNavExpanded(e)));
   }, [dispatch, signedIn, role, user?.upn]);
 
   return (

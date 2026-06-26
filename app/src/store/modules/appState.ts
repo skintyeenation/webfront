@@ -20,16 +20,25 @@ export const setNavPosition = createAction<NavPosition>('set_nav_position');
 
 export const DEFAULT_NAV_POSITION: NavPosition = 'left';
 
+// Desktop left-rail expanded state: when true the rail widens to show text
+// labels next to each tab icon plus the overflow (Admin/More) subsections.
+// Persisted per-user via navPrefs (same pattern as navPosition). Only affects
+// the left rail (desktop, width >= 900); the bottom bar ignores it.
+export const setNavExpanded = createAction<boolean>('set_nav_expanded');
+export const DEFAULT_NAV_EXPANDED = false;
+
 export interface AppState {
   loading: boolean;
   error: any | null;
   navPosition: NavPosition;
+  navExpanded: boolean;
 }
 
 export const appStateInitialState: AppState = {
   loading: false,
   error: null,
   navPosition: DEFAULT_NAV_POSITION,
+  navExpanded: DEFAULT_NAV_EXPANDED,
 };
 
 const appStateSlice = createSlice({
@@ -41,6 +50,7 @@ const appStateSlice = createSlice({
     builder.addCase(setError, (state, action) => ({ ...state, loading: false, error: action.payload }));
     builder.addCase(clearError, (state) => ({ ...state, error: null }));
     builder.addCase(setNavPosition, (state, action) => ({ ...state, navPosition: action.payload }));
+    builder.addCase(setNavExpanded, (state, action) => ({ ...state, navExpanded: action.payload }));
   },
 });
 
