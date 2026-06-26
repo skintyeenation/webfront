@@ -44,3 +44,23 @@ These are the **source of truth** — edit them here, not the loose copies under
 `C:\Users\stfnadmin\`. Phase 1 has already been applied to `STFN.local`
 (2026-06-18); re-running `Phase1-PrepUsers.ps1 -Apply` is harmless (it re-sets the
 same values; OU moves are conditional).
+
+## Hybrid Entra Join — applied state (2026-06-26)
+
+Phase 3 Hybrid Join is **live and pilot-verified**:
+- SCP written via `ConfigureSCP.ps1 -Domain skintyeenation.onmicrosoft.com`
+  (the Entra Connect wizard crashes on STFN-DC — N-central's
+  `MSPACredentialProvider` faults `0xc0000005` in the Windows credential dialog;
+  the script bypasses it). Keywords: `azureADId:ee46daed-...`,
+  `azureADName:skintyeenation.onmicrosoft.com`.
+- `OU=SkinTyee Computers` added to the Entra Connect AD-connector sync scope
+  (alongside `OU=SkinTyee Users`).
+- Live machines moved into that OU via `Phase3-PrepComputerOU.ps1 -Apply`
+  (`LUCAS-2022LT01`, `STFN2019-LT01`; `ITG-LOANERPC` + `STFN2024-LT05` already
+  there). Disabled stale 2024 objects intentionally left in `CN=Computers`.
+- **Pilot `LUCAS-2022LT01` confirmed Hybrid joined**: `dsregcmd /status` shows
+  `DomainJoined: YES` + `AzureAdJoined: YES` (`EnterpriseJoined: NO` is correct —
+  no AD FS, managed Entra ID).
+
+Remaining: Part D rollout is automatic — every other domain PC auto-registers on
+its next user sign-in. Track with `Verify-HybridJoin.ps1` over the following days.
