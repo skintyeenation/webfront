@@ -49,7 +49,7 @@ export const complianceColor = (state: ComplianceState): string =>
     ? theme.colors.success
     : state === 'noncompliant'
       ? theme.colors.error
-      : theme.colors.textDarker;
+      : theme.colors.accent; // 'unknown' = no Intune policy → amber/orange, not red
 
 export const TRUST_LABEL: Record<DeviceTrustType, string> = {
   AzureAd: 'Entra joined',
@@ -67,17 +67,27 @@ export default function Devices({ navigation }: any) {
   const [view, setView] = useState<'list' | 'map'>('list');
   // Device ids whose account-chip list is expanded on the card.
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
+  // Account lists fetched on demand: the real Graph list rows carry only the
+  // count, not `users`, so we pull the device detail when a card is expanded.
+  // `undefined` = not fetched yet (spinner); `[]` = fetched, none.
+  const [fetchedUsers, setFetchedUsers] = useState<Record<string, DeviceUserDto[]>>({});
 
-  // Toggle a device id in/out of the expanded set. Returns a NEW Set so React
-  // sees a fresh reference and re-renders.
-  const toggleUsers = useCallback((id: string) => {
+  // Toggle a device's account-chip list. On expand, fetch its users if the list
+  // row didn't include them. Best-effort — never throws into render.
+  const toggleUsers = useCallback((d: DeviceDto) => {
+    const willExpand = !expandedUsers.has(d.id);
     setExpandedUsers((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (willExpand) next.add(d.id);
+      else next.delete(d.id);
       return next;
     });
-  }, []);
+    if (willExpand && !d.users && fetchedUsers[d.id] === undefined) {
+      apiFactory().devices.get(d.id)
+        .then((detail) => setFetchedUsers((m) => ({ ...m, [d.id]: detail.users ?? [] })))
+        .catch(() => setFetchedUsers((m) => ({ ...m, [d.id]: [] })));
+    }
+  }, [expandedUsers, fetchedUsers]);
 
   const load = useCallback(async () => {
     setError(undefined);
@@ -96,7 +106,7 @@ export default function Devices({ navigation }: any) {
   // Disabled devices (stale / decommissioned) render greyed out via card opacity.
   const renderCard = (d: DeviceDto) => {
     const server = isServer(d.operatingSystem, d.osVersion);
-    const compliance = complianceState(d.isCompliant);
+    const compliance = complianceState(d.isCompliant, d.isManaged);
     const ui = COMPLIANCE_UI[compliance];
     return (
     <Card
@@ -148,7 +158,7 @@ export default function Devices({ navigation }: any) {
           <Chip
             compact
             icon="account-multiple"
-            onPress={() => toggleUsers(d.id)}
+            onPress={() => toggleUsers(d)}
             style={{ backgroundColor: expandedUsers.has(d.id) ? theme.colors.primary : theme.colors.secondary }}
             textStyle={{ color: expandedUsers.has(d.id) ? '#000' : theme.colors.text, fontSize: 10 }}
           >
@@ -159,21 +169,34 @@ export default function Devices({ navigation }: any) {
             Last seen {dayjs(d.approximateLastSignInDateTime).format('MMM D, YYYY')}
           </Text>
         </View>
-        {expandedUsers.has(d.id) ? (
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 6 }}>
-            {d.users.map((u: DeviceUserDto) => (
-              <Chip
-                key={u.id}
-                compact
-                icon={u.accessType === 'owner' ? 'account-key' : 'account'}
-                style={{ marginRight: 6, marginBottom: 6, backgroundColor: theme.colors.secondary }}
-                textStyle={{ color: theme.colors.text, fontSize: 10 }}
-              >
-                {u.displayName}
-              </Chip>
-            ))}
-          </View>
-        ) : null}
+        {expandedUsers.has(d.id) ? (() => {
+          const userList = d.users ?? fetchedUsers[d.id];
+          if (userList === undefined) {
+            return <ActivityIndicator size="small" style={{ alignSelf: 'flex-start', marginTop: 8 }} />;
+          }
+          if (userList.length === 0) {
+            return (
+              <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginTop: 6 }}>
+                No account details available.
+              </Text>
+            );
+          }
+          return (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 6 }}>
+              {userList.map((u: DeviceUserDto) => (
+                <Chip
+                  key={u.id}
+                  compact
+                  icon={u.accessType === 'owner' ? 'account-key' : 'account'}
+                  style={{ marginRight: 6, marginBottom: 6, backgroundColor: theme.colors.secondary }}
+                  textStyle={{ color: theme.colors.text, fontSize: 10 }}
+                >
+                  {u.displayName}
+                </Chip>
+              ))}
+            </View>
+          );
+        })() : null}
       </Card.Content>
     </Card>
     );

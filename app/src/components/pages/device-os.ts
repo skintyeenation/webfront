@@ -27,6 +27,7 @@ const CLIENT_BUILDS: Record<number, string> = {
   22621: 'Windows 11 22H2',
   22631: 'Windows 11 23H2',
   26100: 'Windows 11 24H2',
+  26200: 'Windows 11 25H2',
   19041: 'Windows 10 2004',
   19042: 'Windows 10 20H2',
   19043: 'Windows 10 21H1',
@@ -74,10 +75,16 @@ export function osDisplay(operatingSystem: string, osVersion: string): string {
   // OS string. All other server builds are unambiguous.
   if (osSaysServer(operatingSystem) || UNAMBIGUOUS_SERVER_BUILDS.has(build)) {
     const year = SERVER_BUILDS[build];
-    return year ? `Windows Server ${year}` : raw;
+    return year ? `Windows Server ${year}` : 'Windows Server';
   }
 
-  return CLIENT_BUILDS[build] ?? raw;
+  // Exact version wins; otherwise fall back by build range so new/unknown builds
+  // still read correctly (Win 11 = build 22000+, Win 10 = 10240–21999) instead of
+  // the raw "Windows 10.0.x" that misreads as "Windows 10".
+  if (CLIENT_BUILDS[build]) return CLIENT_BUILDS[build];
+  if (build >= 22000) return 'Windows 11';
+  if (build >= 10240) return 'Windows 10';
+  return raw;
 }
 
 // ---- Compliance tri-state --------------------------------------------------
@@ -90,10 +97,20 @@ export type ComplianceState = 'compliant' | 'noncompliant' | 'unknown';
  */
 export function complianceState(
   isCompliant: boolean | null | undefined,
+  isManaged?: boolean | null,
 ): ComplianceState {
-  if (isCompliant === true) return 'compliant';
-  if (isCompliant === false) return 'noncompliant';
-  return 'unknown';
+  // Skin Tyee's compliance bar is "domain-joined + Entra-registered" — those
+  // machines are org-managed and count as compliant. Intune is a BONUS, not the
+  // bar. So red is reserved for a GENUINE Intune failure: Intune is actively
+  // managing the device (isManaged) AND it fails its policy (isCompliant=false).
+  // Everything else — incl. domain/Entra machines with no Intune — is compliant.
+  if (isManaged === true && isCompliant === false) return 'noncompliant';
+  return 'compliant';
+}
+
+/** Whether Intune is actively managing the device — shown as a "bonus" badge. */
+export function isIntuneManaged(isManaged?: boolean | null): boolean {
+  return isManaged === true;
 }
 
 /** Label + MaterialCommunityIcons glyph per compliance state. No colours — the

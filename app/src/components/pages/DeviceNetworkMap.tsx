@@ -38,25 +38,11 @@ interface MapNode {
   children?: MapNode[];
 }
 
-interface GroupDef {
-  trustType: DeviceTrustType;
-  label: string;
-  sub: string;
-  linkLabel?: string;
-}
-
-// Trust-type groups, in display order. Empty ones are dropped before layout.
-const GROUPS: GroupDef[] = [
-  { trustType: 'Hybrid', label: 'STFN.local domain', sub: 'controlled by STFN-DC', linkLabel: 'Entra Connect sync' },
-  { trustType: 'AzureAd', label: 'Entra-joined', sub: 'cloud-only' },
-  { trustType: 'Workplace', label: 'Contractor BYOD', sub: 'personal devices' },
-];
-
 // Layout constants (pixels).
 const NODE_V_GAP = 130;      // vertical distance between tree depths
 const LEAF_W = 150;          // nominal horizontal slot per device leaf
 const PAD_X = 24;
-const PAD_TOP = 24;
+const PAD_TOP = 48;          // room so the root node (r=26) + icon isn't clipped at the top
 const PAD_BOTTOM = 56;       // room for the legend
 const ROOT_R = 26;
 const GROUP_R = 22;
@@ -81,29 +67,27 @@ export default function DeviceNetworkMap({ devices, navigation }: Props) {
     // which is itself synced up to Entra. If no DC is detected, list them flat.
     const isDomainController = (name: string) => /\bdc\d*\b/i.test(name.replace(/[-_]/g, ' '));
 
-    const groupNodes: MapNode[] = GROUPS.map((g) => {
-      const members = devices.filter((d) => d.trustType === g.trustType);
-      let children: MapNode[];
-      if (g.trustType === 'Hybrid') {
-        const dc = members.find((d) => isDomainController(d.displayName));
-        if (dc) {
-          const others = members.filter((d) => d.id !== dc.id);
-          children = [{ ...deviceLeaf(dc), children: others.map(deviceLeaf) }];
-        } else {
-          children = members.map(deviceLeaf);
-        }
-      } else {
-        children = members.map(deviceLeaf);
-      }
-      return {
-        key: `group-${g.trustType}`,
-        kind: 'group' as const,
-        label: g.label,
-        sub: g.sub,
-        linkLabel: g.linkLabel,
-        children,
-      };
-    }).filter((g) => (g.children?.length ?? 0) > 0); // hide empty groups
+    // These are ALL band domain machines. Graph's trustType is unreliable here
+    // (Hybrid Entra Join isn't fully configured, so domain machines/servers come
+    // back as "Workplace"/null) — so group by the domain CONTROLLER (by name,
+    // e.g. STFN-DC), NOT by trustType. Every other machine is a domain member
+    // hanging off the DC, which syncs up to Entra. No BYOD / personal devices.
+    const dc = devices.find((d) => isDomainController(d.displayName));
+    const groupNodes: MapNode[] = [];
+    if (dc) {
+      const others = devices.filter((d) => d.id !== dc.id);
+      groupNodes.push({
+        ...deviceLeaf(dc),
+        sub: 'Windows Server · domain controller',
+        linkLabel: 'Entra Connect sync',
+        children: others.map(deviceLeaf),
+      });
+    } else {
+      groupNodes.push({
+        key: 'group-domain', kind: 'group', label: 'STFN.local domain',
+        sub: 'on-prem', linkLabel: 'Entra Connect sync', children: devices.map(deviceLeaf),
+      });
+    }
 
     const data: MapNode = {
       key: 'root',
@@ -116,7 +100,6 @@ export default function DeviceNetworkMap({ devices, navigation }: Props) {
     // 2. Lay it out with d3-hierarchy. nodeSize gives a fixed slot per node;
     //    we map d3's (x, y) onto our canvas. tree() returns x across, y = depth.
     const root = hierarchy<MapNode>(data, (n) => n.children);
-    const leafCount = Math.max(root.leaves().length, 1);
     const layout = tree<MapNode>().nodeSize([LEAF_W, NODE_V_GAP]);
     layout(root);
 
@@ -128,7 +111,7 @@ export default function DeviceNetworkMap({ devices, navigation }: Props) {
     const maxX = Math.max(...xs);
     const offsetX = PAD_X - minX;
 
-    const w = Math.max((maxX - minX) + PAD_X * 2, leafCount * 90, 320);
+    const w = Math.max((maxX - minX) + PAD_X * 2, 320);
     const maxDepth = Math.max(...nodes.map((n) => n.depth));
     const h = PAD_TOP + maxDepth * NODE_V_GAP + PAD_BOTTOM + 36;
 
@@ -168,20 +151,20 @@ export default function DeviceNetworkMap({ devices, navigation }: Props) {
     const { node } = p;
     if (node.data.kind === 'root') return theme.colors.primary;
     if (node.data.kind === 'group') return theme.colors.accent;
-    const cs = complianceState(node.data.device?.isCompliant);
+    const cs = complianceState(node.data.device?.isCompliant, node.data.device?.isManaged);
     return cs === 'compliant'
       ? theme.colors.success
       : cs === 'noncompliant'
         ? theme.colors.error
-        : theme.colors.textDarker;
+        : theme.colors.accent; // 'unknown' = no Intune policy → amber/orange
   };
 
   return (
     <View style={{ marginTop: 16 }}>
       <ScrollView
-        horizontal={width > 360}
-        showsHorizontalScrollIndicator
-        contentContainerStyle={{ minWidth: width, flexGrow: 1, justifyContent: 'center' }}
+        horizontal
+        showsHorizontalScrollIndicator={width > 360}
+        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
       >
         <ScrollView showsVerticalScrollIndicator contentContainerStyle={{ height }}>
           <View style={{ width, height }}>

@@ -75,7 +75,7 @@ export default function DeviceDetail({ route }: any) {
                 </Text>
               </View>
               {(() => {
-                const cs = complianceState(device.isCompliant);
+                const cs = complianceState(device.isCompliant, device.isManaged);
                 const ui = COMPLIANCE_UI[cs];
                 return (
                   <Chip
