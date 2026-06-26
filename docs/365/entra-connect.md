@@ -48,6 +48,46 @@ limitation](https://learn.microsoft.com/en-us/entra/identity/hybrid/group-writeb
 > first (a Hybrid Runbook Worker / queue + on-prem agent) — deliberately **not**
 > built. See ADR-16.
 
+## Authentication model — managed (PHS), no AD FS
+
+Sign-in uses **Password Hash Sync (PHS)** with **managed** authentication — **not
+federation (AD FS)**. This was the explicit choice when configuring Hybrid Join
+(the SCP wizard's Authentication Service = **Microsoft Entra ID**, not AD FS). A
+hash of each user's on-prem password hash syncs to Entra, and **Entra validates
+cloud sign-ins itself** rather than redirecting them to an on-prem federation
+server. `dsregcmd /status` on a Hybrid-joined PC shows `EnterpriseJoined : NO` —
+**correct**, since that field only means *on-prem* DRS (federated); we're managed.
+
+### Why no AD FS is the right call here
+
+- **No federation infrastructure on a constrained single DC.** AD FS needs
+  dedicated servers, a Web Application Proxy in the DMZ, token-signing certs to
+  rotate, and HA. `STFN-DC` is a single, nested-virt-disabled Hyper-V guest that
+  is *also* the DC — not running AD FS is a real operational win (see the
+  Environment snapshot below).
+- **Cloud sign-in survives on-prem outages.** With PHS, if the DC or the on-prem
+  link is down, users can still sign into M365/Entra apps (Entra holds the
+  hashes). With AD FS, AD FS down = cloud sign-in down — bad with one DC.
+- **SSO still works** without AD FS or even Seamless SSO: Hybrid-joined PCs get a
+  **Primary Refresh Token (PRT)** that provides SSO to Entra/M365 apps.
+- **Leaked-credential detection** (Entra ID Protection) works with PHS — *lost*
+  under pure federation.
+- **Simpler everything** — DR, patching, and the Hybrid Join itself (no AD FS
+  claim/issuance rules to author).
+
+### Trade-offs to operate around
+
+| Trade-off | Detail | Mitigation |
+|---|---|---|
+| **Account-disable lag** | Disabling/deleting an on-prem user blocks *cloud* access only after the next object sync (**~30 min** default), not instantly. | For urgent offboarding, **also disable in Entra**, or force a sync: `Start-ADSyncSyncCycle -PolicyType Delta`. |
+| **On-prem password expiry ≠ cloud** | A synced user with an expired on-prem password can still sign into cloud unless `EnforceCloudPasswordPolicyForPasswordSyncedUsers` is set. | Enable that flag if expiry must apply to cloud. See [`password-policy.md`](password-policy.md). |
+| **MFA/CA is cloud-side** | No on-prem MFA hook like AD FS allowed — policy lives in Entra (Entra MFA + Conditional Access). | Intended; configure in Entra. |
+| **A credential derivative is in the cloud** | PHS stores a hash-of-a-hash. | Microsoft-recommended + considered secure; standard choice for an NGO. Not a concern. |
+
+> Note: *password changes* sync fast (the PHS job runs every ~2 min) — it's
+> *object* changes like `accountEnabled` that ride the ~30-min cycle. So a reset
+> propagates quickly; a disable does not.
+
 ## Device management — Intune
 
 - **Existing domain-joined PCs** (FS*, the laptops, XYNTAX-FMS1/2, the loaner) are

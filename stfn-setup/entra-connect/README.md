@@ -17,6 +17,7 @@ folder holds the **scripts those phases run**. Run them **on `STFN-DC`**.
 | [`Phase1-PrepUsers.ps1`](Phase1-PrepUsers.ps1) | 1 ✅ done | Adds the `skintyee.ca` UPN suffix, creates `OU=SkinTyee Users`, and normalizes the 8 scoped users (UPN + sAMAccountName → `first.last`, `mail`, primary `SMTP:` proxy) so the 5 existing cloud accounts **soft-match** instead of duplicating. **Preview by default; `-Apply` to write.** Keyed on immutable ObjectGUID. | **elevated** |
 | [`Set-TlsStrongCrypto.ps1`](Set-TlsStrongCrypto.ps1) | 2 prereq | Sets the .NET TLS 1.2 strong-crypto registry keys Entra Connect v2 requires. **Preview by default; `-Apply` to write.** New shell/reboot after. | **elevated** |
 | [`Verify-EntraSync.ps1`](Verify-EntraSync.ps1) | 2 verify | After the first sync: checks the ADSync service + scheduler; `-Cloud` also queries Graph to confirm the 8 users synced with **no duplicates**. | on DC (`-Cloud` prompts sign-in) |
+| [`ConfigureSCP.ps1`](ConfigureSCP.ps1) | 3 (Hybrid Join) | Microsoft's official script — writes the **Service Connection Point** (`azureADId`/`azureADName` keywords) into the forest Configuration partition: the "Part A" SCP step of Hybrid Entra Join. **Use this instead of the Entra Connect wizard**, which crashes on `STFN-DC` (the credential dialog loads N-central's `MSPACredentialProvider` DLL → faults `0xc0000005` → kills `AzureADConnect.exe`). Runs in-process, so no credential dialog / third-party provider loads. `-Domain skintyeenation.onmicrosoft.com`. Idempotent. | **elevated** (Enterprise Admin) |
 | [`Verify-HybridJoin.ps1`](Verify-HybridJoin.ps1) | 3 verify | Read-only Graph dump of every Entra device + its `trustType`/OS, with the **Hybrid (`ServerAd`) count**. `-Pilot <name>` → PASS/FAIL on one pilot PC flipping `Workplace`→`ServerAd`; `-Baseline <n>` → PASS if the count grew past `n`. Runs anywhere (incl. the Mac — cloud only). The pass/fail half of the Hybrid Join rollout. | any (`Device.Read.All`) |
 | [`Phase3-PrepComputerOU.ps1`](Phase3-PrepComputerOU.ps1) | 3 prereq | Creates `OU=SkinTyee Computers` and moves the live machines (`XYNTAX-FMS2`, `ITG-LOANERPC`) out of `CN=Computers` so they can be GPO-targeted and added to the sync scope for Hybrid Entra Join. **Preview by default; `-Apply` to write.** | **elevated** |
 | [`Phase3-MarkStaleComputers.ps1`](Phase3-MarkStaleComputers.ps1) | 3 prereq | Marks the 9 stale 2024 computer objects **stale + disabled but keeps them** (audit trail; not deleted). Sets a `STALE retained ...` Description and disables each. **Preview by default; `-Apply` to write.** | **elevated** |
@@ -43,3 +44,23 @@ These are the **source of truth** — edit them here, not the loose copies under
 `C:\Users\stfnadmin\`. Phase 1 has already been applied to `STFN.local`
 (2026-06-18); re-running `Phase1-PrepUsers.ps1 -Apply` is harmless (it re-sets the
 same values; OU moves are conditional).
+
+## Hybrid Entra Join — applied state (2026-06-26)
+
+Phase 3 Hybrid Join is **live and pilot-verified**:
+- SCP written via `ConfigureSCP.ps1 -Domain skintyeenation.onmicrosoft.com`
+  (the Entra Connect wizard crashes on STFN-DC — N-central's
+  `MSPACredentialProvider` faults `0xc0000005` in the Windows credential dialog;
+  the script bypasses it). Keywords: `azureADId:ee46daed-...`,
+  `azureADName:skintyeenation.onmicrosoft.com`.
+- `OU=SkinTyee Computers` added to the Entra Connect AD-connector sync scope
+  (alongside `OU=SkinTyee Users`).
+- Live machines moved into that OU via `Phase3-PrepComputerOU.ps1 -Apply`
+  (`LUCAS-2022LT01`, `STFN2019-LT01`; `ITG-LOANERPC` + `STFN2024-LT05` already
+  there). Disabled stale 2024 objects intentionally left in `CN=Computers`.
+- **Pilot `LUCAS-2022LT01` confirmed Hybrid joined**: `dsregcmd /status` shows
+  `DomainJoined: YES` + `AzureAdJoined: YES` (`EnterpriseJoined: NO` is correct —
+  no AD FS, managed Entra ID).
+
+Remaining: Part D rollout is automatic — every other domain PC auto-registers on
+its next user sign-in. Track with `Verify-HybridJoin.ps1` over the following days.

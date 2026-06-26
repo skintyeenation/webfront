@@ -22,8 +22,13 @@ $domainDN = (Get-ADDomain).DistinguishedName
 $ouName   = 'SkinTyee Computers'
 $ouDN     = "OU=$ouName,$domainDN"
 
-# Live machines to move (STFN-DC is intentionally excluded - DCs stay put).
-$live = 'XYNTAX-FMS2','ITG-LOANERPC'
+# Live machines to move into OU=SkinTyee Computers so they sync to Entra for
+# Hybrid Join (STFN-DC is intentionally excluded - DCs stay put). Only ENABLED,
+# recently-active machines belong here; the disabled stale 2024 duplicates
+# (STFN2024-LT01/02/03, STFN2022-LT01, XYNTAX-FMS1, FS1-4) are intentionally
+# left in CN=Computers and handled by Phase3-MarkStaleComputers.ps1. The script
+# skips any name that is already in the OU or no longer exists.
+$live = 'XYNTAX-FMS2','ITG-LOANERPC','LUCAS-2022LT01','STFN2019-LT01','STFN2024-LT05'
 
 if ($Apply) { Write-Host "MODE: APPLY" -ForegroundColor Cyan }
 else        { Write-Host "MODE: PREVIEW (no changes)" -ForegroundColor Cyan }
