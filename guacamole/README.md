@@ -54,6 +54,47 @@ script supports both — point it at a LAN box, or have it provision an Azure VM
 
 ---
 
+## What runs it — an always-on Linux host (not the DC, not a workstation)
+
+Guacamole is a **gateway that carries the connection**, not just a config
+server. During every session it sits in the middle:
+
+```
+ Browser ──HTTPS/443──▶  Linux host  ──RDP/3389 (LAN)──▶  the PC
+ (anywhere)             (guacamole + guacd)               (STFN.local)
+```
+
+`guacd` opens the **real RDP connection** to the PC, receives its screen, and
+streams it to the browser as video over a websocket (and sends keystrokes back —
+the browser can't speak RDP itself). The web app terminates the public HTTPS
+endpoint, signs users in (Entra SSO), and holds the per-PC connection list +
+permissions (Postgres). It's the **single hardened door**: only its 443 faces
+the internet, so RDP is never exposed publicly.
+
+**Why always-on:** on-demand access means the door must be open whenever someone
+knocks (evening, weekend, from home). The URL, the login, the connection
+database, and the auto-renewing TLS cert all live there — turn it off and remote
+access is down for everyone. It's infrastructure, the same role as a VPN
+concentrator or RD Gateway. Idle it does almost nothing (a few hundred MB RAM);
+it only works hard during an active session.
+
+That role rules out two tempting choices:
+
+- **Not `STFN-DC`** — running Docker + an internet-facing service on a **domain
+  controller** is a security anti-pattern (a compromise of the gateway lands on
+  your directory); a DC should have minimal attack surface.
+- **Not a workstation** (e.g. `Lucas-2022LT01`) — it sleeps, reboots, gets shut
+  off and re-imaged, and ties the service to one person being online.
+
+Use a **dedicated, always-on Linux host on the LAN** with line-of-sight to the
+PCs on 3389:
+
+| Option | Cost | When |
+|---|---|---|
+| **Linux VM** on existing virtualization (a *separate* guest, not the DC OS) | \$0 | You already run a hypervisor on-site |
+| **Mini-PC / NUC** running Ubuntu | ~\$150–300 one-time | No hypervisor — cheapest dedicated box |
+| **Existing non-DC Linux server** | \$0 | You already have one — `deploy-guacamole.sh --host you@thatbox` |
+
 ## Network reachability (the part that bites)
 
 Guacamole does **not** remove the need to reach the PC — it replaces the client,
