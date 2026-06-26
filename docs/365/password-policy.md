@@ -5,8 +5,9 @@ What password rules apply to Skin Tyee accounts, where they come from, and the
 [`password-reset-sspr.md`](password-reset-sspr.md) (self-service reset) and
 [`entra-connect.md`](entra-connect.md) (hybrid identity).
 
-> **Last verified:** 2026-06-25, via Microsoft Graph as
-> `admin@skintyeenation.onmicrosoft.com` (tenant `ee46daed-…-203a4bec`).
+> **Last verified:** 2026-06-25 (password policy) / 2026-06-26 (MFA & enforcement),
+> via Microsoft Graph as `admin@skintyeenation.onmicrosoft.com` (tenant
+> `ee46daed-…-203a4bec`).
 > Re-check after any Entra "Password protection" or on-prem GPO change.
 
 ## Which policy applies (it depends on the account type)
@@ -54,6 +55,50 @@ These rules are **fixed by Microsoft and not configurable**:
 > **on-prem GPO**, not Entra, unless
 > `EnforceCloudPasswordPolicyForPasswordSyncedUsers` is enabled (it is not).
 > The cloud "never-expire" above governs **cloud-only** accounts.
+
+## MFA & enforcement
+
+**Enforcement = Security Defaults (not Conditional Access).** Confirmed live
+(2026-06-26): the tenant has **zero Conditional Access policies**
+(`/identity/conditionalAccess/policies` → empty), yet MFA is active — so MFA is
+enforced by **Microsoft Entra Security Defaults**, the free baseline. ⚠️ The
+Security-Defaults on/off flag itself couldn't be read with the CLI token (needs
+`Policy.Read.All`), but 0 CA policies + active MFA + the Authenticator-mandated
+reset make this the clear conclusion. *Confirm the toggle:* Entra admin center →
+Identity → Overview → Properties → **Manage security defaults**.
+
+**What Security Defaults imposes:**
+- **Every user must register for MFA** (14-day grace) and use the **Microsoft
+  Authenticator app** — Security Defaults specifically mandates the *app*, not
+  SMS/voice.
+- **Admins are challenged for MFA every sign-in**; users when risk warrants.
+- Legacy authentication (basic auth) is blocked.
+
+**This is why `aka.ms/sspr` / password reset requires the authenticator app:**
+1. SSPR must **prove your identity** before issuing a new password (else it's an
+   account-takeover path) — i.e. **MFA applied to the reset**.
+2. Via **combined registration**, the Authenticator you set up for MFA sign-in is
+   the same method SSPR uses to verify you.
+3. It deliberately verifies **out-of-band** (authenticator/phone/personal email),
+   **not** your `@skintyee.ca` mailbox — which you can't reach when locked out.
+4. Because **Security Defaults mandates the Authenticator app**, that's the method
+   the reset demands (not optional, not SMS).
+
+**Registration — combined (MFA + SSPR), forced at sign-in** ("Require users to
+register when signing in = Yes"). **Live state (2026-06-26): registration is
+partial — a gap to close:**
+
+| MFA-registered | Users |
+|---|---|
+| ✅ Registered | `betty.cardinal`, `kim.pike`, `lucas.lopatka` |
+| ❌ Not yet | most staff (`destiney.michelle`, `gabriel.tom`, `helen.michelle`, `martin.tom`, `niki.misfeldt`, `shirley.wilson`, `it@`) |
+
+> ⚠️ **Action:** unregistered users should complete **`aka.ms/mfasetup`** **now,
+> while they can still sign in** — per [`password-reset-sspr.md`](password-reset-sspr.md),
+> if they're not registered *before* a lockout, SSPR can't verify them and the
+> self-reset is dead in an emergency. (The shared-mailbox accounts —
+> `bandmanager@`, `chief@`, `finance@`, etc. — showing unregistered is expected:
+> they're shared mailboxes with no interactive sign-in.)
 
 ## On-prem AD policy (managed staff) — TO BE RECORDED
 
