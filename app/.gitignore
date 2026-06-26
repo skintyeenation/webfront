@@ -15,3 +15,7 @@ expo-env.d.ts
 # Metro
 .metro-health-check*
 .env
+
+# Electron desktop build output
+desktop-dist/
+web-build/

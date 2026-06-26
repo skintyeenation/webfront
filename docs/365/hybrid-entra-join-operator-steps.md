@@ -20,6 +20,17 @@ verification you run from the Mac afterward is
 
 ## Part A — Turn on Hybrid Join in Entra Connect (sync server, ~10 min)
 
+> **⚠ If the wizard crashes when you enter `STFN\stfnadmin` creds:** that's a known
+> issue on `STFN-DC` — the Windows credential dialog loads N-central's
+> `MSPACredentialProvider` DLL, which faults (`0xc0000005`) and kills
+> `AzureADConnect.exe`. **Skip the wizard** and write the SCP directly with
+> Microsoft's official script (does the exact same thing, in-process, no credential
+> dialog), then jump to **Part B**:
+> ```powershell
+> # elevated PowerShell on STFN-DC, as Enterprise Admin:
+> .\stfn-setup\entra-connect\ConfigureSCP.ps1 -Domain skintyeenation.onmicrosoft.com
+> ```
+
 1. Sign in to **`STFN-DC`** as `STFN\stfnadmin`.
 2. Start menu → run **`Azure AD Connect`** (or `C:\Program Files\Microsoft Azure
    Active Directory Connect\AzureADConnect.exe`). Click **Configure** on the
