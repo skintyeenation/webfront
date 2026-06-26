@@ -8,6 +8,13 @@ get clean device inventory + desktop SSO + device-based Conditional Access later
 join, user accounts, or how anyone logs into Windows. Login keeps working exactly
 as now. You can roll it back.
 
+> **Executing this?** Hand the on-prem operator the screen-by-screen follow-along:
+> [`hybrid-entra-join-operator-steps.md`](hybrid-entra-join-operator-steps.md)
+> (exact wizard screens + the `STFN\stfnadmin` prompt + the pilot commands). Verify
+> from the Mac with
+> [`Verify-HybridJoin.ps1`](../../stfn-setup/entra-connect/Verify-HybridJoin.ps1)
+> (`-Pilot <name>` → PASS/FAIL). This doc is the *why/strategy*; that pair is the *how*.
+
 **Have already:** AD domain `STFN.local`, DC **STFN-DC** (Win Server 2022), **Entra
 Connect** installed + PHS syncing, Entra tenant `skintyeenation`.
 
