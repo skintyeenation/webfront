@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Platform, TouchableOpacity, useWindowDimensions, View } from 'react-native';
-import { Badge, Button, Card, Chip, ProgressBar, SegmentedButtons, Text } from 'react-native-paper';
+import { Platform, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { Badge, Button, Card, Chip, IconButton, ProgressBar, Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import moment from 'moment';
 import { NoContent, PageContainer, PageContent, colorAt } from 'skintyee/components/layout';
@@ -112,7 +112,7 @@ function FeedItemCard({ item, onPress }: { item: FeedItem; onPress?: () => void 
 
 // Actual month grid: 7-column wall calendar. Days with items get a dot.
 // Tapping a day opens its items below the grid.
-function CalendarView({ items }: { items: FeedItem[] }) {
+function CalendarView({ items, hideDayList }: { items: FeedItem[]; hideDayList?: boolean }) {
   // Month being browsed — defaults to today's month; arrows move it.
   const [cursor, setCursor] = useState(() => moment().startOf('month'));
   const [selectedKey, setSelectedKey] = useState(() => moment().format('YYYY-MM-DD'));
@@ -243,17 +243,20 @@ function CalendarView({ items }: { items: FeedItem[] }) {
         </View>
       ))}
 
-      {/* Selected-day items below the grid */}
-      <View style={{ marginTop: 14 }}>
-        <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginBottom: 6, textTransform: 'uppercase' }}>
-          {moment(selectedKey).format('dddd, MMM D')}
-        </Text>
-        {selectedDayItems.length === 0 ? (
-          <Text style={{ color: theme.colors.textDarker, fontSize: 13 }}>Nothing on this day.</Text>
-        ) : (
-          selectedDayItems.map((it) => <FeedItemCard key={it.id} item={it} />)
-        )}
-      </View>
+      {/* Selected-day items below the grid — hidden when the overlay shows the
+          full task list in its own column (hideDayList) to avoid a duplicate. */}
+      {!hideDayList ? (
+        <View style={{ marginTop: 14 }}>
+          <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginBottom: 6, textTransform: 'uppercase' }}>
+            {moment(selectedKey).format('dddd, MMM D')}
+          </Text>
+          {selectedDayItems.length === 0 ? (
+            <Text style={{ color: theme.colors.textDarker, fontSize: 13 }}>Nothing on this day.</Text>
+          ) : (
+            selectedDayItems.map((it) => <FeedItemCard key={it.id} item={it} />)
+          )}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -296,14 +299,20 @@ export default function Dashboard({ navigation }: any) {
   const [openOnboardingCount, setOpenOnboardingCount] = useState(0);
   const [openFlowTitles, setOpenFlowTitles] = useState<string[]>([]);
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
+  // Dismiss state for the timesheet-due reminder banner (re-shows on reload).
+  const [timesheetDismissed, setTimesheetDismissed] = useState(false);
 
-  const [view, setView] = useState<FeedView>('list');
+  // My-tasks calendar is a full-content overlay (toggled), not an inline tab.
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   // "My projects" + "My tasks" sit side by side on DESKTOP only. Gate on
   // Platform.OS === 'web' so the native tablet app (iOS/Android) always keeps
   // the stacked layout — tablet portrait *and* landscape stay single-column.
   const { width } = useWindowDimensions();
   const twoCol = Platform.OS === 'web' && width >= 1024;
+  // The calendar overlay splits (calendar 1/3 · cards 2/3) on tablet AND
+  // desktop — width-based (no Platform gate) so native tablets get it too.
+  const calendarSplit = width >= 768;
 
   // Pull this week's feed on mount; staff/admin also pull Planner + time.
   useEffect(() => {
@@ -319,13 +328,12 @@ export default function Dashboard({ navigation }: any) {
     }
   }, [dispatch, role, isStaffOrAdmin, showPlannerWidgets]);
 
-  // Worker-side timesheet fetch — every non-admin role check + load,
-  // gated by /me/eligible so members who aren't workers don't render
-  // an empty widget. Admins skip this block entirely (they get the
-  // approver widget).
+  // Personal timesheet fetch — for EVERY role (gated by /me/eligible so
+  // non-workers don't render an empty widget). Non-admins also render the
+  // MyTimekeepingCard from this; admins use it only for the "timesheet due"
+  // banner (an admin who's also a worker still owes their own timesheet).
   useEffect(() => {
     let cancelled = false;
-    if (isAdmin) { setMyEligible(false); return; }
     (async () => {
       try {
         const api = apiFactory().timekeeping;
@@ -407,6 +415,28 @@ export default function Dashboard({ navigation }: any) {
     };
   }, []);
 
+  // Tasks grouped under a date heading — shared by the inline list and the
+  // calendar overlay's right column.
+  const renderTaskDays = () => {
+    const byDay = new Map<string, typeof taskItems>();
+    for (const it of taskItems) {
+      const t = timeOf(it);
+      if (!t) continue;
+      const key = moment(t).format('YYYY-MM-DD');
+      byDay.set(key, [...(byDay.get(key) ?? []), it]);
+    }
+    return Array.from(byDay.entries()).map(([day, dayItems]) => (
+      <View key={day} style={{ marginBottom: 12 }}>
+        <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginBottom: 6, textTransform: 'uppercase' }}>
+          {moment(day).format('dddd, MMM D')}
+        </Text>
+        {dayItems.map((it) => (
+          <FeedItemCard key={it.id} item={it} />
+        ))}
+      </View>
+    ));
+  };
+
   return (
     <PageContainer>
       <PageContent>
@@ -457,6 +487,55 @@ export default function Dashboard({ navigation }: any) {
           </Card>
         ) : null}
 
+        {/* Timesheet-due reminder — the prompt to enter/submit before cut-off.
+            Shown to ANY eligible worker (staff or admin) who hasn't submitted,
+            within 3 days of cut-off; red + "due today" on the cut-off date. */}
+        {(() => {
+          const myStatus = myTimesheet?.status ?? 'not_started';
+          const needsTimesheet = myEligible && !['submitted', 'approved'].includes(myStatus);
+          if (!needsTimesheet || daysRemaining > 3 || timesheetDismissed) return null;
+          const dueToday = daysRemaining === 0;
+          // Green for due-today (actionable "do it now"), amber for the lead-up.
+          const color = dueToday ? theme.colors.success : theme.colors.accent;
+          return (
+            <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 12, borderLeftWidth: 3, borderLeftColor: color }}>
+              <Card.Content>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                  <MaterialCommunityIcons name="clock-alert-outline" size={20} color={color} style={{ marginRight: 8, marginTop: 2 }} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: theme.colors.text, fontSize: 14, fontWeight: '600' }}>
+                      {dueToday ? 'Timesheet due today' : `Timesheet due in ${daysRemaining} day${daysRemaining === 1 ? '' : 's'}`}
+                    </Text>
+                    <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginTop: 2 }}>
+                      {`Cut-off ${cutoffDate.format('ddd, MMM D')}. `}
+                      {myStatus === 'rejected'
+                        ? 'Your timesheet was rejected — fix and resubmit.'
+                        : myTimesheet?.totalHours
+                          ? `You've logged ${myTimesheet.totalHours}h — submit it.`
+                          : 'You haven’t entered your hours yet.'}
+                    </Text>
+                    <View style={{ flexDirection: 'row', marginTop: 8 }}>
+                      <Button
+                        compact mode="contained" icon="clock-edit-outline"
+                        buttonColor={theme.colors.success} textColor="#000"
+                        onPress={() => navigation.navigate(isAdmin ? 'Admin' : 'More', { screen: 'timekeeping', initial: false })}
+                      >
+                        Enter my timesheet
+                      </Button>
+                      <Button
+                        compact mode="text" icon="close" textColor={theme.colors.textDarker}
+                        onPress={() => setTimesheetDismissed(true)} style={{ marginLeft: 4 }}
+                      >
+                        Dismiss
+                      </Button>
+                    </View>
+                  </View>
+                </View>
+              </Card.Content>
+            </Card>
+          );
+        })()}
+
         {/* ── 1. TIME KEEPING — admin approver card or worker self-view.
             Both components live at the bottom of this file; see
             AdminTimekeepingCard / MyTimekeepingCard. */}
@@ -466,6 +545,7 @@ export default function Dashboard({ navigation }: any) {
             hoursLogged={hoursLogged}
             cutoffDate={cutoffDate}
             daysRemaining={daysRemaining}
+            wide={twoCol}
             onOpen={() => navigation.navigate('Admin', { screen: 'timekeeping', initial: false })}
           />
         ) : myEligible ? (
@@ -537,46 +617,23 @@ export default function Dashboard({ navigation }: any) {
           <Text style={{ color: theme.colors.text, fontSize: 16, flex: 1 }}>
             My tasks {formatRange(taskItems) ? `· ${formatRange(taskItems)}` : ''}
           </Text>
+          {taskItems.length > 0 ? (
+            <Button
+              compact mode="text" icon="calendar-month"
+              textColor={theme.colors.primary}
+              onPress={() => setCalendarOpen(true)}
+            >
+              Show calendar
+            </Button>
+          ) : null}
         </View>
-
-        <SegmentedButtons
-          value={view}
-          onValueChange={(v) => setView(v as FeedView)}
-          density="small"
-          style={{ marginBottom: 12 }}
-          buttons={[
-            { value: 'list', label: 'List', icon: 'format-list-bulleted' },
-            { value: 'calendar', label: 'Calendar', icon: 'calendar-month' },
-          ]}
-        />
 
         {!loaded && loading ? (
           <NoContent loading message="Loading your tasks…" />
         ) : taskItems.length === 0 ? (
           <NoContent message="No Planner tasks due this week. Clear slate." />
-        ) : view === 'list' ? (
-          // List groups items under a date heading so dates aren't lost.
-          (() => {
-            const byDay = new Map<string, typeof taskItems>();
-            for (const it of taskItems) {
-              const t = timeOf(it);
-              if (!t) continue;
-              const key = moment(t).format('YYYY-MM-DD');
-              byDay.set(key, [...(byDay.get(key) ?? []), it]);
-            }
-            return Array.from(byDay.entries()).map(([day, dayItems]) => (
-              <View key={day} style={{ marginBottom: 12 }}>
-                <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginBottom: 6, textTransform: 'uppercase' }}>
-                  {moment(day).format('dddd, MMM D')}
-                </Text>
-                {dayItems.map((it) => (
-                  <FeedItemCard key={it.id} item={it} />
-                ))}
-              </View>
-            ));
-          })()
         ) : (
-          <CalendarView items={taskItems} />
+          renderTaskDays()
         )}
         </> : null}
           </View>
@@ -584,6 +641,40 @@ export default function Dashboard({ navigation }: any) {
         ) : null}
 
       </PageContent>
+
+      {/* My-tasks calendar — fills the content area (below the app header and
+          right of the sidebar, since it's inside PageContainer), not a small
+          centered dialog. Toggled from the "Show calendar" button. */}
+      {calendarOpen ? (
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.colors.background, zIndex: 20 }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: theme.colors.secondary }}>
+            <MaterialCommunityIcons name="calendar-month" size={18} color={theme.colors.primary} style={{ marginRight: 6 }} />
+            <Text style={{ color: theme.colors.text, fontSize: 16, flex: 1 }}>
+              My tasks · calendar
+            </Text>
+            <IconButton icon="close" size={22} iconColor={theme.colors.text} onPress={() => setCalendarOpen(false)} />
+          </View>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 12 }}>
+            {calendarSplit ? (
+              // Tablet + desktop: calendar 1/3 left, task-list cards 2/3 right.
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                <View style={{ flex: 1, marginRight: 16 }}>
+                  <CalendarView items={taskItems} hideDayList />
+                </View>
+                <View style={{ flex: 2 }}>
+                  {renderTaskDays()}
+                </View>
+              </View>
+            ) : (
+              // Phone: calendar grid, then the list below (single list).
+              <>
+                <CalendarView items={taskItems} hideDayList />
+                <View style={{ marginTop: 12 }}>{renderTaskDays()}</View>
+              </>
+            )}
+          </ScrollView>
+        </View>
+      ) : null}
     </PageContainer>
   );
 }
@@ -601,9 +692,10 @@ interface AdminTimekeepingCardProps {
   cutoffDate: moment.Moment;
   daysRemaining: number;
   onOpen: () => void;
+  wide?: boolean; // desktop → stats + cut-off + CTA on one row
 }
 
-function AdminTimekeepingCard({ pendingApprovals, hoursLogged, cutoffDate, daysRemaining, onOpen }: AdminTimekeepingCardProps) {
+function AdminTimekeepingCard({ pendingApprovals, hoursLogged, cutoffDate, daysRemaining, onOpen, wide }: AdminTimekeepingCardProps) {
   return (
     <Card
       style={{
@@ -617,7 +709,7 @@ function AdminTimekeepingCard({ pendingApprovals, hoursLogged, cutoffDate, daysR
     >
       <Card.Content>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-          <MaterialCommunityIcons name="clock-outline" size={18} color={theme.colors.primary} style={{ marginRight: 6 }} />
+          <MaterialCommunityIcons name="clock-outline" size={18} color={theme.colors.accent} style={{ marginRight: 6 }} />
           <Text style={{ color: theme.colors.text, fontSize: 15, flex: 1 }}>Time keeping</Text>
           {pendingApprovals > 0 ? (
             <Badge style={{ backgroundColor: theme.colors.accent }}>
@@ -625,27 +717,54 @@ function AdminTimekeepingCard({ pendingApprovals, hoursLogged, cutoffDate, daysR
             </Badge>
           ) : null}
         </View>
-        <View style={{ flexDirection: 'row' }}>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: pendingApprovals > 0 ? theme.colors.accent : theme.colors.success, fontSize: 22 }}>{pendingApprovals}</Text>
-            <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Entries to approve</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: theme.colors.primary, fontSize: 22 }}>{hoursLogged}</Text>
-            <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Hours logged</Text>
-          </View>
-        </View>
-        <CutoffFooter cutoffDate={cutoffDate} daysRemaining={daysRemaining} />
-        <Button
-          mode={pendingApprovals > 0 ? 'contained' : 'outlined'}
-          compact icon="clock-outline"
-          buttonColor={pendingApprovals > 0 ? theme.colors.accent : undefined}
-          textColor={pendingApprovals > 0 ? '#000' : theme.colors.primary}
-          style={{ marginTop: 12, alignSelf: 'flex-start' }}
-          onPress={onOpen}
-        >
-          {pendingApprovals > 0 ? 'Review timesheets' : 'Open time keeping'}
-        </Button>
+        {(() => {
+          const statEntries = (
+            <View style={wide ? { marginRight: 28 } : { flex: 1 }}>
+              <Text style={{ color: pendingApprovals > 0 ? theme.colors.accent : theme.colors.success, fontSize: 22 }}>{pendingApprovals}</Text>
+              <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Entries to approve</Text>
+            </View>
+          );
+          const statHours = (
+            <View style={wide ? { marginRight: 28 } : { flex: 1 }}>
+              <Text style={{ color: theme.colors.primary, fontSize: 22 }}>{hoursLogged}</Text>
+              <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Hours · all workers</Text>
+            </View>
+          );
+          const button = (
+            <Button
+              mode={pendingApprovals > 0 ? 'contained' : 'outlined'}
+              compact icon="clock-outline"
+              buttonColor={pendingApprovals > 0 ? theme.colors.accent : undefined}
+              textColor={pendingApprovals > 0 ? '#000' : theme.colors.primary}
+              style={wide ? undefined : { marginTop: 12, alignSelf: 'flex-start' }}
+              onPress={onOpen}
+            >
+              {pendingApprovals > 0 ? 'Review timesheets' : 'Open time keeping'}
+            </Button>
+          );
+          // Desktop: stats + cut-off + CTA on one row (no stacked footer).
+          if (wide) {
+            return (
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                {statEntries}
+                {statHours}
+                <CutoffFooter cutoffDate={cutoffDate} daysRemaining={daysRemaining} inline />
+                <View style={{ flex: 1 }} />
+                {button}
+              </View>
+            );
+          }
+          return (
+            <>
+              <View style={{ flexDirection: 'row' }}>
+                {statEntries}
+                {statHours}
+              </View>
+              <CutoffFooter cutoffDate={cutoffDate} daysRemaining={daysRemaining} />
+              {button}
+            </>
+          );
+        })()}
       </Card.Content>
     </Card>
   );
@@ -686,7 +805,7 @@ function MyTimekeepingCard({
     <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 16, borderLeftWidth: 3, borderLeftColor: accent }}>
       <Card.Content>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-          <MaterialCommunityIcons name="clock-outline" size={18} color={theme.colors.primary} style={{ marginRight: 6 }} />
+          <MaterialCommunityIcons name="clock-outline" size={18} color={theme.colors.accent} style={{ marginRight: 6 }} />
           <Text style={{ color: theme.colors.text, fontSize: 15, flex: 1 }}>Time keeping</Text>
           <Chip compact style={{ backgroundColor: accent }} textStyle={{ color: '#000', fontSize: 10 }}>
             {MY_STATUS_LABEL[status] ?? status.toUpperCase()}
@@ -733,11 +852,11 @@ function MyTimekeepingCard({
 
 // Shared cut-off footer used by both flavours — pay-period banner with
 // the days-remaining chip.
-function CutoffFooter({ cutoffDate, daysRemaining }: { cutoffDate: moment.Moment; daysRemaining: number }) {
+function CutoffFooter({ cutoffDate, daysRemaining, inline }: { cutoffDate: moment.Moment; daysRemaining: number; inline?: boolean }) {
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: theme.colors.secondary }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', ...(inline ? {} : { marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: theme.colors.secondary }) }}>
       <MaterialCommunityIcons name="calendar-clock" size={16} color={theme.colors.textDarker} style={{ marginRight: 6 }} />
-      <Text style={{ color: theme.colors.textDarker, fontSize: 12, flex: 1 }}>
+      <Text style={{ color: theme.colors.textDarker, fontSize: 12, ...(inline ? { marginRight: 8 } : { flex: 1 }) }}>
         Cut-off {cutoffDate.format('ddd, MMM D')}
       </Text>
       <Chip compact
