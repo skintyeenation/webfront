@@ -7,7 +7,8 @@ import { PageContainer, PageContent, NoContent } from 'skintyee/components/layou
 import { apiFactory } from 'skintyee/store/apis';
 import { DeviceDetailDto } from 'skintyee/services/api/ApiService';
 import { theme } from 'skintyee/styles';
-import { osIcon, TRUST_LABEL } from 'skintyee/components/pages/Devices';
+import { deviceIcon, complianceColor, TRUST_LABEL } from 'skintyee/components/pages/Devices';
+import { osDisplay, isServer, complianceState, COMPLIANCE_UI } from 'skintyee/components/pages/device-os';
 
 // ----------------------------------------------------------------------------
 // DeviceDetail — one Entra device: its properties + the access list (who can
@@ -63,23 +64,35 @@ export default function DeviceDetail({ route }: any) {
         <Card style={{ backgroundColor: theme.colors.darkDefault }}>
           <Card.Content>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <List.Icon icon={osIcon(device.operatingSystem)} color={theme.colors.primary} />
+              <List.Icon
+                icon={deviceIcon(device.operatingSystem, device.osVersion)}
+                color={isServer(device.operatingSystem, device.osVersion) ? theme.colors.accent : theme.colors.primary}
+              />
               <View style={{ flex: 1, marginLeft: 4 }}>
                 <Text style={{ color: theme.colors.text, fontSize: 18 }}>{device.displayName}</Text>
                 <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>
-                  {device.operatingSystem} {device.osVersion}
+                  {osDisplay(device.operatingSystem, device.osVersion)}
                 </Text>
               </View>
-              <Chip
-                compact
-                icon={device.isCompliant ? 'shield-check' : 'shield-alert'}
-                style={{ backgroundColor: device.isCompliant ? theme.colors.success : theme.colors.error }}
-                textStyle={{ color: '#000', fontSize: 10 }}
-              >
-                {device.isCompliant ? 'Compliant' : 'Non-compliant'}
-              </Chip>
+              {(() => {
+                const cs = complianceState(device.isCompliant, device.isManaged);
+                const ui = COMPLIANCE_UI[cs];
+                return (
+                  <Chip
+                    compact
+                    icon={ui.icon}
+                    style={{ backgroundColor: complianceColor(cs) }}
+                    textStyle={{ color: '#000', fontSize: 10 }}
+                  >
+                    {ui.label}
+                  </Chip>
+                );
+              })()}
             </View>
             <Divider style={{ marginVertical: 8 }} />
+            {isServer(device.operatingSystem, device.osVersion) ? (
+              <Row label="Device type" value="Windows Server" />
+            ) : null}
             <Row label="Join type" value={TRUST_LABEL[device.trustType]} />
             <Row label="Managed (Intune)" value={device.isManaged ? 'Yes' : 'No'} />
             <Row label="Enabled" value={device.enabled ? 'Yes' : 'No — cannot sign in'} />

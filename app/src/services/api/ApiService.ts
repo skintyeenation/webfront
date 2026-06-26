@@ -582,7 +582,9 @@ export interface DeviceDto {
   operatingSystem: string;
   osVersion: string;
   trustType: DeviceTrustType;
-  isCompliant: boolean;
+  /** Microsoft Graph compliance. null when no Intune policy applies (Skin Tyee
+   * has no Intune per ADR-16) — renders as "Not evaluated", not "Non-compliant". */
+  isCompliant: boolean | null;
   isManaged: boolean;
   /** accountEnabled — a disabled device can't authenticate. */
   enabled: boolean;
@@ -590,9 +592,8 @@ export interface DeviceDto {
   registrationDateTime: string;          // ISO 8601
   /** Count of registered owners + users — shown on the list row. */
   userCount: number;
-}
-
-export interface DeviceDetailDto extends DeviceDto {
   /** Registered owners + users — who can access this device. */
   users: DeviceUserDto[];
 }
+
+export interface DeviceDetailDto extends DeviceDto {}

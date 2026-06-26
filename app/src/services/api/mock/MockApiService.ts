@@ -256,7 +256,7 @@ export const mockApiService: ApiService = {
   // render realistically against the mock. userCount is derived from the
   // embedded users; `get` returns the full detail (incl. the access list).
   devices: {
-    list: () => delay(fixtures.devices.map(({ users, ...d }) => ({ ...d, userCount: users.length }))),
+    list: () => delay(fixtures.devices.map((d) => ({ ...d, userCount: d.users.length }))),
     get: (id: string) => {
       const d = fixtures.devices.find((x) => x.id === id);
       if (!d) throw new Error(`Unknown device: ${id}`);
