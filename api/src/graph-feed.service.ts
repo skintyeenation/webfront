@@ -1388,7 +1388,12 @@ export class GraphFeedService {
       operatingSystem: d.operatingSystem ?? 'Unknown',
       osVersion: d.operatingSystemVersion ?? '',
       trustType: this.mapTrust(d.trustType),
-      isCompliant: d.isCompliant === true,
+      // Preserve Graph's tri-state: true = passed policy, false = evaluated &
+      // failed, null = no Intune policy evaluated this device. Collapsing null
+      // into false would mis-paint an unevaluated (managed-but-no-policy) device
+      // as "Non-compliant" red — see device-os.ts complianceState().
+      isCompliant:
+        d.isCompliant === true ? true : d.isCompliant === false ? false : null,
       isManaged: d.isManaged === true,
       enabled: d.accountEnabled !== false,
       approximateLastSignInDateTime:
@@ -1397,29 +1402,154 @@ export class GraphFeedService {
     };
   }
 
-  async listDevices(): Promise<any[]> {
-    // Two list queries (one $expand each), merged by device id — keeps it at a
-    // constant 2 Graph calls regardless of device count.
+  // A single physical machine can own MORE THAN ONE Entra device object. The
+  // classic case: a laptop that was Entra-*registered* (Workplace) and later
+  // Hybrid-joined. Hybrid Entra Join never converts the old object in place —
+  // it creates a brand-new object for the Hybrid join, leaving the stale
+  // Workplace one behind. Graph returns both, so a raw list shows the same
+  // computer twice. We consolidate by computer NAME into one logical device:
+  // strongest join type wins, most-recent sign-in is canonical, registered
+  // users are unioned. The merged record carries `memberIds` (every underlying
+  // object, so getDevice resolves a tap on any of them) and `registrationCount`
+  // (so the UI can flag machines with stale duplicate registrations to clean up).
+  private readonly trustRank: Record<'AzureAd' | 'Hybrid' | 'Workplace', number> = {
+    Hybrid: 3,
+    AzureAd: 2,
+    Workplace: 1,
+  };
+
+  private mergeDeviceGroup(group: any[]) {
+    // Newest sign-in first → the newest object is canonical for identity fields
+    // (id, OS version) since it reflects the live registration.
+    const sorted = [...group].sort((a, b) =>
+      b.approximateLastSignInDateTime.localeCompare(a.approximateLastSignInDateTime),
+    );
+    const primary = sorted[0];
+
+    // Strongest join type wins: a machine that's both Hybrid-joined and
+    // Workplace-registered IS Hybrid-joined.
+    const trustType = sorted.reduce(
+      (best, d) => (this.trustRank[d.trustType] > this.trustRank[best] ? d.trustType : best),
+      'Workplace' as 'AzureAd' | 'Hybrid' | 'Workplace',
+    );
+
+    // Union registered users across every object; owner beats user on conflict.
+    const userMap = new Map<string, any>();
+    for (const d of sorted) {
+      for (const u of d.users ?? []) {
+        const existing = userMap.get(u.id);
+        if (!existing || (u.accessType === 'owner' && existing.accessType !== 'owner')) {
+          userMap.set(u.id, u);
+        }
+      }
+    }
+    const users = [...userMap.values()];
+
+    // First time we ever saw the machine = earliest registration across objects.
+    const registrationDateTime =
+      sorted
+        .map((d) => d.registrationDateTime)
+        .filter(Boolean)
+        .sort()[0] ?? primary.registrationDateTime;
+
+    // Compliance across duplicate registrations, preserving the tri-state:
+    // a genuine pass (true) wins; else a genuine failure (false) wins over an
+    // unevaluated null; only all-null stays null ("No Intune policy").
+    const isCompliant = sorted.some((d) => d.isCompliant === true)
+      ? true
+      : sorted.some((d) => d.isCompliant === false)
+        ? false
+        : null;
+
+    // Per-object breakdown for the detail view: the canonical (newest) object is
+    // primary; the rest are stale duplicates an admin can delete in Entra.
+    const registrations = sorted.map((d) => ({
+      id: d.id,
+      trustType: d.trustType,
+      isManaged: d.isManaged,
+      isCompliant: d.isCompliant,
+      enabled: d.enabled,
+      approximateLastSignInDateTime: d.approximateLastSignInDateTime,
+      registrationDateTime: d.registrationDateTime,
+      userCount: (d.users ?? []).length,
+      isPrimary: d.id === primary.id,
+    }));
+
+    return {
+      id: primary.id,
+      memberIds: sorted.map((d) => d.id),
+      displayName: primary.displayName,
+      operatingSystem: primary.operatingSystem,
+      osVersion: primary.osVersion,
+      trustType,
+      isCompliant,
+      isManaged: sorted.some((d) => d.isManaged),
+      enabled: sorted.some((d) => d.enabled), // a live registration keeps it active
+      approximateLastSignInDateTime: primary.approximateLastSignInDateTime, // = max
+      registrationDateTime,
+      users,
+      userCount: users.length,
+      registrationCount: sorted.length,
+      registrations,
+    };
+  }
+
+  // Two list queries (one $expand each), merged per object by id, then
+  // consolidated per physical machine by name. Constant 2 Graph calls
+  // regardless of device count.
+  private async loadLogicalDevices() {
     const [byOwners, byUsers] = await Promise.all([
       this.graphPaged<any>('/devices?$expand=registeredOwners&$top=100'),
       this.graphPaged<any>('/devices?$expand=registeredUsers&$top=100'),
     ]);
     const usersById = new Map<string, any[]>(byUsers.map((d) => [d.id, d.registeredUsers ?? []]));
-    return byOwners
-      .map((d) => {
-        const users = this.mapUsers(d.registeredOwners ?? [], usersById.get(d.id) ?? []);
-        return { ...this.mapDeviceBase(d), userCount: users.length };
-      })
-      .sort((a, b) => b.approximateLastSignInDateTime.localeCompare(a.approximateLastSignInDateTime));
+    const perObject = byOwners.map((d) => ({
+      ...this.mapDeviceBase(d),
+      users: this.mapUsers(d.registeredOwners ?? [], usersById.get(d.id) ?? []),
+    }));
+
+    // Group by normalised computer name. Objects sharing a name are the same
+    // physical machine registered more than once. Unnamed devices never merge
+    // (keyed by id) so we don't collapse distinct machines onto a blank name.
+    const groups = new Map<string, any[]>();
+    for (const d of perObject) {
+      const key = (d.displayName ?? '').trim().toLowerCase() || `__id:${d.id}`;
+      const bucket = groups.get(key);
+      if (bucket) bucket.push(d);
+      else groups.set(key, [d]);
+    }
+
+    return Array.from(groups.values())
+      .map((g) => this.mergeDeviceGroup(g))
+      .sort((a, b) =>
+        b.approximateLastSignInDateTime.localeCompare(a.approximateLastSignInDateTime),
+      );
+  }
+
+  async listDevices(): Promise<any[]> {
+    const logical = await this.loadLogicalDevices();
+    // List rows don't carry the full user objects or per-registration breakdown
+    // (the screen fetches detail on demand); drop them + memberIds, keep
+    // userCount + registrationCount.
+    return logical.map(({ users, memberIds, registrations, ...rest }) => rest);
   }
 
   async getDevice(id: string): Promise<any> {
+    const logical = await this.loadLogicalDevices();
+    const found =
+      logical.find((d) => d.memberIds.includes(id)) ?? logical.find((d) => d.id === id);
+    if (found) {
+      const { memberIds, ...rest } = found;
+      return rest; // includes users + userCount + registrationCount
+    }
+    // Unknown id (e.g. paged out, or deleted between calls) — fall back to a
+    // direct fetch so the error/shape matches Graph's.
     const safeId = encodeURIComponent(id);
     const [dOwners, dUsers] = await Promise.all([
       this.graph<any>(`/devices/${safeId}?$expand=registeredOwners`),
       this.graph<any>(`/devices/${safeId}?$expand=registeredUsers`),
     ]);
     const users = this.mapUsers(dOwners.registeredOwners ?? [], dUsers.registeredUsers ?? []);
-    return { ...this.mapDeviceBase(dOwners), users, userCount: users.length };
+    return { ...this.mapDeviceBase(dOwners), users, userCount: users.length, registrationCount: 1 };
   }
 }
