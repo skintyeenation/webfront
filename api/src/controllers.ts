@@ -1419,7 +1419,11 @@ export class TimeKeepingController {
   // instead of a broken form).
   @Get('me/eligible') @Roles('member', 'staff', 'admin')
   async meEligible(@Req() req: any): Promise<{ eligible: boolean; upn: string }> {
-    const upn = callerUpn(req);
+    // Don't 500 when there's no x-upn (e.g. the dev role-switcher spoofs a role
+    // without a real Entra identity) — report not-eligible gracefully. The app
+    // surfaces the worker experience for spoofed roles client-side.
+    const upn = ((req?.headers?.['x-upn'] as string) || '').toLowerCase();
+    if (!upn) return { upn: '', eligible: false };
     return { upn, eligible: await this.people.isWorkerEligible(upn) };
   }
 
