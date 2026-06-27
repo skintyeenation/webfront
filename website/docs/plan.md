@@ -98,6 +98,13 @@ show more once a user signs in (Entra). Rules:
 - **Meetings:** show `public-event` / `band-meeting`; **never** `closed-session`
   to anonymous visitors.
 - **Notifications/news:** show public categories; gate sensitive ones to signed-in.
+- **Band management & roles:** the public page is the **governance / administration
+  roster** — Chief & Council plus band management / department leads and their
+  **roles** (name · title · role · photo only). This is public-appropriate. But
+  the underlying `BandMember` model is **sensitive** (Entra objectIds, UPNs,
+  mailboxes, licences), so `api/` returns only the curated public fields to the
+  `public` role. The **full member directory** stays gated behind Entra sign-in
+  (app/internal). Never expose raw `BandMember` fields publicly.
 - The site calls the shared `ApiService` with the **`public` role** (the api/'s
   `x-role` / RolesGuard), so filtering happens **server-side**. `feed.get({ role })`
   already takes a role; **events/meetings need a public-visibility filter added in
@@ -123,6 +130,13 @@ show more once a user signs in (Entra). Rules:
 
 ### Content
 - `/` news list, `/posts/<slug>` post, `/<slug>` WP page — via WP REST (`web/lib/wp.ts`).
+
+### Band management & roles (`/governance`)
+Public governance/administration page — **Chief & Council** and **band management /
+department leads** with their **roles** (name · title · role · photo). Sourced from
+the shared `ApiService.directory` at the **`public` role** (curated public fields
+only — see §4); grouped by role (`Chief` / `Council` / management / department).
+The full member directory stays internal (signed-in / app only).
 
 ---
 
@@ -163,7 +177,9 @@ Consistent with the app theme and the Vaultwarden skin already shipped.
 2. **Content** — WP REST pages/news wired (done in scaffold); base theme + the
    shared category taxonomy registered in the fresh WP.
 3. **Community data** — home sections (notifications/events/meetings) via the
-   shared client, **public-role**; FullCalendar view. *(needs api/ public filter)*
+   shared client, **public-role**; FullCalendar view; **`/governance` band
+   management & roles** page. *(needs api/ public filters — events/meetings +
+   directory projection)*
 4. **Banner** — Swiper hero carousel (editable slides; source TBD — WP or a simple
    config).
 5. **Auth** — NextAuth + Entra; onboarding menu link + home CTA gated on sign-in.
@@ -177,6 +193,9 @@ Consistent with the app theme and the Vaultwarden skin already shipped.
 
 - **`api/` public-visibility filter** for events + meetings (so the `public` role
   returns only public items). `feed.get({ role })` already exists.
+- **`api/` curated public directory projection** — at the `public` role, `directory`
+  must return only governance/management roster fields (name/title/role/photo) and
+  drop Entra internals (objectId/UPN/mailboxes/licences). Powers `/governance`.
 - **Banner slide source** — WordPress (a "slides" CPT/ACF) vs a simple committed
   config. Decide in Phase 4.
 - **SharePoint onboarding URL** — placeholder until the SharePoint document
@@ -228,8 +247,9 @@ WP is the source/curator) and reusable Next.js components (frontend rendering).
 ### Frontend components (`website/web/components/`)
 
 `HeroCarousel` (Swiper) · `EventCard` · `NotificationItem` · `MeetingItem` ·
-`CommunityCalendar` (FullCalendar) · `OnboardingCta` (signed-in only) ·
-`SignInButton` (NextAuth/Entra). All typed against `@skintyee/models`.
+`CommunityCalendar` (FullCalendar) · `GovernanceRoster` + `RoleCard` (band
+management & roles) · `OnboardingCta` (signed-in only) · `SignInButton`
+(NextAuth/Entra). All typed against `@skintyee/models`.
 
 ---
 
