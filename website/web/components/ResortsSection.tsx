@@ -1,13 +1,13 @@
-// Skin Tyee Resorts — placeholder hotels with random BC-themed names + random
-// photos (Lorem Picsum, deterministic per seed). Swap for real listings/photos
-// later.
+// Skin Tyee Resorts — placeholder hotels. Names are BC-themed; photos are
+// topical placeholders (LoremFlickr, keyword-matched + locked per resort so each
+// shows the right scenery). Swap for real listings/photos later.
 const RESORTS = [
-  { name: 'Francois Lake Lodge', location: 'Francois Lake, BC', seed: 'francois-lake-lodge' },
-  { name: 'Nadina Mountain Resort', location: 'Houston, BC', seed: 'nadina-mountain-resort' },
-  { name: 'Ootsa Lake Chalet', location: 'Ootsa Lake, BC', seed: 'ootsa-lake-chalet' },
-  { name: 'Cheslatta Falls Inn', location: 'Grassy Plains, BC', seed: 'cheslatta-falls-inn' },
-  { name: 'Tahtsa Reach Retreat', location: 'Tweedsmuir, BC', seed: 'tahtsa-reach-retreat' },
-  { name: 'Babine Forest Lodge', location: 'Burns Lake, BC', seed: 'babine-forest-lodge' },
+  { name: 'Francois Lake Lodge', location: 'Francois Lake, BC', topic: 'lake', lock: 11 },
+  { name: 'Nadina Mountain Resort', location: 'Houston, BC', topic: 'mountain', lock: 22 },
+  { name: 'Ootsa Lake Chalet', location: 'Ootsa Lake, BC', topic: 'lake', lock: 33 },
+  { name: 'Cheslatta Falls Inn', location: 'Grassy Plains, BC', topic: 'waterfall', lock: 44 },
+  { name: 'Tahtsa Reach Retreat', location: 'Tweedsmuir, BC', topic: 'lake', lock: 55 },
+  { name: 'Babine Forest Lodge', location: 'Burns Lake, BC', topic: 'forest', lock: 66 },
 ];
 
 export function ResortsSection() {
@@ -17,10 +17,10 @@ export function ResortsSection() {
       <p className="mt-1 text-ink/70">Community hospitality across northern British Columbia. Stay at Skin Tyee Resorts!</p>
       <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {RESORTS.map((r) => (
-          <div key={r.seed} className="overflow-hidden rounded-xl border border-[var(--line)] transition hover:shadow-md">
+          <div key={r.name} className="overflow-hidden rounded-xl border border-[var(--line)] transition hover:shadow-md">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={`https://picsum.photos/seed/${r.seed}/600/400`}
+              src={`https://loremflickr.com/600/400/${r.topic}?lock=${r.lock}`}
               alt={r.name}
               width={600}
               height={400}
