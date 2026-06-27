@@ -124,6 +124,23 @@ automatically once they resolve.
     --hostname vault.skintyee.ca --environment skintyee-prod-env --validation-method CNAME
   ```
 
+## Provisioning notes (status + caveats)
+
+- **Live:** the `vaultwarden` Container App is created and running
+  (`RunningAtMaxScale`, 1 replica), vault data in the `vaultwarden` Postgres db,
+  secrets set. Default URL works; `vault.skintyee.ca` cert binding in progress.
+- **`az containerapp create --yaml` is broken** in the containerapp extension
+  **1.3.0b4** (`400 … could not be converted to System.Boolean`). The script +
+  this guide create the app with **flags** instead; [`containerapp.yaml`](containerapp.yaml)
+  is kept as the reference spec for when the extension is back on a stable release.
+- **`/data` Azure Files volume — one-time TODO:** flags can't attach a volume, so
+  add it once via **Portal → Container App `vaultwarden` → Volumes →** AzureFile
+  storage **`vwdata`** mounted at **`/data`** (or
+  `az containerapp update --yaml containerapp.yaml` on a stable extension). Until
+  then vault entries are safe (Postgres), but the **RSA JWT key + attachments +
+  Sends** sit on ephemeral disk — a revision roll logs everyone out and drops
+  attachments. **Add the volume before real use.**
+
 ## Deploy / update
 
 [`azure-pipelines/Deployments/deploy-vaultwarden.yml`](../azure-pipelines/Deployments/deploy-vaultwarden.yml)
@@ -145,12 +162,29 @@ trigger (it's infra, and you choose when to bump the image).
 - **`/data` (Azure Files)**: enable Azure Files snapshots/soft-delete; the RSA
   key + attachments live here. Periodically copy to Blob for off-share safety.
 
-## Cost
+## Cost — why Vaultwarden over 1Password (no per-user fees)
 
-- Vaultwarden: **\$0** (open source, unlimited users).
-- Container Apps consumption (min-1 warm replica, tiny CPU): **a few \$/mo**.
-- Postgres: **\$0** (reuse `skintyee-prod-pg`). Azure Files (5 GB): **~\$0.30/mo**.
-- DNS + TLS: **\$0**.
+The deciding factor: **Vaultwarden has no per-user subscription** — it's
+open-source, self-hosted, unlimited users for **\$0 licensing**. 1Password (and
+Bitwarden's hosted tiers) bill **per user per month, forever**, which for an NGO
+adding staff over time only grows.
+
+| | Licensing | ~15 staff (monthly) | ~15 staff (annual) |
+|---|---|--:|--:|
+| **Vaultwarden (self-hosted)** | **\$0** (unlimited users) | **~\$3–5** hosting only | **~\$40–60** |
+| 1Password Business | \$7.99 / user / mo | ~\$120 | ~\$1,440 |
+| 1Password Teams (≤10 users) | \$19.95 / mo flat (caps at 10) | \$19.95 | \$240 |
+| Bitwarden Teams (hosted) | \$4 / user / mo | ~\$60 | ~\$720 |
+
+- The only Vaultwarden cost is **hosting**: Container Apps consumption (min-1 warm
+  replica, tiny CPU) **~\$3–5/mo**; **Postgres \$0** (reuse `skintyee-prod-pg`);
+  Azure Files (5 GB) **~\$0.30/mo**; DNS + TLS **\$0**.
+- **Same clients, no lock-in:** staff use the *official Bitwarden apps* either way,
+  so this isn't a downgrade — it's the same UX without the per-seat bill.
+- **Trade-off:** we run the server (vs 1Password's managed SaaS + support). For a
+  small internal tool on infra we already operate, the recurring savings win.
+- Even with 1Password's nonprofit discount, it stays a **recurring per-user** cost
+  that scales with headcount; Vaultwarden stays flat at ~\$0 regardless of users.
 
 ## Deferred
 

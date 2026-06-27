@@ -99,14 +99,25 @@ run az containerapp env storage set -g "$RG" -n "$ENV_NAME" --storage-name "$ENV
   --azure-file-share-name "$FILE_SHARE" --access-mode ReadWrite --output none
 ok "env storage ready"
 
-# ---- 3. container app (from yaml) -----------------------------------------
+# ---- 3. container app (flags-based create) ---------------------------------
+# NOTE: `az containerapp create --yaml` is broken in the containerapp extension
+# 1.3.0b4 (400 "JSON value could not be converted to System.Boolean"), so we
+# create with flags. The /data Azure Files volume CANNOT be set via flags and is
+# added once out-of-band: Portal -> Container App -> Volumes -> AzureFile
+# 'vwdata' mounted at /data (or `az containerapp update --yaml containerapp.yaml`
+# once the extension is on a stable version). See README "Provisioning notes".
 say "ensuring Container App '$APP'"
 if az containerapp show -g "$RG" -n "$APP" >/dev/null 2>&1; then
   ok "app '$APP' already exists (deploy pipeline will roll it)"
 else
   run az containerapp create -g "$RG" -n "$APP" --environment "$ENV_NAME" \
-    --yaml "$SCRIPT_DIR/containerapp.yaml" --output none
-  ok "app '$APP' created"
+    --image "$IMAGE" --target-port 80 --ingress external \
+    --min-replicas 1 --max-replicas 1 --cpu 0.5 --memory 1.0Gi \
+    --secrets database-url=placeholder admin-token=placeholder \
+    --env-vars "DOMAIN=https://${DOMAIN}" SIGNUPS_ALLOWED=false ROCKET_PORT=80 \
+               DATA_FOLDER=/data DATABASE_URL=secretref:database-url ADMIN_TOKEN=secretref:admin-token \
+    --output none
+  ok "app '$APP' created -- add the /data volume once (Portal/yaml; see README)"
 fi
 
 # ---- 4. secrets ------------------------------------------------------------
@@ -142,6 +153,11 @@ ok "secrets set"
 if [ "$DRY_RUN" = 0 ]; then
   printf '\033[33m[save this]\033[0m ADMIN_TOKEN (for /admin + the deploy variable group VW_ADMIN_TOKEN):\n  %s\n' "$VW_ADMIN_TOKEN"
 fi
+
+# Container Apps only read secrets on a NEW revision, so roll one now that the
+# real database-url/admin-token are set (the create used empty placeholders).
+say "rolling a revision so the new secrets take effect"
+run az containerapp update -g "$RG" -n "$APP" --image "$IMAGE" --output none
 
 # ---- 5. custom domain ------------------------------------------------------
 if [ "$SKIP_DOMAIN" = 1 ]; then

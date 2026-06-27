@@ -673,8 +673,13 @@ Decision record for the Skin Tyee app (`@skintyee/app`, in `app/`). Lives in the
   unavoidable shared secrets.
 
 - **Why the change from 1Password Teams → Vaultwarden:**
-  - **Cost:** \$0 licensing (self-hosted, unlimited users) vs 1Password Teams'
-    recurring per-user fee — Skin Tyee is an NGO.
+  - **Cost — the deciding factor:** **\$0 licensing, unlimited users**, vs a
+    **recurring per-user fee that grows with headcount**. For ~15 staff:
+    1Password Business (\$7.99/user/mo) ~= **\$1,440/yr**; Bitwarden Teams
+    (\$4/user/mo) ~= **\$720/yr**; Vaultwarden self-hosted ~= **\$40-60/yr**
+    (hosting only). Same official Bitwarden clients either way, so it's the same
+    UX without the per-seat bill; even 1Password's nonprofit discount stays a
+    per-user recurring cost. Skin Tyee is an NGO — flat \$0 wins.
   - **Data control / residency:** the vault lives in the band's own Azure
     (canadacentral), not a third-party SaaS — PIPEDA-friendly.
   - **Zero-knowledge preserved:** Bitwarden clients encrypt **client-side**;
