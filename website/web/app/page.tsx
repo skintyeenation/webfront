@@ -9,6 +9,7 @@ import { NotificationItem, EventCard, MeetingItem } from '@/components/cards';
 import { OnboardingCta } from '@/components/OnboardingCta';
 import { AppDownloadCta } from '@/components/AppDownloadCta';
 import { ProgramsSection } from '@/components/ProgramsSection';
+import { PageHero } from '@/components/PageHero';
 
 export const revalidate = 60;
 
@@ -44,8 +45,13 @@ export default async function Home() {
   ];
 
   return (
-    <div className="space-y-10">
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
+    <>
+      <PageHero
+        title="Skin Tyee Nation"
+        subtitle="A proud Wet'suwet'en community on the shores of Francois Lake in northern British Columbia. For countless generations we have stewarded these lands and waters and carried forward the Witsuwit'en language, laws, and way of life — honouring our ancestors and building for the generations still to come."
+      />
+      <div className="space-y-10">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
         {/* LEFT — hero + community calendar (like the app's calendar view) */}
         <div className="min-w-0 space-y-8">
           <HeroCarousel slides={slides} />
@@ -98,6 +104,7 @@ export default async function Home() {
       <div className="py-12">
         <AppDownloadCta />
       </div>
-    </div>
+      </div>
+    </>
   );
 }
