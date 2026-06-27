@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Building2, LayoutGrid, Landmark, Coins, Briefcase, ClipboardCheck, type LucideIcon } from 'lucide-react';
 import { SignInButton } from './SignInButton';
@@ -25,7 +25,15 @@ export function HeaderNav({
   onboardingUrl: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [headerH, setHeaderH] = useState(0);
   const close = () => setOpen(false);
+
+  // Measure the real header so the open menu starts exactly below it — the
+  // header's own bottom border is the separator, keeping open/closed identical.
+  useEffect(() => {
+    const el = document.querySelector('.site-header') as HTMLElement | null;
+    if (el) setHeaderH(el.getBoundingClientRect().height);
+  }, [open]);
 
   const links = (
     <>
@@ -60,10 +68,11 @@ export function HeaderNav({
       </button>
 
       {open && (
-        <nav className="fixed inset-0 z-40 flex flex-col bg-white md:hidden">
-          {/* header-height zone with the same bottom border as the site header */}
-          <div className="h-[74px] shrink-0 border-b border-[var(--line)]" />
-          <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-6 py-8 text-xl">{links}</div>
+        <nav
+          style={{ top: headerH }}
+          className="fixed inset-x-0 bottom-0 z-40 flex flex-col gap-6 overflow-y-auto bg-white px-6 py-8 text-xl md:hidden"
+        >
+          {links}
         </nav>
       )}
     </>
