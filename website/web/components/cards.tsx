@@ -12,12 +12,15 @@ const PROGRAM_ICONS: Record<string, LucideIcon> = {
   health: HeartPulse,
 };
 
-// Placeholder background imagery per program (POC) — a dark overlay keeps text legible.
+// Background imagery per program (POC) — a dark overlay keeps text legible.
+// Curated, visually-verified Unsplash photos (stable); the last two are still
+// topical placeholders pending art direction.
+const U = (id: string) => `https://images.unsplash.com/photo-${id}?w=640&h=420&fit=crop&q=70`;
 const PROGRAM_IMAGES: Record<string, string> = {
-  housing: 'https://loremflickr.com/640/420/cabin,house?lock=21',
-  education: 'https://loremflickr.com/640/420/classroom,books?lock=22',
-  'lands-economic-development': 'https://loremflickr.com/640/420/forest,river?lock=23',
-  social: 'https://loremflickr.com/640/420/volunteer,community?lock=24',
+  housing: U('1728344430621-f6b58ef4a108'), // modular home in a field
+  education: U('1589206946274-929e4da3996b'), // Indigenous woman teaching a child
+  'lands-economic-development': U('1634672652995-ee7525bce595'), // lumber mill
+  social: U('1614144477821-9daf217ae100'), // family by the lake
   'child-family-services': 'https://loremflickr.com/640/420/family,children?lock=25',
   health: 'https://loremflickr.com/640/420/wellness,forest?lock=26',
 };
