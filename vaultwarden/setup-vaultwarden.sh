@@ -37,7 +37,10 @@ PG_HOST=${PG_HOST:-${PG_SERVER}.postgres.database.azure.com}
 PG_PORT=${PG_PORT:-5432}
 PG_SSL=${PG_SSL:-require}
 PG_USER=${PG_USER:-pgadmin}
-PG_PASSWORD=${PG_PASSWORD:-}                 # REQUIRED (server admin / db user)
+PG_PASSWORD=${PG_PASSWORD:-}                 # optional: if unset, the pg creds are
+                                            # reused from API_APP's database-url
+                                            # secret (already in Azure) - no extra env.
+API_APP=${API_APP:-api-prod}
 
 STORAGE_ACCOUNT=${STORAGE_ACCOUNT:-skintyeevwdata}
 FILE_SHARE=${FILE_SHARE:-vaultwarden-data}
@@ -67,7 +70,6 @@ while [ $# -gt 0 ]; do
 done
 
 command -v az >/dev/null || die "az CLI not found"
-[ -n "$PG_PASSWORD" ] || die "PG_PASSWORD is required (server admin / vaultwarden db user)"
 SUB=$(az account show --query id -o tsv 2>/dev/null) || die "not logged in (az login)"
 say "subscription $SUB / rg $RG / app $APP"
 
@@ -118,7 +120,21 @@ if [ -z "$VW_ADMIN_TOKEN" ]; then
     warn "using a random PLAIN admin token (no docker to argon2-hash it). Rotate to a PHC hash later for the /admin panel."
   fi
 fi
-DATABASE_URL="postgresql://${PG_USER}:${PG_PASSWORD}@${PG_HOST}:${PG_PORT}/${PG_DB}?sslmode=${PG_SSL}"
+# Reuse the Postgres creds already in Azure: read API_APP's database-url secret
+# and swap the db name to vaultwarden. No separate PG password env needed.
+if [ -n "$PG_PASSWORD" ]; then
+  DATABASE_URL="postgresql://${PG_USER}:${PG_PASSWORD}@${PG_HOST}:${PG_PORT}/${PG_DB}?sslmode=${PG_SSL}"
+else
+  say "deriving Postgres creds from $API_APP's database-url secret (Azure)"
+  API_DBURL=$(az containerapp secret show -g "$RG" -n "$API_APP" --secret-name database-url --query value -o tsv 2>/dev/null || echo "")
+  if [ -z "$API_DBURL" ]; then
+    [ "$DRY_RUN" = 1 ] && API_DBURL="postgresql://USER:PASS@${PG_HOST}:${PG_PORT}/api?sslmode=${PG_SSL}" \
+      || die "couldn't read $API_APP database-url secret (need Contributor on it). Pass PG_PASSWORD instead."
+  fi
+  # Keep user:pass@host:port, swap the db path to vaultwarden, normalize to sslmode only.
+  PREFIX=$(printf '%s' "$API_DBURL" | sed -E 's#(postgresql://[^/]+/).*#\1#')
+  DATABASE_URL="${PREFIX}${PG_DB}?sslmode=${PG_SSL}"
+fi
 say "setting secrets (database-url, admin-token)"
 run az containerapp secret set -g "$RG" -n "$APP" \
   --secrets "database-url='$DATABASE_URL'" "admin-token='$VW_ADMIN_TOKEN'" --output none
