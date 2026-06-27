@@ -19,9 +19,15 @@ to operate the organization's website (information, news, leadership, programs).
 
 ## Architecture (decision: managed database)
 
-WordPress runs as a Docker container on an Azure VM; the database is a **managed
-Azure Database for MySQL – Flexible Server**. See [`../CLAUDE.md`](../CLAUDE.md)
-and `website/docker-compose.prod.yml`.
+The site is **headless**: WordPress is the content **CMS** (`cms.skintyee.ca`) and
+a **Next.js** frontend (`skintyee.ca`) renders it. Both run as Docker containers on
+an Azure VM. WordPress's database is a **managed Azure Database for MySQL –
+Flexible Server** — **WordPress requires MySQL and cannot use Postgres**, so it
+needs its own server. (The separate `api/` service uses the existing managed
+**PostgreSQL** server `skintyee-prod-pg`, billed under the API — not here.) The
+headless rebuild added the Next.js frontend but **did not change the database
+cost**: the same managed MySQL is used. See [`../CLAUDE.md`](../CLAUDE.md) and
+`website/docker-compose.prod.yml`.
 
 ### Why the managed database was chosen
 
@@ -47,7 +53,7 @@ All prices approximate, USD, Canada Central, as of 2026-05-21. Source:
 
 | Line item | Spec | Monthly | Annual (×12) |
 |---|---|--:|--:|
-| App VM (WordPress in Docker) | B1ms · 1 vCPU / 2 GB | $16 | $192 |
+| App VM (WordPress CMS + Next.js, Docker) | B1ms · 1 vCPU / 2 GB | $16 | $192 |
 | Managed OS disk | 64 GB Premium SSD | $10 | $120 |
 | Azure DB for MySQL – Flexible Server | Burstable B1ms · 32 GB + backups | $25 | $300 |
 | Blob storage (wp-content backups) | a few GB | $2 | $24 |
