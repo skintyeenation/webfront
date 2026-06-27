@@ -16,3 +16,14 @@ export const SKIN_TYEE_TERRITORY: [number, number][] = [
 
 export const TERRITORY_CENTER: [number, number] = [53.85, -125.6];
 export const TERRITORY_ZOOM = 7;
+
+// Custom pins on the territory map. Placeholder locations — adjust lat/lng/label.
+export interface TerritoryMarker {
+  lat: number;
+  lng: number;
+  label: string;
+}
+export const TERRITORY_MARKERS: TerritoryMarker[] = [
+  { lat: 53.93, lng: -125.95, label: 'Skin Tyee Band Office' },
+  { lat: 54.04, lng: -125.6, label: 'Francois Lake' },
+];
