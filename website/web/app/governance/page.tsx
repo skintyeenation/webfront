@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { publicApi, safe } from '@/lib/api';
 import { RoleCard } from '@/components/cards';
 import { GovernanceOrgChart } from '@/components/GovernanceOrgChart';
+import { JobsCta } from '@/components/JobsCta';
 
 export const revalidate = 60;
 export const metadata: Metadata = { title: 'Governance' };
@@ -59,6 +60,10 @@ export default async function GovernancePage() {
         ) : (
           <p className="text-ink/60">Roster coming soon.</p>
         )}
+      </div>
+
+      <div className="mt-10">
+        <JobsCta />
       </div>
     </>
   );
