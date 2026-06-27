@@ -82,10 +82,47 @@ After it runs:
    invite staff (open signups are off).
 3. All future image bumps / secret syncs: run the **`deploy-vaultwarden`** pipeline.
 
+> **Admin token:** with Docker present locally the script argon2-hashes the token
+> (recommended); without Docker it falls back to a random **plain** token (works,
+> but rotate to a PHC hash later — `docker run --rm -it vaultwarden/server /vaultwarden hash`
+> — and store it as `VW_ADMIN_TOKEN`).
+>
+> **Verified (dry-run):** `pnpm vaultwarden:setup:dry` against the live
+> subscription confirmed the pg creds derive cleanly from `api-prod`'s
+> `database-url` secret → `postgresql://pgadmin:***@skintyee-prod-pg…/vaultwarden?sslmode=require`,
+> with **no extra env**.
+
 Key env (set in `containerapp.yaml`): `DOMAIN=https://vault.skintyee.ca`,
 `SIGNUPS_ALLOWED=false` (invite-only), `ROCKET_PORT=80`, `DATA_FOLDER=/data`,
 `DATABASE_URL=secretref:database-url`, `ADMIN_TOKEN=secretref:admin-token` (add
 SMTP via Mailgun/Graph later for invite emails).
+
+## DNS records (`vault.skintyee.ca`)
+
+skintyee.ca's DNS is **not** in this Azure subscription, so add these two records
+manually at the DNS host. Both are required; the managed TLS cert issues
+automatically once they resolve.
+
+| Type  | Host / Name   | Value |
+|-------|---------------|-------|
+| CNAME | `vault`       | `vaultwarden.mangoglacier-ce3e1265.canadacentral.azurecontainerapps.io` |
+| TXT   | `asuid.vault` | `6EE1F234E5BE241ECD520220C5A9918C632BFB7761B2F924DB1CF4C4E3ABA735` |
+
+- **CNAME** target = the Container App FQDN (`<app>.<env-default-domain>`). The
+  env default domain is `mangoglacier-ce3e1265.canadacentral.azurecontainerapps.io`.
+- **TXT** value = the Container Apps **`customDomainVerificationId`**, which is
+  **subscription-wide** — the *same* ID `api.skintyee.ca` uses, so it's stable
+  and valid even before the `vaultwarden` app exists. Re-confirm any time:
+  ```bash
+  az containerapp show -g skintyee-prod-rg -n api-prod \
+    --query properties.customDomainVerificationId -o tsv
+  ```
+- After the records resolve, the bind happens automatically on the next
+  `pnpm vaultwarden:setup`, or run it directly:
+  ```bash
+  az containerapp hostname bind -g skintyee-prod-rg -n vaultwarden \
+    --hostname vault.skintyee.ca --environment skintyee-prod-env --validation-method CNAME
+  ```
 
 ## Deploy / update
 
