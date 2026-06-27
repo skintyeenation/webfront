@@ -27,9 +27,16 @@ export function PageHero({ title, subtitle }: { title: string; subtitle?: string
     <section className={`page-hero${dismissed ? ' page-hero--dismissed' : ''}`} aria-hidden={dismissed}>
       <div className="page-hero-inner">
         <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
-          <div className="max-w-2xl">
+          <div className="max-w-2xl text-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/skintyee-logo.png" alt="Skin Tyee Nation" width={160} height={142} className="mb-5 mx-auto block h-32 w-auto drop-shadow-md md:h-44" />
+            <img
+              src="/skintyee-logo.png"
+              alt="Skin Tyee Nation"
+              width={160}
+              height={142}
+              className="mb-5 mx-auto block h-32 w-auto md:h-44"
+              style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.85)) drop-shadow(0 0 5px rgba(0,0,0,0.6))' }}
+            />
             <h1 className="text-4xl font-bold text-white drop-shadow-md md:text-6xl">{title}</h1>
             {subtitle && <p className="mt-4 text-lg text-white/90 drop-shadow">{subtitle}</p>}
           </div>
