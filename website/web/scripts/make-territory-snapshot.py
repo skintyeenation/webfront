@@ -96,22 +96,28 @@ def main():
         font = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial Bold.ttf", 40)
     except Exception:
         font = ImageFont.load_default()
-    def teardrop(cx, tipy, r, color):  # classic map-pin shape: round head + point
-        hcy = tipy - int(2.3 * r)
-        draw.ellipse([cx - r, hcy - r, cx + r, hcy + r], fill=color)
-        draw.polygon([(cx - int(r * 0.8), hcy + int(r * 0.5)),
-                      (cx + int(r * 0.8), hcy + int(r * 0.5)), (cx, tipy)], fill=color)
+    def gpin(cx, tipy, r, fill, hole=None):  # google-style pin: head + tangent point
+        d = int(2.4 * r)
+        hcy = tipy - d
+        a = math.acos(max(-1.0, min(1.0, r / d)))      # tangent angle (smooth teardrop)
+        tl = (cx - r * math.sin(a), hcy + r * math.cos(a))
+        tr = (cx + r * math.sin(a), hcy + r * math.cos(a))
+        draw.polygon([tl, tr, (cx, tipy)], fill=fill)
+        draw.ellipse([cx - r, hcy - r, cx + r, hcy + r], fill=fill)
+        if hole:
+            ir = int(r * 0.42)
+            draw.ellipse([cx - ir, hcy - ir, cx + ir, hcy + ir], fill=hole)
 
     for lat, lon, label in MARKERS:
         mx, my = (int(round(c)) for c in px(lat, lon))
-        if label == "Skin Tyee Band Office":  # cool blue + white location pin
-            R = 26
-            teardrop(mx, my, R + 5, (255, 255, 255, 255))   # white halo / border
-            teardrop(mx, my, R, (20, 102, 200, 255))        # blue body
-            hcy = my - int(2.3 * R)
-            ir = int(R * 0.42)
-            draw.ellipse([mx - ir, hcy - ir, mx + ir, hcy + ir], fill=(255, 255, 255, 255))  # white centre
-            draw.text((mx + R + 10, hcy - 22), label, font=font, fill=(255, 255, 255, 255),
+        if label == "Skin Tyee Band Office":  # custom Google-style blue/white pin
+            R = 34
+            draw.ellipse([mx - int(R * 0.85), my - int(R * 0.3), mx + int(R * 0.85), my + int(R * 0.16)],
+                         fill=(0, 0, 0, 95))                                  # ground shadow
+            gpin(mx, my, R + 4, (255, 255, 255, 255))                        # white border
+            gpin(mx, my, R, (20, 102, 200, 255), hole=(255, 255, 255, 255))  # blue pin + white hole
+            head_y = my - int(2.4 * R)
+            draw.text((mx + R + 12, head_y - 22), label, font=font, fill=(255, 255, 255, 255),
                       stroke_width=5, stroke_fill=(10, 40, 80, 235))
         else:  # towns — small dots
             r = 11
