@@ -50,6 +50,14 @@ ENV_STORAGE=${ENV_STORAGE:-vwdata}
 IMAGE=${IMAGE:-vaultwarden/server:1.36.0}   # >=1.33.0 for SCSS branding
 VW_ADMIN_TOKEN=${VW_ADMIN_TOKEN:-}           # optional; generated if unset
 
+# Object id of the deploy pipeline's service principal (the `skintyee-prod-azure`
+# service connection / workload-identity SP). The deploy-vaultwarden pipeline
+# runs as this identity, so it needs Contributor on the resources it touches.
+# This SP gets per-resource grants (api-prod, lookup-prod, acr, env already), so
+# a NEW app must be granted explicitly. Override if the service connection's SP
+# changes. Empty -> the grant step is skipped with a warning.
+DEPLOY_SP_ID=${DEPLOY_SP_ID:-cb91f9d8-89d3-4896-b203-2e0d6fe1f2a4}
+
 DRY_RUN=0
 SKIP_DOMAIN=0
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -135,6 +143,29 @@ else
   else
     warn "yaml update failed (containerapp extension bug?). Fallback: Portal -> $APP -> Volumes -> AzureFile '$ENV_STORAGE' mounted at /data, then re-run."
   fi
+fi
+
+# ---- 3c. grant the deploy pipeline SP access (idempotent) ------------------
+# deploy-vaultwarden.yml runs as the `skintyee-prod-azure` service-connection SP.
+# That SP is granted Contributor PER-RESOURCE (not at the RG), so a freshly
+# created app is invisible to it -> the pipeline fails with "The containerapp
+# 'vaultwarden' does not exist" (RBAC not-found masking). Grant the three scopes
+# the pipeline touches: the app (secrets/env/image), the managed environment
+# (env storage show), and the storage account (listKeys for the branding upload).
+# `az role assignment create` is idempotent (re-uses an existing assignment).
+if [ -z "$DEPLOY_SP_ID" ]; then
+  warn "DEPLOY_SP_ID unset -- skipping pipeline-SP grant. The deploy pipeline will fail until the SP has Contributor on '$APP', '$ENV_NAME', and '$STORAGE_ACCOUNT'."
+else
+  say "granting deploy SP $DEPLOY_SP_ID Contributor on app + env + storage"
+  SUB_ID=$(az account show --query id -o tsv)
+  for SCOPE in \
+    "/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.App/containerApps/$APP" \
+    "/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.App/managedEnvironments/$ENV_NAME" \
+    "/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.Storage/storageAccounts/$STORAGE_ACCOUNT"; do
+    run az role assignment create --assignee-object-id "$DEPLOY_SP_ID" \
+      --assignee-principal-type ServicePrincipal --role Contributor \
+      --scope "$SCOPE" --output none && ok "granted on ${SCOPE##*/}"
+  done
 fi
 
 # ---- 4. secrets ------------------------------------------------------------
