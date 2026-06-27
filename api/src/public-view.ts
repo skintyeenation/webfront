@@ -48,10 +48,17 @@ function rosterRole(m: any): string | undefined {
 
 // On the public governance/management roster if a governance role applies and
 // the account isn't disabled.
+// A real person's email is firstname.lastname@… ; shared/role mailboxes are a
+// single word (chief@, bandmanager@, finance@, it@, referrals@, councillor1@).
+function isRealPerson(m: any): boolean {
+  const local = String(m?.upn ?? m?.email ?? '').split('@')[0];
+  return local.includes('.');
+}
+
 export function isPublicRoster(m: any): boolean {
   if (m?.enabled === false) return false;
-  if (m?.accountType === 'shared-inbox') return false; // hide shared email accounts
   if (m?.protectedAdmin) return false; // hide break-glass / system admin accounts
+  if (!isRealPerson(m)) return false; // hide shared email accounts, keep real people
   return rosterRole(m) !== undefined;
 }
 

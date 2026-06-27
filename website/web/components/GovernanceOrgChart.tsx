@@ -69,7 +69,7 @@ export function GovernanceOrgChart({ roster }: { roster: Person[] }) {
 
   return (
     <div className="overflow-x-auto rounded-2xl border border-[var(--line)] bg-[#f7fafb] p-4">
-      <svg width={W} height={H} role="img" aria-label="Governance hierarchy">
+      <svg width={W} height={H} role="img" aria-label="Governance hierarchy" className="mx-auto block">
         {/* Chief -> row 1 */}
         {row1.map((p, i) => (
           <path
