@@ -1,5 +1,4 @@
 import { publicApi, safe } from '@/lib/api';
-import { getPostsByCategory } from '@/lib/wp';
 import { getSession, onboardingUrl } from '@/lib/session';
 import { NOTIFICATION_COLORS } from '@/lib/constants';
 import { HeroCarousel, type Slide } from '@/components/HeroCarousel';
@@ -15,11 +14,10 @@ import { PageHero } from '@/components/PageHero';
 export const revalidate = 60;
 
 export default async function Home() {
-  const [notifications, events, meetings, projects, session] = await Promise.all([
+  const [notifications, events, meetings, session] = await Promise.all([
     safe(publicApi.notifications.list(), []),
     safe(publicApi.events.list(), []),
     safe(publicApi.meetings.list(), []),
-    getPostsByCategory('major-projects', 3),
     getSession(),
   ]);
 
@@ -109,7 +107,7 @@ export default async function Home() {
 
       <ProgramsSection />
 
-      <MajorProjectsParallax projects={projects} />
+      <MajorProjectsParallax />
 
       <ResortsSection />
 
