@@ -1,0 +1,82 @@
+name: deploy-directory-connector
+
+# Build the Bitwarden Directory Connector image and (re)create the scheduled
+# Azure Container Apps JOB that syncs Entra members + groups into the Vaultwarden
+# org (ADR-19 Phase A). Mirrors deploy-api's auth + ACR-build pattern.
+#
+# SCAFFOLD — DEFERRED. Prereqs before this can succeed (see vaultwarden/entra-sync.md):
+#   1. Vaultwarden org created (human bootstrap) + an ORG API KEY.
+#   2. A Graph app with Directory.Read.All / Group.Read.All (setup-app-graph.sh pattern).
+#   3. bwdc appdata data.json seeded with the Azure directory config + sync
+#      filters, on an Azure Files volume attached to the job.
+#   4. Variable group `skintyee-prod-azure` gains: BWDC_CLIENTID, BWDC_CLIENTSECRET
+#      (the org API key), and the Graph creds for the data.json.
+
+trigger: none
+pr: none
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  - group: skintyee-prod-azure   # AZURE_RG, AZURE_ACR_NAME, AZURE_REGION, skintyee-prod-env
+  - name: JOB_NAME
+    value: 'vaultwarden-dirsync'
+  - name: IMAGE_NAME
+    value: 'directory-connector'
+  - name: IMAGE_TAG
+    value: '$(Build.SourceVersion)'
+  - name: CRON
+    value: '0 * * * *'             # hourly
+
+jobs:
+  - job: build_and_deploy
+    displayName: Build bwdc image → (re)create scheduled ACA Job
+    steps:
+      - checkout: self
+        fetchDepth: 1
+
+      - task: AzureCLI@2
+        displayName: az acr build (Directory Connector image)
+        inputs:
+          azureSubscription: skintyee-prod-azure
+          scriptType: bash
+          scriptLocation: inlineScript
+          inlineScript: |
+            set -euo pipefail
+            az acr build --registry "$AZURE_ACR_NAME" \
+              --image "${IMAGE_NAME}:${IMAGE_TAG}" --image "${IMAGE_NAME}:latest" \
+              --file vaultwarden/directory-connector/Dockerfile \
+              vaultwarden/directory-connector
+
+      - task: AzureCLI@2
+        displayName: Create/update scheduled job
+        env:
+          BWDC_CLIENTID:     $(BWDC_CLIENTID)
+          BWDC_CLIENTSECRET: $(BWDC_CLIENTSECRET)
+        inputs:
+          azureSubscription: skintyee-prod-azure
+          scriptType: bash
+          scriptLocation: inlineScript
+          inlineScript: |
+            set -euo pipefail
+            IMG="${AZURE_ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG}"
+            ENVID=$(az containerapp env show -g "$AZURE_RG" -n skintyee-prod-env --query id -o tsv)
+
+            if az containerapp job show -g "$AZURE_RG" -n "$JOB_NAME" >/dev/null 2>&1; then
+              echo "▸ updating job image + secrets…"
+              az containerapp job secret set -g "$AZURE_RG" -n "$JOB_NAME" \
+                --secrets "bw-clientid=$BWDC_CLIENTID" "bw-clientsecret=$BWDC_CLIENTSECRET" -o none
+              az containerapp job update -g "$AZURE_RG" -n "$JOB_NAME" --image "$IMG" -o none
+            else
+              echo "▸ creating scheduled job…"
+              az containerapp job create -g "$AZURE_RG" -n "$JOB_NAME" \
+                --environment "$ENVID" --trigger-type Schedule --cron-expression "$CRON" \
+                --replica-timeout 600 --replica-retry-limit 1 \
+                --image "$IMG" --cpu 0.5 --memory 1.0Gi \
+                --secrets "bw-clientid=$BWDC_CLIENTID" "bw-clientsecret=$BWDC_CLIENTSECRET" \
+                --env-vars "VAULT_URL=https://vault.skintyee.ca" "BW_CLIENTID=secretref:bw-clientid" "BW_CLIENTSECRET=secretref:bw-clientsecret" \
+                -o none
+              echo "NOTE: attach the bwdc appdata Azure Files volume to the job (data.json) — see entra-sync.md."
+            fi
+            echo "✓ ${JOB_NAME} ready (cron ${CRON})"
