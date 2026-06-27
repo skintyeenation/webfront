@@ -20,10 +20,27 @@ export function PageHero({ title, subtitle }: { title: string; subtitle?: ReactN
     const onKey = (e: KeyboardEvent) => {
       if (['Escape', 'ArrowDown', 'PageDown', ' ', 'Enter'].includes(e.key)) dismiss();
     };
+    // Scrolling down (wheel) or swiping up (touch) snaps the page into place.
+    const onWheel = (e: WheelEvent) => {
+      if (e.deltaY > 0) dismiss();
+    };
+    let touchStartY = 0;
+    const onTouchStart = (e: TouchEvent) => {
+      touchStartY = e.touches[0]?.clientY ?? 0;
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (touchStartY - (e.touches[0]?.clientY ?? 0) > 40) dismiss();
+    };
     window.addEventListener('keydown', onKey);
+    window.addEventListener('wheel', onWheel, { passive: true });
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
     return () => {
       document.body.style.overflow = '';
       window.removeEventListener('keydown', onKey);
+      window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
     };
   }, [dismissed, dismiss]);
 
