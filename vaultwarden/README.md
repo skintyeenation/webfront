@@ -169,15 +169,22 @@ by granting the SP **Contributor** on the three scopes the deploy touches:
 | Managed env `skintyee-prod-env` | `containerapp env storage show` (branding step) |
 | Storage account `skintyeevwdata` | `storage account keys list` for the branding upload |
 
-To grant manually (or for a different SP, set `DEPLOY_SP_ID`):
+> **appId vs objectId trap:** the service connection's "serviceprincipalid"
+> (`cb91f9d8-…`) is the SP **appId**. Role assignments need the **objectId**
+> (`az ad sp show --id <appId> --query id -o tsv` → `9de05e96-…`). Passing the
+> appId to `--assignee-object-id` creates a *ghost* assignment that grants
+> nothing — so always resolve to the objectId first (the script does this).
+
+To grant manually (or for a different SP, set `DEPLOY_SP_ID` to its appId or objectId):
 
 ```bash
 SUB=$(az account show --query id -o tsv)
+SP_OBJ=$(az ad sp show --id cb91f9d8-89d3-4896-b203-2e0d6fe1f2a4 --query id -o tsv)  # appId -> objectId
 for r in \
   "Microsoft.App/containerApps/vaultwarden" \
   "Microsoft.App/managedEnvironments/skintyee-prod-env" \
   "Microsoft.Storage/storageAccounts/skintyeevwdata"; do
-  az role assignment create --assignee-object-id cb91f9d8-89d3-4896-b203-2e0d6fe1f2a4 \
+  az role assignment create --assignee-object-id "$SP_OBJ" \
     --assignee-principal-type ServicePrincipal --role Contributor \
     --scope "/subscriptions/$SUB/resourceGroups/skintyee-prod-rg/providers/$r"
 done

@@ -50,13 +50,19 @@ ENV_STORAGE=${ENV_STORAGE:-vwdata}
 IMAGE=${IMAGE:-vaultwarden/server:1.36.0}   # >=1.33.0 for SCSS branding
 VW_ADMIN_TOKEN=${VW_ADMIN_TOKEN:-}           # optional; generated if unset
 
-# Object id of the deploy pipeline's service principal (the `skintyee-prod-azure`
-# service connection / workload-identity SP). The deploy-vaultwarden pipeline
-# runs as this identity, so it needs Contributor on the resources it touches.
-# This SP gets per-resource grants (api-prod, lookup-prod, acr, env already), so
-# a NEW app must be granted explicitly. Override if the service connection's SP
-# changes. Empty -> the grant step is skipped with a warning.
-DEPLOY_SP_ID=${DEPLOY_SP_ID:-cb91f9d8-89d3-4896-b203-2e0d6fe1f2a4}
+# The deploy pipeline's service principal (`skintyee-prod-azure` service
+# connection / workload-identity SP, displayName "skintyee-prod-deploy"). The
+# deploy-vaultwarden pipeline runs as this identity, so it needs Contributor on
+# the resources it touches. This SP gets per-resource grants (api-prod,
+# lookup-prod, acr, env already), so a NEW app must be granted explicitly.
+# Override if the service connection's SP changes. Empty -> grant step skipped.
+#
+# This accepts EITHER the appId (what the service connection / portal shows) OR
+# the objectId; step 3c resolves it to the objectId via `az ad sp show`. This
+# distinction matters: `az role assignment create --assignee-object-id` does NO
+# lookup, so passing the appId there silently creates a *ghost* assignment that
+# grants nothing (the original cause of "containerapp does not exist").
+DEPLOY_SP_ID=${DEPLOY_SP_ID:-cb91f9d8-89d3-4896-b203-2e0d6fe1f2a4}  # appId; resolved below
 
 DRY_RUN=0
 SKIP_DOMAIN=0
@@ -156,16 +162,23 @@ fi
 if [ -z "$DEPLOY_SP_ID" ]; then
   warn "DEPLOY_SP_ID unset -- skipping pipeline-SP grant. The deploy pipeline will fail until the SP has Contributor on '$APP', '$ENV_NAME', and '$STORAGE_ACCOUNT'."
 else
-  say "granting deploy SP $DEPLOY_SP_ID Contributor on app + env + storage"
-  SUB_ID=$(az account show --query id -o tsv)
-  for SCOPE in \
-    "/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.App/containerApps/$APP" \
-    "/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.App/managedEnvironments/$ENV_NAME" \
-    "/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.Storage/storageAccounts/$STORAGE_ACCOUNT"; do
-    run az role assignment create --assignee-object-id "$DEPLOY_SP_ID" \
-      --assignee-principal-type ServicePrincipal --role Contributor \
-      --scope "$SCOPE" --output none && ok "granted on ${SCOPE##*/}"
-  done
+  # Resolve appId OR objectId -> objectId (role assignments need the objectId;
+  # passing an appId to --assignee-object-id creates a no-op ghost assignment).
+  SP_OBJ=$(az ad sp show --id "$DEPLOY_SP_ID" --query id -o tsv 2>/dev/null || echo "")
+  if [ -z "$SP_OBJ" ]; then
+    warn "could not resolve DEPLOY_SP_ID '$DEPLOY_SP_ID' to an SP objectId -- skipping grant."
+  else
+    say "granting deploy SP (objectId $SP_OBJ) Contributor on app + env + storage"
+    SUB_ID=$(az account show --query id -o tsv)
+    for SCOPE in \
+      "/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.App/containerApps/$APP" \
+      "/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.App/managedEnvironments/$ENV_NAME" \
+      "/subscriptions/$SUB_ID/resourceGroups/$RG/providers/Microsoft.Storage/storageAccounts/$STORAGE_ACCOUNT"; do
+      run az role assignment create --assignee-object-id "$SP_OBJ" \
+        --assignee-principal-type ServicePrincipal --role Contributor \
+        --scope "$SCOPE" --output none && ok "granted on ${SCOPE##*/}"
+    done
+  fi
 fi
 
 # ---- 4. secrets ------------------------------------------------------------
