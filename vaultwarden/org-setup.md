@@ -79,3 +79,39 @@ After Steps 1–3 (the human bootstrap), run [`setup-org.sh`](setup-org.sh) to
 create Steps 4–5 (collections + groups + access) from the tables above instead of
 clicking — it uses the `bw` CLI (collections, as the owner) + the org public API
 (groups + access). See its header for the required session / API-key inputs.
+
+## Bootstrap gotchas (hit during first standup)
+
+- **No "Create account" button** → the deploy sets **`SIGNUPS_ALLOWED=false`**
+  (invite-only), so the *first* owner can't self-register. Temporarily enable it
+  to bootstrap, then re-lock:
+  ```bash
+  az containerapp update -g skintyee-prod-rg -n vaultwarden --set-env-vars SIGNUPS_ALLOWED=true -o none
+  # …register the owner + create the org…
+  ```
+- **No "New organization" button** → the `ORG_CREATION_USERS` gotcha. Vaultwarden
+  reads it as a **literal email allowlist**: **blank = everyone (default)**,
+  `none` = nobody, otherwise a comma-separated list of *emails*. Do **NOT** set it
+  to `all` — that means "only a user whose email is `all`", i.e. nobody, which
+  *disables* org creation. **Leave it unset.** Direct URL if the UI button is
+  hidden: **`https://vault.skintyee.ca/#/create-organization`**.
+- **Re-lock signups when done** → run the **`deploy-vaultwarden`** pipeline (it
+  sets `SIGNUPS_ALLOWED=false`), or flip it back with `az … --set-env-vars
+  SIGNUPS_ALLOWED=false`.
+
+## Operational model (setup script vs pipelines)
+
+Mirrors `deploy-api`: **one-time create is a script; ongoing changes are a
+pipeline.**
+
+- **Create once (manual):** [`setup-vaultwarden.sh`](setup-vaultwarden.sh) —
+  db, storage/Files, Container App, secrets, domain. Not a pipeline (provisions
+  resources + needs the pg secret + DNS).
+- **Ongoing (Azure DevOps):**
+  - **`deploy-vaultwarden`** (pipeline **#8**) — image bumps + secret/env sync
+    (incl. enforcing `SIGNUPS_ALLOWED=false`). Run this for every config change.
+  - **`deploy-directory-connector`** (pipeline **#9**, deferred) — builds bwdc +
+    the scheduled Entra→org sync job (ADR-19 Phase A).
+- So after the human bootstrap, **don't hand-edit the Container App** — change the
+  `deploy-vaultwarden` env/secrets (variable group) and re-run it, so prod stays
+  reproducible.
