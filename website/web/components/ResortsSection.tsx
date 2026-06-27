@@ -7,7 +7,7 @@ const RESORTS = [
   { name: 'Ootsa Lake Chalet', location: 'Ootsa Lake, BC', topic: 'lake', lock: 33 },
   { name: 'Cheslatta Falls Inn', location: 'Grassy Plains, BC', topic: 'waterfall', lock: 44 },
   { name: 'Tahtsa Reach Retreat', location: 'Tweedsmuir, BC', topic: 'lake', lock: 55 },
-  { name: 'Babine Forest Lodge', location: 'Burns Lake, BC', topic: 'forest', lock: 66 },
+  { name: 'Babine Forest Lodge', location: 'Burns Lake, BC', topic: 'cabin', lock: 7 },
 ];
 
 export function ResortsSection() {
