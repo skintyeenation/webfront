@@ -11,6 +11,16 @@ export const PROGRAM_AREAS = [
   { slug: 'health', name: 'Health', desc: 'Community health and wellness programs.' },
 ];
 
+// Major Project sectors (same categories as the home Major Projects band). The
+// Projects page lists every sector with its projects (WP category by slug).
+export const MAJOR_PROJECT_SECTORS = [
+  { slug: 'oil-gas', name: 'Oil & Gas' },
+  { slug: 'minerals-mining', name: 'Minerals & Mining' },
+  { slug: 'housing-economic-development', name: 'Housing & Economic Development' },
+  { slug: 'forestry-conservation', name: 'Forestry & Conservation' },
+  { slug: 'telecommunications', name: 'Telecommunications' },
+];
+
 // Notification category → accent colour (matches the app palette where possible).
 export const NOTIFICATION_COLORS: Record<string, string> = {
   Health: '#E53935',

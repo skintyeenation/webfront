@@ -45,7 +45,7 @@ wpc rewrite flush --hard >/dev/null
 echo "==> content taxonomy (categories: projects, programs, jobs) — mirrors the website nav"
 # Program categories + major-projects + jobs. Posts are filed under these so the
 # Next.js Projects / Programs/<slug> / Jobs pages have content.
-for cat in major-projects jobs news housing education lands-economic-development social child-family-services health; do
+for cat in major-projects jobs news oil-gas minerals-mining housing-economic-development forestry-conservation telecommunications housing education lands-economic-development social child-family-services health; do
   wpc term list category --field=slug | grep -qx "$cat" || \
     wpc term create category "$cat" --slug="$cat" >/dev/null 2>&1 || true
 done
@@ -88,6 +88,26 @@ seed_news 'broadband-expansion' 'Broadband Expansion Connects More Homes' 'High-
 seed_news 'community-garden-volunteers' 'Community Garden Project Seeks Volunteers' 'Lend a hand at the community garden, all ages welcome.' '<p>Lend a hand at the community garden. No experience needed, all ages welcome.</p>'
 seed_news 'road-maintenance-southbank' 'Road Maintenance Notice: Southbank Road' 'Expect short delays next week as crews complete repairs.' '<p>Expect short delays next week as crews complete seasonal grading and repairs on Southbank Road.</p>'
 seed_news 'language-nest-program' "Witsuwit'en Language Nest Welcomes New Learners" 'More young children are learning the language this fall.' "<p>The Witsuwit'en language nest welcomes more young learners this fall as the program expands.</p>"
+
+echo "==> major-project sector posts (dummy projects under the home-page sectors)"
+seed_post 'coastal-gaslink-benefit' 'Coastal GasLink Benefit Agreement' 'oil-gas' '<p>Benefit and revenue-sharing agreement for natural gas activity on the territory.</p>'
+seed_post 'natural-gas-revenue-sharing' 'Natural Gas Revenue Sharing' 'oil-gas' '<p>Negotiating revenue sharing from natural gas development.</p>'
+seed_post 'mineral-exploration-agreement' 'Mineral Exploration Agreement' 'minerals-mining' '<p>Responsible mineral exploration partnership and impact-benefit terms.</p>'
+seed_post 'southbank-housing-development' 'Southbank Housing Development' 'housing-economic-development' '<p>New on-reserve housing and infrastructure at Southbank.</p>'
+seed_post 'band-owned-enterprise' 'Band-Owned Enterprise Initiative' 'housing-economic-development' '<p>Developing band-owned enterprises and local employment.</p>'
+seed_post 'community-forest-tenure' 'Community Forest Tenure' 'forestry-conservation' '<p>Pursuing a community forest tenure for sustainable forestry.</p>'
+seed_post 'salmon-habitat-restoration' 'Salmon Habitat Restoration' 'forestry-conservation' '<p>Restoring salmon habitat and stewarding the watershed.</p>'
+seed_post 'rural-broadband-expansion' 'Rural Broadband Expansion' 'telecommunications' '<p>Extending high-speed broadband to more homes in the community.</p>'
+seed_post 'lng-workforce-training' 'LNG Workforce Training' 'oil-gas' '<p>Training and employment pathways in the natural gas sector.</p>'
+seed_post 'pipeline-row-monitoring' 'Pipeline Right-of-Way Monitoring' 'oil-gas' '<p>Community monitoring of the pipeline right-of-way and reclamation.</p>'
+seed_post 'geoscience-mapping' 'Geoscience Mapping Project' 'minerals-mining' '<p>Mapping mineral potential across the territory.</p>'
+seed_post 'reclamation-standards-review' 'Reclamation Standards Review' 'minerals-mining' '<p>Reviewing mine reclamation and closure standards.</p>'
+seed_post 'elder-housing-renovations' 'Elder Housing Renovations' 'housing-economic-development' '<p>Renovating and adapting homes for elders.</p>'
+seed_post 'community-economic-plan' 'Community Economic Plan' 'housing-economic-development' '<p>A five-year community economic development plan.</p>'
+seed_post 'wildfire-fuel-management' 'Wildfire Fuel Management' 'forestry-conservation' '<p>FireSmart fuel management around the community.</p>'
+seed_post 'caribou-habitat-stewardship' 'Caribou Habitat Stewardship' 'forestry-conservation' '<p>Protecting and stewarding caribou habitat.</p>'
+seed_post 'emergency-communications-upgrade' 'Emergency Communications Upgrade' 'telecommunications' '<p>Upgrading emergency communications coverage.</p>'
+seed_post 'public-wifi-hotspots' 'Public Wi-Fi Hotspots' 'telecommunications' '<p>Free public Wi-Fi at community facilities.</p>'
 
 echo ""
 echo "==> CMS ready"
