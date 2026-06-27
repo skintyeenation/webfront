@@ -7,6 +7,7 @@ import { MajorProjectsParallax } from '@/components/MajorProjectsParallax';
 import { CommunityCalendar, type CalEvent } from '@/components/CommunityCalendar';
 import { NotificationItem, EventCard, MeetingItem } from '@/components/cards';
 import { OnboardingCta } from '@/components/OnboardingCta';
+import { AppDownloadCta } from '@/components/AppDownloadCta';
 
 export const revalidate = 60;
 
@@ -90,6 +91,8 @@ export default async function Home() {
       </div>
 
       <MajorProjectsParallax projects={projects} />
+
+      <AppDownloadCta />
     </div>
   );
 }
