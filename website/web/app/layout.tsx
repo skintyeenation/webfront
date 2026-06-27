@@ -26,7 +26,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en">
       <body>
         <header className="site-header">
-          <Link href="/" className="brand">Skin Tyee First Nation</Link>
+          <Link href="/" className="brand flex items-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/skintyee-logo.png" alt="" width={30} height={30} className="rounded" />
+            Skin Tyee First Nation
+          </Link>
           <nav className="flex flex-wrap items-center gap-4 text-sm">
             {NAV.map((n) => (
               <Link key={n.href} href={n.href} className="text-ink/70 hover:text-primary">{n.label}</Link>
