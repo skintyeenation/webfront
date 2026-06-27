@@ -1,0 +1,90 @@
+name: deploy-vaultwarden
+
+# Roll the Vaultwarden Container App (shared password manager) to a pinned image
+# version and sync its secrets/env from the variable group. Mirrors deploy-api's
+# auth + variable-group pattern, but there's NO build step — Vaultwarden ships an
+# official image (vaultwarden/server), so we just pin + update the revision.
+#
+# Auth: workload identity federation via the `skintyee-prod-azure` service
+# connection (same as deploy-api). Its identity needs Contributor on the
+# Container App + its managed environment.
+#
+# ONE-TIME setup (NOT done here — see vaultwarden/README.md): create the
+# `vaultwarden` Postgres db, the Azure Files volume + env storage, the Container
+# App (containerapp.yaml), and bind the vault.skintyee.ca custom domain.
+#
+# Manual trigger — infra; you choose when to bump the Vaultwarden version.
+
+trigger: none
+pr: none
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  - group: skintyee-prod-azure
+    # Provides: AZURE_RG, AZURE_REGION, and the PG_* connection vars
+    # (PG_HOST, PG_USER, PG_PASSWORD [secret], PG_PORT, PG_SSL_MODE).
+  - name: AZURE_CONTAINERAPP
+    value: 'vaultwarden'
+  - name: VW_DB
+    value: 'vaultwarden'
+  - name: VW_IMAGE
+    value: 'vaultwarden/server:1.32.7'   # pin; bump deliberately
+  - name: VW_DOMAIN
+    value: 'https://vault.skintyee.ca'
+
+jobs:
+  - job: deploy
+    displayName: Sync secrets/env → roll Vaultwarden revision
+    steps:
+      - checkout: self
+        fetchDepth: 1
+
+      - task: AzureCLI@2
+        displayName: Sync secrets + env + image
+        env:
+          PG_PASSWORD:     $(PG_PASSWORD)
+          VW_ADMIN_TOKEN:  $(VW_ADMIN_TOKEN)   # argon2/PHC hash for the /admin panel
+          # Optional invite email (reuse Mailgun); leave unset to disable invites email.
+          MAILGUN_SMTP_PASSWORD: $(MAILGUN_SMTP_PASSWORD)
+        inputs:
+          azureSubscription: skintyee-prod-azure
+          scriptType: bash
+          scriptLocation: inlineScript
+          inlineScript: |
+            set -euo pipefail
+
+            # Vault data lives in its own db on the shared flex server.
+            DATABASE_URL="postgresql://${PG_USER}:${PG_PASSWORD}@${PG_HOST}:${PG_PORT}/${VW_DB}?sslmode=${PG_SSL_MODE}"
+
+            echo "▸ secrets onto $AZURE_CONTAINERAPP…"
+            az containerapp secret set \
+              --name "$AZURE_CONTAINERAPP" --resource-group "$AZURE_RG" \
+              --secrets \
+                "database-url=$DATABASE_URL" \
+                "admin-token=$VW_ADMIN_TOKEN" \
+              --output none
+
+            echo "▸ env vars…"
+            # Invite-only; /data (RSA keys, attachments, Sends) is the Azure Files
+            # mount set at create time (see containerapp.yaml).
+            az containerapp update \
+              --name "$AZURE_CONTAINERAPP" --resource-group "$AZURE_RG" \
+              --set-env-vars \
+                "DOMAIN=$VW_DOMAIN" \
+                "SIGNUPS_ALLOWED=false" \
+                "INVITATIONS_ALLOWED=true" \
+                "ROCKET_PORT=80" \
+                "DATA_FOLDER=/data" \
+                "DATABASE_URL=secretref:database-url" \
+                "ADMIN_TOKEN=secretref:admin-token" \
+              --output none
+
+            echo "▸ rolling image → $VW_IMAGE…"
+            az containerapp update \
+              --name "$AZURE_CONTAINERAPP" --resource-group "$AZURE_RG" \
+              --image "$VW_IMAGE" \
+              --output none
+
+            echo "✓ Vaultwarden updated. Vault: $VW_DOMAIN"
