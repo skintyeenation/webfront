@@ -50,6 +50,8 @@ function rosterRole(m: any): string | undefined {
 // the account isn't disabled.
 export function isPublicRoster(m: any): boolean {
   if (m?.enabled === false) return false;
+  if (m?.accountType === 'shared-inbox') return false; // hide shared email accounts
+  if (m?.protectedAdmin) return false; // hide break-glass / system admin accounts
   return rosterRole(m) !== undefined;
 }
 
