@@ -60,8 +60,10 @@ export function HeaderNav({
       </button>
 
       {open && (
-        <nav className="fixed inset-0 z-40 flex flex-col gap-6 bg-white px-6 pb-10 pt-24 text-xl md:hidden">
-          {links}
+        <nav className="fixed inset-0 z-40 flex flex-col bg-white md:hidden">
+          {/* header-height zone with the same bottom border as the site header */}
+          <div className="h-[63px] shrink-0 border-b border-[var(--line)]" />
+          <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-6 py-8 text-xl">{links}</div>
         </nav>
       )}
     </>
