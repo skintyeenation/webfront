@@ -14,7 +14,7 @@ export function ResortsSection() {
   return (
     <section>
       <h2 className="text-xl font-bold">Skin Tyee Resorts</h2>
-      <p className="mt-1 text-ink/70">Community hospitality across northern British Columbia.</p>
+      <p className="mt-1 text-ink/70">Community hospitality across northern British Columbia. Stay at Skin Tyee Resorts!</p>
       <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {RESORTS.map((r) => (
           <div key={r.seed} className="overflow-hidden rounded-xl border border-[var(--line)] transition hover:shadow-md">
