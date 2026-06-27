@@ -724,6 +724,50 @@ Decision record for the Skin Tyee app (`@skintyee/app`, in `app/`). Lives in the
   self-host — contrast: VM-bound by Mongo vs Container-App-friendly via Postgres),
   `docs/365/password-policy.md`.
 
+### ADR-19 — Vaultwarden ↔ Entra: phased sync (Directory Connector first, OIDC SSO later; deferred)
+
+- **Decision:** integrate Vaultwarden (ADR-18) with Entra ID in **two
+  independent layers, in order** — **(1) directory sync** (provisioning) via the
+  Bitwarden **Directory Connector**, then **(2) OIDC SSO** (authentication) via
+  Vaultwarden's experimental SSO. Both are **deferred**: Vaultwarden launches
+  **invite-only + master password**, and these turn on later. Runbook:
+  [`vaultwarden/entra-sync.md`](../vaultwarden/entra-sync.md).
+
+- **Why two layers (they're orthogonal):**
+  - **Directory sync** = *who is a member, in which groups*. The Directory
+    Connector reads Entra via Microsoft Graph (a `Directory.Read.All` /
+    `Group.Read.All` app — the `scripts/setup-app-graph.sh` pattern) and writes
+    members + groups to the Vaultwarden org (via an org API key), mirroring the
+    13 security groups → Vaultwarden **Groups → Collections**. Runs as a
+    scheduled **Azure Container Apps Job**.
+  - **SSO** = *how they log in*. An Entra OIDC app + Vaultwarden's `SSO_*` env so
+    staff sign in with skintyee.ca (under existing MFA / Conditional Access).
+
+- **Why sync before SSO:** directory sync is **low-risk, high-value** (membership
+  tracks the directory — hires/offboards just work) and uses the org public API
+  we can test. Vaultwarden's **SSO is experimental**, so it's piloted last with a
+  fallback.
+
+- **Zero-knowledge caveat (important):** neither layer removes the **master
+  password**. SSO authenticates the *login*; the vault is still decrypted with a
+  key derived from the user's master password. Removing it needs trusted-device /
+  Key Connector (enterprise; not viable on Vaultwarden). So **Entra governs
+  access; the master password governs decryption** — by design, and consistent
+  with ADR-18's zero-knowledge rationale.
+
+- **Caveat:** Vaultwarden implements only a **subset** of the Bitwarden org
+  public API the Directory Connector drives — members/groups sync in practice but
+  must be tested against the deployed version.
+
+- **Status:** planned, deferred. Runbook written
+  ([`vaultwarden/entra-sync.md`](../vaultwarden/entra-sync.md)); nothing wired
+  yet. Order: invite-only (now) → Directory Connector job → OIDC SSO pilot.
+
+- **What it relates to:** ADR-18 (Vaultwarden), ADR-1 (Entra as IdP), ADR-16 +
+  `docs/365/groups.md` (the security-group catalog the mapping mirrors),
+  `scripts/setup-app-graph.sh` (the Graph-app pattern), ADR-10 (Container Apps —
+  the sync Job runs there).
+
 ## Summary: ppt → Skin Tyee service swaps
 
 | Concern | ppt (AWS) | Skin Tyee (Azure) | Status |
@@ -738,4 +782,5 @@ Decision record for the Skin Tyee app (`@skintyee/app`, in `app/`). Lives in the
 | Source control | _(GitHub-as-primary, implicit)_ | **Azure DevOps primary + GitHub mirror** | documented; pending 1× org + repo creation (ADR-9) |
 | Task management + meetings feed | _(none)_ | **Microsoft Planner + Teams meetings via Graph API, merged with app events into a single homescreen feed** | Planning doc done (ADR-14); `skintyee-app-graph` Entra app + NestJS `GraphFeedService` to be scaffolded |
 | E-signatures | _(none)_ | **Self-hosted OpenSign on an Azure VM (`esig.skintyee.ca`); sealed PDFs handed off to SharePoint (system of record)** | Planned (ADR-17); runbook + cost record written; pending VM provision + 2 go/no-go checks (API access, Entra OIDC) |
-| Shared passwords | _(1Password Teams — earlier lean)_ | **Self-hosted Vaultwarden on Container Apps (`vault.skintyee.ca`) + official Bitwarden clients; zero-knowledge, reuse `skintyee-prod-pg`** | Planned (ADR-18, changed from 1Password); deploy guide + pipeline written; pending Postgres db + Azure Files volume + custom domain + first invites |
+| Shared passwords | _(1Password Teams — earlier lean)_ | **Self-hosted Vaultwarden on Container Apps (`vault.skintyee.ca`) + official Bitwarden clients; zero-knowledge, reuse `skintyee-prod-pg`** | **Live** (ADR-18, changed from 1Password) — running + TLS + /data volume; pending: save admin token, org/collections, invites |
+| Vaultwarden ↔ Entra | _(none)_ | **Phased: Directory Connector sync (members/groups) then experimental OIDC SSO; master password retained (zero-knowledge)** | Planned + deferred (ADR-19); runbook `vaultwarden/entra-sync.md`; nothing wired yet |
