@@ -31,6 +31,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en">
       <body>
         <header className="site-header">
+          <div className="site-header-inner">
           <Link href="/" className="brand flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/skintyee-logo.png" alt="" width={30} height={30} className="rounded" />
@@ -45,6 +46,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             )}
             {(authEnabled || session) && <SignInButton signedIn={!!session} />}
           </nav>
+          </div>
         </header>
         <main className="container">{children}</main>
         <ResourceLinks />
