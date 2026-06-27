@@ -9,6 +9,7 @@ import { NotificationItem, EventCard, MeetingItem } from '@/components/cards';
 import { OnboardingCta } from '@/components/OnboardingCta';
 import { AppDownloadCta } from '@/components/AppDownloadCta';
 import { ProgramsSection } from '@/components/ProgramsSection';
+import { ResortsSection } from '@/components/ResortsSection';
 import { PageHero } from '@/components/PageHero';
 
 export const revalidate = 60;
@@ -100,6 +101,8 @@ export default async function Home() {
       <ProgramsSection />
 
       <MajorProjectsParallax projects={projects} />
+
+      <ResortsSection />
 
       <div className="py-12">
         <AppDownloadCta />
