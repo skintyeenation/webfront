@@ -45,10 +45,10 @@ export function PageHero({ title, subtitle }: { title: string; subtitle?: string
             <span className="mt-2 block font-semibold text-white">Skin Tyee First Nation</span>
             <span className="block">P.O. Box 131, Southbank, BC V0J 2P0</span>
             <span className="block">
-              P: <a href="tel:+12502513085" className="underline hover:text-white">250-251-3085</a>
+              📞 <a href="tel:+12502513085" className="underline hover:text-white">250-251-3085</a>
             </span>
             <span className="block">
-              E: <a href="mailto:STFN_BandManager@outlook.com" className="underline hover:text-white">STFN_BandManager@outlook.com</a>
+              ✉️ <a href="mailto:STFN_BandManager@outlook.com" className="underline hover:text-white">STFN_BandManager@outlook.com</a>
             </span>
           </address>
         </div>
