@@ -656,6 +656,69 @@ Decision record for the Skin Tyee app (`@skintyee/app`, in `app/`). Lives in the
   Apps — evaluated, not chosen, see Topology), and the documents + onboarding
   feature (the app surface that sends docs for signature).
 
+### ADR-18 — Shared passwords: self-hosted Vaultwarden (changed from 1Password Teams; not an in-app Key Vault feature)
+
+- **Decision:** for the credentials staff genuinely must share (vendor logins,
+  service accounts, Wi-Fi, legacy systems with no SSO), self-host **Vaultwarden**
+  — a Rust, **Bitwarden-compatible** server — on **Azure Container Apps** at
+  **`vault.skintyee.ca`**. Staff use the **official Bitwarden** apps / browser
+  extensions / desktop / CLI pointed at the self-hosted server (System autofill
+  works; nothing custom to build). Sharing is via Bitwarden **Organizations →
+  Collections**. **This changes the earlier lean toward 1Password Teams.**
+
+- **Eliminate-sharing-first:** shared passwords are an anti-pattern; the first
+  preference stays *not sharing* — Entra security groups, SSO, and
+  shared-mailbox **FullAccess** (no password handed out) per ADR-16 /
+  `docs/365/shared-mailboxes.md`. Vaultwarden is only for the residual,
+  unavoidable shared secrets.
+
+- **Why the change from 1Password Teams → Vaultwarden:**
+  - **Cost:** \$0 licensing (self-hosted, unlimited users) vs 1Password Teams'
+    recurring per-user fee — Skin Tyee is an NGO.
+  - **Data control / residency:** the vault lives in the band's own Azure
+    (canadacentral), not a third-party SaaS — PIPEDA-friendly.
+  - **Zero-knowledge preserved:** Bitwarden clients encrypt **client-side**;
+    Vaultwarden only ever stores ciphertext. (A KV-backed in-app feature is
+    *server-trusted* — the API + Azure admins could read plaintext.)
+  - **Standard clients:** official Bitwarden iOS/Android/desktop/extension/CLI +
+    OS autofill — no custom app to build or maintain.
+  - **Trade-off accepted:** we run the ops (vs 1Password's managed SaaS + SLA),
+    and there's occasional client↔server API lag on Bitwarden updates. Fine for
+    a small internal tool we control.
+
+- **Why not an in-app Azure Key Vault feature:** KV secures *storage*, not
+  human *sharing* — it's server-trusted (no zero-knowledge), has no sharing UX,
+  and you'd hand-roll authz + secret delivery (easy to get subtly wrong) with
+  painful revocation. KV stays for **app/infra** secrets only.
+
+- **Topology — Container App, NO VM:** single Container App (image
+  `vaultwarden/server`), external ingress :80 → managed TLS on
+  `vault.skintyee.ca`. Unlike **OpenSign (ADR-17)**, which needs a VM because
+  **MongoDB** requires a real block filesystem, **Vaultwarden supports
+  Postgres** — so it **reuses the existing `skintyee-prod-pg`** flexible server
+  (new `vaultwarden` db) for the vault data, and an **Azure Files** mount only
+  for **`/data`** (RSA JWT keys, attachments, Sends, icon cache) — non-DB files
+  that are SMB-safe, avoiding the SQLite/Mongo-on-SMB corruption risk that forced
+  ADR-17 to a VM. Just a public HTTPS service — **no LAN line-of-sight** (unlike
+  Guacamole), so Container Apps fits cleanly.
+
+- **Auth:** invite-only (`SIGNUPS_ALLOWED=false`); accounts use a master
+  password (the zero-knowledge root). Entra **OIDC SSO** exists in newer
+  Vaultwarden but is still experimental — **deferred**; start invite-only.
+
+- **Cost:** ~\$0 licensing; Container Apps consumption (min-1 warm replica, tiny
+  CPU) ≈ a few \$/mo; reuse Postgres (\$0); small Azure Files (\$); DNS + TLS \$0.
+
+- **Status:** planned; deploy guide + pipeline written (`vaultwarden/`,
+  `azure-pipelines/Deployments/deploy-vaultwarden.yml`); pending the `vaultwarden`
+  Postgres db, the Azure Files volume, the `vault.skintyee.ca` custom domain, and
+  the first org/collection + invites.
+
+- **What it relates to:** ADR-10 (Container Apps runtime), ADR-16 +
+  `docs/365/shared-mailboxes.md` (eliminate-sharing-first), ADR-17 (sibling
+  self-host — contrast: VM-bound by Mongo vs Container-App-friendly via Postgres),
+  `docs/365/password-policy.md`.
+
 ## Summary: ppt → Skin Tyee service swaps
 
 | Concern | ppt (AWS) | Skin Tyee (Azure) | Status |
@@ -670,3 +733,4 @@ Decision record for the Skin Tyee app (`@skintyee/app`, in `app/`). Lives in the
 | Source control | _(GitHub-as-primary, implicit)_ | **Azure DevOps primary + GitHub mirror** | documented; pending 1× org + repo creation (ADR-9) |
 | Task management + meetings feed | _(none)_ | **Microsoft Planner + Teams meetings via Graph API, merged with app events into a single homescreen feed** | Planning doc done (ADR-14); `skintyee-app-graph` Entra app + NestJS `GraphFeedService` to be scaffolded |
 | E-signatures | _(none)_ | **Self-hosted OpenSign on an Azure VM (`esig.skintyee.ca`); sealed PDFs handed off to SharePoint (system of record)** | Planned (ADR-17); runbook + cost record written; pending VM provision + 2 go/no-go checks (API access, Entra OIDC) |
+| Shared passwords | _(1Password Teams — earlier lean)_ | **Self-hosted Vaultwarden on Container Apps (`vault.skintyee.ca`) + official Bitwarden clients; zero-knowledge, reuse `skintyee-prod-pg`** | Planned (ADR-18, changed from 1Password); deploy guide + pipeline written; pending Postgres db + Azure Files volume + custom domain + first invites |

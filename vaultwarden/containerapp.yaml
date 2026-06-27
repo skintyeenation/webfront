@@ -1,0 +1,65 @@
+# Vaultwarden Container App spec — used ONCE to create the app:
+#   az containerapp create -g skintyee-prod-rg -n vaultwarden \
+#     --environment skintyee-prod-env --yaml containerapp.yaml
+# Thereafter, deploy-vaultwarden.yml rolls the image + syncs secrets/env.
+#
+# Prereqs (see README): the `vaultwarden` Postgres db, and the `vwdata` Azure
+# Files storage registered on the managed environment (az containerapp env
+# storage set ...). Secrets below are placeholders — real values are pushed with
+# `az containerapp secret set` (never commit them).
+#
+# Single replica on purpose: Vaultwarden keeps RSA keys, attachments, Sends and
+# the icon cache on the local /data mount and pushes live notifications over a
+# websocket — running one warm instance avoids multi-instance /data + WS issues.
+
+location: canadacentral
+name: vaultwarden
+type: Microsoft.App/containerApps
+properties:
+  managedEnvironmentId: /subscriptions/8d847916-9aeb-4e92-ba2f-2c3579826c0e/resourceGroups/skintyee-prod-rg/providers/Microsoft.App/managedEnvironments/skintyee-prod-env
+  configuration:
+    activeRevisionsMode: Single
+    ingress:
+      external: true
+      targetPort: 80
+      transport: auto
+      traffic:
+        - latestRevision: true
+          weight: 100
+    secrets:
+      - name: database-url   # set via: az containerapp secret set ... database-url=...
+        value: ''
+      - name: admin-token    # argon2/PHC hash for the /admin panel
+        value: ''
+  template:
+    containers:
+      - image: vaultwarden/server:1.32.7
+        name: vaultwarden
+        resources:
+          cpu: 0.5
+          memory: 1.0Gi
+        env:
+          - name: DOMAIN
+            value: https://vault.skintyee.ca
+          - name: SIGNUPS_ALLOWED
+            value: 'false'
+          - name: INVITATIONS_ALLOWED
+            value: 'true'
+          - name: ROCKET_PORT
+            value: '80'
+          - name: DATA_FOLDER
+            value: /data
+          - name: DATABASE_URL
+            secretRef: database-url
+          - name: ADMIN_TOKEN
+            secretRef: admin-token
+        volumeMounts:
+          - volumeName: data
+            mountPath: /data
+    scale:
+      minReplicas: 1
+      maxReplicas: 1
+    volumes:
+      - name: data
+        storageType: AzureFile
+        storageName: vwdata
