@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { publicApi, safe } from '@/lib/api';
 import { RoleCard } from '@/components/cards';
+import { GovernanceOrgChart } from '@/components/GovernanceOrgChart';
 
 export const revalidate = 60;
 export const metadata: Metadata = { title: 'Governance' };
@@ -45,6 +46,11 @@ export default async function GovernancePage() {
           <p className="text-sm text-ink/60">Chief, Skin Tyee Nation</p>
         </div>
       </section>
+
+      <h2 className="mt-10 text-xl font-bold">Leadership structure</h2>
+      <div className="mt-4">
+        <GovernanceOrgChart roster={roster} />
+      </div>
 
       <h2 className="mt-10 text-xl font-bold">Chief, Council &amp; Management</h2>
       <div className="mt-4 grid gap-4 md:grid-cols-2">

@@ -19,10 +19,13 @@ export const PUBLIC_NOTIFICATION_CATEGORIES = [
 // bandGroups. The '-m365' variants are mailing lists, NOT roster designators.
 // Ordered by precedence — first match wins for the displayed role label.
 const ROSTER_GROUPS: Array<{ slug: string; label: string }> = [
-  { slug: 'chief',        label: 'Chief' },
-  { slug: 'council',      label: 'Council' },
-  { slug: 'band-manager', label: 'Band Manager' },
-  { slug: 'management',   label: 'Management' },
+  { slug: 'chief',         label: 'Chief' },
+  { slug: 'band-manager',  label: 'Band Manager' },
+  { slug: 'council',       label: 'Council' },
+  { slug: 'council-m365',  label: 'Council' },
+  { slug: 'management',    label: 'Management' },
+  { slug: 'management-m365', label: 'Management' },
+  { slug: 'staff',         label: 'Staff' },
 ];
 
 // bandGroups may arrive as an array (mapped) or a CSV string (raw row).
