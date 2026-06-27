@@ -4,7 +4,7 @@ import './globals.css';
 import { getSession, onboardingUrl } from '@/lib/session';
 import { ResourceLinks } from '@/components/ResourceLinks';
 import { SiteFooter } from '@/components/SiteFooter';
-import { SignInButton } from '@/components/SignInButton';
+import { HeaderNav } from '@/components/HeaderNav';
 
 export const metadata: Metadata = {
   title: {
@@ -13,14 +13,6 @@ export const metadata: Metadata = {
   },
   description: 'Skin Tyee First Nation — community news, events, programs, and governance.',
 };
-
-const NAV = [
-  { href: '/projects', label: 'Projects' },
-  { href: '/programs', label: 'Programs' },
-  { href: '/governance', label: 'Governance' },
-  { href: '/funding', label: 'Funding' },
-  { href: '/jobs', label: 'Jobs' },
-];
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
@@ -35,17 +27,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <Link href="/" className="brand flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/skintyee-logo.png" alt="" width={30} height={30} className="rounded" />
-            <span><span className="text-primary">Skin</span> <span className="text-[#0a5ba0]">Tyee</span> <span className="text-[#5b5b5b]">First Nation</span></span>
+            <span>
+              <span className="text-primary">Skin</span> <span className="text-[#0a5ba0]">Tyee</span>
+              <span className="hidden text-[#5b5b5b] sm:inline"> First Nation</span>
+            </span>
           </Link>
-          <nav className="flex flex-wrap items-center gap-4 text-sm">
-            {NAV.map((n) => (
-              <Link key={n.href} href={n.href} className="text-ink/70 hover:text-primary">{n.label}</Link>
-            ))}
-            {session && (
-              <Link href={onboardingUrl()} className="font-semibold text-accent">Onboarding</Link>
-            )}
-            {(authEnabled || session) && <SignInButton signedIn={!!session} />}
-          </nav>
+          <HeaderNav signedIn={!!session} authEnabled={authEnabled} onboardingUrl={onboardingUrl()} />
           </div>
         </header>
         <main className="container">{children}</main>
