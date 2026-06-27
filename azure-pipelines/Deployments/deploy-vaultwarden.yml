@@ -93,9 +93,12 @@ jobs:
             # storage def — no hardcoded names.
             echo "▸ applying Skin Tyee branding…"
             bash vaultwarden/branding/build.sh
-            read VW_SA VW_SHARE < <(az containerapp env storage show \
-              -g "$AZURE_RG" -n "$VW_ENV" --storage-name "$VW_STORAGE" \
-              --query "[properties.azureFile.accountName, properties.azureFile.shareName]" -o tsv)
+            # NB: query each value separately — `-o tsv` renders a [a,b] array
+            # projection on two lines, so `read VW_SA VW_SHARE` would drop the share.
+            VW_SA=$(az containerapp env storage show -g "$AZURE_RG" -n "$VW_ENV" \
+              --storage-name "$VW_STORAGE" --query "properties.azureFile.accountName" -o tsv)
+            VW_SHARE=$(az containerapp env storage show -g "$AZURE_RG" -n "$VW_ENV" \
+              --storage-name "$VW_STORAGE" --query "properties.azureFile.shareName" -o tsv)
             VW_SA_KEY=$(az storage account keys list -g "$AZURE_RG" -n "$VW_SA" --query "[0].value" -o tsv)
             for d in templates templates/scss; do
               az storage directory create --account-name "$VW_SA" --account-key "$VW_SA_KEY" \
