@@ -55,7 +55,8 @@ export default async function Home() {
             <span className="italic text-white/70">(wet-SOO-wet-en)</span> community on the shores of Francois
             Lake in northern British Columbia. For <em>countless generations</em> we have
             stewarded these lands and waters and carried forward the Witsuwit&apos;en language, laws, and way of
-            life — honouring our ancestors and building for the generations still to come.
+            life<span className="sm:hidden">.</span>
+            <span className="hidden sm:inline"> — honouring our ancestors and building for the generations still to come.</span>
           </>
         }
       />
