@@ -3,6 +3,7 @@ import Link from 'next/link';
 import './globals.css';
 import { getSession, onboardingUrl } from '@/lib/session';
 import { ResourceLinks } from '@/components/ResourceLinks';
+import { SiteFooter } from '@/components/SiteFooter';
 import { SignInButton } from '@/components/SignInButton';
 
 export const metadata: Metadata = {
@@ -47,7 +48,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </header>
         <main className="container">{children}</main>
         <ResourceLinks />
-        <footer className="site-footer">© {new Date().getFullYear()} Skin Tyee First Nation</footer>
+        <SiteFooter />
       </body>
     </html>
   );

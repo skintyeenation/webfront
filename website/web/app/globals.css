@@ -57,6 +57,15 @@ article img { max-width: 100%; height: auto; }
   font-size: 0.9rem;
 }
 
+/* Rights & Title — full-bleed coloured band (matches the Major Projects band). */
+.rt-band {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  background: linear-gradient(135deg, #00343f 0%, #014e5e 100%);
+  color: #fff;
+  padding: 2.25rem 0;
+}
+
 /* Parallax band (Major Projects) — full-bleed, fixed background scrolls slower. */
 .parallax {
   position: relative;
