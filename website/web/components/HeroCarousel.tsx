@@ -17,7 +17,8 @@ export function HeroCarousel({ slides }: { slides: Slide[] }) {
   return (
     <Swiper
       modules={[Autoplay, Pagination]}
-      autoplay={{ delay: 5000, disableOnInteraction: false }}
+      autoplay={{ delay: 8000, disableOnInteraction: false }}
+      speed={900}
       pagination={{ clickable: true }}
       loop={slides.length > 1}
       className="h-[360px] rounded-xl overflow-hidden"

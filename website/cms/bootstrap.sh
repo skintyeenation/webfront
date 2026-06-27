@@ -87,6 +87,7 @@ seed_news 'elders-gathering-language' "Elders Gathering Celebrates Witsuwit'en L
 seed_news 'broadband-expansion' 'Broadband Expansion Connects More Homes' 'High-speed internet reaches additional households.' '<p>High-speed internet reaches additional households as the connectivity project continues.</p>'
 seed_news 'community-garden-volunteers' 'Community Garden Project Seeks Volunteers' 'Lend a hand at the community garden, all ages welcome.' '<p>Lend a hand at the community garden. No experience needed, all ages welcome.</p>'
 seed_news 'road-maintenance-southbank' 'Road Maintenance Notice: Southbank Road' 'Expect short delays next week as crews complete repairs.' '<p>Expect short delays next week as crews complete seasonal grading and repairs on Southbank Road.</p>'
+seed_news 'language-nest-program' "Witsuwit'en Language Nest Welcomes New Learners" 'More young children are learning the language this fall.' "<p>The Witsuwit'en language nest welcomes more young learners this fall as the program expands.</p>"
 
 echo ""
 echo "==> CMS ready"

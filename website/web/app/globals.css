@@ -32,7 +32,7 @@ a:hover { text-decoration: underline; }
 }
 /* Logo + nav constrained to the content width (matches the page container). */
 .site-header-inner {
-  max-width: 1140px;
+  max-width: 1280px;
   margin: 0 auto;
   display: flex;
   align-items: center;
@@ -43,7 +43,7 @@ a:hover { text-decoration: underline; }
 .site-header .brand { font-weight: 700; font-size: 1.15rem; color: var(--ink); }
 .site-header nav a { margin-left: 1rem; color: var(--muted); }
 
-.container { max-width: 1140px; margin: 0 auto; padding: 2rem 1.25rem; }
+.container { max-width: 1280px; margin: 0 auto; padding: 2rem 1.25rem; }
 /* Keep long-form text readable even though the container is wide for the home grid. */
 .container article { max-width: 760px; }
 
@@ -159,6 +159,17 @@ article img { max-width: 100%; height: auto; }
   .fc .fc-button { padding: 0.3rem 0.55rem; font-size: 0.78rem; }
   .fc .fc-daygrid-day-frame { min-height: 3.25rem; }
 }
+
+/* Swiper pagination dots — white, bigger, with an outlined active dot so they
+   stay visible over photos. */
+.swiper {
+  --swiper-pagination-color: #fff;
+  --swiper-pagination-bullet-inactive-color: #fff;
+  --swiper-pagination-bullet-inactive-opacity: 0.6;
+  --swiper-pagination-bullet-size: 11px;
+}
+.swiper-pagination-bullet { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.55); }
+.swiper-pagination-bullet-active { outline: 2px solid #fff; outline-offset: 3px; }
 
 /* Rights & Title — full-bleed coloured band (matches the Major Projects band). */
 .rt-band {

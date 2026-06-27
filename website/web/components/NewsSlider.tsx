@@ -24,7 +24,8 @@ export function NewsSlider({ articles }: { articles: NewsArticle[] }) {
   return (
     <Swiper
       modules={[Autoplay, Pagination]}
-      autoplay={{ delay: 5000, disableOnInteraction: false }}
+      autoplay={{ delay: 8000, disableOnInteraction: false }}
+      speed={900}
       pagination={{ clickable: true }}
       loop={articles.length > 1}
       className="h-[400px] overflow-hidden rounded-xl"

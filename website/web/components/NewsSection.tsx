@@ -4,15 +4,26 @@ import { NOTIFICATION_COLORS } from '@/lib/constants';
 import { NewsSlider, type NewsArticle } from './NewsSlider';
 
 // News section — content comes from the WordPress 'news' category (REST). A
-// mini-hero slider rotates the first 10 articles (primary); two more render as
-// sub-article cards. Images are stable placeholders (Picsum by slug) until the
-// posts carry featured media.
+// full-width mini-hero slider rotates the first 10 articles; two more render as
+// static cards below it. Images are curated per article (topical), with a
+// Picsum fallback by slug.
+const U = (id: string) => `https://images.unsplash.com/photo-${id}?w=900&h=600&fit=crop&q=70`;
+// Verified topical photos (reused from elsewhere on the site). The rest fall
+// back to a stable Picsum image until vetted.
+const IMAGES: Record<string, string> = {
+  'new-housing-units-southbank': U('1728344430621-f6b58ef4a108'), // modular home
+  'annual-salmon-harvest': U('1616459943793-f4fca51b6647'), // salmon run
+  'forestry-partnership-agreement': U('1634672652995-ee7525bce595'), // lumber mill
+  'broadband-expansion': U('1744679596626-1699b156942f'), // cell tower
+};
 const pic = (seed: string) => `https://picsum.photos/seed/${seed}/900/600`;
+const imageFor = (slug: string) => IMAGES[slug] ?? pic(slug);
+
 const fmt = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' });
 const catColor = (c: string) => NOTIFICATION_COLORS[c] ?? '#5C6BC0';
 
 export async function NewsSection() {
-  const posts = await getPostsByCategory('news', 12);
+  const posts = await getPostsByCategory('news', 13);
   if (!posts.length) return null;
 
   const articles: NewsArticle[] = posts.map((p) => ({
@@ -20,33 +31,33 @@ export async function NewsSection() {
     excerpt: stripHtml(p.excerpt.rendered),
     date: p.date,
     category: 'News',
-    image: pic(p.slug),
+    image: imageFor(p.slug),
     href: `/posts/${p.slug}`,
   }));
   const primary = articles.slice(0, 10);
-  const subs = articles.slice(10, 12);
+  const cards = articles.slice(10, 13);
 
   return (
     <section>
       <h2 className="text-xl font-bold">News</h2>
       <p className="mt-1 text-ink/70">Latest from the Nation.</p>
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-3">
-        {/* Primary — mini-hero slider rotating 10 articles */}
-        <div className="lg:col-span-2">
-          <NewsSlider articles={primary} />
-        </div>
+      {/* Primary — full-width mini-hero slider rotating 10 articles */}
+      <div className="mt-5">
+        <NewsSlider articles={primary} />
+      </div>
 
-        {/* Two sub articles */}
-        <div className="grid gap-5 lg:grid-rows-2">
-          {subs.map((a) => (
+      {/* Two static news cards below the slider */}
+      {cards.length > 0 && (
+        <div className="mt-5 grid gap-5 sm:grid-cols-3">
+          {cards.map((a) => (
             <Link
               key={a.href}
               href={a.href}
-              className="group grid grid-cols-[38%_1fr] overflow-hidden rounded-xl border border-[var(--line)] transition hover:shadow-md"
+              className="group overflow-hidden rounded-xl border border-[var(--line)] transition hover:shadow-md"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={a.image} alt="" className="h-full min-h-[110px] w-full object-cover" />
+              <img src={a.image} alt="" className="h-44 w-full object-cover" />
               <div className="p-4">
                 <span className="text-xs font-bold uppercase tracking-wide" style={{ color: catColor(a.category) }}>
                   {a.category}
@@ -58,7 +69,7 @@ export async function NewsSection() {
             </Link>
           ))}
         </div>
-      </div>
+      )}
     </section>
   );
 }

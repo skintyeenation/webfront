@@ -25,7 +25,7 @@ export function MajorProjectsParallax() {
 
   return (
     <section className="parallax">
-      <div className="mx-auto max-w-[1140px]">
+      <div className="mx-auto max-w-[1280px]">
         <div className="flex items-end justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold text-white">Major Projects</h2>
