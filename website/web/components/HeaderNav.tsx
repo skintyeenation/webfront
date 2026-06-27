@@ -2,18 +2,19 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { Building2, LayoutGrid, Landmark, Coins, Briefcase, ClipboardCheck, type LucideIcon } from 'lucide-react';
 import { SignInButton } from './SignInButton';
 
-const NAV = [
-  { href: '/projects', label: 'Projects' },
-  { href: '/programs', label: 'Programs' },
-  { href: '/governance', label: 'Governance' },
-  { href: '/funding', label: 'Funding' },
-  { href: '/jobs', label: 'Jobs' },
+const NAV: { href: string; label: string; Icon: LucideIcon }[] = [
+  { href: '/projects', label: 'Projects', Icon: Building2 },
+  { href: '/programs', label: 'Programs', Icon: LayoutGrid },
+  { href: '/governance', label: 'Governance', Icon: Landmark },
+  { href: '/funding', label: 'Funding', Icon: Coins },
+  { href: '/jobs', label: 'Jobs', Icon: Briefcase },
 ];
 
-// Responsive header nav: a horizontal row on md+, a hamburger-toggled dropdown
-// on mobile (replaces the flex-wrap rows).
+// Responsive header nav: horizontal row on md+, a full-height hamburger menu on
+// mobile. Labels carry icons.
 export function HeaderNav({
   signedIn,
   authEnabled,
@@ -28,14 +29,14 @@ export function HeaderNav({
 
   const links = (
     <>
-      {NAV.map((n) => (
-        <Link key={n.href} href={n.href} onClick={close} className="text-ink/70 hover:text-primary">
-          {n.label}
+      {NAV.map(({ href, label, Icon }) => (
+        <Link key={href} href={href} onClick={close} className="flex items-center gap-2 text-ink/70 hover:text-primary">
+          <Icon size={18} aria-hidden="true" /> {label}
         </Link>
       ))}
       {signedIn && (
-        <Link href={onboardingUrl} onClick={close} className="font-semibold text-accent">
-          Onboarding
+        <Link href={onboardingUrl} onClick={close} className="flex items-center gap-2 font-semibold text-accent">
+          <ClipboardCheck size={18} aria-hidden="true" /> Onboarding
         </Link>
       )}
       {(authEnabled || signedIn) && <SignInButton signedIn={signedIn} />}
@@ -48,7 +49,7 @@ export function HeaderNav({
 
       <button
         type="button"
-        className="-mr-1 inline-flex items-center justify-center rounded p-2 text-ink md:hidden"
+        className="relative z-50 -mr-1 inline-flex items-center justify-center rounded p-2 text-ink md:hidden"
         aria-label="Toggle menu"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
@@ -59,7 +60,7 @@ export function HeaderNav({
       </button>
 
       {open && (
-        <nav className="absolute inset-x-0 top-full flex flex-col gap-3 border-b border-[var(--line)] bg-white p-5 text-base shadow-lg md:hidden">
+        <nav className="fixed inset-0 z-40 flex flex-col gap-6 bg-white px-6 pb-10 pt-24 text-xl md:hidden">
           {links}
         </nav>
       )}

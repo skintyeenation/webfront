@@ -89,6 +89,18 @@ article img { max-width: 100%; height: auto; }
   from { background-position: center 0%; }
   to { background-position: center 100%; }
 }
+/* Mobile: use the portrait snapshot so cover fills a phone without over-zoom or
+   clipping the bottom. */
+@media (max-width: 767px) {
+  .page-hero {
+    background-image:
+      linear-gradient(180deg, rgba(0, 30, 40, 0.12) 0%, rgba(0, 30, 40, 0.72) 100%),
+      url('/territory-snapshot-mobile.jpg');
+    background-size: cover;
+    background-position: center;
+    animation: none;
+  }
+}
 .page-hero--dismissed {
   transform: translateY(-100%);
   opacity: 0;
@@ -135,6 +147,18 @@ article img { max-width: 100%; height: auto; }
 }
 .program-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18); }
 .program-card h3 { color: #fff; }
+
+/* Community calendar (FullCalendar) — capitalized buttons + icons, less squashed on mobile. */
+.fc .fc-button { text-transform: capitalize; }
+.fc .fc-toolbar.fc-header-toolbar { flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+.fc .fc-today-button::before { content: '📅 '; }
+.fc .fc-dayGridMonth-button::before { content: '▦ '; }
+.fc .fc-listMonth-button::before { content: '☰ '; }
+@media (max-width: 640px) {
+  .fc .fc-toolbar-title { font-size: 1.05rem; }
+  .fc .fc-button { padding: 0.3rem 0.55rem; font-size: 0.78rem; }
+  .fc .fc-daygrid-day-frame { min-height: 3.25rem; }
+}
 
 /* Rights & Title — full-bleed coloured band (matches the Major Projects band). */
 .rt-band {

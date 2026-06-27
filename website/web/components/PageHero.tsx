@@ -37,6 +37,7 @@ export function PageHero({ title, subtitle }: { title: string; subtitle?: ReactN
               className="mb-12 mx-auto block h-32 w-auto md:h-44"
               style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.85)) drop-shadow(0 0 5px rgba(0,0,0,0.6))' }}
             />
+            <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-white/80 md:text-base">Welcome to</p>
             <h1 className="text-3xl font-bold text-white drop-shadow-md md:text-6xl">{title}</h1>
             {subtitle && <p className="mt-10 text-base text-white/90 drop-shadow md:text-lg">{subtitle}</p>}
           </div>
