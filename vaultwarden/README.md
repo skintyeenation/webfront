@@ -54,14 +54,19 @@ Setup on each: on the login screen → **Settings / Self-hosted** → server URL
 
 ## One-time setup
 
-Scripted + idempotent — run [`setup-vaultwarden.sh`](setup-vaultwarden.sh):
+Scripted + idempotent — run via pnpm from the repo root
+([`setup-vaultwarden.sh`](setup-vaultwarden.sh)):
 
 ```bash
-cd vaultwarden
-PG_PASSWORD='<skintyee-prod-pg admin password>' ./setup-vaultwarden.sh
-#   --dry-run      print the az commands without running them
-#   --skip-domain  skip the vault.skintyee.ca hostname add/bind
+pnpm vaultwarden:setup                  # provision everything
+pnpm vaultwarden:setup:dry              # preview the az commands (no changes)
+pnpm vaultwarden:setup -- --skip-domain # skip the vault.skintyee.ca hostname bind
 ```
+
+**No extra env needed** — the Postgres password is reused from `api-prod`'s
+existing `database-url` Container App secret (already in Azure), with the db name
+swapped to `vaultwarden`. Override with `PG_PASSWORD=… pnpm vaultwarden:setup` only
+if you want a different db user. Just be logged into `az` with rights on the RG.
 
 It ensures, in order: the **`vaultwarden` Postgres db**, a **Storage account +
 Azure Files share** for `/data` registered on the managed environment, the
