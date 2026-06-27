@@ -35,7 +35,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <Link href="/" className="brand flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/skintyee-logo.png" alt="" width={30} height={30} className="rounded" />
-            <span><span className="text-primary">Skin</span> <span className="text-[#0a5ba0]">Tyee</span> First Nation</span>
+            <span><span className="text-primary">Skin</span> <span className="text-[#0a5ba0]">Tyee</span> <span className="text-[#5b5b5b]">First Nation</span></span>
           </Link>
           <nav className="flex flex-wrap items-center gap-4 text-sm">
             {NAV.map((n) => (
