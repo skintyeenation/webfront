@@ -28,6 +28,8 @@ export function PageHero({ title, subtitle }: { title: string; subtitle?: string
       <div className="page-hero-inner">
         <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
           <div className="max-w-2xl">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/skintyee-logo.png" alt="Skin Tyee Nation" width={96} height={85} className="mb-4 h-20 w-auto drop-shadow-md md:h-24" />
             <h1 className="text-4xl font-bold text-white drop-shadow-md md:text-6xl">{title}</h1>
             {subtitle && <p className="mt-4 text-lg text-white/90 drop-shadow">{subtitle}</p>}
           </div>
