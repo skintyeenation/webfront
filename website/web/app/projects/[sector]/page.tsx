@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { MAJOR_PROJECT_SECTORS } from '@/lib/constants';
 import { getPostsByCategory } from '@/lib/wp';
 import { PostTeaser } from '@/components/cards';
+import { projectImage } from '@/lib/projectImages';
 import { ProjectReferralCta } from '@/components/ProjectReferralCta';
 
 export const revalidate = 60;
@@ -28,7 +29,7 @@ export default async function SectorPage({ params }: { params: { sector: string 
       <p className="mt-1 text-ink/70">Projects in {sector.name}.</p>
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         {posts.length ? (
-          posts.map((p) => <PostTeaser key={p.id} p={p} />)
+          posts.map((p) => <PostTeaser key={p.id} p={p} image={projectImage(p.slug)} />)
         ) : (
           <p className="text-ink/60">Projects will be posted here.</p>
         )}

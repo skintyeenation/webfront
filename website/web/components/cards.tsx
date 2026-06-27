@@ -138,11 +138,17 @@ export function ProgramCard({ p }: { p: { slug: string; name: string; desc: stri
 }
 
 // A WordPress post teaser (used by Projects + Program category pages).
-export function PostTeaser({ p, basePath = '/posts' }: { p: { id: number; slug: string; title: { rendered: string }; excerpt: { rendered: string } }; basePath?: string }) {
+export function PostTeaser({ p, basePath = '/posts', image }: { p: { id: number; slug: string; title: { rendered: string }; excerpt: { rendered: string } }; basePath?: string; image?: string }) {
   return (
-    <Link href={`${basePath}/${p.slug}`} className="block rounded-lg border border-[var(--line)] p-4 transition hover:border-primary">
-      <h3 className="font-semibold text-ink" dangerouslySetInnerHTML={{ __html: p.title.rendered }} />
-      <div className="mt-1 text-sm text-ink/70" dangerouslySetInnerHTML={{ __html: p.excerpt.rendered }} />
+    <Link href={`${basePath}/${p.slug}`} className="flex gap-3 rounded-lg border border-[var(--line)] p-4 transition hover:border-primary">
+      {image && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={image} alt="" width={64} height={64} loading="lazy" className="h-16 w-16 shrink-0 rounded-md object-cover" />
+      )}
+      <div className="min-w-0">
+        <h3 className="font-semibold text-ink" dangerouslySetInnerHTML={{ __html: p.title.rendered }} />
+        <div className="mt-1 text-sm text-ink/70" dangerouslySetInnerHTML={{ __html: p.excerpt.rendered }} />
+      </div>
     </Link>
   );
 }

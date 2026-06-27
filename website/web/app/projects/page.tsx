@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { MAJOR_PROJECT_SECTORS } from '@/lib/constants';
 import { getPostsByCategory } from '@/lib/wp';
 import { PostTeaser } from '@/components/cards';
+import { projectImage } from '@/lib/projectImages';
 import { ProjectReferralCta } from '@/components/ProjectReferralCta';
 
 export const revalidate = 60;
@@ -40,7 +41,7 @@ export default async function ProjectsPage() {
             {s.posts.length ? (
               <div className="mt-3 grid gap-4 md:grid-cols-2">
                 {s.posts.slice(0, SHOWN).map((p) => (
-                  <PostTeaser key={p.id} p={p} />
+                  <PostTeaser key={p.id} p={p} image={projectImage(p.slug)} />
                 ))}
               </div>
             ) : (
