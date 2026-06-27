@@ -57,6 +57,18 @@ article img { max-width: 100%; height: auto; }
   font-size: 0.9rem;
 }
 
+/* Program cards — grey gradient background w/ icon (home + /programs page). */
+.program-card {
+  display: block;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  color: #fff;
+  background: linear-gradient(135deg, #4a4f55 0%, #2b2f33 100%);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.program-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18); }
+.program-card h3 { color: #fff; }
+
 /* Rights & Title — full-bleed coloured band (matches the Major Projects band). */
 .rt-band {
   width: 100vw;

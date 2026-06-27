@@ -1,6 +1,16 @@
 import Link from 'next/link';
 import type { AppNotification, BandMeeting, CommunityEvent, Expenditure } from '@skintyee/models';
 import { NOTIFICATION_COLORS, CAD } from '@/lib/constants';
+import { House, GraduationCap, Trees, HeartHandshake, Baby, HeartPulse, type LucideIcon } from 'lucide-react';
+
+const PROGRAM_ICONS: Record<string, LucideIcon> = {
+  housing: House,
+  education: GraduationCap,
+  'lands-economic-development': Trees,
+  social: HeartHandshake,
+  'child-family-services': Baby,
+  health: HeartPulse,
+};
 
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -91,10 +101,12 @@ export function ExpenditureCard({ x }: { x: Expenditure }) {
 }
 
 export function ProgramCard({ p }: { p: { slug: string; name: string; desc: string } }) {
+  const Icon = PROGRAM_ICONS[p.slug] ?? House;
   return (
-    <Link href={`/programs/${p.slug}`} className="block rounded-lg border border-[var(--line)] p-5 transition hover:border-primary">
-      <h3 className="font-semibold text-ink">{p.name}</h3>
-      <p className="mt-1 text-sm text-ink/70">{p.desc}</p>
+    <Link href={`/programs/${p.slug}`} className="program-card">
+      <Icon size={28} strokeWidth={1.75} />
+      <h3 className="mt-3 text-lg font-semibold">{p.name}</h3>
+      <p className="mt-1 text-sm text-white/80">{p.desc}</p>
     </Link>
   );
 }

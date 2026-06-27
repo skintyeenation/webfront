@@ -8,6 +8,7 @@ import { CommunityCalendar, type CalEvent } from '@/components/CommunityCalendar
 import { NotificationItem, EventCard, MeetingItem } from '@/components/cards';
 import { OnboardingCta } from '@/components/OnboardingCta';
 import { AppDownloadCta } from '@/components/AppDownloadCta';
+import { ProgramsSection } from '@/components/ProgramsSection';
 
 export const revalidate = 60;
 
@@ -89,6 +90,8 @@ export default async function Home() {
           </section>
         </aside>
       </div>
+
+      <ProgramsSection />
 
       <MajorProjectsParallax projects={projects} />
 
