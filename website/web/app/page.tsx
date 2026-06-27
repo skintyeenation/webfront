@@ -9,6 +9,7 @@ import { CommunityCalendar, type CalEvent } from '@/components/CommunityCalendar
 import { NotificationItem, EventCard, MeetingItem } from '@/components/cards';
 import { OnboardingCta } from '@/components/OnboardingCta';
 import { AppDownloadCta } from '@/components/AppDownloadCta';
+import { JobsCta } from '@/components/JobsCta';
 import { ProgramsSection } from '@/components/ProgramsSection';
 import { ResortsSection } from '@/components/ResortsSection';
 import { PageHero } from '@/components/PageHero';
@@ -118,6 +119,8 @@ export default async function Home() {
       <MajorProjectsParallax />
 
       <ResortsSection />
+
+      <JobsCta />
 
       <div className="py-12">
         <AppDownloadCta />
