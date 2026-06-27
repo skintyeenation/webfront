@@ -24,7 +24,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         <header className="site-header">
           <div className="site-header-inner">
-          <Link href="/" className="brand flex items-center gap-2">
+          <Link href="/" className="brand relative z-50 flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/skintyee-logo.png" alt="" width={30} height={30} className="rounded" />
             <span className="flex flex-col leading-none">
