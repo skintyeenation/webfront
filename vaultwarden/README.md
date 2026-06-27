@@ -203,8 +203,16 @@ adding staff over time only grows.
 - Even with 1Password's nonprofit discount, it stays a **recurring per-user** cost
   that scales with headcount; Vaultwarden stays flat at ~\$0 regardless of users.
 
+## Org setup (Skin Tyee organization + groups)
+
+The org is created by a **human** (zero-knowledge — owner master password), then
+collections/groups/access are built from the catalog. Human runbook:
+[`org-setup.md`](org-setup.md); scripted shortcut for the structure:
+[`setup-org.sh`](setup-org.sh) (after the org + API key exist).
+
 ## Deferred — Entra integration
 
 Two layers, both deferred (start invite-only + master password): **Directory
 Connector** sync (members/groups from Entra) first, **OIDC SSO** later. Full
-runbook + ADR: [`entra-sync.md`](entra-sync.md) and ADR-19.
+runbook + ADR: [`entra-sync.md`](entra-sync.md), the connector scaffold in
+[`directory-connector/`](directory-connector/), and ADR-19.

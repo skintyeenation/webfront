@@ -41,6 +41,14 @@ Vaultwarden Groups → Collections; an offboard in Entra removes them.
 Apps Job** (cron, e.g. hourly) in `skintyee-prod-rg` — mirrors the
 deploy/cron pattern; creds from Container App secrets / the variable group.
 
+**Scaffold (in this repo):** [`directory-connector/Dockerfile`](directory-connector/Dockerfile)
++ [`directory-connector/sync.sh`](directory-connector/sync.sh) +
+[`../azure-pipelines/Deployments/deploy-directory-connector.yml`](../azure-pipelines/Deployments/deploy-directory-connector.yml)
+(builds the image, creates the scheduled `vaultwarden-dirsync` job). **Prereqs:**
+the org + **org API key** from [`org-setup.md`](org-setup.md), a Graph app
+(`Directory.Read.All`), and a seeded bwdc `data.json` on the job's Files volume.
+All deferred — verify `bwdc` config on first run.
+
 **Group → Collection mapping** (manage Collections once; sync keeps Group
 *membership* current). Mirror the security-group catalog
 (`docs/365/groups.md` / `app/src/.../skintyee-groups.ts`):
