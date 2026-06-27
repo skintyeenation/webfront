@@ -62,7 +62,7 @@ export function HeaderNav({
       {open && (
         <nav className="fixed inset-0 z-40 flex flex-col bg-white md:hidden">
           {/* header-height zone with the same bottom border as the site header */}
-          <div className="h-[63px] shrink-0 border-b border-[var(--line)]" />
+          <div className="h-[74px] shrink-0 border-b border-[var(--line)]" />
           <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-6 py-8 text-xl">{links}</div>
         </nav>
       )}
