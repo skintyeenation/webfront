@@ -23,6 +23,9 @@ const NAV = [
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
+  // Only offer sign-in once Entra is actually configured — otherwise the OAuth
+  // redirect lands on NextAuth's unstyled error page.
+  const authEnabled = !!process.env.AUTH_MICROSOFT_ENTRA_ID_ID;
   return (
     <html lang="en">
       <body>
@@ -39,7 +42,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             {session && (
               <Link href={onboardingUrl()} className="font-semibold text-accent">Onboarding</Link>
             )}
-            <SignInButton signedIn={!!session} />
+            {(authEnabled || session) && <SignInButton signedIn={!!session} />}
           </nav>
         </header>
         <main className="container">{children}</main>
