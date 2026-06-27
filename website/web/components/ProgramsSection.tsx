@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { PROGRAM_AREAS } from '@/lib/constants';
 import { ProgramCard } from '@/components/cards';
 
@@ -11,6 +12,9 @@ export function ProgramsSection() {
       <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {PROGRAM_AREAS.map((p) => <ProgramCard key={p.slug} p={p} />)}
       </div>
+      <Link href="/programs" className="mt-5 inline-block font-semibold text-primary hover:underline">
+        All programs →
+      </Link>
     </section>
   );
 }

@@ -8,13 +8,21 @@ import { NewsSlider, type NewsArticle } from './NewsSlider';
 // static cards below it. Images are curated per article (topical), with a
 // Picsum fallback by slug.
 const U = (id: string) => `https://images.unsplash.com/photo-${id}?w=900&h=600&fit=crop&q=70`;
-// Verified topical photos (reused from elsewhere on the site). The rest fall
-// back to a stable Picsum image until vetted.
+// Curated, visually-verified topical photo per article (slug -> Unsplash id).
 const IMAGES: Record<string, string> = {
+  'band-council-election-results': U('1517048676732-d65bc937f952'), // meeting
   'new-housing-units-southbank': U('1728344430621-f6b58ef4a108'), // modular home
   'annual-salmon-harvest': U('1616459943793-f4fca51b6647'), // salmon run
+  'water-system-upgrade-milestone': U('1533077162801-86490c593afb'), // water treatment plant
+  'youth-culture-camp': U('1606092195730-5d7b9af1efc5'), // kids outdoors
+  'health-centre-wellness-programs': U('1631507623121-eaaba8d4e7dc'), // medical clinic
+  'wildfire-preparedness-meeting': U('1615092296061-e2ccfeb2f3d6'), // wildfire
   'forestry-partnership-agreement': U('1634672652995-ee7525bce595'), // lumber mill
+  'elders-gathering-language': U('1530244534845-4a0c319f41e3'), // powwow regalia
   'broadband-expansion': U('1744679596626-1699b156942f'), // cell tower
+  'community-garden-volunteers': U('1515150144380-bca9f1650ed9'), // watering the garden
+  'road-maintenance-southbank': U('1503708928676-1cb796a0891e'), // road construction
+  'language-nest-program': U('1554721299-e0b8aa7666ce'), // children reading
 };
 const pic = (seed: string) => `https://picsum.photos/seed/${seed}/900/600`;
 const imageFor = (slug: string) => IMAGES[slug] ?? pic(slug);
@@ -70,6 +78,10 @@ export async function NewsSection() {
           ))}
         </div>
       )}
+
+      <Link href="/news" className="mt-5 inline-block font-semibold text-primary hover:underline">
+        More news →
+      </Link>
     </section>
   );
 }

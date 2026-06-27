@@ -61,4 +61,14 @@ export async function getPostsByCategory(categorySlug: string, limit = 12): Prom
   );
 }
 
-export const stripHtml = (s: string) => s.replace(/<[^>]*>/g, '').trim();
+const NAMED_ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
+
+// Strip tags AND decode HTML entities — WordPress returns texturized content
+// (e.g. Witsuwit&#8217;en), and JSX renders entities literally if left encoded.
+export const stripHtml = (s: string) =>
+  s
+    .replace(/<[^>]*>/g, '')
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(parseInt(n, 10)))
+    .replace(/&([a-zA-Z]+);/g, (m, name) => NAMED_ENTITIES[name.toLowerCase()] ?? m)
+    .trim();
