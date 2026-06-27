@@ -92,7 +92,9 @@ export default async function Home() {
 
       <MajorProjectsParallax projects={projects} />
 
-      <AppDownloadCta />
+      <div className="py-12">
+        <AppDownloadCta />
+      </div>
     </div>
   );
 }
