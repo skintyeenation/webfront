@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Construction } from 'lucide-react';
+import { FEATURES } from '@/lib/featureFlags';
 
 // Under-construction / test-data disclaimer. Shows once per session right after
 // the intro hero is dismissed (listens for the 'skintyee:hero-dismissed' event
@@ -12,11 +13,14 @@ export function ConstructionNotice() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
+    if (!FEATURES.constructionNotice.enabled) return;
     const open = () => {
-      try {
-        if (sessionStorage.getItem(KEY)) return;
-      } catch {
-        /* ignore */
+      if (!FEATURES.constructionNotice.everyLoad) {
+        try {
+          if (sessionStorage.getItem(KEY)) return;
+        } catch {
+          /* ignore */
+        }
       }
       setShow(true);
     };
@@ -25,10 +29,12 @@ export function ConstructionNotice() {
   }, []);
 
   const close = () => {
-    try {
-      sessionStorage.setItem(KEY, '1');
-    } catch {
-      /* ignore */
+    if (!FEATURES.constructionNotice.everyLoad) {
+      try {
+        sessionStorage.setItem(KEY, '1');
+      } catch {
+        /* ignore */
+      }
     }
     setShow(false);
   };
