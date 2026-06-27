@@ -44,6 +44,16 @@ export function PageHero({ title, subtitle }: { title: string; subtitle?: ReactN
             <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-white/80 md:text-base">Welcome to</p>
             <h1 className="text-3xl font-bold text-white drop-shadow-md md:text-6xl">{title}</h1>
             {subtitle && <p className="mt-10 text-base text-white/90 drop-shadow md:text-lg">{subtitle}</p>}
+            <button
+              type="button"
+              onClick={dismiss}
+              className="mt-8 inline-flex items-center gap-2 rounded-full border-2 border-white/70 bg-white/10 px-7 py-3 font-semibold text-white backdrop-blur transition hover:bg-white/20"
+            >
+              Enter the site
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polyline points="9 6 15 12 9 18" />
+              </svg>
+            </button>
           </div>
           <address className="shrink-0 not-italic text-sm leading-relaxed text-white/90 drop-shadow md:text-right">
             <span className="block text-xs font-bold uppercase tracking-wide text-white/70">Contact</span>
