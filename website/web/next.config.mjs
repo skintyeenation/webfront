@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Compile the shared workspace packages (TS source) for this app.
+  transpilePackages: ['@skintyee/api-client', '@skintyee/models'],
   // Allow <Image> from the headless WP media library (local dev + prod host).
   images: {
     remotePatterns: [

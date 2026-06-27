@@ -201,3 +201,60 @@ packages/
   models/              # @skintyee/models   (shared)
   api-client/          # @skintyee/api-client (shared ApiService)
 ```
+
+---
+
+## 11. WordPress-side plugins & frontend components
+
+The website needs work on **both** sides: custom WordPress plugins (server — where
+WP is the source/curator) and reusable Next.js components (frontend rendering).
+
+### Custom WordPress plugins (`website/cms/wp-plugins/` or mu-plugins)
+
+| Plugin | Responsibility |
+|---|---|
+| `skintyee-carousel` | **Banner/carousel** — register a `slide` CPT (image, headline, link, order) + expose it via REST (`/wp-json/skintyee/v1/slides`) for the Swiper hero. |
+| `skintyee-taxonomy` | Register the shared category taxonomy on the fresh WP — `Events · Programs · News · Announcements` + Announcements sub-cats `Health · Safety · Council` (mirrors `legacy/importer/setup-categories.php`) so WP news lines up with the app's `NotificationCategory`. |
+| `skintyee-events` | **Events** authored/curated in WP (editorial events not in M365) — CPT + `public` flag, REST-exposed; merged with `api/` events on the frontend. |
+| `skintyee-notifications` | **Notifications** WP can publish (news-style alerts) by category, REST-exposed; merged with `api/` notifications. |
+| `skintyee-meetings` | **Meetings** WP-curated entries (public/band only — never `closed-session`), REST-exposed; complements `api/`/Graph meetings. |
+| `skintyee-entra-sso` (mu-plugin) | **Entra** — configure **OpenID Connect Generic** against the tenant + the free **group/App-Role → WP-role** mapping snippet; force the Microsoft button, keep a break-glass admin. |
+
+> Boundary note: events/notifications/meetings are **primarily** sourced from the
+> `api/` server (M365/Graph) via the shared `ApiService`. These WP plugins cover
+> the **editorial/curated** slice WP owns; the frontend **merges** both sources,
+> applying public/private gating.
+
+### Frontend components (`website/web/components/`)
+
+`HeroCarousel` (Swiper) · `EventCard` · `NotificationItem` · `MeetingItem` ·
+`CommunityCalendar` (FullCalendar) · `OnboardingCta` (signed-in only) ·
+`SignInButton` (NextAuth/Entra). All typed against `@skintyee/models`.
+
+---
+
+## 12. Progress log
+
+> Kept current as the build proceeds (per "document this plan as you go").
+
+- **Phase 0 — scaffold (done):** Elementor build archived to `legacy/` + WXR
+  reference; fresh headless WordPress (`docker-compose` + `cms/bootstrap.sh`,
+  REST verified); Next.js skeleton (WP REST pages/posts).
+- **Phase 1 — foundation (done):**
+  - Extracted `@skintyee/models` + `@skintyee/api-client` to `packages/`; the app
+    keeps its `skintyee/models` + `skintyee/services/api/*` imports via thin
+    **re-export shims** (no rewrite of the 57 call sites).
+  - `website/web` added to the pnpm workspace; consumes the shared client
+    (`transpilePackages`); web resolves `@skintyee/api-client` ✓.
+  - **Tailwind** wired with the logo palette + green (`primary #00B8EC`,
+    `accent #EC6A37`, `success #9ECD3B`, `ink #1D1D1D`).
+  - **Verified:** app typecheck shows **0 new errors** vs the pre-Phase-1 baseline
+    (3 unrelated pre-existing `Directory.tsx` react-native-paper errors before and
+    after).
+  - **Gotcha (recorded):** adding `web` pulled a 2nd `@types/react` (18.3) that
+    collided with the app's 18.0 → `TS2786` JSX errors. Fixed with a root
+    `pnpm.overrides` pinning `@types/react`/`@types/react-dom` to the app's
+    `18.0.38`. Keep React **types** aligned workspace-wide when adding JS packages.
+- **Next — Phase 2/3:** register the shared taxonomy in WP; home sections
+  (notifications/events/meetings) via the shared client at the `public` role +
+  FullCalendar; **needs the `api/` public-visibility filter** (see §9).

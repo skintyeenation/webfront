@@ -13,7 +13,11 @@
       "@prisma/engines",
       "esbuild",
       "prisma"
-    ]
+    ],
+    "overrides": {
+      "@types/react": "18.0.38",
+      "@types/react-dom": "18.0.11"
+    }
   },
   "scripts": {
     "app": "pnpm --filter @skintyee/app",
@@ -23,8 +27,8 @@
     "lookup:app:web": "pnpm --filter @skintyee/lookup-app web",
     "lookup:test": "pnpm --filter @skintyee/lookup-api test:e2e",
     "lookup:fetch:bulk": "pnpm --filter @skintyee/lookup-api fetch:bulk",
-    "website:up": "website/recover.sh",
-    "website:recover": "website/recover.sh",
+    "website:up": "website/cms/bootstrap.sh",
+    "website:recover": "website/legacy/recover.sh",
     "website:screenshots": "docs/scripts/shoot-website.sh",
     "website:down": "docker compose -f website/docker-compose.yml down",
     "vaultwarden:setup": "vaultwarden/setup-vaultwarden.sh",
