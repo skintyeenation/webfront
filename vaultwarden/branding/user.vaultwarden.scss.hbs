@@ -29,7 +29,7 @@ $logo-default: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPAAAADVCAYAAA
 // Hide Bitwarden's embedded SVG mark and paint ours in its place.
 auth-anon-layout bit-landing-header bit-svg,
 auth-anon-layout bit-landing-header bit-icon {
-  > svg { @include hide-element; }
+  > svg { display: none !important; }   // hide Bitwarden's embedded mark
   display: block;
   width: 220px;
   height: 96px;
