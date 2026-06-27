@@ -38,6 +38,8 @@ function groupsOf(m: any): string[] {
 // The governance role to display, derived from the security groups (falls back
 // to the model role for mock data that uses role: 'Chief'/'Council').
 function rosterRole(m: any): string | undefined {
+  // Demo: Lucas is IT (the raw Entra record has him under band-manager).
+  if (/lucas\s+lopatka/i.test(m?.name ?? '')) return 'IT';
   const g = groupsOf(m);
   for (const { slug, label } of ROSTER_GROUPS) if (g.includes(slug)) return label;
   if (m?.role === 'Chief' || m?.role === 'Council') return m.role;

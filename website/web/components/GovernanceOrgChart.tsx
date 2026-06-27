@@ -41,15 +41,12 @@ const linkPath = (sx: number, sy: number, tx: number, ty: number) => {
 };
 
 export function GovernanceOrgChart({ roster }: { roster: Person[] }) {
-  const isLucasIT = (p: Person) => /lucas/i.test(p.name ?? '');
-
   const chief =
     roster.find((p) => p.role === 'Chief' && !/^skin tyee/i.test(p.name)) ??
     roster.find((p) => p.role === 'Chief');
   const councillors = roster.filter((p) => p.role === 'Council');
-  const lucas = roster.find(isLucasIT);
-  const it: Person | undefined = lucas ? { ...lucas, role: 'IT', title: 'IT' } : undefined;
-  const bandManager = roster.find((p) => p.role === 'Band Manager' && !isLucasIT(p));
+  const it = roster.find((p) => p.role === 'IT');
+  const bandManager = roster.find((p) => p.role === 'Band Manager');
   const management = roster.filter((p) => p.role === 'Management');
 
   const row1 = [...councillors, ...(bandManager ? [bandManager] : [])];
