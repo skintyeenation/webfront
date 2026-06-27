@@ -286,6 +286,27 @@ management & roles) · `OnboardingCta` (signed-in only) · `SignInButton`
   **Verified** vs mock fixtures and the real Postgres directory — public projection
   leaks none of email/phone/upn/bandGroups/licences (only `_id,name,role,
   avatarLetter,hasPhoto`).
-- **Next — Phase 2/3b:** register the shared taxonomy in WP; build the home
-  sections (notifications/events/meetings) + FullCalendar + `/governance` page
-  against the shared client at the `public` role.
+- **Phase 4 — public site (done):** built and verified with a production build
+  (19 routes) + runtime smoke test:
+  - **Home:** Swiper hero carousel, Notifications, Upcoming events, Meetings,
+    **Major Projects parallax** (full-bleed), FullCalendar community calendar
+    (events+notifications+meetings), signed-in-only Onboarding CTA.
+  - **Nav pages:** `/projects` (major projects = WP posts), `/programs` (category
+    master) + `/programs/<slug>` sub-pages (Housing/Education/Lands & Economic
+    Development/Social/Child & Family Services/Health — posts per category),
+    `/governance` (public roster via shared client), `/funding` (transparency
+    expenditures), `/jobs` (WP posts).
+  - **Site-wide "Rights & Title"** resource links (UNDRIP/DRIPA/TRC/Aboriginal
+    Rights & Title/RDFFG) in the footer (`components/ResourceLinks.tsx`).
+  - Data: `lib/api.ts` (shared client at `public` role) + `lib/wp.ts`
+    (`getPostsByCategory`); all reads wrapped in `safe()` so the site builds even
+    when WP/api are down.
+  - **Verified:** `/governance` shows the roster with **no email/sensitive
+    leakage**; meetings show public types only (no closed-session).
+  - **Gotchas (recorded):** pnpm needed `@types/minimatch` for tsc, and a
+    `react`/`react-dom` override pinned to the app's **18.2.0** to kill a
+    duplicate-React runtime that broke styled-jsx SSR. `cms/bootstrap.sh` seeds
+    the `major-projects`/`jobs`/program categories + sample posts.
+- **Next — Phase 5/6:** wire **Entra sign-in** (NextAuth — replaces the
+  `lib/session.ts` stub; un-hides Onboarding) + **wp-admin SSO**; build the WP-side
+  plugins (`skintyee-carousel`, taxonomy, etc.); style pass with the Tailwind palette.

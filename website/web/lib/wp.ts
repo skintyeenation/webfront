@@ -14,24 +14,51 @@ export interface WPEntry {
   content: { rendered: string };
 }
 
-async function wpFetch<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, { next: { revalidate: REVALIDATE } });
-  if (!res.ok) throw new Error(`WP REST ${path} → ${res.status} ${res.statusText}`);
-  return res.json() as Promise<T>;
+export interface WPCategory {
+  id: number;
+  slug: string;
+  name: string;
+}
+
+async function wpFetch<T>(path: string, fallback: T): Promise<T> {
+  try {
+    const res = await fetch(`${BASE}${path}`, { next: { revalidate: REVALIDATE } });
+    if (!res.ok) return fallback;
+    return (await res.json()) as T;
+  } catch {
+    return fallback; // WP down / not reachable at build → degrade, don't crash
+  }
 }
 
 async function oneBySlug(type: 'posts' | 'pages', slug: string): Promise<WPEntry | null> {
-  const [entry] = await wpFetch<WPEntry[]>(`/${type}?slug=${encodeURIComponent(slug)}`);
+  const [entry] = await wpFetch<WPEntry[]>(`/${type}?slug=${encodeURIComponent(slug)}`, []);
   return entry ?? null;
 }
 
 export const getPosts = () =>
-  wpFetch<WPEntry[]>('/posts?per_page=20&_fields=id,slug,date,title,excerpt');
+  wpFetch<WPEntry[]>('/posts?per_page=20&_fields=id,slug,date,title,excerpt', []);
 
 export const getPostBySlug = (slug: string) => oneBySlug('posts', slug);
 export const getPageBySlug = (slug: string) => oneBySlug('pages', slug);
 
-export const getPostSlugs = () => wpFetch<{ slug: string }[]>('/posts?per_page=100&_fields=slug');
-export const getPageSlugs = () => wpFetch<{ slug: string }[]>('/pages?per_page=100&_fields=slug');
+export const getPostSlugs = () => wpFetch<{ slug: string }[]>('/posts?per_page=100&_fields=slug', []);
+export const getPageSlugs = () => wpFetch<{ slug: string }[]>('/pages?per_page=100&_fields=slug', []);
+
+async function categoryBySlug(slug: string): Promise<WPCategory | null> {
+  const [cat] = await wpFetch<WPCategory[]>(`/categories?slug=${encodeURIComponent(slug)}&_fields=id,slug,name`, []);
+  return cat ?? null;
+}
+
+// Posts in a category (by slug) — used for Major Projects, Programs, etc.,
+// which are authored as WordPress posts. Empty array if the category/posts
+// don't exist yet.
+export async function getPostsByCategory(categorySlug: string, limit = 12): Promise<WPEntry[]> {
+  const cat = await categoryBySlug(categorySlug);
+  if (!cat) return [];
+  return wpFetch<WPEntry[]>(
+    `/posts?categories=${cat.id}&per_page=${limit}&_fields=id,slug,date,title,excerpt`,
+    [],
+  );
+}
 
 export const stripHtml = (s: string) => s.replace(/<[^>]*>/g, '').trim();
