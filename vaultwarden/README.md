@@ -133,13 +133,12 @@ automatically once they resolve.
   **1.3.0b4** (`400 … could not be converted to System.Boolean`). The script +
   this guide create the app with **flags** instead; [`containerapp.yaml`](containerapp.yaml)
   is kept as the reference spec for when the extension is back on a stable release.
-- **`/data` Azure Files volume — one-time TODO:** flags can't attach a volume, so
-  add it once via **Portal → Container App `vaultwarden` → Volumes →** AzureFile
-  storage **`vwdata`** mounted at **`/data`** (or
-  `az containerapp update --yaml containerapp.yaml` on a stable extension). Until
-  then vault entries are safe (Postgres), but the **RSA JWT key + attachments +
-  Sends** sit on ephemeral disk — a revision roll logs everyone out and drops
-  attachments. **Add the volume before real use.**
+- **`/data` Azure Files volume:** attached automatically by `setup-vaultwarden.sh`
+  (step 3b — idempotent `az containerapp update --yaml containerapp.yaml`, since
+  flags can't mount volumes). Until it's attached, vault entries are safe
+  (Postgres), but the **RSA JWT key + attachments + Sends + the branding SCSS**
+  sit on ephemeral disk — a revision roll logs everyone out and drops them. If
+  the extension's `--yaml` bug bites, the script prints the Portal fallback.
 
 ## Deploy / update
 
@@ -147,6 +146,50 @@ automatically once they resolve.
 — mirrors `deploy-api`: pins the Vaultwarden image version, syncs secrets/env
 from the `skintyee-prod-azure` variable group, and rolls a new revision. Manual
 trigger (it's infra, and you choose when to bump the image).
+
+## Branding (Skin Tyee skin)
+
+The web vault login + lock screens are skinned with the Skin Tyee logo and
+palette (cyan `#00B8EC` / orange `#EC6A37` / dark `#1D1D1D`, from
+`app/src/styles.tsx`). Vaultwarden compiles a custom SCSS file dropped on its
+`/data` mount — **no fork or custom image** needed.
+
+Assets live in [`branding/`](branding/):
+
+| File | Role |
+|---|---|
+| `skintyee-login-logo.png` | the login mark (240px, derived from `app/assets/skintyee-logo.png`) |
+| `user.vaultwarden.scss.hbs.in` | SCSS source template (palette + selectors) |
+| `build.sh` | inlines the logo as a base64 data-URI → `user.vaultwarden.scss.hbs` |
+| `user.vaultwarden.scss.hbs` | **generated** file Vaultwarden reads (committed for convenience) |
+
+**It's fully automated — nothing manual:**
+
+- **The `deploy-vaultwarden` pipeline applies the skin every run.** It runs
+  `build.sh`, derives the storage account/share from the env storage definition,
+  uploads `user.vaultwarden.scss.hbs` to `templates/scss/` on the `/data` share,
+  then rolls the revision (so the new revision compiles the SCSS on startup). No
+  hand-uploads.
+- **Image ≥ 1.33.0** (the SCSS feature) — both pins are now
+  `vaultwarden/server:1.36.0` ([`containerapp.yaml`](containerapp.yaml),
+  `deploy-vaultwarden.yml`).
+- **The `/data` volume is attached by `setup-vaultwarden.sh`** (idempotent
+  `update --yaml`), not in the Portal. The SCSS lives at
+  `/data/templates/scss/…`, so the volume must exist — that's the same volume the
+  RSA JWT key needs.
+
+So: run `setup-vaultwarden.sh` once (attaches the volume), then run the
+`deploy-vaultwarden` pipeline (uploads branding + rolls 1.36.0). Verify at
+`https://vault.skintyee.ca/#/login` and `/#/lock`. Editing the logo or palette is
+just a commit to `branding/` + a pipeline run.
+
+> **Version sensitivity:** the Bitwarden web vault DOM changes between releases —
+> the logo selector was `bit-icon` before web-vault 2025.6 / VW 1.35.6 and
+> `bit-svg` after (SVGs are now embedded, so we overlay rather than swap the
+> file). The stylesheet targets **both**, so it survives the boundary; if a
+> future image bump moves the mark, re-check the
+> [Customize-Vaultwarden-CSS wiki](https://github.com/dani-garcia/vaultwarden/wiki/Customize-Vaultwarden-CSS)
+> and update `user.vaultwarden.scss.hbs.in`.
 
 ## Sharing model
 

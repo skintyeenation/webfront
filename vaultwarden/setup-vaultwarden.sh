@@ -47,7 +47,7 @@ FILE_SHARE=${FILE_SHARE:-vaultwarden-data}
 FILE_QUOTA_GB=${FILE_QUOTA_GB:-5}
 ENV_STORAGE=${ENV_STORAGE:-vwdata}
 
-IMAGE=${IMAGE:-vaultwarden/server:1.32.7}
+IMAGE=${IMAGE:-vaultwarden/server:1.36.0}   # >=1.33.0 for SCSS branding
 VW_ADMIN_TOKEN=${VW_ADMIN_TOKEN:-}           # optional; generated if unset
 
 DRY_RUN=0
@@ -102,10 +102,8 @@ ok "env storage ready"
 # ---- 3. container app (flags-based create) ---------------------------------
 # NOTE: `az containerapp create --yaml` is broken in the containerapp extension
 # 1.3.0b4 (400 "JSON value could not be converted to System.Boolean"), so we
-# create with flags. The /data Azure Files volume CANNOT be set via flags and is
-# added once out-of-band: Portal -> Container App -> Volumes -> AzureFile
-# 'vwdata' mounted at /data (or `az containerapp update --yaml containerapp.yaml`
-# once the extension is on a stable version). See README "Provisioning notes".
+# create with flags. Volume mounts can't be set via flags either, so the /data
+# Azure Files volume is attached just below via `update --yaml` (idempotent).
 say "ensuring Container App '$APP'"
 if az containerapp show -g "$RG" -n "$APP" >/dev/null 2>&1; then
   ok "app '$APP' already exists (deploy pipeline will roll it)"
@@ -117,7 +115,26 @@ else
     --env-vars "DOMAIN=https://${DOMAIN}" SIGNUPS_ALLOWED=false ROCKET_PORT=80 \
                DATA_FOLDER=/data DATABASE_URL=secretref:database-url ADMIN_TOKEN=secretref:admin-token \
     --output none
-  ok "app '$APP' created -- add the /data volume once (Portal/yaml; see README)"
+  ok "app '$APP' created"
+fi
+
+# ---- 3b. attach the /data Azure Files volume (idempotent) ------------------
+# No CLI flag exists for app volume mounts, so apply the full desired state from
+# containerapp.yaml (which declares the 'data' volume + /data mount). Run BEFORE
+# secrets so the YAML's placeholder secret values are immediately overwritten by
+# step 4. Skipped when the volume is already attached, so re-runs don't touch a
+# live app.
+HAS_VOL=$(az containerapp show -g "$RG" -n "$APP" \
+  --query "length(properties.template.volumes[?storageName=='$ENV_STORAGE'])" -o tsv 2>/dev/null || echo 0)
+if [ "${HAS_VOL:-0}" != "0" ]; then
+  ok "/data volume already attached"
+else
+  say "attaching Azure Files volume '$ENV_STORAGE' at /data (update --yaml)"
+  if run az containerapp update -g "$RG" -n "$APP" --yaml "$SCRIPT_DIR/containerapp.yaml" --output none; then
+    ok "/data volume attached (secrets re-applied next step)"
+  else
+    warn "yaml update failed (containerapp extension bug?). Fallback: Portal -> $APP -> Volumes -> AzureFile '$ENV_STORAGE' mounted at /data, then re-run."
+  fi
 fi
 
 # ---- 4. secrets ------------------------------------------------------------

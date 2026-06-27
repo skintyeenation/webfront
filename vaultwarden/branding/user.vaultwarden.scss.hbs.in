@@ -1,0 +1,84 @@
+// Skin Tyee branding for the Vaultwarden web vault (login + lock screens).
+//
+// SOURCE template — do NOT edit the generated file by hand.
+//   build.sh inlines skintyee-login-logo.png as a base64 data-URI and writes
+//   user.vaultwarden.scss.hbs (the file Vaultwarden actually reads).
+//
+// Vaultwarden compiles this together with its built-in vaultwarden.scss.hbs, so
+// the `hide-element` mixin and `$logo-default` style variable below are in scope.
+//
+// REQUIRES Vaultwarden >= 1.33.0 (the SCSS templating feature). Deployed to
+// /data/templates/scss/user.vaultwarden.scss.hbs — see ../README.md.
+//
+// NOTE: the Bitwarden web vault DOM is version-sensitive. The logo selector was
+// `bit-icon` before web-vault 2025.6 / VW 1.35.6 and `bit-svg` after; both are
+// included below so this survives an image bump either way. If a future bump
+// moves it again, re-check against the Customize-Vaultwarden-CSS wiki.
+
+// ── Skin Tyee palette (from app/src/styles.tsx) ──────────────────────────────
+$st-cyan:   #00B8EC; // primary
+$st-orange: #EC6A37; // accent / hover
+$st-green:  #9ECD3B; // success
+$st-dark:   #1D1D1D; // page background
+$st-panel:  #262626; // card surface
+
+// Logo, inlined as a data-URI by build.sh (no external fetch on the lock screen)
+$logo-default: url('@@LOGO_DATA_URI@@');
+
+// ── Login / lock screen logo swap ────────────────────────────────────────────
+// Hide Bitwarden's embedded SVG mark and paint ours in its place.
+auth-anon-layout bit-landing-header bit-svg,
+auth-anon-layout bit-landing-header bit-icon {
+  > svg { @include hide-element; }
+  display: block;
+  width: 220px;
+  height: 96px;
+  &::before {
+    content: "";
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: $logo-default no-repeat center / contain !important;
+  }
+}
+
+// ── Product name → "Skin Tyee" ───────────────────────────────────────────────
+// The login/lock header renders the literal word "Vaultwarden". Hide that text
+// node and inject "Skin Tyee" in its place.
+// NOTE: this selector is web-vault-version-sensitive (the heading element moves
+// between Bitwarden releases). Confirm against the deployed 1.36.0 page with
+// browser devtools and tighten the selector if the wordmark doesn't change.
+auth-anon-layout bit-landing-header h1,
+auth-anon-layout bit-landing-header .tw-text-2xl,
+auth-anon-layout .landing-header {
+  font-size: 0 !important;        // collapse the original "Vaultwarden" text
+  &::after {
+    content: "Skin Tyee";
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #fff;
+  }
+}
+
+// ── Page chrome ──────────────────────────────────────────────────────────────
+// Dark Skin Tyee background behind the auth card.
+auth-anon-layout,
+auth-anon-layout .tw-bg-background-alt,
+body {
+  background-color: $st-dark !important;
+}
+
+// Primary action buttons → Skin Tyee cyan, orange on hover.
+button.tw-bg-primary-600,
+button[buttontype="primary"],
+.btn.btn-primary {
+  background-color: $st-cyan !important;
+  border-color: $st-cyan !important;
+  &:hover {
+    background-color: $st-orange !important;
+    border-color: $st-orange !important;
+  }
+}
+
+// Links / accents.
+a, .tw-text-primary-600 { color: $st-cyan !important; }
