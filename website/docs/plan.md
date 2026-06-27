@@ -307,6 +307,33 @@ management & roles) · `OnboardingCta` (signed-in only) · `SignInButton`
     `react`/`react-dom` override pinned to the app's **18.2.0** to kill a
     duplicate-React runtime that broke styled-jsx SSR. `cms/bootstrap.sh` seeds
     the `major-projects`/`jobs`/program categories + sample posts.
-- **Next — Phase 5/6:** wire **Entra sign-in** (NextAuth — replaces the
-  `lib/session.ts` stub; un-hides Onboarding) + **wp-admin SSO**; build the WP-side
-  plugins (`skintyee-carousel`, taxonomy, etc.); style pass with the Tailwind palette.
+- **Phase 5 — auth + home/UX polish (done):**
+  - **Entra sign-in** wired via **NextAuth (Auth.js v5) + Microsoft Entra ID**
+    (`auth.ts` + `app/api/auth/[...nextauth]`); `lib/session.ts` now backed by
+    `auth()` (guarded). "Staff sign-in" in the nav is **gated** until
+    `AUTH_MICROSOFT_ENTRA_ID_*` is set (avoids NextAuth's 500 error page); creds +
+    `AUTH_SECRET` in `web/.env.local`. Onboarding link/CTA un-hide when signed in;
+    `/onboarding` placeholder page added.
+  - **Home restructured:** two-column — hero + FullCalendar **community calendar**
+    on the left, **Notifications/Events/Meetings** list in a right sidebar.
+  - **Full-viewport lakeside intro** (`PageHero`, client) — fixed parallax cover
+    (northern-BC lakeside photo at `/public/hero-lakeside.jpg`, scenic gradient
+    fallback) with proud-**Wet'suwet'en** copy; scroll/swipe/glowing-caret slides
+    it up to reveal the page. **Header is sticky + z-70** above the hero (nav stays
+    visible) and its logo+nav are constrained to content width.
+  - **Programs section on home** — grey-gradient cards with **lucide icons**,
+    shared `ProgramCard` with the `/programs` page.
+  - **App download CTA** (App Store / Google Play, `py-12` whitespace); **Rights &
+    Title** promoted to a full-bleed **coloured band**; **footer** now "Follow us"
+    (Facebook/Instagram/LinkedIn) in the old Rights & Title style.
+  - **Lessons recorded:** never run `next build` against a live `next dev` (it
+    corrupts `.next/server/vendor-chunks` → hero/calendar/auth break; fix = clear
+    `.next` + restart). New deps (lucide/next-auth) need a clean dev restart, not
+    just hot reload.
+- **Local launch:** `cms/bootstrap.sh` (WP + seed) → api (`pnpm --filter
+  @skintyee/api dev`) → web (`pnpm --filter @skintyee/website-web dev`). IntelliJ
+  run configs in `.idea/runConfigurations/` (compound **website: all**). Stack at
+  web :3000 · api :4000 · WP :8080.
+- **Next — Phase 6:** **wp-admin SSO** (OpenID Connect Generic + Entra); WP-side
+  plugins (`skintyee-carousel` real slides, taxonomy registration); add a real
+  lakeside hero photo; broader style pass; production build + deploy pipeline.
