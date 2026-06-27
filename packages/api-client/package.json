@@ -1,0 +1,12 @@
+{
+  "name": "@skintyee/api-client",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared Skin Tyee API client — the ApiService contract + HTTP/mock implementations. Consumed as TS source by the app and the website.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "dependencies": {
+    "@skintyee/models": "workspace:*"
+  }
+}

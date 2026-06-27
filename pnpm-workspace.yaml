@@ -4,5 +4,7 @@ packages:
   - packages/*
   - lookup/api
   - lookup/app
-  # website/ is a WordPress + Docker project (PHP/Python tooling), not an npm
-  # package, so it is intentionally NOT a workspace member.
+  # website/ itself is a WordPress + Docker project (PHP/Python tooling), not an
+  # npm package — only its Next.js frontend (website/web) is a workspace member,
+  # so it can consume the shared @skintyee/api-client + @skintyee/models packages.
+  - website/web

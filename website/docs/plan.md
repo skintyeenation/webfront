@@ -1,0 +1,339 @@
+# Skin Tyee website — build plan (headless WordPress + Next.js)
+
+Rebuild of skintyee.ca as a **headless** site: WordPress as the content CMS, a
+**Next.js + React** public frontend that **reuses the app's API client** to show
+the same community data (events, notifications, meetings) the mobile app shows.
+
+Status: scaffold + this plan landed on `feature/wordpress-headless`. Phases below.
+
+---
+
+## 1. Architecture
+
+```
+                     ┌─────────────────────────────┐
+   skintyee.ca  ───▶ │  website/web  (Next.js)      │
+   (public)          │  - pages/news      → WP REST │──▶ WordPress (headless CMS)
+                     │  - events/notifs/  → api/    │     posts + pages, base theme
+                     │    meetings (shared client)  │──▶ api/ (NestJS) → Azure DB
+                     │  - Entra sign-in (NextAuth)  │
+                     └─────────────────────────────┘
+```
+
+Two backends, one frontend:
+- **WordPress** (`website/`, Docker) — editorial content: **Pages** + **News posts**.
+  Served as JSON via the built-in **REST API** (`/wp-json/wp/v2`). Base block theme.
+- **`api/`** (the NestJS API Server) — the **same** events / notifications /
+  meetings / feed the app consumes, via the **shared `ApiService`**.
+
+### Shared API client (decision: extract shared packages)
+The app's `app/src/services/api` (`ApiService` interface + portable
+`HttpApiService` + `MockApiService`) and `app/src/models` move into workspace
+packages, imported by **both** the app and the website:
+
+- **`packages/models`** → `@skintyee/models` (domain types)
+- **`packages/api-client`** → `@skintyee/api-client` (`ApiService` + Http/Mock impls)
+- **`website/web`** becomes a **pnpm workspace member** so it can import them.
+
+`HttpApiService` is already framework-agnostic (`fetch` + injected auth getters
+`getRole / getAccessToken / getUpn`), so it runs server-side in Next.js unchanged.
+The app's imports (`skintyee/models`, `skintyee/services/api`) get re-pointed to
+the packages; **verify the app still typechecks** after the move.
+
+---
+
+## 2. Decisions (locked)
+
+| Decision | Choice |
+|---|---|
+| Frontend | **Next.js (App Router) + React + TypeScript**, SSG/ISR (SEO) |
+| WP backend | **Fresh base-theme WordPress** (Twenty Twenty-Five); Elementor build archived to `legacy/` + WXR reference |
+| Shared client | **Extract `@skintyee/api-client` + `@skintyee/models`**; `web/` joins the pnpm workspace |
+| Site auth | **Wire Microsoft Entra sign-in now** — NextAuth.js + Entra ID provider |
+| CSS library | **Tailwind CSS** (sane, standard for Next.js) |
+| Banner carousel | **Swiper** (plug-and-play: autoplay, dots, touch, bundled CSS) |
+| Calendar view | **FullCalendar (React)** — month/week, like the app's calendar |
+| wp-admin SSO | **OpenID Connect Generic** plugin → Entra (free; group→role via snippet) |
+
+---
+
+## 3. Existing taxonomies (reuse — do not reinvent)
+
+These come from the app/`api/` and the original WP importer
+(`legacy/importer/setup-categories.php`). The fresh WordPress must register the
+**same** category taxonomy so notifications/news line up app ↔ website.
+
+### Notification categories — `app/src/models/index.ts` (`NotificationCategory`)
+Mirror the skintyee.ca WordPress taxonomy:
+
+- **Top-level:** `Events` · `Programs` · `News` · `Announcements`
+- **Announcements sub-categories:** `Health` · `Safety` · `Council`
+
+(e.g. a Water Boil Advisory → **Health**; a wildfire notice → **Safety**;
+agenda posted → **Council**.) Authoritative WP setup:
+`legacy/importer/setup-categories.php`.
+
+### Meeting types — `MeetingTypeSlug` (`api/src/skintyee-meeting-types.ts`)
+`band-meeting` · `council-meeting` · `staff-meeting` · `public-event` ·
+`closed-session`. Derived server-side from the M365 event's Outlook category.
+
+### Events — `CommunityEvent`
+Carries a **`public: boolean`** flag (+ `cancelled?`, optional `lat/lng` map pin).
+
+### Public Records categories — `PublicRecord`
+`Bylaw` · `Notice` · `Report` · `Form`.
+
+### Program areas (transparency / planner `categoryLabels`)
+Housing · Public Works · Education · Health · Social Assistance ·
+Child & Family Services · IT · Administration · Forestry · Council.
+
+---
+
+## 4. Public vs private gating
+
+The public website is anonymous-first; it must only surface **public** items, and
+show more once a user signs in (Entra). Rules:
+
+- **Events:** show where `public === true`. (Signed-in members may see band-only.)
+- **Meetings:** show `public-event` / `band-meeting`; **never** `closed-session`
+  to anonymous visitors.
+- **Notifications/news:** show public categories; gate sensitive ones to signed-in.
+- **Band management & roles:** the public page is the **governance / administration
+  roster** — Chief & Council plus band management / department leads and their
+  **roles** (name · title · role · photo only). This is public-appropriate. But
+  the underlying `BandMember` model is **sensitive** (Entra objectIds, UPNs,
+  mailboxes, licences), so `api/` returns only the curated public fields to the
+  `public` role. The **full member directory** stays gated behind Entra sign-in
+  (app/internal). Never expose raw `BandMember` fields publicly.
+- The site calls the shared `ApiService` with the **`public` role** (the api/'s
+  `x-role` / RolesGuard), so filtering happens **server-side**. `feed.get({ role })`
+  already takes a role; **events/meetings need a public-visibility filter added in
+  `api/`** (follow-up — see §8).
+
+---
+
+## 5. Pages & features
+
+### Home (`/`)
+1. **Hero banner carousel** (Swiper) up top — editorial slides (image + headline + link).
+2. **Notifications** strip — latest public alerts, colour-coded by category.
+3. **Upcoming events** — public events (cards + the calendar below).
+4. **Meetings** — upcoming public/band meetings (respect `closed-session`).
+5. **Calendar view** (FullCalendar) — combined events + notifications + meetings,
+   filterable by category/type, like the app's calendar.
+6. **Onboarding CTA** — shown **only when signed in** → onboarding (SharePoint URL
+   placeholder for now).
+
+### Navigation
+- Content pages from WordPress (`/<slug>`), News (`/posts/<slug>`).
+- **Onboarding link in the menu when signed in** (→ SharePoint later).
+
+### Content
+- `/` news list, `/posts/<slug>` post, `/<slug>` WP page — via WP REST (`web/lib/wp.ts`).
+
+### Band management & roles (`/governance`)
+Public governance/administration page — **Chief & Council** and **band management /
+department leads** with their **roles** (name · title · role · photo). Sourced from
+the shared `ApiService.directory` at the **`public` role** (curated public fields
+only — see §4); grouped by role (`Chief` / `Council` / management / department).
+The full member directory stays internal (signed-in / app only).
+
+---
+
+## 6. Auth
+
+- **Frontend (readers/members):** **NextAuth.js + Microsoft Entra ID provider** —
+  its own OIDC session, independent of WordPress. Drives "logged in" → onboarding
+  link/CTA and any gated content. The signed-in user's role/token feeds the shared
+  `ApiService` auth getters (`getRole/getAccessToken/getUpn`).
+- **wp-admin (editors):** **OpenID Connect Generic** plugin against the same Entra
+  tenant; Entra group/App-Role → WP role via a free mu-plugin snippet. Keep a
+  break-glass local admin. Stay on the patched 3.11.x. (Headless ⇒ SSO only needs
+  to cover wp-admin.)
+
+---
+
+## 7. Theming (logo colours + green)
+
+Tailwind theme tokens from the Skin Tyee logo palette (`app/src/styles.tsx`) **plus
+green**:
+
+| Token | Hex | Use |
+|---|---|---|
+| `primary` (cyan) | `#00B8EC` | links, primary actions |
+| `accent` (orange) | `#EC6A37` | highlights, hover |
+| `success` (green) | `#9ECD3B` | **added** — success, nature/land accents |
+| `ink` | `#1D1D1D` | text / dark surfaces |
+
+Consistent with the app theme and the Vaultwarden skin already shipped.
+
+---
+
+## 8. Phasing
+
+1. **Foundation** — extract `@skintyee/models` + `@skintyee/api-client`; add
+   `website/web` to the pnpm workspace; verify the app still builds. Tailwind set
+   up with the palette.
+2. **Content** — WP REST pages/news wired (done in scaffold); base theme + the
+   shared category taxonomy registered in the fresh WP.
+3. **Community data** — home sections (notifications/events/meetings) via the
+   shared client, **public-role**; FullCalendar view; **`/governance` band
+   management & roles** page. *(needs api/ public filters — events/meetings +
+   directory projection)*
+4. **Banner** — Swiper hero carousel (editable slides; source TBD — WP or a simple
+   config).
+5. **Auth** — NextAuth + Entra; onboarding menu link + home CTA gated on sign-in.
+6. **wp-admin SSO** — OpenID Connect Generic + Entra group→role snippet.
+7. **Deploy** — CMS + Next.js build pipeline (reuse `legacy/azure-pipelines.yml`
+   WP-over-SSH bits as reference).
+
+---
+
+## 9. Open items / follow-ups
+
+- ~~`api/` public-visibility filter for events + meetings~~ — **done** (`src/public-view.ts`):
+  events already filtered; meetings opened to `public` and limited to
+  `PUBLIC_MEETING_TYPES` (`public-event`/`band-meeting`, never `closed-session`);
+  notifications gated to `PUBLIC_NOTIFICATION_CATEGORIES`.
+- ~~`api/` curated public directory projection~~ — **done**: `directory` at the
+  `public` role returns only the governance/management roster
+  (`bandGroups` ∈ chief/council/band-manager/management), projected to
+  name/role/title/department/photo; all Entra internals dropped. Powers `/governance`.
+- **Banner slide source** — WordPress (a "slides" CPT/ACF) vs a simple committed
+  config. Decide in Phase 4.
+- **SharePoint onboarding URL** — placeholder until the SharePoint document
+  library / onboarding flow is wired (ties to `docs/features/documents-and-onboarding.md`).
+- **Entra app registration(s)** — one or two (frontend NextAuth vs wp-admin OIDC);
+  redirect URIs per the SSO research.
+
+---
+
+## 10. Repo layout (target)
+
+```
+website/
+  web/                 # Next.js app (pnpm workspace member)
+    app/  lib/  components/
+  docker-compose.yml   # fresh headless WordPress (cms)
+  cms/bootstrap.sh     # install WP + base theme + taxonomy + sample content
+  scraper/             # kept — original content ripper
+  legacy/              # archived Elementor migration + reference/ WXR export
+  docs/plan.md         # this file
+packages/
+  models/              # @skintyee/models   (shared)
+  api-client/          # @skintyee/api-client (shared ApiService)
+```
+
+---
+
+## 11. WordPress-side plugins & frontend components
+
+The website needs work on **both** sides: custom WordPress plugins (server — where
+WP is the source/curator) and reusable Next.js components (frontend rendering).
+
+### Custom WordPress plugins (`website/cms/wp-plugins/` or mu-plugins)
+
+| Plugin | Responsibility |
+|---|---|
+| `skintyee-carousel` | **Banner/carousel** — register a `slide` CPT (image, headline, link, order) + expose it via REST (`/wp-json/skintyee/v1/slides`) for the Swiper hero. |
+| `skintyee-taxonomy` | Register the shared category taxonomy on the fresh WP — `Events · Programs · News · Announcements` + Announcements sub-cats `Health · Safety · Council` (mirrors `legacy/importer/setup-categories.php`) so WP news lines up with the app's `NotificationCategory`. |
+| `skintyee-events` | **Events** authored/curated in WP (editorial events not in M365) — CPT + `public` flag, REST-exposed; merged with `api/` events on the frontend. |
+| `skintyee-notifications` | **Notifications** WP can publish (news-style alerts) by category, REST-exposed; merged with `api/` notifications. |
+| `skintyee-meetings` | **Meetings** WP-curated entries (public/band only — never `closed-session`), REST-exposed; complements `api/`/Graph meetings. |
+| `skintyee-entra-sso` (mu-plugin) | **Entra** — configure **OpenID Connect Generic** against the tenant + the free **group/App-Role → WP-role** mapping snippet; force the Microsoft button, keep a break-glass admin. |
+
+> Boundary note: events/notifications/meetings are **primarily** sourced from the
+> `api/` server (M365/Graph) via the shared `ApiService`. These WP plugins cover
+> the **editorial/curated** slice WP owns; the frontend **merges** both sources,
+> applying public/private gating.
+
+### Frontend components (`website/web/components/`)
+
+`HeroCarousel` (Swiper) · `EventCard` · `NotificationItem` · `MeetingItem` ·
+`CommunityCalendar` (FullCalendar) · `GovernanceRoster` + `RoleCard` (band
+management & roles) · `OnboardingCta` (signed-in only) · `SignInButton`
+(NextAuth/Entra). All typed against `@skintyee/models`.
+
+---
+
+## 12. Progress log
+
+> Kept current as the build proceeds (per "document this plan as you go").
+
+- **Phase 0 — scaffold (done):** Elementor build archived to `legacy/` + WXR
+  reference; fresh headless WordPress (`docker-compose` + `cms/bootstrap.sh`,
+  REST verified); Next.js skeleton (WP REST pages/posts).
+- **Phase 1 — foundation (done):**
+  - Extracted `@skintyee/models` + `@skintyee/api-client` to `packages/`; the app
+    keeps its `skintyee/models` + `skintyee/services/api/*` imports via thin
+    **re-export shims** (no rewrite of the 57 call sites).
+  - `website/web` added to the pnpm workspace; consumes the shared client
+    (`transpilePackages`); web resolves `@skintyee/api-client` ✓.
+  - **Tailwind** wired with the logo palette + green (`primary #00B8EC`,
+    `accent #EC6A37`, `success #9ECD3B`, `ink #1D1D1D`).
+  - **Verified:** app typecheck shows **0 new errors** vs the pre-Phase-1 baseline
+    (3 unrelated pre-existing `Directory.tsx` react-native-paper errors before and
+    after).
+  - **Gotcha (recorded):** adding `web` pulled a 2nd `@types/react` (18.3) that
+    collided with the app's 18.0 → `TS2786` JSX errors. Fixed with a root
+    `pnpm.overrides` pinning `@types/react`/`@types/react-dom` to the app's
+    `18.0.38`. Keep React **types** aligned workspace-wide when adding JS packages.
+- **Phase 3a — `api/` public-visibility filters (done):** `src/public-view.ts` +
+  wired into `controllers.ts`. At the `public` role: **events** public-only;
+  **meetings** limited to `public-event`/`band-meeting` (closed-session hidden);
+  **notifications** limited to community categories (`Council` gated);
+  **directory** → curated governance/management roster, no sensitive fields.
+  **Verified** vs mock fixtures and the real Postgres directory — public projection
+  leaks none of email/phone/upn/bandGroups/licences (only `_id,name,role,
+  avatarLetter,hasPhoto`).
+- **Phase 4 — public site (done):** built and verified with a production build
+  (19 routes) + runtime smoke test:
+  - **Home:** Swiper hero carousel, Notifications, Upcoming events, Meetings,
+    **Major Projects parallax** (full-bleed), FullCalendar community calendar
+    (events+notifications+meetings), signed-in-only Onboarding CTA.
+  - **Nav pages:** `/projects` (major projects = WP posts), `/programs` (category
+    master) + `/programs/<slug>` sub-pages (Housing/Education/Lands & Economic
+    Development/Social/Child & Family Services/Health — posts per category),
+    `/governance` (public roster via shared client), `/funding` (transparency
+    expenditures), `/jobs` (WP posts).
+  - **Site-wide "Rights & Title"** resource links (UNDRIP/DRIPA/TRC/Aboriginal
+    Rights & Title/RDFFG) in the footer (`components/ResourceLinks.tsx`).
+  - Data: `lib/api.ts` (shared client at `public` role) + `lib/wp.ts`
+    (`getPostsByCategory`); all reads wrapped in `safe()` so the site builds even
+    when WP/api are down.
+  - **Verified:** `/governance` shows the roster with **no email/sensitive
+    leakage**; meetings show public types only (no closed-session).
+  - **Gotchas (recorded):** pnpm needed `@types/minimatch` for tsc, and a
+    `react`/`react-dom` override pinned to the app's **18.2.0** to kill a
+    duplicate-React runtime that broke styled-jsx SSR. `cms/bootstrap.sh` seeds
+    the `major-projects`/`jobs`/program categories + sample posts.
+- **Phase 5 — auth + home/UX polish (done):**
+  - **Entra sign-in** wired via **NextAuth (Auth.js v5) + Microsoft Entra ID**
+    (`auth.ts` + `app/api/auth/[...nextauth]`); `lib/session.ts` now backed by
+    `auth()` (guarded). "Staff sign-in" in the nav is **gated** until
+    `AUTH_MICROSOFT_ENTRA_ID_*` is set (avoids NextAuth's 500 error page); creds +
+    `AUTH_SECRET` in `web/.env.local`. Onboarding link/CTA un-hide when signed in;
+    `/onboarding` placeholder page added.
+  - **Home restructured:** two-column — hero + FullCalendar **community calendar**
+    on the left, **Notifications/Events/Meetings** list in a right sidebar.
+  - **Full-viewport lakeside intro** (`PageHero`, client) — fixed parallax cover
+    (northern-BC lakeside photo at `/public/hero-lakeside.jpg`, scenic gradient
+    fallback) with proud-**Wet'suwet'en** copy; scroll/swipe/glowing-caret slides
+    it up to reveal the page. **Header is sticky + z-70** above the hero (nav stays
+    visible) and its logo+nav are constrained to content width.
+  - **Programs section on home** — grey-gradient cards with **lucide icons**,
+    shared `ProgramCard` with the `/programs` page.
+  - **App download CTA** (App Store / Google Play, `py-12` whitespace); **Rights &
+    Title** promoted to a full-bleed **coloured band**; **footer** now "Follow us"
+    (Facebook/Instagram/LinkedIn) in the old Rights & Title style.
+  - **Lessons recorded:** never run `next build` against a live `next dev` (it
+    corrupts `.next/server/vendor-chunks` → hero/calendar/auth break; fix = clear
+    `.next` + restart). New deps (lucide/next-auth) need a clean dev restart, not
+    just hot reload.
+- **Local launch:** `cms/bootstrap.sh` (WP + seed) → api (`pnpm --filter
+  @skintyee/api dev`) → web (`pnpm --filter @skintyee/website-web dev`). IntelliJ
+  run configs in `.idea/runConfigurations/` (compound **website: all**). Stack at
+  web :3000 · api :4000 · WP :8080.
+- **Next — Phase 6:** **wp-admin SSO** (OpenID Connect Generic + Entra); WP-side
+  plugins (`skintyee-carousel` real slides, taxonomy registration); add a real
+  lakeside hero photo; broader style pass; production build + deploy pipeline.

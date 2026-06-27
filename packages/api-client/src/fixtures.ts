@@ -1,5 +1,5 @@
-import { AppNotification, BandMember, BandMeeting, CommunityEvent, Expenditure, MajorProject, Poll, PublicRecord, TimeEntry } from 'skintyee/models';
-import type { DeviceDetailDto } from 'skintyee/services/api/ApiService';
+import { AppNotification, BandMember, BandMeeting, CommunityEvent, Expenditure, MajorProject, Poll, PublicRecord, TimeEntry } from '@skintyee/models';
+import type { DeviceDetailDto } from './ApiService';
 
 // STUB DATA. Hand-authored sample content so every screen renders realistically
 // without a backend. Replace with real API responses. See STUBS.md.
@@ -223,7 +223,7 @@ export const polls: Poll[] = [
 // Mirrors what the api/'s GraphFeedService would return from real Microsoft
 // Planner data. Per ADR-14.
 
-import { PlannerPlanSummary, PlannerRollup, PlannerTask } from 'skintyee/models';
+import { PlannerPlanSummary, PlannerRollup, PlannerTask } from '@skintyee/models';
 
 export const plannerPlans: PlannerPlanSummary[] = [
   { id: 'pl-housing',  title: 'Housing',        groupId: 'g-mgmt', groupName: 'Skin Tyee Management', taskCount: 18, openCount: 12, completedCount: 6 },

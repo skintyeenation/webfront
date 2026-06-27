@@ -92,10 +92,18 @@ Connector can map them later, ADR-19), and grant each its Collection(s):
 
 ## Scripted shortcut
 
-After Steps 1–3 (the human bootstrap), run [`setup-org.sh`](setup-org.sh) to
-create Steps 4–5 (collections + groups + access) from the tables above instead of
-clicking — it uses the `bw` CLI (collections, as the owner) + the org public API
-(groups + access). See its header for the required session / API-key inputs.
+> ⚠️ **No scripted shortcut on Vaultwarden.** Vaultwarden does **not implement
+> the Bitwarden public API** — every `/api/public/*` route 404s (verified on
+> 1.32.7), so groups/members can't be created via the org API key, and
+> collection names are client-encrypted (no API to create them). **Build the
+> Collections + Groups + access by hand in the web vault UI** (Steps 4–5 tables).
+> [`setup-org.sh`](setup-org.sh) is kept only for *if* Vaultwarden ever adds the
+> public API; it does **not** work today. (Same limitation blocks the Directory
+> Connector — see [`entra-sync.md`](entra-sync.md) / ADR-19.)
+>
+> **UI flow:** create each Collection (Org → Collections → +) and, in that
+> dialog, tick the Group(s) that should access it — that creates the
+> group→collection mapping in one step. Create the Groups first (Org → Groups).
 
 ## Bootstrap gotchas (hit during first standup)
 

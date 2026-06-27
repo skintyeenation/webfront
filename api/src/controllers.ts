@@ -4,6 +4,7 @@ import { OnboardingService } from './onboarding.service';
 import { deriveAppRole } from './role-derivation';
 import { DataService } from './data.service';
 import { Roles, callerRole } from './roles';
+import { PUBLIC_MEETING_TYPES, PUBLIC_NOTIFICATION_CATEGORIES, publicRoster } from './public-view';
 import { GraphFeedService, FeedItem, AppRole } from './graph-feed.service';
 import { PrismaService } from './prisma.service';
 import { ExoService } from './exo.service';
@@ -197,11 +198,12 @@ export class DirectoryController {
   }
 
   @Get() async list(@Req() req?: any) {
+    const role = callerRole(req);
     if (this.prisma.isAvailable) {
       // Admins see locked accounts (enabled:false) too — otherwise a locked
       // member vanishes from the directory and there's no way to navigate to
       // EditMember to unlock them. Non-admins only see active members.
-      const isAdmin = callerRole(req) === 'admin';
+      const isAdmin = role === 'admin';
       const rows = await this.prisma.bandMember.findMany({
         where: isAdmin ? undefined : { enabled: true },
         orderBy: { name: 'asc' },
@@ -210,9 +212,11 @@ export class DirectoryController {
       if (rows.length === 0 && process.env.GRAPH_CLIENT_ID) {
         setImmediate(() => this.backgroundSeed());
       }
-      return rows.map(mapBandMember);
+      const mapped = rows.map(mapBandMember);
+      // Public (website) sees only the curated governance/management roster.
+      return role === 'public' ? publicRoster(mapped) : mapped;
     }
-    return this.data.directory;
+    return role === 'public' ? publicRoster(this.data.directory) : this.data.directory;
   }
 
   @Get(':id') async get(@Param('id') id: string) {
@@ -1077,7 +1081,8 @@ export class MeetingsController {
   // sends a Bearer token (signed in), reads go DELEGATED so M365 group
   // calendars (band@, council@, management@) surface — those return
   // 403 to our app-only SP. App-only fallback only sees user calendars.
-  @Get() @Roles('member', 'staff', 'admin') async list(@Query('type') type?: string, @Req() req?: any) {
+  @Get() async list(@Query('type') type?: string, @Req() req?: any) {
+    const role = callerRole(req);
     const authHeader = req?.headers?.authorization ?? req?.headers?.Authorization;
     const accessToken = typeof authHeader === 'string' && authHeader.startsWith('Bearer ')
       ? authHeader.slice(7)
@@ -1090,7 +1095,7 @@ export class MeetingsController {
         // conference + links are extracted from the Graph body by the
         // feed service so the agenda field on the client only carries
         // the user's prose.
-        return items.map((m) => ({
+        const mapped = items.map((m) => ({
           _id: m.id,
           title: m.title,
           agenda: m.agenda,
@@ -1110,11 +1115,17 @@ export class MeetingsController {
           conference: m.conference,
           links: m.links,
         }));
+        // Anonymous website visitors only see public meeting types.
+        return role === 'public'
+          ? mapped.filter((m) => PUBLIC_MEETING_TYPES.includes(m.type))
+          : mapped;
       } catch (e: any) {
         this.log.warn(`Graph fetch failed, falling back to mock: ${e?.message ?? e}`);
       }
     }
-    return this.data.meetings;
+    return role === 'public'
+      ? this.data.meetings.filter((m: any) => PUBLIC_MEETING_TYPES.includes(m.type))
+      : this.data.meetings;
   }
 
   // GET /v1/meetings/types — catalog of meeting types + source calendars
@@ -1899,7 +1910,12 @@ export class NotificationsController {
     private mailgun: MailgunService,
     private settings: SettingsService,
   ) {}
-  @Get() list() { return this.data.notifications; }
+  @Get() list(@Req() req?: any) {
+    // Anonymous website visitors only see community (public) categories.
+    return callerRole(req) === 'public'
+      ? this.data.notifications.filter((n: any) => PUBLIC_NOTIFICATION_CATEGORIES.includes(n.category))
+      : this.data.notifications;
+  }
   @Post() @Roles('admin') async create(@Body() b: any) {
     const n = { _id: this.data.id('n'), createdAt: new Date().toISOString(), read: false, ...b };
     this.data.notifications.unshift(n);

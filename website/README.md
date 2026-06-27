@@ -1,101 +1,56 @@
-# skintyee.ca migration
+# Skin Tyee — website (headless WordPress + Next.js)
 
-Tooling to scrape the existing Site123-hosted **skintyeefirstnation.org** and migrate it into a self-hosted WordPress install at **skintyee.ca**.
+The skintyee.ca web presence, rebuilt as a **headless** site:
 
-## Prerequisites
+- **`cms/`** + **`docker-compose.yml`** — a fresh **WordPress** (base block theme,
+  Twenty Twenty-Five) used purely as a content API. Posts + Pages are authored in
+  `wp-admin` and served as JSON over the built-in **REST API** (`/wp-json/wp/v2`).
+- **`web/`** — the public site: **Next.js (App Router) + React + TypeScript**,
+  statically generated from the WP REST API (good SEO, no WPGraphQL/extra plugins).
+- **`scraper/`** — kept from the original migration: the Python crawler that rips
+  content off the old Site123 site (`crawl.py` → `scraped/`).
+- **`legacy/`** — the previous Elementor-based migration tooling, archived. The
+  content entered into that build is preserved as a portable reference at
+  [`legacy/reference/skintyee-elementor-export.xml`](legacy/reference/skintyee-elementor-export.xml)
+  (a WordPress WXR export — 9 pages + header/footer templates). The old running
+  install (gitignored `wp-data/` + `db-data/`) is left untouched.
 
-- Docker + Docker Compose
-- Python 3.11+ (only needed for the crawler)
+> **Why headless + fresh WP:** the old pages were built with Elementor, whose
+> markup needs Elementor's own CSS/JS to render and is useless as headless JSON.
+> A clean base-theme WordPress yields clean Posts/Pages data for React.
 
-## Workflow
-
-```bash
-# 1. Scrape the source site (writes ./scraped/manifest.json + ./scraped/media/)
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python scraper/crawl.py
-
-# 2. Start local WordPress
-docker compose up -d
-
-# 3. Import scraped content
-./importer/import.sh
-```
-
-The local WP site lives at <http://localhost:8080>. Admin credentials: `admin` / `admin` (local dev only — rotate before any public deployment).
-
-## Backup / restore
-
-Before any destructive operation (wipe, theme swap, re-import) — take a snapshot:
+## Quick start
 
 ```bash
-./backup.sh
+# 1. Headless WordPress (CMS) — installs WP, base theme, sample content
+./cms/bootstrap.sh
+#    → admin http://localhost:8080/wp-admin (admin/admin)  ·  REST /wp-json/wp/v2
+
+# 2. Frontend
+cd web
+cp .env.example .env          # WP_API_URL=http://localhost:8080
+pnpm install                  # (or npm install)
+pnpm dev                      # → http://localhost:3000
 ```
 
-Writes a timestamped pair to `./backups/`:
-- `db-<ts>.sql`           full MySQL dump (single-transaction)
-- `wp-content-<ts>.tar.gz`  uploads + mu-plugins + themes + plugins
+## Routes (web/)
 
-Old backups are pruned to the last 20 of each kind. `backups/` is gitignored.
+| Route | Source | File |
+|---|---|---|
+| `/` | latest posts | `app/page.tsx` |
+| `/posts/<slug>` | a single post | `app/posts/[slug]/page.tsx` |
+| `/<slug>` | a WordPress page | `app/[slug]/page.tsx` |
 
-**Auto-backup:** `./importer/import.sh` runs `./backup.sh` first if WP is already installed (skips on fresh installs). `./restore.sh` and `./wipe.sh` snapshot the current state before destroying it.
+All data goes through the typed REST client in [`web/lib/wp.ts`](web/lib/wp.ts);
+pages use `generateStaticParams` (SSG) + `revalidate = 60` (ISR).
 
-Start-fresh:
+## Conventions
 
-```bash
-./wipe.sh                  # snapshots current state, then wipes wp-data + db-data
-./importer/import.sh       # rebuild
-```
+Branches: `feature/*` → `master` with `git merge --no-ff` (see top-level
+`CLAUDE.md`). Default branch is `master`.
 
-Restore from a snapshot:
+## Deferred
 
-```bash
-./restore.sh latest          # newest snapshot
-./restore.sh 20260519-180532 # specific timestamp
-```
-
-This stops containers, wipes `wp-data` + `db-data`, brings the stack back up, pipes the SQL dump into MySQL, and extracts the tarball into `wp-data/`. Asks for confirmation before destroying anything.
-
-## Exporting for production (skintyee.ca)
-
-Once the local site looks right, export a WXR file you can import into the production WordPress at skintyee.ca:
-
-```bash
-./export.sh
-```
-
-Writes `exports/skintyee-export.xml`. Then on the target server:
-
-1. Upload `wp-data/wp-content/uploads/` to the production server's matching directory.
-2. In production WP admin: **Tools → Import → WordPress** (install the importer if prompted), then upload `exports/skintyee-export.xml`.
-3. Run a search-replace on the imported content to swap `http://localhost:8080` for `https://skintyee.ca` (the "Better Search Replace" plugin handles this cleanly).
-
-## Theming
-
-The importer activates the **Astra** theme by default. Override with the `SKINTYEE_THEME` env var:
-
-```bash
-SKINTYEE_THEME=kadence ./importer/import.sh
-```
-
-The theme must be installable via `wp theme install` and should register a classic `primary` menu location for the imported nav to attach.
-
-## Content split: pages vs posts
-
-Most imported content lands as WordPress **pages** (hierarchical, no archive). Children of `/announcements/` and `/stay-informed/` are imported as **posts** with the parent slug as a category, so they get the date archive + category-archive listing treatment. Adjust `POST_PARENTS` in `importer/import.php` to change this.
-
-## Layout
-
-```
-scraper/crawl.py        # Python crawler — builds scraped/manifest.json + scraped/media/
-docker-compose.yml      # local WP + MySQL + WP-CLI
-importer/import.sh      # entry point — installs WP and runs the PHP importer
-importer/import.php     # PHP importer run inside the wpcli container
-scraped/                # output of the crawler (gitignored)
-wp-data/                # WordPress runtime files (gitignored)
-db-data/                # MySQL data files (gitignored)
-```
-
-## Branches
-
-See [`CLAUDE.md`](./CLAUDE.md). Short version: work on `feature/*`, merge into `develop` with `git merge --no-ff` using the message `Merge branch 'feature/<name>' into 'develop'`.
+Production deploy (a new pipeline for the CMS + the Next.js build) and content
+migration from the WXR/scraper into the fresh WP are follow-ups — the old
+`legacy/azure-pipelines.yml` is kept as a reference for the WP-over-SSH bits.
