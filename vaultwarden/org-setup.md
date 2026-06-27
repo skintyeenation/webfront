@@ -7,6 +7,13 @@ it (by design — ADR-18). Once the org exists, the structure (collections, grou
 access) can be scripted — [`setup-org.sh`](setup-org.sh) — or built in the UI
 using the tables below.
 
+> ⚠️ **The `/admin` panel (ADMIN_TOKEN) is NOT a vault login.** It's *server*
+> administration. It can't create or hold an organization, and being in `/admin`
+> does **not** give you a user session — the org URLs will bounce you to login.
+> You must register a real **user account** (Step 1) and log into the **web
+> vault** as that user. Two separate things: admin token = run the server; user
+> account = use the vault.
+
 ## Step 1 — Owner account (human)
 
 1. Go to **`https://vault.skintyee.ca`** → create account with a dedicated owner
