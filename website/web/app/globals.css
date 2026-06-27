@@ -99,6 +99,8 @@ article img { max-width: 100%; height: auto; }
   max-width: 1140px;
   margin: 0 auto;
   padding: 2.5rem 1.25rem 6rem;
+  /* dark glow so the white text pops over the bright satellite map */
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.9), 0 1px 4px rgba(0, 0, 0, 0.85);
 }
 .page-hero-caret {
   position: absolute;

@@ -96,12 +96,28 @@ def main():
         font = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial Bold.ttf", 40)
     except Exception:
         font = ImageFont.load_default()
+    def teardrop(cx, tipy, r, color):  # classic map-pin shape: round head + point
+        hcy = tipy - int(2.3 * r)
+        draw.ellipse([cx - r, hcy - r, cx + r, hcy + r], fill=color)
+        draw.polygon([(cx - int(r * 0.8), hcy + int(r * 0.5)),
+                      (cx + int(r * 0.8), hcy + int(r * 0.5)), (cx, tipy)], fill=color)
+
     for lat, lon, label in MARKERS:
-        mx, my = px(lat, lon)
-        r = 16
-        draw.ellipse([mx - r, my - r, mx + r, my + r], fill=(236, 106, 55, 255), outline=(255, 255, 255, 255), width=5)
-        draw.text((mx + r + 10, my - 22), label, font=font, fill=(255, 255, 255, 255),
-                  stroke_width=4, stroke_fill=(0, 0, 0, 210))
+        mx, my = (int(round(c)) for c in px(lat, lon))
+        if label == "Skin Tyee Band Office":  # cool blue + white location pin
+            R = 26
+            teardrop(mx, my, R + 5, (255, 255, 255, 255))   # white halo / border
+            teardrop(mx, my, R, (20, 102, 200, 255))        # blue body
+            hcy = my - int(2.3 * R)
+            ir = int(R * 0.42)
+            draw.ellipse([mx - ir, hcy - ir, mx + ir, hcy + ir], fill=(255, 255, 255, 255))  # white centre
+            draw.text((mx + R + 10, hcy - 22), label, font=font, fill=(255, 255, 255, 255),
+                      stroke_width=5, stroke_fill=(10, 40, 80, 235))
+        else:  # towns — small dots
+            r = 11
+            draw.ellipse([mx - r, my - r, mx + r, my + r], fill=(236, 106, 55, 255), outline=(255, 255, 255, 255), width=4)
+            draw.text((mx + r + 9, my - 20), label, font=font, fill=(255, 255, 255, 255),
+                      stroke_width=4, stroke_fill=(0, 0, 0, 210))
 
     img.save(HIRES_OUT, "JPEG", quality=HIRES_QUALITY)   # full-res original (design uses)
     print("saved hires", os.path.relpath(HIRES_OUT), img.size)
