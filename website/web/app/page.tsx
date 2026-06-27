@@ -49,7 +49,14 @@ export default async function Home() {
     <>
       <PageHero
         title="Skin Tyee Nation"
-        subtitle="A proud Wet'suwet'en community on the shores of Francois Lake in northern British Columbia. For countless generations we have stewarded these lands and waters and carried forward the Witsuwit'en language, laws, and way of life — honouring our ancestors and building for the generations still to come."
+        subtitle={
+          <>
+            A proud <strong className="font-semibold text-white">Wet&apos;suwet&apos;en</strong> community on the
+            shores of Francois Lake in northern British Columbia. For <em>countless generations</em> we have
+            stewarded these lands and waters and carried forward the Witsuwit&apos;en language, laws, and way of
+            life — honouring our ancestors and building for the generations still to come.
+          </>
+        }
       />
       <div className="space-y-10">
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">

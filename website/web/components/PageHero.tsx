@@ -1,12 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 
 // Full-viewport intro: a static satellite-hybrid snapshot of the Skin Tyee
 // territory (/territory-snapshot.jpg) that slowly pans for a parallax feel. Not
 // mouse-interactive; the glowing down-caret (or ↓/Esc) slides the intro up to
 // reveal the page.
-export function PageHero({ title, subtitle }: { title: string; subtitle?: string }) {
+export function PageHero({ title, subtitle }: { title: string; subtitle?: ReactNode }) {
   const [dismissed, setDismissed] = useState(false);
   const dismiss = useCallback(() => setDismissed(true), []);
 
