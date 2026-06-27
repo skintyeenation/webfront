@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { getPostsByCategory } from '@/lib/wp';
 import { PostTeaser } from '@/components/cards';
+import { ProjectReferralCta } from '@/components/ProjectReferralCta';
 
 export const revalidate = 60;
 export const metadata: Metadata = { title: 'Major Projects' };
@@ -25,6 +26,7 @@ export default async function ProjectsPage() {
           <p className="text-ink/60">Active project updates will be posted here.</p>
         )}
       </div>
+      <ProjectReferralCta />
     </>
   );
 }

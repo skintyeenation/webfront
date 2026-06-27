@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { PROGRAM_AREAS } from '@/lib/constants';
 import { getPostsByCategory } from '@/lib/wp';
 import { PostTeaser } from '@/components/cards';
+import { ProposalWritersCta } from '@/components/ProposalWritersCta';
 
 export const revalidate = 60;
 
@@ -32,6 +33,7 @@ export default async function ProgramPage({ params }: { params: { slug: string }
           <p className="text-ink/60">Updates for {prog.name} will be posted here.</p>
         )}
       </div>
+      <ProposalWritersCta />
     </>
   );
 }

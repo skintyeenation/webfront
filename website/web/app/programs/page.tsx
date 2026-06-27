@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { PROGRAM_AREAS } from '@/lib/constants';
 import { ProgramCard } from '@/components/cards';
+import { ProposalWritersCta } from '@/components/ProposalWritersCta';
 
 export const metadata: Metadata = { title: 'Programs' };
 
@@ -14,6 +15,7 @@ export default function ProgramsPage() {
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         {PROGRAM_AREAS.map((p) => <ProgramCard key={p.slug} p={p} />)}
       </div>
+      <ProposalWritersCta />
     </>
   );
 }
