@@ -4,6 +4,7 @@ import { PROGRAM_AREAS } from '@/lib/constants';
 import { getPostsByCategory } from '@/lib/wp';
 import { PostTeaser } from '@/components/cards';
 import { ProposalWritersCta } from '@/components/ProposalWritersCta';
+import { NeedAssistanceCta } from '@/components/NeedAssistanceCta';
 
 export const revalidate = 60;
 
@@ -33,6 +34,7 @@ export default async function ProgramPage({ params }: { params: { slug: string }
           <p className="text-ink/60">Updates for {prog.name} will be posted here.</p>
         )}
       </div>
+      <NeedAssistanceCta />
       <ProposalWritersCta />
     </>
   );
