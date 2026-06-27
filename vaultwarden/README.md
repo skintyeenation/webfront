@@ -203,7 +203,8 @@ adding staff over time only grows.
 - Even with 1Password's nonprofit discount, it stays a **recurring per-user** cost
   that scales with headcount; Vaultwarden stays flat at ~\$0 regardless of users.
 
-## Deferred
+## Deferred — Entra integration
 
-- **Entra OIDC SSO** exists in newer Vaultwarden but is experimental — start
-  invite-only + master password; revisit SSO once stable.
+Two layers, both deferred (start invite-only + master password): **Directory
+Connector** sync (members/groups from Entra) first, **OIDC SSO** later. Full
+runbook + ADR: [`entra-sync.md`](entra-sync.md) and ADR-19.
