@@ -157,10 +157,27 @@ trigger (it's infra, and you choose when to bump the image).
 
 ## Backup
 
-- **Postgres**: covered by the flex server's automated backups + PITR (same as
-  the api).
-- **`/data` (Azure Files)**: enable Azure Files snapshots/soft-delete; the RSA
-  key + attachments live here. Periodically copy to Blob for off-share safety.
+Part of the band backup plan (`README.md` → *What IS backed up* →
+`vaultwarden-backup`). **Not implemented yet** — the floor today is Microsoft's
+7-day Postgres PITR. Two things to back up:
+
+1. **Vault contents — the `vaultwarden` Postgres db** (the critical part: all
+   passwords/items, encrypted). Plan: extend the **`postgres-dumps`** workload to
+   `pg_dump` the `vaultwarden` db alongside `api`, same GFS rotation, into
+   `skintyeebackups`. Near-term floor: the flex server's automated backups +
+   **7-day PITR** already cover it.
+2. **`/data` Azure Files share (`vwdata`)** — the RSA JWT key, attachments,
+   Sends, and `config.json`. Plan: enable **Azure Files snapshots + soft-delete**
+   on the share, plus a periodic copy to the `skintyeebackups` Blob for
+   off-share safety.
+
+**Restore:** recreate the app (`setup-vaultwarden.sh`) → restore the
+`vaultwarden` db (PITR or a `pg_dump`) → restore `/data` from a Files snapshot.
+The vault is end-to-end encrypted, so a restored db is useless without users'
+master passwords — back up the data, not the plaintext.
+
+> Tracking item: add a `vaultwarden-backup` to the postgres-dumps pipeline + a
+> Files snapshot policy when the backup pipelines are stood up.
 
 ## Cost — why Vaultwarden over 1Password (no per-user fees)
 
