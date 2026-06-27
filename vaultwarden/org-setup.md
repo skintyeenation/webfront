@@ -17,8 +17,18 @@ using the tables below.
 
 ## Step 2 — Create the organization (human)
 
-Web vault → **New organization** → name **`Skin Tyee First Nation`**. (Vaultwarden
-unlocks org/enterprise features for free, so Groups will be available.)
+The "New organization" button is often **hidden** in the bundled web vault, so the
+reliable way is the **direct URL** (while logged in):
+
+> **`https://vault.skintyee.ca/#/create-organization`**
+
+(UI fallback: the org switcher at the top of the left nav, or
+`https://vault.skintyee.ca/#/settings/organizations` → **New Organization**.)
+
+Name it **`Skin Tyee First Nation`**. Vaultwarden unlocks org/enterprise features
+for free, so Groups are available. If the form doesn't load at all, the bundled
+web vault is too old — bump the `vaultwarden/server` image (newer build restores
+it) and retry.
 
 ## Step 3 — Generate the org API key (human)
 
