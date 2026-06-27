@@ -70,7 +70,8 @@ if you want a different db user. Just be logged into `az` with rights on the RG.
 
 It ensures, in order: the **`vaultwarden` Postgres db**, a **Storage account +
 Azure Files share** for `/data` registered on the managed environment, the
-**Container App** (from [`containerapp.yaml`](containerapp.yaml)), its **secrets**
+**Container App** (from [`containerapp.yaml`](containerapp.yaml)), the **`/data`
+volume mount**, the **deploy pipeline's RBAC grants** (see below), its **secrets**
 (`DATABASE_URL` → the vaultwarden db, a generated `ADMIN_TOKEN`), and the
 **`vault.skintyee.ca`** hostname (it prints the CNAME/TXT to create, then binds
 when DNS resolves). It echoes the `ADMIN_TOKEN` once — save it.
@@ -146,6 +147,41 @@ automatically once they resolve.
 — mirrors `deploy-api`: pins the Vaultwarden image version, syncs secrets/env
 from the `skintyee-prod-azure` variable group, and rolls a new revision. Manual
 trigger (it's infra, and you choose when to bump the image).
+
+### Pipeline RBAC (why a fresh app fails with "does not exist")
+
+The pipeline runs as the **`skintyee-prod-azure` service-connection SP**
+(`cb91f9d8-…`). That SP is granted **Contributor per-resource, not at the
+resource group** — so a newly created app is *invisible* to it and the first
+deploy fails on:
+
+```
+ERROR: The containerapp 'vaultwarden' does not exist
+```
+
+This is **RBAC not-found masking** (the app exists; the SP just can't see it),
+**not** a wrong name/RG. `setup-vaultwarden.sh` step **3c** fixes it idempotently
+by granting the SP **Contributor** on the three scopes the deploy touches:
+
+| Scope | Why the pipeline needs it |
+|---|---|
+| Container App `vaultwarden` | `secret set`, `update --set-env-vars`, `update --image` |
+| Managed env `skintyee-prod-env` | `containerapp env storage show` (branding step) |
+| Storage account `skintyeevwdata` | `storage account keys list` for the branding upload |
+
+To grant manually (or for a different SP, set `DEPLOY_SP_ID`):
+
+```bash
+SUB=$(az account show --query id -o tsv)
+for r in \
+  "Microsoft.App/containerApps/vaultwarden" \
+  "Microsoft.App/managedEnvironments/skintyee-prod-env" \
+  "Microsoft.Storage/storageAccounts/skintyeevwdata"; do
+  az role assignment create --assignee-object-id cb91f9d8-89d3-4896-b203-2e0d6fe1f2a4 \
+    --assignee-principal-type ServicePrincipal --role Contributor \
+    --scope "/subscriptions/$SUB/resourceGroups/skintyee-prod-rg/providers/$r"
+done
+```
 
 ## Branding (Skin Tyee skin)
 
