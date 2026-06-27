@@ -30,12 +30,16 @@ export default async function Home() {
       href: '/programs',
       gradient: 'linear-gradient(135deg,#00343f 0%,#00B8EC 100%)',
     },
-    ...events.slice(0, 2).map((e): Slide => ({
-      title: e.title,
-      subtitle: e.location,
-      href: '/',
-      gradient: 'linear-gradient(135deg,#1d4b1d 0%,#9ECD3B 100%)',
-    })),
+    // Cycle through the system notifications — slide bg is the category colour
+    // (same colour they're coded with in the sidebar list).
+    ...notifications.map((n): Slide => {
+      const color = NOTIFICATION_COLORS[n.category] ?? '#5C6BC0';
+      return {
+        title: n.title,
+        subtitle: n.body,
+        gradient: `linear-gradient(135deg, ${color} 0%, color-mix(in srgb, ${color} 62%, #04222a) 100%)`,
+      };
+    }),
   ];
 
   // Combined calendar — events + meetings + notifications, colour-coded (like the app).
