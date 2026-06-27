@@ -191,11 +191,14 @@ Consistent with the app theme and the Vaultwarden skin already shipped.
 
 ## 9. Open items / follow-ups
 
-- **`api/` public-visibility filter** for events + meetings (so the `public` role
-  returns only public items). `feed.get({ role })` already exists.
-- **`api/` curated public directory projection** — at the `public` role, `directory`
-  must return only governance/management roster fields (name/title/role/photo) and
-  drop Entra internals (objectId/UPN/mailboxes/licences). Powers `/governance`.
+- ~~`api/` public-visibility filter for events + meetings~~ — **done** (`src/public-view.ts`):
+  events already filtered; meetings opened to `public` and limited to
+  `PUBLIC_MEETING_TYPES` (`public-event`/`band-meeting`, never `closed-session`);
+  notifications gated to `PUBLIC_NOTIFICATION_CATEGORIES`.
+- ~~`api/` curated public directory projection~~ — **done**: `directory` at the
+  `public` role returns only the governance/management roster
+  (`bandGroups` ∈ chief/council/band-manager/management), projected to
+  name/role/title/department/photo; all Entra internals dropped. Powers `/governance`.
 - **Banner slide source** — WordPress (a "slides" CPT/ACF) vs a simple committed
   config. Decide in Phase 4.
 - **SharePoint onboarding URL** — placeholder until the SharePoint document
@@ -275,6 +278,14 @@ management & roles) · `OnboardingCta` (signed-in only) · `SignInButton`
     collided with the app's 18.0 → `TS2786` JSX errors. Fixed with a root
     `pnpm.overrides` pinning `@types/react`/`@types/react-dom` to the app's
     `18.0.38`. Keep React **types** aligned workspace-wide when adding JS packages.
-- **Next — Phase 2/3:** register the shared taxonomy in WP; home sections
-  (notifications/events/meetings) via the shared client at the `public` role +
-  FullCalendar; **needs the `api/` public-visibility filter** (see §9).
+- **Phase 3a — `api/` public-visibility filters (done):** `src/public-view.ts` +
+  wired into `controllers.ts`. At the `public` role: **events** public-only;
+  **meetings** limited to `public-event`/`band-meeting` (closed-session hidden);
+  **notifications** limited to community categories (`Council` gated);
+  **directory** → curated governance/management roster, no sensitive fields.
+  **Verified** vs mock fixtures and the real Postgres directory — public projection
+  leaks none of email/phone/upn/bandGroups/licences (only `_id,name,role,
+  avatarLetter,hasPhoto`).
+- **Next — Phase 2/3b:** register the shared taxonomy in WP; build the home
+  sections (notifications/events/meetings) + FullCalendar + `/governance` page
+  against the shared client at the `public` role.

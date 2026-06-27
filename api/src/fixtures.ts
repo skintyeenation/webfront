@@ -11,7 +11,7 @@ const daysFromNow = (n: number) => {
 export const directory = [
   { _id: 'm1', name: 'Marie Joseph', role: 'Chief', title: 'Chief', email: 'chief@skintyee.ca', phone: '250-555-0101', avatarLetter: 'M' },
   { _id: 'm2', name: 'Daniel Pierre', role: 'Council', title: 'Council Member', email: 'd.pierre@skintyee.ca', phone: '250-555-0102', avatarLetter: 'D' },
-  { _id: 'm3', name: 'Sandra Williams', role: 'Staff', title: 'Band Administrator', email: 'admin@skintyee.ca', phone: '250-555-0103', avatarLetter: 'S' },
+  { _id: 'm3', name: 'Sandra Williams', role: 'Staff', title: 'Band Administrator', email: 'admin@skintyee.ca', phone: '250-555-0103', avatarLetter: 'S', bandGroups: ['management'] },
 ];
 
 export const events = [
@@ -20,7 +20,9 @@ export const events = [
 ];
 
 export const meetings = [
-  { _id: 'bm1', title: 'Monthly Council Meeting', agenda: 'Budget review, lands update, housing.', location: 'Band Office Boardroom', startsAt: daysFromNow(7) },
+  { _id: 'bm1', title: 'Monthly Council Meeting', agenda: 'Budget review, lands update, housing.', location: 'Band Office Boardroom', startsAt: daysFromNow(7), type: 'council-meeting' },
+  { _id: 'bm2', title: 'Community Band Meeting', agenda: 'Open community update — all members welcome.', location: 'Community Hall', startsAt: daysFromNow(14), type: 'band-meeting' },
+  { _id: 'bm3', title: 'Closed Session — Personnel', agenda: 'In-camera.', location: 'Band Office', startsAt: daysFromNow(10), type: 'closed-session' },
 ];
 
 export const expenditures = [
@@ -50,4 +52,6 @@ export const polls = [
 export const notifications = [
   { _id: 'n1', title: 'Water Boil Advisory in effect', body: 'Boil water for at least 1 minute before drinking.', category: 'Health', createdAt: daysFromNow(0), read: false },
   { _id: 'n2', title: 'Wildfire evacuation alert', body: 'Evacuation alert for the north reserve.', category: 'Safety', createdAt: daysFromNow(0), read: false },
+  { _id: 'n3', title: 'Community Salmon BBQ', body: 'Join us at the Community Hall this weekend.', category: 'Events', createdAt: daysFromNow(-1), read: false },
+  { _id: 'n4', title: 'Council in-camera notes', body: 'Internal council session summary.', category: 'Council', createdAt: daysFromNow(-1), read: false },
 ];
