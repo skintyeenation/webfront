@@ -115,7 +115,7 @@ def main():
             draw.ellipse([mx - int(R * 0.85), my - int(R * 0.3), mx + int(R * 0.85), my + int(R * 0.16)],
                          fill=(0, 0, 0, 95))                                  # ground shadow
             gpin(mx, my, R + 4, (255, 255, 255, 255))                        # white border
-            gpin(mx, my, R, (20, 102, 200, 255), hole=(255, 255, 255, 255))  # blue pin + white hole
+            gpin(mx, my, R, (0, 184, 236, 255), hole=(255, 255, 255, 255))  # bright-blue pin + white hole
             head_y = my - int(2.4 * R)
             draw.text((mx + R + 12, head_y - 22), label, font=font, fill=(255, 255, 255, 255),
                       stroke_width=5, stroke_fill=(10, 40, 80, 235))
