@@ -4,6 +4,7 @@ import { NOTIFICATION_COLORS } from '@/lib/constants';
 import { HeroCarousel, type Slide } from '@/components/HeroCarousel';
 import { MajorProjectsParallax } from '@/components/MajorProjectsParallax';
 import { NewsSection } from '@/components/NewsSection';
+import { ConstructionNotice } from '@/components/ConstructionNotice';
 import { CommunityCalendar, type CalEvent } from '@/components/CommunityCalendar';
 import { NotificationItem, EventCard, MeetingItem } from '@/components/cards';
 import { OnboardingCta } from '@/components/OnboardingCta';
@@ -59,6 +60,7 @@ export default async function Home() {
           </>
         }
       />
+      <ConstructionNotice />
       <div className="space-y-10">
         <NewsSection />
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">

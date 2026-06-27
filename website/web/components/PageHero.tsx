@@ -8,7 +8,11 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 // reveal the page.
 export function PageHero({ title, subtitle }: { title: string; subtitle?: ReactNode }) {
   const [dismissed, setDismissed] = useState(false);
-  const dismiss = useCallback(() => setDismissed(true), []);
+  const dismiss = useCallback(() => {
+    setDismissed(true);
+    // Let the under-construction notice know the intro was dismissed.
+    window.dispatchEvent(new Event('skintyee:hero-dismissed'));
+  }, []);
 
   useEffect(() => {
     if (dismissed) return;
