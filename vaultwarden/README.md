@@ -54,36 +54,33 @@ Setup on each: on the login screen → **Settings / Self-hosted** → server URL
 
 ## One-time setup
 
+Scripted + idempotent — run [`setup-vaultwarden.sh`](setup-vaultwarden.sh):
+
 ```bash
-RG=skintyee-prod-rg; ENV=skintyee-prod-env; APP=vaultwarden; REGION=canadacentral
-DOMAIN=vault.skintyee.ca
-
-# 1. Vault database on the existing flex server
-az postgres flexible-server db create -g $RG -s skintyee-prod-pg -d vaultwarden
-
-# 2. Azure Files share for /data + register it on the managed environment
-az storage share-rm create -g $RG --storage-account <storageacct> --name vaultwarden-data --quota 5
-az containerapp env storage set -g $RG -n $ENV --storage-name vwdata \
-  --azure-file-account-name <storageacct> --azure-file-account-key <key> \
-  --azure-file-share-name vaultwarden-data --access-mode ReadWrite
-
-# 3. Create the app from the spec (image, ingress, secrets, env, volume mount)
-#    Edit containerapp.yaml first (it references the secrets you set below).
-az containerapp create -g $RG -n $APP --environment $ENV --yaml containerapp.yaml
-
-# 4. Secrets (DATABASE_URL → vaultwarden db; ADMIN_TOKEN = argon2 hash for /admin)
-az containerapp secret set -g $RG -n $APP --secrets \
-  "database-url=postgresql://<user>:<pass>@skintyee-prod-pg.postgres.database.azure.com:5432/vaultwarden?sslmode=require" \
-  "admin-token=$(docker run --rm vaultwarden/server /vaultwarden hash)"   # paste the PHC string
-
-# 5. Custom domain + managed cert
-az containerapp hostname add     -g $RG -n $APP --hostname $DOMAIN     # then add the CNAME/TXT it prints
-az containerapp hostname bind    -g $RG -n $APP --hostname $DOMAIN --environment $ENV --validation-method CNAME
+cd vaultwarden
+PG_PASSWORD='<skintyee-prod-pg admin password>' ./setup-vaultwarden.sh
+#   --dry-run      print the az commands without running them
+#   --skip-domain  skip the vault.skintyee.ca hostname add/bind
 ```
 
-Key env (in `containerapp.yaml`): `DOMAIN=https://vault.skintyee.ca`,
-`SIGNUPS_ALLOWED=false` (invite-only), `ROCKET_PORT=80`, `DATABASE_URL=secretref:database-url`,
-`ADMIN_TOKEN=secretref:admin-token`, plus SMTP (Mailgun/Graph) for invite emails.
+It ensures, in order: the **`vaultwarden` Postgres db**, a **Storage account +
+Azure Files share** for `/data` registered on the managed environment, the
+**Container App** (from [`containerapp.yaml`](containerapp.yaml)), its **secrets**
+(`DATABASE_URL` → the vaultwarden db, a generated `ADMIN_TOKEN`), and the
+**`vault.skintyee.ca`** hostname (it prints the CNAME/TXT to create, then binds
+when DNS resolves). It echoes the `ADMIN_TOKEN` once — save it.
+
+After it runs:
+1. Put that `ADMIN_TOKEN` into the ADO variable group **`skintyee-prod-azure`** as
+   **`VW_ADMIN_TOKEN`** (secret) so `deploy-vaultwarden` can re-apply it.
+2. Open `https://vault.skintyee.ca/admin` → create the **org + collections**,
+   invite staff (open signups are off).
+3. All future image bumps / secret syncs: run the **`deploy-vaultwarden`** pipeline.
+
+Key env (set in `containerapp.yaml`): `DOMAIN=https://vault.skintyee.ca`,
+`SIGNUPS_ALLOWED=false` (invite-only), `ROCKET_PORT=80`, `DATA_FOLDER=/data`,
+`DATABASE_URL=secretref:database-url`, `ADMIN_TOKEN=secretref:admin-token` (add
+SMTP via Mailgun/Graph later for invite emails).
 
 ## Deploy / update
 
