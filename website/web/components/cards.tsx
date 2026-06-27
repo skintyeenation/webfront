@@ -12,6 +12,16 @@ const PROGRAM_ICONS: Record<string, LucideIcon> = {
   health: HeartPulse,
 };
 
+// Placeholder background imagery per program (POC) — a dark overlay keeps text legible.
+const PROGRAM_IMAGES: Record<string, string> = {
+  housing: 'https://loremflickr.com/640/420/cabin,house?lock=21',
+  education: 'https://loremflickr.com/640/420/classroom,books?lock=22',
+  'lands-economic-development': 'https://loremflickr.com/640/420/forest,river?lock=23',
+  social: 'https://loremflickr.com/640/420/volunteer,community?lock=24',
+  'child-family-services': 'https://loremflickr.com/640/420/family,children?lock=25',
+  health: 'https://loremflickr.com/640/420/wellness,forest?lock=26',
+};
+
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' });
 
@@ -102,8 +112,21 @@ export function ExpenditureCard({ x }: { x: Expenditure }) {
 
 export function ProgramCard({ p }: { p: { slug: string; name: string; desc: string } }) {
   const Icon = PROGRAM_ICONS[p.slug] ?? House;
+  const img = PROGRAM_IMAGES[p.slug];
   return (
-    <Link href={`/programs/${p.slug}`} className="program-card">
+    <Link
+      href={`/programs/${p.slug}`}
+      className="program-card"
+      style={
+        img
+          ? {
+              backgroundImage: `linear-gradient(160deg, rgba(18,22,26,0.55) 0%, rgba(18,22,26,0.9) 100%), url(${img})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }
+          : undefined
+      }
+    >
       <Icon size={28} strokeWidth={1.75} />
       <h3 className="mt-3 text-lg font-semibold">{p.name}</h3>
       <p className="mt-1 text-sm text-white/80">{p.desc}</p>
