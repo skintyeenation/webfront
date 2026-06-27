@@ -3,6 +3,7 @@ import { getSession, onboardingUrl } from '@/lib/session';
 import { NOTIFICATION_COLORS } from '@/lib/constants';
 import { HeroCarousel, type Slide } from '@/components/HeroCarousel';
 import { MajorProjectsParallax } from '@/components/MajorProjectsParallax';
+import { NewsSection } from '@/components/NewsSection';
 import { CommunityCalendar, type CalEvent } from '@/components/CommunityCalendar';
 import { NotificationItem, EventCard, MeetingItem } from '@/components/cards';
 import { OnboardingCta } from '@/components/OnboardingCta';
@@ -59,6 +60,7 @@ export default async function Home() {
         }
       />
       <div className="space-y-10">
+        <NewsSection />
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
         {/* LEFT — hero + community calendar (like the app's calendar view) */}
         <div className="min-w-0 space-y-8">
