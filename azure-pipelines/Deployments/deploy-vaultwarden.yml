@@ -27,10 +27,14 @@ variables:
     # (PG_HOST, PG_USER, PG_PASSWORD [secret], PG_PORT, PG_SSL_MODE).
   - name: AZURE_CONTAINERAPP
     value: 'vaultwarden'
+  - name: VW_ENV
+    value: 'skintyee-prod-env'
+  - name: VW_STORAGE
+    value: 'vwdata'              # env storage name backing the /data Azure Files mount
   - name: VW_DB
     value: 'vaultwarden'
   - name: VW_IMAGE
-    value: 'vaultwarden/server:1.32.7'   # pin; bump deliberately
+    value: 'vaultwarden/server:1.36.0'   # pin; bump deliberately (>=1.33.0 for SCSS branding)
   - name: VW_DOMAIN
     value: 'https://vault.skintyee.ca'
 
@@ -81,10 +85,32 @@ jobs:
                 "ADMIN_TOKEN=secretref:admin-token" \
               --output none
 
+            # ── Skin Tyee branding ──────────────────────────────────────────
+            # Compile the logo into the stylesheet and push it onto the /data
+            # Azure Files share at templates/scss/ (where Vaultwarden >=1.33.0
+            # reads it). Done BEFORE the image roll so the new revision compiles
+            # the SCSS on startup. Storage acct/share are derived from the env
+            # storage def — no hardcoded names.
+            echo "▸ applying Skin Tyee branding…"
+            bash vaultwarden/branding/build.sh
+            read VW_SA VW_SHARE < <(az containerapp env storage show \
+              -g "$AZURE_RG" -n "$VW_ENV" --storage-name "$VW_STORAGE" \
+              --query "[properties.azureFile.accountName, properties.azureFile.shareName]" -o tsv)
+            VW_SA_KEY=$(az storage account keys list -g "$AZURE_RG" -n "$VW_SA" --query "[0].value" -o tsv)
+            for d in templates templates/scss; do
+              az storage directory create --account-name "$VW_SA" --account-key "$VW_SA_KEY" \
+                --share-name "$VW_SHARE" --name "$d" --output none 2>/dev/null || true
+            done
+            az storage file upload --account-name "$VW_SA" --account-key "$VW_SA_KEY" \
+              --share-name "$VW_SHARE" \
+              --source vaultwarden/branding/user.vaultwarden.scss.hbs \
+              --path templates/scss/user.vaultwarden.scss.hbs --output none
+            echo "  ✓ branding uploaded to $VW_SA/$VW_SHARE"
+
             echo "▸ rolling image → $VW_IMAGE…"
             az containerapp update \
               --name "$AZURE_CONTAINERAPP" --resource-group "$AZURE_RG" \
               --image "$VW_IMAGE" \
               --output none
 
-            echo "✓ Vaultwarden updated. Vault: $VW_DOMAIN"
+            echo "✓ Vaultwarden updated + branded. Vault: $VW_DOMAIN"
