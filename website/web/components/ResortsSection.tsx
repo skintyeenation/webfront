@@ -1,13 +1,14 @@
 // Skin Tyee Resorts — placeholder hotels. Names are BC-themed; photos are
-// topical placeholders (LoremFlickr, keyword-matched + locked per resort so each
-// shows the right scenery). Swap for real listings/photos later.
+// hand-picked Unsplash imagery (stable URLs, visually verified per resort).
+// Swap for real listings/photos later.
+const U = (id: string) => `https://images.unsplash.com/photo-${id}?w=600&h=400&fit=crop&q=70`;
 const RESORTS = [
-  { name: 'Francois Lake Lodge', location: 'Francois Lake, BC', topic: 'lake', lock: 11 },
-  { name: 'Nadina Mountain Resort', location: 'Houston, BC', topic: 'mountain', lock: 22 },
-  { name: 'Ootsa Lake Chalet', location: 'Ootsa Lake, BC', topic: 'lake', lock: 33 },
-  { name: 'Cheslatta Falls Inn', location: 'Grassy Plains, BC', topic: 'waterfall', lock: 44 },
-  { name: 'Tahtsa Reach Retreat', location: 'Tweedsmuir, BC', topic: 'lake', lock: 55 },
-  { name: 'Babine Forest Lodge', location: 'Burns Lake, BC', topic: 'cabin', lock: 7 },
+  { name: 'Francois Lake Lodge', location: 'Francois Lake, BC', image: U('1591134106086-fb978ec70677') },
+  { name: 'Nadina Mountain Resort', location: 'Houston, BC', image: U('1626684496076-07e23c6361ff') },
+  { name: 'Ootsa Lake Chalet', location: 'Ootsa Lake, BC', image: U('1629165912554-91ca12307393') },
+  { name: 'Cheslatta Falls Inn', location: 'Grassy Plains, BC', image: U('1493713838217-28e23b41b798') },
+  { name: 'Tahtsa Reach Retreat', location: 'Tweedsmuir, BC', image: U('1631764884113-f7d7a15d9b3a') },
+  { name: 'Babine Forest Lodge', location: 'Burns Lake, BC', image: U('1570793005386-840846445fed') },
 ];
 
 export function ResortsSection() {
@@ -20,7 +21,7 @@ export function ResortsSection() {
           <div key={r.name} className="overflow-hidden rounded-xl border border-[var(--line)] transition hover:shadow-md">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={`https://loremflickr.com/600/400/${r.topic}?lock=${r.lock}`}
+              src={r.image}
               alt={r.name}
               width={600}
               height={400}
