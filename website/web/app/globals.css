@@ -34,7 +34,9 @@ a:hover { text-decoration: underline; }
 .site-header .brand { font-weight: 700; font-size: 1.15rem; color: var(--ink); }
 .site-header nav a { margin-left: 1rem; color: var(--muted); }
 
-.container { max-width: 760px; margin: 0 auto; padding: 2rem 1.25rem; }
+.container { max-width: 1140px; margin: 0 auto; padding: 2rem 1.25rem; }
+/* Keep long-form text readable even though the container is wide for the home grid. */
+.container article { max-width: 760px; }
 
 h1 { line-height: 1.2; margin: 0 0 1rem; }
 

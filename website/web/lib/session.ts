@@ -1,13 +1,25 @@
-// Site auth (Microsoft Entra via NextAuth) is wired in the next phase — see
-// docs/plan.md §6. Until then there's no session, so the onboarding link/CTA
-// stay hidden for anonymous visitors. Swap this for `auth()` from the NextAuth
-// config when Entra sign-in lands.
+import { auth } from '@/auth';
+
+// Thin wrapper over NextAuth's session. Guarded so an unconfigured/missing Entra
+// setup degrades to "signed out" rather than crashing every page. Entra creds +
+// AUTH_SECRET enable real sign-in (see .env.example); until then this is null.
 export interface Session {
   user: { name?: string; email?: string };
 }
 
 export async function getSession(): Promise<Session | null> {
-  return null;
+  try {
+    const session = await auth();
+    if (!session?.user) return null;
+    return {
+      user: {
+        name: session.user.name ?? undefined,
+        email: session.user.email ?? undefined,
+      },
+    };
+  } catch {
+    return null;
+  }
 }
 
 export const onboardingUrl = () => process.env.ONBOARDING_URL ?? '/onboarding';

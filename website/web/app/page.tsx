@@ -34,6 +34,7 @@ export default async function Home() {
     })),
   ];
 
+  // Combined calendar — events + meetings + notifications, colour-coded (like the app).
   const calEvents: CalEvent[] = [
     ...events.map((e) => ({ title: e.title, start: e.startsAt, color: '#00B8EC' })),
     ...meetings.map((m) => ({ title: m.title, start: m.startsAt, color: '#EC6A37' })),
@@ -41,53 +42,54 @@ export default async function Home() {
   ];
 
   return (
-    <div className="space-y-12">
-      <HeroCarousel slides={slides} />
+    <div className="space-y-10">
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
+        {/* LEFT — hero + community calendar (like the app's calendar view) */}
+        <div className="min-w-0 space-y-8">
+          <HeroCarousel slides={slides} />
+          {session && <OnboardingCta url={onboardingUrl()} />}
+          <section>
+            <h2 className="mb-3 text-xl font-bold">Community calendar</h2>
+            <CommunityCalendar events={calEvents} />
+          </section>
+        </div>
 
-      {session && <OnboardingCta url={onboardingUrl()} />}
-
-      <section className="grid gap-8 md:grid-cols-2">
-        <div>
-          <h2 className="text-xl font-bold">Notifications</h2>
-          <div className="mt-2">
+        {/* RIGHT — list of items */}
+        <aside className="space-y-8">
+          <section>
+            <h2 className="mb-2 text-lg font-bold">Notifications</h2>
             {notifications.length ? (
               notifications.map((n) => <NotificationItem key={n._id} n={n} />)
             ) : (
               <p className="text-ink/60">No current notices.</p>
             )}
-          </div>
-        </div>
-        <div>
-          <h2 className="text-xl font-bold">Upcoming events</h2>
-          <div className="mt-3 space-y-3">
-            {events.length ? (
-              events.map((e) => <EventCard key={e._id} e={e} />)
-            ) : (
-              <p className="text-ink/60">No upcoming events.</p>
-            )}
-          </div>
-        </div>
-      </section>
+          </section>
 
-      <section>
-        <h2 className="text-xl font-bold">Meetings</h2>
-        <div className="mt-3 grid gap-3 md:grid-cols-3">
-          {meetings.length ? (
-            meetings.map((m) => <MeetingItem key={m._id} m={m} />)
-          ) : (
-            <p className="text-ink/60">No public meetings scheduled.</p>
-          )}
-        </div>
-      </section>
+          <section>
+            <h2 className="mb-3 text-lg font-bold">Upcoming events</h2>
+            <div className="space-y-3">
+              {events.length ? (
+                events.map((e) => <EventCard key={e._id} e={e} />)
+              ) : (
+                <p className="text-ink/60">No upcoming events.</p>
+              )}
+            </div>
+          </section>
+
+          <section>
+            <h2 className="mb-3 text-lg font-bold">Meetings</h2>
+            <div className="space-y-3">
+              {meetings.length ? (
+                meetings.map((m) => <MeetingItem key={m._id} m={m} />)
+              ) : (
+                <p className="text-ink/60">No public meetings scheduled.</p>
+              )}
+            </div>
+          </section>
+        </aside>
+      </div>
 
       <MajorProjectsParallax projects={projects} />
-
-      <section>
-        <h2 className="text-xl font-bold">Community calendar</h2>
-        <div className="mt-3">
-          <CommunityCalendar events={calEvents} />
-        </div>
-      </section>
     </div>
   );
 }

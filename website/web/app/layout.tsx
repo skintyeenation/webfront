@@ -3,6 +3,7 @@ import Link from 'next/link';
 import './globals.css';
 import { getSession, onboardingUrl } from '@/lib/session';
 import { ResourceLinks } from '@/components/ResourceLinks';
+import { SignInButton } from '@/components/SignInButton';
 
 export const metadata: Metadata = {
   title: {
@@ -38,6 +39,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             {session && (
               <Link href={onboardingUrl()} className="font-semibold text-accent">Onboarding</Link>
             )}
+            <SignInButton signedIn={!!session} />
           </nav>
         </header>
         <main className="container">{children}</main>
