@@ -43,7 +43,7 @@ export function PageHero({ title, subtitle }: { title: string; subtitle?: string
           <address className="shrink-0 not-italic text-sm leading-relaxed text-white/90 drop-shadow md:text-right">
             <span className="block text-xs font-bold uppercase tracking-wide text-white/70">Contact</span>
             <span className="mt-2 block font-semibold text-white">Skin Tyee First Nation</span>
-            <span className="block">General Delivery, Southbank, BC V0J 2P0</span>
+            <span className="block">P.O. Box 131, Southbank, BC V0J 2P0</span>
             <span className="block">
               P: <a href="tel:+12502513085" className="underline hover:text-white">250-251-3085</a>
             </span>
