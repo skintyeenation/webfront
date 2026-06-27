@@ -23,7 +23,15 @@ export interface TerritoryMarker {
   lng: number;
   label: string;
 }
+// Pins baked onto the snapshot (and source of truth for the generator script).
 export const TERRITORY_MARKERS: TerritoryMarker[] = [
   { lat: 53.93, lng: -125.95, label: 'Skin Tyee Band Office' },
-  { lat: 54.04, lng: -125.6, label: 'Francois Lake' },
+  { lat: 54.4, lng: -126.65, label: 'Houston' },
+  { lat: 54.23, lng: -125.76, label: 'Burns Lake' },
+  { lat: 54.78, lng: -127.17, label: 'Smithers' },
+  { lat: 54.52, lng: -128.6, label: 'Terrace' },
+  { lat: 54.05, lng: -128.65, label: 'Kitimat' },
+  { lat: 54.06, lng: -125.66, label: 'Francois Lake' },
+  { lat: 54.06, lng: -124.85, label: 'Fraser Lake' },
+  { lat: 54.01, lng: -124.01, label: 'Vanderhoof' },
 ];

@@ -14,11 +14,11 @@ Coords mirror website/web/lib/territory.ts + docs/land/territory.md — keep in 
 import math, io, os, time, urllib.request
 from PIL import Image, ImageDraw, ImageFont
 
-Z = 11                                   # zoom — higher = crisper + more tiles
-MINLAT, MAXLAT = 53.13, 54.58            # territory bbox (tight)
-MINLON, MAXLON = -127.30, -123.95
+Z = 10                                   # zoom — higher = crisper + more tiles
+MINLAT, MAXLAT = 53.00, 54.95            # regional bbox (frames the towns too)
+MINLON, MAXLON = -128.85, -123.70
 WEB_WIDTH = 3200                         # downscaled web target (~2 MB)
-WEB_QUALITY = 84
+WEB_QUALITY = 88
 HIRES_QUALITY = 92
 
 TERRITORY = [
@@ -28,13 +28,26 @@ TERRITORY = [
 ]
 MARKERS = [
     (53.93, -125.95, "Skin Tyee Band Office"),
-    (54.04, -125.60, "Francois Lake"),
+    (54.40, -126.65, "Houston"),
+    (54.23, -125.76, "Burns Lake"),
+    (54.78, -127.17, "Smithers"),
+    (54.52, -128.60, "Terrace"),
+    (54.05, -128.65, "Kitimat"),
+    (54.06, -125.66, "Francois Lake"),
+    (54.06, -124.85, "Fraser Lake"),
+    (54.01, -124.01, "Vanderhoof"),
 ]
 HERE = os.path.dirname(__file__)
 HIRES_OUT = os.path.normpath(os.path.join(HERE, "..", "..", "..", "docs", "land", "territory-snapshot-hires.jpg"))
 WEB_OUT = os.path.normpath(os.path.join(HERE, "..", "public", "territory-snapshot.jpg"))
 UA = "skintyee-territory-snapshot/1.0 (https://skintyee.ca)"
-TILE = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+# Base satellite + transparent reference overlays (roads/highways, then place
+# names + boundaries) — the rich Esri "hybrid" look.
+IMAGERY = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+OVERLAYS = [
+    "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}",
+    "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+]
 
 
 def num(lat, lon, z):
@@ -50,17 +63,23 @@ def main():
 
     canvas = Image.new("RGB", ((xt1 - xt0 + 1) * 256, (yt1 - yt0 + 1) * 256), (40, 55, 45))
     ok = fail = 0
+    def fetch(url):
+        req = urllib.request.Request(url, headers={"User-Agent": UA})
+        return Image.open(io.BytesIO(urllib.request.urlopen(req, timeout=25).read()))
+
     for xt in range(xt0, xt1 + 1):
         for yt in range(yt0, yt1 + 1):
+            pos = ((xt - xt0) * 256, (yt - yt0) * 256)
             try:
-                req = urllib.request.Request(TILE.format(z=Z, x=xt, y=yt), headers={"User-Agent": UA})
-                tile = Image.open(io.BytesIO(urllib.request.urlopen(req, timeout=25).read())).convert("RGB")
-                canvas.paste(tile, ((xt - xt0) * 256, (yt - yt0) * 256))
+                canvas.paste(fetch(IMAGERY.format(z=Z, x=xt, y=yt)).convert("RGB"), pos)
+                for tpl in OVERLAYS:  # roads/highways, then place names + boundaries
+                    ov = fetch(tpl.format(z=Z, x=xt, y=yt)).convert("RGBA")
+                    canvas.paste(ov, pos, ov.split()[3])
                 ok += 1
             except Exception as e:
                 fail += 1
                 print("FAIL", xt, yt, e)
-            time.sleep(0.08)
+            time.sleep(0.05)
     print(f"tiles ok={ok} fail={fail}")
 
     img = canvas.crop((round((x0f - xt0) * 256), round((ytopf - yt0) * 256),
