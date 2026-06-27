@@ -66,26 +66,29 @@ article img { max-width: 100%; height: auto; }
   font-size: 0.9rem;
 }
 
-/* Full-viewport parallax intro (northern-BC lakeside). Fixed overlay that slides
-   up when dismissed (scroll/swipe/caret). Drop a photo at /public/hero-lakeside.jpg
-   (scenic sky→water gradient is the fallback). */
+/* Full-viewport interactive intro: a terrain map of the Skin Tyee territory.
+   Fixed overlay that slides up when the caret/↓/Esc is used (scroll/drag belong
+   to the map). */
 .page-hero {
   position: fixed;
   inset: 0;
   z-index: 60;
+  background: #16424f; /* fallback under the map */
+  transition: transform 0.7s cubic-bezier(0.7, 0, 0.3, 1), opacity 0.7s ease;
+}
+/* The interactive terrain map fills the hero. */
+.page-hero-map { position: absolute; inset: 0; z-index: 0; }
+.page-hero-map .leaflet-container { height: 100%; width: 100%; background: #16424f; }
+/* Title overlay — bottom scrim for contrast; clicks pass through to the map. */
+.page-hero-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  background-image:
-    linear-gradient(180deg, rgba(0, 30, 40, 0.15) 0%, rgba(0, 30, 40, 0.65) 100%),
-    url('/hero-lakeside.jpg'),
-    linear-gradient(180deg, #9bd0e0 0%, #5aa0b5 38%, #2e6f83 62%, #16424f 85%, #0d3540 100%);
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-  background-color: #2e6f83;
-  transition: transform 0.7s cubic-bezier(0.7, 0, 0.3, 1), opacity 0.7s ease;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(0, 30, 40, 0) 50%, rgba(0, 30, 40, 0.72) 100%);
 }
 .page-hero--dismissed {
   transform: translateY(-100%);
@@ -103,6 +106,8 @@ article img { max-width: 100%; height: auto; }
   left: 50%;
   bottom: 1.75rem;
   transform: translateX(-50%);
+  z-index: 2;
+  pointer-events: auto;
   color: #fff;
   background: transparent;
   border: 0;
