@@ -35,7 +35,7 @@ export default async function GovernancePage() {
           </div>
         )}
         <div>
-          <h2 className="text-xl font-bold">Greetings from the Chief</h2>
+          <h2 className="text-xl font-bold">Greetings from Chief and Council</h2>
           <div className="mt-3 space-y-3 text-ink/75">
             <p>
               On behalf of Council and our entire community, I am honoured to welcome you to Skin Tyee
