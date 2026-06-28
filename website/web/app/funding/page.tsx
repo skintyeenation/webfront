@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { PROGRAM_AREAS, PROGRAM_GUIDE } from '@/lib/constants';
 import { fundingByArea, allDeadlines } from '@skintyee/models';
-import { FundingPrograms } from '@/components/FundingPrograms';
+import { FundingPrograms, FundingScaleLegend } from '@/components/FundingPrograms';
 import { FundingCalendar } from '@/components/FundingCalendar';
 
 export const revalidate = 60;
@@ -61,6 +61,10 @@ export default async function FundingPage() {
       <FundingCalendar deadlines={deadlines} areas={calendarAreas} />
 
       {/* Programs by area — each area collapses to its heading */}
+      <div className="mt-10">
+        <h2 className="text-xl font-bold">Programs by area</h2>
+        <FundingScaleLegend />
+      </div>
       {PROGRAM_AREAS.map((area) => {
         const progs = fundingByArea(area.slug);
         if (!progs.length) return null;

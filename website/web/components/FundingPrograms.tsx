@@ -35,7 +35,10 @@ export function FundingPrograms({
       )}
       <div className="mt-4 space-y-5">
         {programs.map((p) => (
-          <FundingCard key={p.name} p={p} />
+          // Inside an area accordion (hub) the area is the collapse level, so cards render
+          // open — otherwise expanding an area would just reveal a second layer of collapsed
+          // cards (no details, no forms). On a program page each card collapses on its own.
+          <FundingCard key={p.name} p={p} collapsible={!collapsible} />
         ))}
       </div>
       {footer && <div className="mt-3">{footer}</div>}
@@ -66,29 +69,57 @@ export function FundingPrograms({
   );
 }
 
-function FundingCard({ p }: { p: FundingProgram }) {
-  const href = p.pdfPage ? `${PROGRAM_GUIDE.href}#page=${p.pdfPage}` : PROGRAM_GUIDE.href;
-  return (
-    <details className="group rounded-xl border border-[var(--line)] p-5">
-      <summary className="flex cursor-pointer list-none items-start justify-between gap-3 [&::-webkit-details-marker]:hidden">
-        <div>
-          <h3 className="font-bold text-ink">
-            {p.name}
-            {p.acronym && (
-              <span className="ml-2 text-sm font-semibold text-accent">
-                <Acronym>{p.acronym}</Acronym>
-              </span>
-            )}
-          </h3>
-          <p className="mt-1.5 text-sm text-ink/75">{p.summary}</p>
-        </div>
-        <ChevronDown
-          aria-hidden
-          size={20}
-          className="mt-0.5 shrink-0 text-ink/50 transition-transform group-open:rotate-180"
-        />
-      </summary>
+const SCALE_LABEL = ['', 'smaller / targeted', 'moderate', 'substantial', 'major'];
 
+// Restaurant-style funding-size badge ($–$$$$). Relative magnitude only, not a real amount.
+function ScaleBadge({ scale }: { scale?: 1 | 2 | 3 | 4 }) {
+  if (!scale) return null;
+  return (
+    <span
+      title={`Funding scale: ${'$'.repeat(scale)} of $$$$ (${SCALE_LABEL[scale]}) — a rough size indicator, not an actual amount`}
+      aria-label={`Funding scale ${scale} of 4 (${SCALE_LABEL[scale]})`}
+      className="ml-2 whitespace-nowrap font-mono text-sm tracking-tight"
+    >
+      <span className="font-bold text-primary">{'$'.repeat(scale)}</span>
+      <span className="text-ink/20">{'$'.repeat(4 - scale)}</span>
+    </span>
+  );
+}
+
+// Compact legend for the funding-size scale — rendered once per page near the programs.
+export function FundingScaleLegend() {
+  return (
+    <p className="mt-3 rounded-lg bg-[#f2f7f8] px-3 py-2 text-xs text-ink/60">
+      <span className="font-semibold text-ink/75">Funding scale</span>{' '}
+      <span className="font-mono">
+        <span className="font-bold text-primary">$</span>
+        <span className="text-ink/20">$$$</span>
+      </span>{' '}
+      smaller / targeted →{' '}
+      <span className="font-mono font-bold text-primary">$$$$</span> major. A rough size indicator,{' '}
+      <strong>not an actual amount</strong> — real figures come from the funding agreement, FNIIP, and the
+      Nation&apos;s Sage 300 books.
+    </p>
+  );
+}
+
+function FundingCard({ p, collapsible = true }: { p: FundingProgram; collapsible?: boolean }) {
+  const href = p.pdfPage ? `${PROGRAM_GUIDE.href}#page=${p.pdfPage}` : PROGRAM_GUIDE.href;
+
+  const title = (
+    <h3 className="font-bold text-ink">
+      {p.name}
+      {p.acronym && (
+        <span className="ml-2 text-sm font-semibold text-accent">
+          <Acronym>{p.acronym}</Acronym>
+        </span>
+      )}
+      <ScaleBadge scale={p.scale} />
+    </h3>
+  );
+
+  const detail = (
+    <>
       {p.eligibility && (
         <p className="mt-2 text-sm">
           <span className="font-semibold text-ink">Who&apos;s eligible: </span>
@@ -138,6 +169,33 @@ function FundingCard({ p }: { p: FundingProgram }) {
       >
         Details in the Program Guide →
       </a>
+    </>
+  );
+
+  if (!collapsible) {
+    return (
+      <article className="rounded-xl border border-[var(--line)] p-5">
+        {title}
+        <p className="mt-1.5 text-sm text-ink/75">{p.summary}</p>
+        {detail}
+      </article>
+    );
+  }
+
+  return (
+    <details className="group rounded-xl border border-[var(--line)] p-5">
+      <summary className="flex cursor-pointer list-none items-start justify-between gap-3 [&::-webkit-details-marker]:hidden">
+        <div>
+          {title}
+          <p className="mt-1.5 text-sm text-ink/75">{p.summary}</p>
+        </div>
+        <ChevronDown
+          aria-hidden
+          size={20}
+          className="mt-0.5 shrink-0 text-ink/50 transition-transform group-open:rotate-180"
+        />
+      </summary>
+      {detail}
     </details>
   );
 }

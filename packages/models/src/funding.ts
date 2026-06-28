@@ -32,6 +32,13 @@ export interface FundingProgram {
   contacts?: FundingContact[];
   pdfPage?: number;
   coding?: FundingCoding;
+  /**
+   * Relative funding magnitude on a restaurant-style 1–4 scale ($ … $$$$) — a rough
+   * "how big is this envelope" indicator, NOT an actual dollar amount. Real figures come
+   * from the Nation's funding agreement / FNIIP / Sage 300. $ = small/targeted or enabling,
+   * $$$$ = major capital or core transfer (e.g. infrastructure, income assistance, CFS).
+   */
+  scale?: 1 | 2 | 3 | 4;
 }
 
 export const FUNDING_PROGRAMS: FundingProgram[] = [
@@ -601,6 +608,32 @@ const CODING_BY_KEY: Record<string, FundingCoding> = {
 for (const p of FUNDING_PROGRAMS) {
   const c = (p.acronym && CODING_BY_KEY[p.acronym]) ?? CODING_BY_KEY[p.name];
   if (c) p.coding = c;
+}
+
+// Relative funding magnitude ($–$$$$), keyed by acronym (preferred) or name. These are
+// rough indicators of envelope size for a small First Nation — NOT actual amounts (those
+// live in the funding agreement / FNIIP / Sage 300). $$$$ = major capital / core transfer;
+// $ = small, targeted, or enabling (loan guarantees, reporting tools, capacity grants).
+const SCALE_BY_KEY: Record<string, 1 | 2 | 3 | 4> = {
+  // Housing & infrastructure
+  FNIIP: 4, CFMP: 4, FNIF: 4, FNWWEP: 4, 'O&M': 3, HSP: 3, 'Fire Protection': 2,
+  MTSA: 2, 'E-ACRS': 1, MLG: 1,
+  // Lands & economic development
+  'LEDSP Core': 3, BSF: 3, 'LEDSP Targeted': 2, CORP: 2, RLEMP: 2, FNLM: 2,
+  'P&ID': 2, EMAP: 2, TCF: 2, 'Contaminated Sites On-Reserve (FCSAP/CSOR)': 2, EB: 1,
+  // Education
+  BCTEA: 4, 'PSSSP / UCEPP': 3, 'Public & Independent School Tuition': 3,
+  'Elementary/Secondary student supports': 2, 'Student Accommodation Services': 2,
+  PSPP: 2, CECP: 1,
+  // Social
+  IA: 4, AL: 3, FVPP: 2, UPIP: 2, PES: 1, BOC: 1,
+  // Child & family services + health
+  'First Nations Child & Family Services / ICFSA': 4, 'CFS Reform — Jurisdiction & Engagement': 2,
+  'Health funding (FNHA + ISC health supports)': 4,
+};
+for (const p of FUNDING_PROGRAMS) {
+  const s = (p.acronym && SCALE_BY_KEY[p.acronym]) ?? SCALE_BY_KEY[p.name];
+  if (s) p.scale = s;
 }
 
 // Program-level view of the ISC Chart of Accounts (guide pp. 172-188): the major
