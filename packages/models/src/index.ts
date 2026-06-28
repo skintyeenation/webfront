@@ -388,3 +388,6 @@ export interface FeedItem {
   category?: string;       // matches WordPress taxonomy or Planner category
   audience: Role[];        // who's allowed to see this item
 }
+
+// ISC funding programs (shared so the website pages AND the app calendar can use them).
+export * from './funding';

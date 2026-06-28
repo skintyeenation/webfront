@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { PROGRAM_AREAS } from '@/lib/constants';
-import { fundingByArea } from '@/lib/funding-data';
+import { fundingByArea } from '@skintyee/models';
 import { getPostsByCategory } from '@/lib/wp';
 import { PostTeaser } from '@/components/cards';
 import { FundingPrograms } from '@/components/FundingPrograms';

@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { publicApi, safe } from '@/lib/api';
 import { ExpenditureCard } from '@/components/cards';
 import { PROGRAM_AREAS, PROGRAM_GUIDE } from '@/lib/constants';
-import { fundingByArea, allDeadlines } from '@/lib/funding-data';
+import { fundingByArea, allDeadlines } from '@skintyee/models';
 import { FundingPrograms } from '@/components/FundingPrograms';
 
 export const revalidate = 60;

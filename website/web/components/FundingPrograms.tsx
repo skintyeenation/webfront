@@ -1,4 +1,4 @@
-import type { FundingProgram, PawItem, DciItem } from '@/lib/funding-data';
+import type { FundingProgram, PawItem, DciItem } from '@skintyee/models';
 import { PROGRAM_GUIDE } from '@/lib/constants';
 
 // Renders the ISC funding programs for a program area: plain summary, eligibility,
