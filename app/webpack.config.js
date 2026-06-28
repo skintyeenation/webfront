@@ -12,6 +12,19 @@
 const createExpoWebpackConfigAsync = require('@expo/webpack-config');
 
 module.exports = async function (env, argv) {
+  // Transpile the shared workspace packages. @skintyee/api-client + /models ship
+  // raw TypeScript (main: src/index.ts) so the Next.js website (transpilePackages)
+  // and this app can share one source. Expo's webpack only babel-transpiles app
+  // code by default, so without this it fails: "Module parse failed: Unexpected
+  // token … export interface …". This is the webpack equivalent of next.config's
+  // transpilePackages.
+  env.babel = env.babel || {};
+  env.babel.dangerouslyAddModulePathsToTranspile = [
+    ...(env.babel.dangerouslyAddModulePathsToTranspile || []),
+    '@skintyee/api-client',
+    '@skintyee/models',
+  ];
+
   const config = await createExpoWebpackConfigAsync(env, argv);
 
   // Find the source-map-loader rule (it's nested inside a `oneOf` block on
