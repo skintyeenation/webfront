@@ -14,6 +14,11 @@ export interface PawItem { no?: string; name: string; due?: string; note?: strin
 export interface DciItem { no?: string; name: string; due?: string }
 export interface FundingContact { label: string; email?: string; phone?: string }
 
+// ISC Chart of Accounts coding (how the program's funds are coded in a funding
+// agreement) — Cost Centre → BA/FA code → Funding Type (Block/Grant/Set/Fixed/Flex/
+// NFR Grant). From the guide's "Chart of Accounts Reference for Transfer Payments".
+export interface FundingCoding { costCentre?: string; baFa?: string; fundingType?: string }
+
 export interface FundingProgram {
   area: string;
   name: string;
@@ -26,6 +31,7 @@ export interface FundingProgram {
   dci?: DciItem[];
   contacts?: FundingContact[];
   pdfPage?: number;
+  coding?: FundingCoding;
 }
 
 export const FUNDING_PROGRAMS: FundingProgram[] = [
@@ -545,3 +551,221 @@ export const allDeadlines = (): DeadlineRow[] =>
     ...(p.paw ?? []).map((x): DeadlineRow => ({ area: p.area, program: p.acronym ?? p.name, kind: 'Application (PAW)', ref: x.no, name: x.name, due: x.due })),
     ...(p.dci ?? []).map((x): DeadlineRow => ({ area: p.area, program: p.acronym ?? p.name, kind: 'Report (DCI)', ref: x.no, name: x.name, due: x.due })),
   ]);
+
+// ---------------------------------------------------------------------------
+// Chart of Accounts coding, applied to the programs above by key (acronym, then
+// name). Cost Centre / BA-FA / Funding Type from the guide's "ISC Chart of
+// Accounts Reference for Transfer Payments" (pp. 172-188).
+const CODING_BY_KEY: Record<string, FundingCoding> = {
+  // Infrastructure & housing (A0906x; block O&M under A09020)
+  HSP: { costCentre: 'A0906E', baFa: 'B5812 (On-reserve housing, constr & reno)', fundingType: 'Fixed/Flex/Set' },
+  CFMP: { costCentre: 'A0906B/D', baFa: 'B5618/B5911 (capital facilities)', fundingType: 'Fixed/Flex/Set' },
+  FNIF: { costCentre: 'A0906D', baFa: 'B5913 (FN Infrastructure Fund)', fundingType: 'Fixed/Flex/Set' },
+  FNWWEP: { costCentre: 'A0906D', baFa: 'B5618/B5619 (water & wastewater)', fundingType: 'Fixed/Flex/Set' },
+  'O&M': { costCentre: 'A0906E', baFa: 'B5912 (O&M of infra assets)', fundingType: 'Fixed/Flex/Set' },
+  'Fire Protection': { costCentre: 'A0906E', baFa: 'B5912 / Q3BG (Fire protection)', fundingType: 'Fixed/Flex/Grant/Set' },
+  'E-ACRS': { costCentre: 'A0906B', baFa: 'B5912 / Q3BP (Asset Condition Reporting)', fundingType: 'Fixed/Flex/Set' },
+  MTSA: { costCentre: 'A0906E', baFa: 'B5912 / Q3BJ (Municipal services)', fundingType: 'Fixed/Flex/Set' },
+  // Lands & Economic Development (A0904x)
+  'LEDSP Core': { costCentre: 'A09020 / A0904F', baFa: 'B6217/B6218 (LEDSP Core)', fundingType: 'Block · Fixed/Flex/Set' },
+  'LEDSP Targeted': { costCentre: 'A0904A', baFa: 'B6219 (LEDSP Targeted)', fundingType: 'Fixed/Flex/Set' },
+  CORP: { costCentre: 'A0904A', baFa: 'B6215 (Comm. Opportunity Readiness)', fundingType: 'Fixed/Flex/Set' },
+  RLEMP: { costCentre: 'A0904C', baFa: 'B6311 (Reserve Land & Env Mgmt)', fundingType: 'Fixed/Flex/Set' },
+  FNLM: { costCentre: 'A0904C', baFa: 'B6340 (FN Land Mgmt Initiative)', fundingType: 'Fixed/Flex/Grant/Set' },
+  // Governance / IGS (A0907D; Band Support Funding is a Grant)
+  BSF: { costCentre: 'A0907D', baFa: 'B5511 / Q31K (Band Support Funding)', fundingType: 'Grant' },
+  EB: { costCentre: 'A0907D', baFa: 'B5512 (Band Employee Benefits)', fundingType: 'Fixed/Flex/Set' },
+  TCF: { costCentre: 'A0907D', baFa: 'B5521 / Q34L (Tribal Council Funding)', fundingType: 'Fixed/Set' },
+  'P&ID': { costCentre: 'A0907D', baFa: 'B5516 (Prof & Inst Development)', fundingType: 'Fixed/Flex/Set' },
+  // Emergency Management (A0903A)
+  EMAP: { costCentre: 'A0903A', baFa: 'B601x (Emergency Mgmt Assistance)', fundingType: 'Fixed/Flex/Set' },
+  // Education (A0903B)
+  BCTEA: { costCentre: 'A0903B', baFa: 'B3430 / Q2LH (FN School Formula)', fundingType: 'Fixed/Flex/Set' },
+  'PSSSP / UCEPP': { costCentre: 'A0903B', baFa: 'B3421 / Q29A (Post-Secondary Student Support)', fundingType: 'Fixed/Flex/Grant/Set' },
+  CECP: { costCentre: 'A0903B', baFa: 'B3416 (Cultural Education Centres)', fundingType: 'Fixed/Flex/Set' },
+  'Public & Independent School Tuition': { costCentre: 'A0903B', baFa: 'B3430 / Q2LL·Q2LM (tuition)', fundingType: 'Fixed/Flex/Set' },
+  // Social development (A0903D)
+  IA: { costCentre: 'A0903D', baFa: 'B3511 (Income Assistance — Basic Needs)', fundingType: 'Fixed/Flex/Grant/Set' },
+  AL: { costCentre: 'A0903D', baFa: 'B3611 (Assisted Living)', fundingType: 'Fixed/Flex/Grant/Set' },
+  FVPP: { costCentre: 'A0903D', baFa: 'B3810 (Family Violence)', fundingType: 'Fixed/Flex/Set' },
+  // Child & Family Services (A0908x)
+  "Jordan's Principle": { costCentre: 'A0908B', baFa: 'B2610 (Jordan’s Principle)', fundingType: 'Fixed/Flex/Set' },
+};
+for (const p of FUNDING_PROGRAMS) {
+  const c = (p.acronym && CODING_BY_KEY[p.acronym]) ?? CODING_BY_KEY[p.name];
+  if (c) p.coding = c;
+}
+
+// Program-level view of the ISC Chart of Accounts (guide pp. 172-188): the major
+// cost centres + the activities a band administrator uses to code program funds.
+// Not every micro-row. Funding types: Block, Grant, Set, Fixed, Flex, NFR Grant.
+export interface ChartOfAccountsRow { costCentre: string; baFa?: string; description: string; fundingType?: string }
+export const CHART_OF_ACCOUNTS: ChartOfAccountsRow[] = [
+  { costCentre: 'A09020 (378)', description: 'Financial Transfer Agreement — Block core funding (governance/IGS, education, income assistance, assisted living, water/sewer & education O&M, housing, LEDSP core)', fundingType: 'Block' },
+  { costCentre: 'A09020 (476-479)', description: 'New Fiscal Relationship — NFR Grant core + escalator (band support, employee benefits, water, education, housing, income assistance, assisted living, lands & econ dev)', fundingType: 'NFR Grant' },
+  { costCentre: 'A0902D / A0902E', description: 'Self-government, claims & inter-sector (CIRNAC coding) — governance capacity, treaty/BCTC, FNIH health, family violence, urban programming, climate, MMIWG', fundingType: 'Fixed/Flex/Set' },
+  { costCentre: 'A0903A', description: 'Emergency Management Assistance Program (EMAP) — capacity building, preparedness/mitigation, FireSmart, response, recovery', fundingType: 'Fixed/Flex/Set' },
+  { costCentre: 'A0903B', description: 'Education — elementary/secondary (FN school formula, tuition, student supports), post-secondary (PSSSP/PSPP), cultural centres, youth employment', fundingType: 'Fixed/Flex/Set' },
+  { costCentre: 'A0903D', description: 'Social development — Income Assistance (basic/special needs, service delivery, pre-employment), Assisted Living, Family Violence, Urban Programming, ICSF', fundingType: 'Fixed/Flex/Grant/Set' },
+  { costCentre: 'A09040 / A0904A-F', description: 'Lands & Economic Development — LEDSP core/targeted, CORP, RLEMP, FN Land Management, Contaminated Sites (FCSAP/CSOR)', fundingType: 'Fixed/Flex/Set' },
+  { costCentre: 'A0906B-E', description: 'Community infrastructure & housing — water/wastewater, O&M of assets, housing construction/reno, fire protection, FN Infrastructure Fund, Gas Tax, Building Canada Fund', fundingType: 'Fixed/Flex/Set' },
+  { costCentre: 'A0907A-D', description: 'Governance & individual affairs — community safety, estates, registration & treaty annuities, Band Employee Benefits, Prof & Inst Dev, Tribal Council Funding, Band Support Funding', fundingType: 'Fixed/Set · Grant (BSF)' },
+  { costCentre: 'A0908A', description: 'First Nation Child & Family Services — maintenance, operations, prevention, FN representative services, post-majority care', fundingType: 'Fixed/Flex/Set' },
+  { costCentre: 'A0908B', description: "Jordan's Principle and Inuit — health, education, social, child/life necessities, service coordination, major capital (CHRT 41)", fundingType: 'Fixed/Flex/Set' },
+  { costCentre: 'A0908C', description: 'Child & Family Services Reform (Bill C-92) — cost capacity-building, governance engagement, coordination-agreement discussions', fundingType: 'Fixed/Flex/Set' },
+];
+
+// Commonly Used Acronyms (guide pp. 189-192) — so the UI can expand jargon for
+// people who don't know it. + EMAP (used throughout but not in the guide's list).
+export const ACRONYMS: Record<string, string> = {
+  ABDP: 'Aboriginal Business Development Program',
+  ACRS: 'Asset Condition Reporting System',
+  AEP: 'Aboriginal Entrepreneurship Program',
+  AFI: 'Aboriginal Financial Institutions',
+  AFOA: 'Aboriginal Financial Officers Association of British Columbia',
+  AIHC: 'Adult In-Home Care',
+  AL: 'Assisted Living',
+  BCCI: 'British Columbia Capacity Initiative',
+  BCF: 'Building Canada Fund or Block Contribution Funding',
+  BCR: 'Band Council Resolution',
+  BOABC: 'Building Officers Association of BC',
+  BOC: 'Basic Organizational Capacity',
+  BSF: 'Band Support Funding',
+  CAIS: 'Capital Asset Inventory System',
+  CCAP: 'Climate Change Adaptation Program',
+  CCP: 'Comprehensive Community Planning',
+  CECP: 'Cultural Education Centre Program',
+  CEDP: 'Community Economic Development Program',
+  CEOP: 'Community Economic Opportunity Program',
+  CFMP: 'Capital and Facilities Maintenance Program',
+  CFS: 'Child and Family Services',
+  CI: 'Community Infrastructure',
+  CIRNAC: 'Crown-Indigenous Relations and Northern Affairs Canada',
+  CISS: 'Comprehensive Instructional Support Service',
+  CMHC: 'Canadian Mortgage & Housing Corporation',
+  CMO: 'Capital Management Officer',
+  COPH: 'Child Out of Parental Home',
+  CORP: 'Community Opportunities Readiness Program',
+  CPP: 'Canada Pension Plan',
+  CRT: 'Circuit Rider Trainers',
+  CRTP: 'Circuit Rider Training Program',
+  CSMP: 'Contaminated Sites Management Program',
+  CSSP: 'Community Support Services Program',
+  DCI: 'Data Collection Instrument',
+  EANCP: 'EcoEnergy for Aboriginal and Northern Communities Program',
+  EB: 'Employee Benefits',
+  ECC: 'Emergency Coordination Center',
+  EIS: 'Education Information System',
+  EMAP: 'Emergency Management Assistance Program',
+  EMBC: 'Emergency Management British Columbia',
+  ERAS: 'Education Reporting Access System',
+  ESD: 'Enhanced Service Delivery',
+  ESDC: 'Employment and Social Development Canada',
+  FCSAP: 'Federal Contaminated Site Action Plan',
+  FFA: 'Fiscal Financing Agreement',
+  FN: 'First Nation',
+  FNCCEC: 'First Nation Confederacy of Cultural Education Centres',
+  FNCFS: 'First Nations Child and Family Services',
+  FNCIDA: 'First Nations Commercial and Industrial Development Act',
+  FNESC: 'First Nations Education Steering Committee Society',
+  FNESS: 'First Nations Emergency Services Society',
+  FNFTA: 'First Nations Financial Transparency Act',
+  FNIF: 'First Nations Infrastructure Fund',
+  FNIIP: 'First Nations Infrastructure and Investment Plan',
+  FNIYES: 'First Nations and Inuit Employment Strategy',
+  FNLMA: 'First Nations Land Management Act',
+  FNMHF: 'First Nation Market Housing Fund',
+  FNNBOA: 'First Nations National Building Officers Association',
+  FNPO: 'First Nation Political Organization',
+  FNSA: 'First Nations Schools Association',
+  FNWWEP: 'First Nations Water & Wastewater Action Plan',
+  FS: 'Funding Services',
+  FSA: 'Fire Safety Assessment',
+  FSO: 'Funding Services Officer',
+  FTE: 'Full-Time Equivalent',
+  FTP: 'Flexible Transfer Payment',
+  FVPP: 'Family Violence Prevention Program',
+  GA: 'General Assessment',
+  GCIMS: 'Grants and Contributions Information Management System',
+  GEDS: 'Government Electronic Directory Service',
+  GFR: 'Gross Funding Requirement',
+  GTF: 'Gas Tax Fund',
+  'H&I': 'Housing and Infrastructure',
+  HCSEP: 'High Cost Special Education Program',
+  HQ: 'Headquarters',
+  IA: 'Income Assistance',
+  ICMS: 'Integrated Capital Management System',
+  IEMS: 'Integrated Environment Management System',
+  IGS: 'Indian Government Support',
+  IRO: 'Indigenous Representative Organization',
+  IRS: 'Indian Registry System',
+  ISC: 'Indigenous Services Canada',
+  'LAB-RC': 'Land Management Resource Centre',
+  LEA: 'Local Education Agreement',
+  LEAF: 'Lands and Environment Action Fund',
+  LED: 'Lands and Economic Development',
+  LEDSP: 'Lands and Economic Development Services Program',
+  LOSS: 'Level of Service Standard',
+  MCF: 'Management Control Framework',
+  MCFD: 'Ministry for Children and Family Development',
+  MLG: 'Ministerial Loan Guarantee',
+  MOU: 'Memorandum of Understanding',
+  MPIF: 'Major Projects and Investment Fund',
+  MTSA: 'Municipal Type Service Agreement',
+  NAHS: 'New Approach for Housing Support',
+  NCBR: 'National Child Benefit Reinvestment',
+  NFR: 'New Fiscal Relationship',
+  NHQ: 'National Headquarters',
+  NoA: 'Notice of Admission',
+  NoD: 'Notice of Discharge',
+  NR: 'Nominal Roll',
+  NTCF: 'Notice to Commit Funds',
+  'O&M': 'Operations & Maintenance',
+  OGM: 'Operating Grants Manual',
+  OSFI: 'Office of the Superintendent of Financial Institutions',
+  OSR: 'Own Source Revenue',
+  'P&ID': 'Professional & Institutional Development',
+  PAR: 'Project Approval Request',
+  PAW: 'Proposal, Application and Work plan',
+  PIFI: 'Protocol for ISC Funded Infrastructure',
+  PPMB: 'Persons with Persistent Multiple Barriers',
+  PSAB: 'Procurement Strategy for Aboriginal Business',
+  PSAR: 'Project and Specific Agreement Recipient',
+  PSE: 'Post-Secondary Education',
+  PSPP: 'Post-Secondary Partnership Program',
+  PSSR: 'Post-Secondary Student Registry',
+  PSSSP: 'Post-Secondary Student Support Program',
+  PTO: 'Provincial/Territorial Organization',
+  PTP: 'Policy on Transfer Payments',
+  PWD: 'Persons with Disabilities',
+  RG: 'Reporting Guide',
+  RLAP: 'Regional Land Administration Program',
+  RLEMP: 'Reserve Land and Environmental Management Program',
+  RRAP: 'Residential Rehabilitation Assistance Program',
+  SCIS: 'Secure Certificate of Indian Status Card',
+  SDU: 'Service Delivery Unit',
+  SMRT: 'Structural Mitigation Ranking Tool',
+  SOFI: 'Statements of Financial Information',
+  SOI: 'Statement of Intent',
+  SPI: 'Strategic Partnership Initiative',
+  SPRF: 'School Priority Ranking Framework',
+  SS: 'Special Students',
+  'T&C': 'Terms & Conditions',
+  TAG: 'Treaties and Aboriginal Government',
+  TB: 'Treasury Board',
+  TBS: 'Treasury Board Secretariat',
+  TC: 'Tribal Council',
+  TCF: 'Tribal Council Funding',
+  TEFA: 'Tripartite Education Framework Agreement',
+  TRM: 'Treaty Related Measures',
+  UCEP: 'University and College Entrance Program',
+  WOP: 'Work Opportunity Program',
+};
+
+const ACRONYM_INDEX: Record<string, string> = Object.fromEntries(
+  Object.entries(ACRONYMS).map(([k, v]) => [k.toUpperCase(), v]),
+);
+// Case-insensitive acronym lookup, e.g. expandAcronym('paw') → 'Proposal, Application and Work plan'.
+export function expandAcronym(acr: string): string | undefined {
+  return acr ? ACRONYM_INDEX[acr.toUpperCase()] : undefined;
+}
