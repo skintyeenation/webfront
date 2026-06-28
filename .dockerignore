@@ -1,0 +1,28 @@
+# Build context for website/web/Dockerfile is the repo root — keep it lean.
+**/node_modules
+**/.next
+**/dist
+**/build
+**/.turbo
+.git
+.idea
+.vscode
+**/*.log
+
+# WordPress / migration data + archives (not needed to build the Next.js app)
+website/wp-data
+website/db-data
+website/scraped
+website/backups
+website/exports
+website/legacy
+
+# Large design assets not used by the web build
+docs/land/*.jpg
+docs/land/*.jpeg
+docs/land/*.pdf
+
+# Other workspace apps' heavy assets we don't need for the web image
+app/assets
+app/android
+app/ios
