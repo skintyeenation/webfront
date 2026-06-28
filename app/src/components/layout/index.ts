@@ -9,6 +9,7 @@ export { PieChart } from './PieChart';
 export type { PieDatum } from './PieChart';
 export { chartPalette, colorAt } from './palette';
 export { MonthCalendar } from './MonthCalendar';
+export { FundingDeadlines, GovernanceFundingDeadlines } from './FundingDeadlines';
 export { AdminAddButton } from './AdminAddButton';
 export { DateTimeField } from './DateTimeField';
 export { TimeField } from './TimeField';

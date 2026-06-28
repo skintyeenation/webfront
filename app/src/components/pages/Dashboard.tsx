@@ -3,7 +3,7 @@ import { Platform, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions
 import { Badge, Button, Card, Chip, IconButton, ProgressBar, Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import moment from 'moment';
-import { NoContent, PageContainer, PageContent, colorAt } from 'skintyee/components/layout';
+import { GovernanceFundingDeadlines, NoContent, PageContainer, PageContent, colorAt } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { loadFeed } from 'skintyee/store/modules/feed';
 import { loadRollup } from 'skintyee/store/modules/planner';
@@ -440,6 +440,9 @@ export default function Dashboard({ navigation }: any) {
   return (
     <PageContainer>
       <PageContent>
+        {/* Governance funding calendar — PAW/DCI deadlines; renders only for
+            council / finance / system-admin / band-manager / admin. */}
+        <GovernanceFundingDeadlines />
         {/* Pinned alert: open onboarding work. Dismissable in-session;
             reloading the app re-fires the fetch + shows it again until
             the underlying assignments are completed server-side. */}
