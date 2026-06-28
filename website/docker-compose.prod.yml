@@ -1,0 +1,97 @@
+# Production / staging compose — HEADLESS Skin Tyee site.
+#
+#   Caddy (automatic HTTPS / Let's Encrypt)
+#     ├─ ${WEB_HOST}  (skintyee.ca)      → web        (Next.js standalone)
+#     └─ ${CMS_HOST}  (cms.skintyee.ca)  → wordpress  (headless CMS)
+#
+# WordPress uses the MANAGED Azure Database for MySQL – Flexible Server (no local
+# db container; WordPress requires MySQL — the api/'s Postgres is separate). The
+# Next.js image is built by the pipeline and pulled from ACR. All connection
+# values, hostnames, and the image tag come from a .env the deploy pipeline writes
+# on the host:
+#
+#   WEB_HOST=skintyee.ca
+#   CMS_HOST=cms.skintyee.ca
+#   SITE_URL=https://skintyee.ca
+#   CMS_URL=https://cms.skintyee.ca
+#   API_URL=https://api.skintyee.ca
+#   WEB_IMAGE=skintyeeprodacr.azurecr.io/skintyee-web:<tag>
+#   DB_HOST=skintyee-prod-mysql.mysql.database.azure.com:3306
+#   DB_NAME=skintyee  DB_USER=skintyee  DB_PASSWORD=********
+#   AUTH_* (Entra)   ONBOARDING_URL=...
+#
+#   docker compose -f docker-compose.prod.yml up -d
+
+name: skintyee-site
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      WEB_HOST: ${WEB_HOST}
+      CMS_HOST: ${CMS_HOST}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - web
+      - wordpress
+
+  web:
+    image: ${WEB_IMAGE}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      WP_API_URL: ${CMS_URL}
+      API_URL: ${API_URL}
+      ONBOARDING_URL: ${ONBOARDING_URL:-}
+      AUTH_URL: ${SITE_URL}
+      AUTH_SECRET: ${AUTH_SECRET:-}
+      AUTH_MICROSOFT_ENTRA_ID_ID: ${AUTH_MICROSOFT_ENTRA_ID_ID:-}
+      AUTH_MICROSOFT_ENTRA_ID_SECRET: ${AUTH_MICROSOFT_ENTRA_ID_SECRET:-}
+      AUTH_MICROSOFT_ENTRA_ID_ISSUER: ${AUTH_MICROSOFT_ENTRA_ID_ISSUER:-}
+    expose:
+      - "3000"
+
+  wordpress:
+    image: wordpress:6.7-php8.3-apache
+    restart: unless-stopped
+    environment:
+      WORDPRESS_DB_HOST: ${DB_HOST}
+      WORDPRESS_DB_NAME: ${DB_NAME}
+      WORDPRESS_DB_USER: ${DB_USER}
+      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD}
+      CMS_URL: ${CMS_URL}
+      # Managed Flexible Server enforces TLS.
+      WORDPRESS_CONFIG_EXTRA: |
+        define('WP_HOME',    getenv('CMS_URL'));
+        define('WP_SITEURL', getenv('CMS_URL'));
+        define('MYSQL_CLIENT_FLAGS', MYSQLI_CLIENT_SSL);
+    volumes:
+      - ./wp-data:/var/www/html
+    expose:
+      - "80"
+
+  # On-demand WP-CLI (preseed / search-replace). `--profile tools` so it doesn't
+  # run with the stack: docker compose --profile tools run --rm wpcli wp <args>
+  wpcli:
+    image: wordpress:cli-php8.3
+    profiles: ["tools"]
+    user: "33:33"
+    environment:
+      WORDPRESS_DB_HOST: ${DB_HOST}
+      WORDPRESS_DB_NAME: ${DB_NAME}
+      WORDPRESS_DB_USER: ${DB_USER}
+      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - ./wp-data:/var/www/html
+      - ./cms:/cms:ro
+
+volumes:
+  caddy-data:
+  caddy-config:

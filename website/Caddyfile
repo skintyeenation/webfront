@@ -1,0 +1,12 @@
+# Reverse proxy + automatic HTTPS (Let's Encrypt). Hostnames come from the env
+# the deploy pipeline writes (WEB_HOST / CMS_HOST). Caddy obtains + renews certs.
+
+{$WEB_HOST} {
+	encode gzip
+	reverse_proxy web:3000
+}
+
+{$CMS_HOST} {
+	encode gzip
+	reverse_proxy wordpress:80
+}

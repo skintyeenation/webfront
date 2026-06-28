@@ -1,0 +1,225 @@
+# Azure DevOps pipeline — HEADLESS skintyee.ca (website/).
+#
+# Builds the Next.js image in ACR, then deploys the stack over SSH:
+#   Caddy (auto-HTTPS) ─ skintyee.ca → web (Next.js) ┐
+#                       └ cms.skintyee.ca → WordPress │  (managed Azure MySQL)
+#
+# DATABASE: managed Azure Database for MySQL – Flexible Server (auto backups +
+# PITR; never recreated by a routine deploy). WordPress connects over TLS. A fresh
+# instance is preseeded from cms/wp-initial.sql (opt-in, gated by `seedDatabase`).
+#
+# SETUP REQUIRED
+#   - Variable group `skintyee-website`:
+#       SSH_HOST, SSH_USER, DEPLOY_PATH,
+#       DB_HOST, DB_NAME, DB_USER, DB_PASSWORD (secret),
+#       ACR_NAME (e.g. skintyeeprodacr), ACR_LOGIN_SERVER, ACR_USERNAME,
+#       ACR_PASSWORD (secret),  AUTH_SECRET (secret) + AUTH_MICROSOFT_ENTRA_ID_*,
+#       optional ONBOARDING_URL, AZURE_STORAGE_SAS.
+#   - Service connections: `skintyee-host` (SSH) + `skintyee-azure` (Azure RM, for az acr build).
+#   - Environments `skintyee-website-staging` / `-production` (approvals in the ADO UI).
+#   - DNS: skintyee.ca + cms.skintyee.ca → the host; Caddy issues the TLS certs.
+
+trigger:
+  branches:
+    include:
+      - develop   # -> staging
+      - master    # -> production
+  paths:
+    include:
+      - website/*
+      - packages/*
+
+parameters:
+  - name: seedDatabase
+    displayName: "DESTRUCTIVE: preseed the database from cms/wp-initial.sql"
+    type: boolean
+    default: false
+
+variables:
+  - group: skintyee-website
+  - ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/master') }}:
+      - { name: deployEnvName, value: skintyee-website-production }
+      - { name: webHost, value: skintyee.ca }
+      - { name: cmsHost, value: cms.skintyee.ca }
+  - ${{ else }}:
+      - { name: deployEnvName, value: skintyee-website-staging }
+      - { name: webHost, value: staging.skintyee.ca }
+      - { name: cmsHost, value: cms.staging.skintyee.ca }
+  - name: siteUrl
+    value: "https://$(webHost)"
+  - name: cmsUrl
+    value: "https://$(cmsHost)"
+  - name: apiUrl
+    value: "https://api.skintyee.ca"
+  - name: imageTag
+    value: "$(Build.BuildId)"
+  - name: webImage
+    value: "$(ACR_LOGIN_SERVER)/skintyee-web:$(imageTag)"
+  - name: compose
+    value: "docker compose -f docker-compose.prod.yml"
+
+stages:
+  # ---------------------------------------------------------------------------
+  - stage: Build
+    displayName: "Build web image"
+    jobs:
+      - job: build
+        pool: { vmImage: ubuntu-latest }
+        steps:
+          - checkout: self
+            fetchDepth: 1
+          # Build the Next.js standalone image IN ACR (context = repo root so the
+          # monorepo workspace packages resolve).
+          - task: AzureCLI@2
+            displayName: "az acr build -> skintyee-web:$(imageTag)"
+            inputs:
+              azureSubscription: skintyee-azure
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                az acr build \
+                  --registry "$(ACR_NAME)" \
+                  --image "skintyee-web:$(imageTag)" \
+                  --image "skintyee-web:latest" \
+                  --file website/web/Dockerfile \
+                  .
+
+  # ---------------------------------------------------------------------------
+  - stage: Validate
+    displayName: "Validate compose"
+    dependsOn: Build
+    jobs:
+      - job: validate
+        pool: { vmImage: ubuntu-latest }
+        steps:
+          - checkout: self
+            fetchDepth: 1
+          - script: |
+              set -euo pipefail
+              cd website
+              WEB_HOST=h CMS_HOST=h SITE_URL=https://x CMS_URL=https://x API_URL=https://x \
+                WEB_IMAGE=img DB_HOST=h DB_NAME=n DB_USER=u DB_PASSWORD=p \
+                docker compose -f docker-compose.prod.yml config -q
+            displayName: "Lint docker-compose.prod.yml"
+
+  # ---------------------------------------------------------------------------
+  - stage: Deploy
+    displayName: "Deploy"
+    dependsOn: Validate
+    condition: succeeded()
+    jobs:
+      - deployment: deploy
+        displayName: "Deploy headless stack"
+        pool: { vmImage: ubuntu-latest }
+        environment: $(deployEnvName)
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                  fetchDepth: 1
+
+                # 1. Sync website/ to the host (runtime + secret dirs excluded).
+                - task: CopyFilesOverSSH@0
+                  displayName: "Sync website/ to host"
+                  inputs:
+                    sshEndpoint: skintyee-host
+                    sourceFolder: website
+                    contents: |
+                      **
+                      !db-data/**
+                      !wp-data/**
+                      !scraped/**
+                      !backups/**
+                      !node_modules/**
+                      !legacy/**
+                      !.git/**
+                    targetFolder: $(DEPLOY_PATH)
+                    cleanTargetFolder: false
+                    overwrite: true
+
+                # 2. Write the host .env (managed DB + URLs + image tag + Entra).
+                - task: SSH@0
+                  displayName: "Write .env on host"
+                  inputs:
+                    sshEndpoint: skintyee-host
+                    runOptions: commands
+                    commands: |
+                      set -e
+                      umask 077
+                      cat > "$(DEPLOY_PATH)/.env" <<EOF
+                      WEB_HOST=$(webHost)
+                      CMS_HOST=$(cmsHost)
+                      SITE_URL=$(siteUrl)
+                      CMS_URL=$(cmsUrl)
+                      API_URL=$(apiUrl)
+                      WEB_IMAGE=$(webImage)
+                      DB_HOST=$(DB_HOST)
+                      DB_NAME=$(DB_NAME)
+                      DB_USER=$(DB_USER)
+                      DB_PASSWORD=$(DB_PASSWORD)
+                      ONBOARDING_URL=$(ONBOARDING_URL)
+                      AUTH_SECRET=$(AUTH_SECRET)
+                      AUTH_MICROSOFT_ENTRA_ID_ID=$(AUTH_MICROSOFT_ENTRA_ID_ID)
+                      AUTH_MICROSOFT_ENTRA_ID_SECRET=$(AUTH_MICROSOFT_ENTRA_ID_SECRET)
+                      AUTH_MICROSOFT_ENTRA_ID_ISSUER=$(AUTH_MICROSOFT_ENTRA_ID_ISSUER)
+                      EOF
+
+                # 3. Pre-deploy snapshot (managed MySQL already has PITR; this is
+                #    belt-and-braces for wp-content + a logical export).
+                - task: SSH@0
+                  displayName: "Snapshot wp-content (+ logical DB export)"
+                  inputs:
+                    sshEndpoint: skintyee-host
+                    runOptions: commands
+                    commands: |
+                      set -e
+                      cd "$(DEPLOY_PATH)"
+                      mkdir -p backups
+                      ts=$(date +%Y%m%d-%H%M%S)
+                      [ -d wp-data/wp-content ] && tar -czf "backups/wp-content-$ts.tar.gz" --exclude=cache --exclude=upgrade -C wp-data wp-content || true
+                      $(compose) --profile tools run --rm wpcli db export "/cms/db-$ts.sql" 2>/dev/null || echo "db export skipped (fresh install?)"
+                      ls -t backups/wp-content-*.tar.gz 2>/dev/null | tail -n +21 | xargs -r rm
+
+                # 4. Log in to ACR, pull images, (re)start the stack.
+                - task: SSH@0
+                  displayName: "docker login + compose up"
+                  inputs:
+                    sshEndpoint: skintyee-host
+                    runOptions: commands
+                    commands: |
+                      set -e
+                      cd "$(DEPLOY_PATH)"
+                      echo "$(ACR_PASSWORD)" | docker login "$(ACR_LOGIN_SERVER)" -u "$(ACR_USERNAME)" --password-stdin
+                      $(compose) pull
+                      $(compose) up -d --remove-orphans
+                    readyTimeout: "30000"
+
+                # 5. DESTRUCTIVE, opt-in: preseed a fresh DB from the checked-in
+                #    dataset, then point URLs at the live CMS.
+                - ${{ if eq(parameters.seedDatabase, true) }}:
+                    - task: SSH@0
+                      displayName: "Preseed database (cms/wp-initial.sql)"
+                      inputs:
+                        sshEndpoint: skintyee-host
+                        runOptions: commands
+                        commands: |
+                          set -e
+                          cd "$(DEPLOY_PATH)"
+                          $(compose) --profile tools run --rm -T wpcli db import /cms/wp-initial.sql
+                          $(compose) --profile tools run --rm wpcli search-replace 'http://localhost:8080' '$(cmsUrl)' --all-tables --skip-columns=guid || true
+                          $(compose) --profile tools run --rm wpcli option update home '$(cmsUrl)'
+                          $(compose) --profile tools run --rm wpcli option update siteurl '$(cmsUrl)'
+
+                # 6. Smoke check.
+                - task: SSH@0
+                  displayName: "Smoke check"
+                  inputs:
+                    sshEndpoint: skintyee-host
+                    runOptions: commands
+                    commands: |
+                      set -e
+                      sleep 8
+                      curl -fsS -o /dev/null -w 'web %{http_code}\n'  "$(siteUrl)/" || true
+                      curl -fsS -o /dev/null -w 'cms %{http_code}\n'  "$(cmsUrl)/wp-json" || true
