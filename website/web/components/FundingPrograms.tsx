@@ -37,16 +37,26 @@ export function FundingPrograms({
 function FundingCard({ p }: { p: FundingProgram }) {
   const href = p.pdfPage ? `${PROGRAM_GUIDE.href}#page=${p.pdfPage}` : PROGRAM_GUIDE.href;
   return (
-    <article className="rounded-xl border border-[var(--line)] p-5">
-      <h3 className="font-bold text-ink">
-        {p.name}
-        {p.acronym && (
-          <span className="ml-2 text-sm font-semibold text-accent">
-            <Acronym>{p.acronym}</Acronym>
-          </span>
-        )}
-      </h3>
-      <p className="mt-1.5 text-sm text-ink/75">{p.summary}</p>
+    <details className="group rounded-xl border border-[var(--line)] p-5">
+      <summary className="flex cursor-pointer list-none items-start justify-between gap-3 [&::-webkit-details-marker]:hidden">
+        <div>
+          <h3 className="font-bold text-ink">
+            {p.name}
+            {p.acronym && (
+              <span className="ml-2 text-sm font-semibold text-accent">
+                <Acronym>{p.acronym}</Acronym>
+              </span>
+            )}
+          </h3>
+          <p className="mt-1.5 text-sm text-ink/75">{p.summary}</p>
+        </div>
+        <span
+          aria-hidden
+          className="mt-1 shrink-0 text-ink/40 transition-transform group-open:rotate-180"
+        >
+          ▾
+        </span>
+      </summary>
 
       {p.eligibility && (
         <p className="mt-2 text-sm">
@@ -97,7 +107,7 @@ function FundingCard({ p }: { p: FundingProgram }) {
       >
         Details in the Program Guide →
       </a>
-    </article>
+    </details>
   );
 }
 
