@@ -62,6 +62,14 @@ export function isPublicRoster(m: any): boolean {
   return rosterRole(m) !== undefined;
 }
 
+// Member photos (e.g. from skintyeefirstnation.org), keyed by email/UPN. In real
+// Entra these come from the Graph user photo; this map is the POC stand-in / "db".
+const PHOTO_BY_EMAIL: Record<string, string> = {
+  'gabriel.tom@skintyee.ca': 'https://files.cdn-files-a.com/uploads/9873249/400_671bc6cce8f40.jpg',
+};
+const photoFor = (m: any): string | undefined =>
+  PHOTO_BY_EMAIL[String(m?.upn ?? m?.email ?? '').toLowerCase()];
+
 // Curated public projection — name/governance-role/title/department/photo only.
 // Drops email, phone, upn, mailboxes, bandGroups, licences, manager, app tier,
 // and all Entra internals.
@@ -74,6 +82,7 @@ export function toPublicBandMember(m: any) {
     department: m.department ?? undefined,
     avatarLetter: m.avatarLetter ?? undefined,
     hasPhoto: m.hasPhoto ?? false,
+    photoUrl: photoFor(m),
   };
 }
 

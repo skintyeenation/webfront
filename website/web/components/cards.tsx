@@ -69,12 +69,17 @@ export function MeetingItem({ m }: { m: BandMeeting }) {
 }
 
 // A band-management / governance roster card.
-export function RoleCard({ m }: { m: { _id: string; name: string; role?: string; title?: string; avatarLetter?: string } }) {
+export function RoleCard({ m }: { m: { _id: string; name: string; role?: string; title?: string; avatarLetter?: string; photoUrl?: string } }) {
   return (
     <div className="flex items-center gap-4 rounded-lg border border-[var(--line)] p-4">
-      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/15 text-lg font-bold text-primary">
-        {m.avatarLetter ?? m.name?.[0] ?? '?'}
-      </span>
+      {m.photoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={m.photoUrl} alt="" className="h-12 w-12 shrink-0 rounded-full object-cover" />
+      ) : (
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/15 text-lg font-bold text-primary">
+          {m.avatarLetter ?? m.name?.[0] ?? '?'}
+        </span>
+      )}
       <div>
         <p className="font-semibold text-ink">{m.name}</p>
         <p className="text-sm text-ink/70">{m.title ?? m.role}</p>
