@@ -1,0 +1,129 @@
+name: deploy-web
+
+# Build + push the website (website/web) Docker image to ACR, then update the
+# web-prod Container App revision in canadacentral. Triggers on any push to
+# master that touches the website frontend, the shared workspace packages it
+# imports, or this pipeline.
+#
+# Build context is the REPO ROOT (not website/web) because the Next.js site is a
+# pnpm-workspace member that imports @skintyee/api-client + @skintyee/models —
+# the Dockerfile installs the whole workspace and builds just @skintyee/website-web.
+#
+# Auth: workload identity federation via the `skintyee-prod-azure` service
+# connection (same SC + federated grants as deploy-api: AcrPush on the ACR +
+# Contributor on the Container App and its managed environment).
+
+trigger:
+  branches:
+    include: [master]
+  paths:
+    include:
+      - website/web/**
+      - packages/**
+      - azure-pipelines/Deployments/deploy-web.yml
+pr: none   # don't deploy from PRs — only the merged result
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  - group: skintyee-prod-azure
+    # Provides (non-secret) resource names: AZURE_RG (skintyee-prod-rg),
+    # AZURE_ACR_NAME (skintyeeprodacr), AZURE_REGION (canadacentral).
+    # NOTE: the group's AZURE_CONTAINERAPP is api-prod — overridden below.
+  - name: AZURE_CONTAINERAPP
+    value: 'web-prod'
+  - name: IMAGE_NAME
+    value: 'skintyee-web'
+  - name: IMAGE_TAG
+    value: '$(Build.SourceVersion)'   # commit SHA — immutable, traceable
+
+jobs:
+  - job: build_and_deploy
+    displayName: Build → push to ACR → update web-prod
+    steps:
+      - checkout: self
+        fetchDepth: 1
+
+      - task: AzureCLI@2
+        displayName: az acr build (website image, context = repo root)
+        inputs:
+          azureSubscription: skintyee-prod-azure
+          scriptType: bash
+          scriptLocation: inlineScript
+          inlineScript: |
+            set -euo pipefail
+            az acr build \
+              --registry "$AZURE_ACR_NAME" \
+              --image "${IMAGE_NAME}:${IMAGE_TAG}" \
+              --image "${IMAGE_NAME}:latest" \
+              --file website/web/Dockerfile \
+              .
+
+      - task: AzureCLI@2
+        displayName: Update web-prod revision
+        inputs:
+          azureSubscription: skintyee-prod-azure
+          scriptType: bash
+          scriptLocation: inlineScript
+          inlineScript: |
+            set -euo pipefail
+
+            FULL_IMAGE="${AZURE_ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG}"
+            echo "▸ updating ${AZURE_CONTAINERAPP} to ${FULL_IMAGE}…"
+
+            # Wait out any in-flight provisioning (manual env/secret change) so we
+            # don't hit ContainerAppOperationInProgress.
+            wait_for_idle() {
+              for attempt in $(seq 1 12); do
+                STATE=$(az containerapp show \
+                  --name "$AZURE_CONTAINERAPP" --resource-group "$AZURE_RG" \
+                  --query 'properties.provisioningState' -o tsv 2>/dev/null || echo "Unknown")
+                case "$STATE" in Succeeded|Failed|Canceled) return 0;; esac
+                echo "  containerapp state=${STATE}; waiting ($((attempt * 15))s)…"
+                sleep 15
+              done
+              echo "  ✗ still not idle after 3 min — proceeding anyway"
+            }
+            wait_for_idle
+
+            for attempt in 1 2 3; do
+              if az containerapp update \
+                --name "$AZURE_CONTAINERAPP" --resource-group "$AZURE_RG" \
+                --image "$FULL_IMAGE" \
+                --revision-suffix "sha-$(echo $IMAGE_TAG | cut -c1-7)" \
+                --output none 2> /tmp/cau-err; then
+                break
+              fi
+              if grep -q "ContainerAppOperationInProgress" /tmp/cau-err; then
+                echo "  attempt $attempt: operation in progress — waiting + retrying"
+                wait_for_idle; continue
+              fi
+              cat /tmp/cau-err >&2; exit 1
+            done
+
+            echo "▸ latest revision:"
+            az containerapp revision list \
+              --name "$AZURE_CONTAINERAPP" --resource-group "$AZURE_RG" \
+              --query 'sort_by([], &properties.createdTime)[-1].{name:name,active:properties.active,trafficWeight:properties.trafficWeight}' \
+              -o table
+
+      - task: AzureCLI@2
+        displayName: Smoke test the new revision
+        inputs:
+          azureSubscription: skintyee-prod-azure
+          scriptType: bash
+          scriptLocation: inlineScript
+          inlineScript: |
+            set -euo pipefail
+            FQDN=$(az containerapp show \
+              --name "$AZURE_CONTAINERAPP" --resource-group "$AZURE_RG" \
+              --query properties.configuration.ingress.fqdn -o tsv)
+            echo "▸ smoke testing https://${FQDN}/ …"
+            for i in $(seq 1 12); do
+              if curl -fsS --max-time 5 "https://${FQDN}/" >/dev/null 2>&1; then
+                echo "  ✓ site responded on attempt $i"; exit 0
+              fi
+              echo "  (attempt $i — not ready yet)"; sleep 5
+            done
+            echo "✗ site never returned 200 — rollback may be needed"; exit 1
