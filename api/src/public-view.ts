@@ -62,6 +62,20 @@ export function isPublicRoster(m: any): boolean {
   return rosterRole(m) !== undefined;
 }
 
+// Member photos (e.g. from skintyeefirstnation.org), keyed by email/UPN. In real
+// Entra these come from the Graph user photo; this map is the POC stand-in / "db".
+const CDN = 'https://files.cdn-files-a.com/uploads/9873249';
+const PHOTO_BY_EMAIL: Record<string, string> = {
+  'gabriel.tom@skintyee.ca': `${CDN}/400_6739c3b1e8c33_filter_6739c3c7743ad.jpg`, // Band Manager
+  'kim.pike@skintyee.ca': `${CDN}/400_673fb1895ebf3_filter_673fb1f596e40.jpg`, // Finance Assistant
+  'shirley.wilson@skintyee.ca': `${CDN}/400_673c2cfd4a64b.jpg`, // Environmental Stewardship
+  'martin.tom@skintyee.ca': `${CDN}/400_6727eb4ad3077_filter_6727eb6befab8.jpg`, // Head of Security
+  'melissa.dyck@skintyee.ca': `${CDN}/400_673c2c1ae0c7b.jpg`, // Administration
+  'helen.michelle@skintyee.ca': `${CDN}/400_673c4941050df_filter_673c497cd46ca.jpg`, // Elders Committee
+};
+const photoFor = (m: any): string | undefined =>
+  PHOTO_BY_EMAIL[String(m?.upn ?? m?.email ?? '').toLowerCase()];
+
 // Curated public projection — name/governance-role/title/department/photo only.
 // Drops email, phone, upn, mailboxes, bandGroups, licences, manager, app tier,
 // and all Entra internals.
@@ -74,6 +88,7 @@ export function toPublicBandMember(m: any) {
     department: m.department ?? undefined,
     avatarLetter: m.avatarLetter ?? undefined,
     hasPhoto: m.hasPhoto ?? false,
+    photoUrl: photoFor(m),
   };
 }
 

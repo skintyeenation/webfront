@@ -9,6 +9,7 @@ interface Person {
   role?: string;
   title?: string;
   avatarLetter?: string;
+  photoUrl?: string;
 }
 
 const R = 26; // node radius
@@ -110,10 +111,31 @@ function OrgNode({ x, y, p }: { x: number; y: number; p: Person }) {
   const last = (p.name || '').split(/\s+/).slice(1).join(' ');
   return (
     <g>
-      <circle cx={x} cy={y} r={R} fill="#fff" stroke={color} strokeWidth={3} />
-      <text x={x} y={y} textAnchor="middle" dominantBaseline="central" fontSize={15} fontWeight={700} fill={color}>
-        {initialsOf(p)}
-      </text>
+      {p.photoUrl ? (
+        <>
+          <clipPath id={`org-clip-${p._id}`}>
+            <circle cx={x} cy={y} r={R} />
+          </clipPath>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <image
+            href={p.photoUrl}
+            x={x - R}
+            y={y - R}
+            width={R * 2}
+            height={R * 2}
+            clipPath={`url(#org-clip-${p._id})`}
+            preserveAspectRatio="xMidYMid slice"
+          />
+          <circle cx={x} cy={y} r={R} fill="none" stroke={color} strokeWidth={3} />
+        </>
+      ) : (
+        <>
+          <circle cx={x} cy={y} r={R} fill="#fff" stroke={color} strokeWidth={3} />
+          <text x={x} y={y} textAnchor="middle" dominantBaseline="central" fontSize={15} fontWeight={700} fill={color}>
+            {initialsOf(p)}
+          </text>
+        </>
+      )}
       <text x={x} y={y + R + 15} textAnchor="middle" fontSize={11.5} fontWeight={600} fill="#1d1d1d">
         {first}
       </text>

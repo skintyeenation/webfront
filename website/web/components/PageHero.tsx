@@ -20,10 +20,27 @@ export function PageHero({ title, subtitle }: { title: string; subtitle?: ReactN
     const onKey = (e: KeyboardEvent) => {
       if (['Escape', 'ArrowDown', 'PageDown', ' ', 'Enter'].includes(e.key)) dismiss();
     };
+    // Scrolling down (wheel) or swiping up (touch) snaps the page into place.
+    const onWheel = (e: WheelEvent) => {
+      if (e.deltaY > 0) dismiss();
+    };
+    let touchStartY = 0;
+    const onTouchStart = (e: TouchEvent) => {
+      touchStartY = e.touches[0]?.clientY ?? 0;
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (touchStartY - (e.touches[0]?.clientY ?? 0) > 40) dismiss();
+    };
     window.addEventListener('keydown', onKey);
+    window.addEventListener('wheel', onWheel, { passive: true });
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
     return () => {
       document.body.style.overflow = '';
       window.removeEventListener('keydown', onKey);
+      window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
     };
   }, [dismissed, dismiss]);
 
@@ -44,6 +61,13 @@ export function PageHero({ title, subtitle }: { title: string; subtitle?: ReactN
             <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-white/80 md:text-base">Welcome to</p>
             <h1 className="text-3xl font-bold text-white drop-shadow-md md:text-6xl">{title}</h1>
             {subtitle && <p className="mt-10 text-base text-white/90 drop-shadow md:text-lg">{subtitle}</p>}
+            <button
+              type="button"
+              onClick={dismiss}
+              className="mt-8 inline-flex items-center rounded-full border-2 border-white/70 bg-white/10 px-8 py-3 font-semibold text-white backdrop-blur transition hover:bg-white/20"
+            >
+              Let&apos;s go
+            </button>
           </div>
           <address className="shrink-0 not-italic text-sm leading-relaxed text-white/90 drop-shadow md:text-right">
             <span className="block text-xs font-bold uppercase tracking-wide text-white/70">Contact</span>

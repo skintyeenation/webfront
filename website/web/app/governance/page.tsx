@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { publicApi, safe } from '@/lib/api';
 import { RoleCard } from '@/components/cards';
 import { GovernanceOrgChart } from '@/components/GovernanceOrgChart';
+import { JobsCta } from '@/components/JobsCta';
 
 export const revalidate = 60;
 export const metadata: Metadata = { title: 'Governance' };
@@ -25,11 +26,16 @@ export default async function GovernancePage() {
 
       {/* Greetings from the Chief */}
       <section className="mt-6 grid gap-6 rounded-2xl border border-[var(--line)] bg-[#f2f7f8] p-6 sm:grid-cols-[auto_1fr] sm:p-8">
-        <div className="flex h-40 w-40 items-center justify-center rounded-xl bg-gradient-to-br from-[#00343f] to-[#014e5e] text-5xl font-bold text-white">
-          {chiefInitial}
-        </div>
+        {chief?.photoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={chief.photoUrl} alt={chiefName} className="h-40 w-40 rounded-xl object-cover" />
+        ) : (
+          <div className="flex h-40 w-40 items-center justify-center rounded-xl bg-gradient-to-br from-[#00343f] to-[#014e5e] text-5xl font-bold text-white">
+            {chiefInitial}
+          </div>
+        )}
         <div>
-          <h2 className="text-xl font-bold">Greetings from the Chief</h2>
+          <h2 className="text-xl font-bold">Greetings from Chief and Council</h2>
           <div className="mt-3 space-y-3 text-ink/75">
             <p>
               On behalf of Council and our entire community, I am honoured to welcome you to Skin Tyee
@@ -59,6 +65,10 @@ export default async function GovernancePage() {
         ) : (
           <p className="text-ink/60">Roster coming soon.</p>
         )}
+      </div>
+
+      <div className="mt-10">
+        <JobsCta />
       </div>
     </>
   );

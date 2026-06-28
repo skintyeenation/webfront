@@ -28,6 +28,18 @@ for _ in $(seq 1 30); do
 done
 echo "    http $code"
 
+# Preseed a brand-new instance from the checked-in dataset, so a fresh
+# staging/production WordPress comes up with the existing content instead of an
+# empty install. Only runs when WordPress isn't installed yet.
+SEED_SQL="cms/wp-initial.sql"
+if [ -f "$SEED_SQL" ] && ! wpc core is-installed >/dev/null 2>&1; then
+  echo "==> preseeding database from $SEED_SQL"
+  docker compose exec -T db mysql -uroot -proot "${WORDPRESS_DB_NAME:-skintyee}" < "$SEED_SQL"
+  # Point the imported site at this instance's URL.
+  wpc option update home "$URL" >/dev/null 2>&1 || true
+  wpc option update siteurl "$URL" >/dev/null 2>&1 || true
+fi
+
 if wpc core is-installed >/dev/null 2>&1; then
   echo "==> WordPress already installed"
 else
