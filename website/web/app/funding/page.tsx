@@ -57,6 +57,9 @@ export default async function FundingPage() {
         <span className="ml-auto font-semibold text-primary">→</span>
       </Link>
 
+      {/* Funding calendar — month grid + list views */}
+      <FundingCalendar deadlines={deadlines} areas={calendarAreas} />
+
       {/* Programs by area — each area collapses to its heading */}
       {PROGRAM_AREAS.map((area) => {
         const progs = fundingByArea(area.slug);
@@ -76,9 +79,6 @@ export default async function FundingPage() {
           />
         );
       })}
-
-      {/* Funding calendar — month grid + list views */}
-      <FundingCalendar deadlines={deadlines} areas={calendarAreas} />
     </>
   );
 }
