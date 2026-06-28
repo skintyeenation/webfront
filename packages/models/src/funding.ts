@@ -544,6 +544,13 @@ export const FUNDING_PROGRAMS: FundingProgram[] = [
 export const fundingByArea = (areaSlug: string): FundingProgram[] =>
   FUNDING_PROGRAMS.filter((p) => p.area === areaSlug);
 
+// Canonical per-program slug — the SINGLE source of truth for the program folder
+// name used everywhere: the repo doc folders (web/public/docs/programs/<area>/<slug>/),
+// the website submission portal, and the mirrored SharePoint library. Derived from the
+// acronym (or name): e.g. 'P&ID' -> 'p-id', 'O&M' -> 'o-m', 'LEDSP-Core' -> 'ledsp-core'.
+export const programSlug = (p: { acronym?: string; name: string }): string =>
+  (p.acronym || p.name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
 // Flattened deadline rows for a funding calendar.
 export interface DeadlineRow { area: string; program: string; kind: 'Application (PAW)' | 'Report (DCI)'; ref?: string; name: string; due?: string }
 export const allDeadlines = (): DeadlineRow[] =>

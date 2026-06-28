@@ -7,3 +7,6 @@ next-env.d.ts
 .env.local
 *.tsbuildinfo
 .DS_Store
+
+# Local funding submission intake (Phase 1b) — replaced by SharePoint in Phase 2.
+/submissions

@@ -5,6 +5,7 @@ import { fundingByArea } from '@skintyee/models';
 import { getPostsByCategory } from '@/lib/wp';
 import { PostTeaser } from '@/components/cards';
 import { FundingPrograms } from '@/components/FundingPrograms';
+import { ProgramSubmissionSection } from '@/components/ProgramSubmissionSection';
 import { ProposalWritersCta } from '@/components/ProposalWritersCta';
 import { NeedAssistanceCta } from '@/components/NeedAssistanceCta';
 
@@ -38,6 +39,8 @@ export default async function ProgramPage({ params }: { params: { slug: string }
       </div>
 
       <FundingPrograms programs={fundingByArea(params.slug)} />
+
+      <ProgramSubmissionSection area={params.slug} areaName={prog.name} />
 
       <NeedAssistanceCta />
       <ProposalWritersCta />
