@@ -58,12 +58,20 @@ CourseModule { area, title, intro, lessons[], checklist[] }
      (`/DAM/DAM-ISC-SAC/.../texte-text/<id>.pdf`) + a `ForcePDFDownload?url=…` wrapper +
      gc.ca deep-link IDs (the index pages are JS-rendered, so crawl the raw HTML for the real
      links — ~dozens of forms). Download the ones matching our programs' **PAW# / DCI#**, host
-     them (WP media / `public/docs/forms` / Blob), and add a `templateUrl` to the `paw[]` /
-     `dci[]` items so each program page shows a **"Download the application form"** /
-     **"Download the report"** button.
+     them and add a `templateUrl` to the `paw[]` / `dci[]` items so each program page shows
+     a **"Download the application form"** / **"Download the report"** button.
+   - **Filesystem organization (in git):** one folder per program under
+     **`web/public/docs/programs/<area>/<slug>/`** (created) — each program's **corresponding
+     PAW/DCI form PDFs** + a `README.md` live there (servable *and* organized; subprogram
+     folders to follow).
+   - **Per-chapter markdown breakdown** of the guide in **`docs/funding/chapters/NN-<chapter>.md`**
+     — one file per Table-of-Contents chapter, each summarizing that chapter's programs
+     (purpose, eligibility, PAW#/DCI# + due dates, contacts).
 5. **Submissions** — signed-in members/staff submit **funding requests** and **document
-   uploads** from a program page. **Forms are authored/collected in WordPress** (forms
-   plugin), surfaced on the Next.js frontend.
+   uploads** from a program page, on the **website AND the app**. Per-program submission
+   portal — e.g. submit a **Professional & Institutional Development (P&ID)** application /
+   supporting docs straight from that program's page. **Forms authored/collected in
+   WordPress** (forms plugin), surfaced on the Next.js frontend + the app.
 6. **Basic user documentation** — short, plain-language help for *frontend website
    users* ("how do I find funding for X", "how to submit a request") — not the federal
    guide, just how to use this part of the site.
