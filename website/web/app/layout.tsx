@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import './globals.css';
 import { getSession, onboardingUrl } from '@/lib/session';
+import { FEATURES } from '@/lib/featureFlags';
+import { AccessGate } from '@/components/AccessGate';
 import { ResourceLinks } from '@/components/ResourceLinks';
 import { SiteFooter } from '@/components/SiteFooter';
 import { HeaderNav } from '@/components/HeaderNav';
@@ -19,6 +21,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // Only offer sign-in once Entra is actually configured — otherwise the OAuth
   // redirect lands on NextAuth's unstyled error page.
   const authEnabled = !!process.env.AUTH_MICROSOFT_ENTRA_ID_ID;
+  // Pre-launch gate (band publicity policy / BCR). When on and not signed in,
+  // the whole site is replaced by the access "password block".
+  if (FEATURES.accessGate.enabled && !session) {
+    return (
+      <html lang="en">
+        <body>
+          <AccessGate />
+        </body>
+      </html>
+    );
+  }
   return (
     <html lang="en">
       <body>
