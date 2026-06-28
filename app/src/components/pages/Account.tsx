@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Image, TouchableOpacity, View } from 'react-native';
+import { Image, Linking, TouchableOpacity, View } from 'react-native';
 import { ActivityIndicator } from 'react-native';
 import { Avatar, Button, Card, Chip, Divider, HelperText, SegmentedButtons, Switch, Text, TextInput } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -416,6 +416,72 @@ function StaffSignInCard() {
   );
 }
 
+// "Need access?" request form on the signed-out Account screen — collapses to a
+// link, expands to a name/email/reason form that opens a pre-filled email to IT +
+// the Band Manager (the app equivalent of the website gate's request form).
+function RequestAccessCard() {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [reason, setReason] = useState('');
+  const send = () => {
+    const subject = encodeURIComponent('Demo access request — Skin Tyee app');
+    const body = encodeURIComponent(`Name: ${name}\nEmail: ${email}\n\nReason for access:\n${reason}`);
+    Linking.openURL(`mailto:it@skintyee.ca?cc=bandmanager@skintyee.ca&subject=${subject}&body=${body}`);
+  };
+  if (!open) {
+    return (
+      <Button
+        mode="text"
+        compact
+        icon="email-plus-outline"
+        textColor={theme.colors.primary}
+        onPress={() => setOpen(true)}
+        style={{ alignSelf: 'flex-start', marginTop: 6, marginLeft: -8 }}
+      >
+        Need access? Request demo access
+      </Button>
+    );
+  }
+  return (
+    <View style={{ marginTop: 12 }}>
+      <TextInput label="Your name" value={name} onChangeText={setName} mode="outlined" style={{ marginBottom: 8 }} />
+      <TextInput
+        label="Your email"
+        value={email}
+        onChangeText={setEmail}
+        mode="outlined"
+        keyboardType="email-address"
+        autoCapitalize="none"
+        autoCorrect={false}
+        style={{ marginBottom: 8 }}
+      />
+      <TextInput
+        label="Why would you like access?"
+        value={reason}
+        onChangeText={setReason}
+        mode="outlined"
+        multiline
+        numberOfLines={3}
+        style={{ marginBottom: 8 }}
+      />
+      <Button
+        mode="contained"
+        icon="email-send"
+        textColor="#FFFFFF"
+        labelStyle={{ fontWeight: '400' }}
+        disabled={name.trim().length === 0 || email.trim().length === 0}
+        onPress={send}
+      >
+        Send request
+      </Button>
+      <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginTop: 6 }}>
+        Sent to it@skintyee.ca and the Band Manager.
+      </Text>
+    </View>
+  );
+}
+
 export default function Account({ navigation }: { navigation?: any } = {}) {
   const dispatch = useAppDispatch();
   const { role, canonicalRole, name, signedIn, user, status, error } = useAppSelector((s) => s.auth);
@@ -629,6 +695,7 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
                 This app is in development and is awaiting Band Council Resolution (BCR) approval before public
                 release. Sign in with your Skin Tyee account to preview it.
               </Text>
+              <RequestAccessCard />
             </Card.Content>
           </Card>
         ) : null}
