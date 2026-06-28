@@ -617,6 +617,22 @@ export default function Account({ navigation }: { navigation?: any } = {}) {
           </>
         ) : null}
 
+        {/* Preview notice — pending Band Council (BCR) approval, signed-out only. */}
+        {!signedIn ? (
+          <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 16, borderLeftWidth: 3, borderLeftColor: theme.colors.accent }}>
+            <Card.Content>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                <MaterialCommunityIcons name="information-outline" size={20} color={theme.colors.accent} style={{ marginRight: 8 }} />
+                <Text style={{ color: theme.colors.text, fontSize: 14, flex: 1 }}>Preview — not yet public</Text>
+              </View>
+              <Text style={{ color: theme.colors.textDarker, fontSize: 13, lineHeight: 19 }}>
+                This app is in development and is awaiting Band Council Resolution (BCR) approval before public
+                release. Sign in with your Skin Tyee account to preview it.
+              </Text>
+            </Card.Content>
+          </Card>
+        ) : null}
+
         {/* Sign-in — tabbed: Microsoft vs Email/password ------------------ */}
         {!signedIn ? (
           <SegmentedButtons
