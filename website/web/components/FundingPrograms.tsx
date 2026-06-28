@@ -1,5 +1,6 @@
 import type { FundingProgram, PawItem, DciItem } from '@skintyee/models';
 import { PROGRAM_GUIDE } from '@/lib/constants';
+import { Acronym } from './Acronym';
 
 // Renders the ISC funding programs for a program area: plain summary, eligibility,
 // requirements, Application (PAW) + Reporting (DCI) deadline tables, contact cards,
@@ -38,7 +39,11 @@ function FundingCard({ p }: { p: FundingProgram }) {
     <article className="rounded-xl border border-[var(--line)] p-5">
       <h3 className="font-bold text-ink">
         {p.name}
-        {p.acronym && <span className="ml-2 text-sm font-semibold text-accent">{p.acronym}</span>}
+        {p.acronym && (
+          <span className="ml-2 text-sm font-semibold text-accent">
+            <Acronym>{p.acronym}</Acronym>
+          </span>
+        )}
       </h3>
       <p className="mt-1.5 text-sm text-ink/75">{p.summary}</p>
 

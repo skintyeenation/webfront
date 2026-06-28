@@ -38,6 +38,23 @@ export default async function FundingPage() {
         </a>
       </section>
 
+      {/* New-here CTA — the digestible training course */}
+      <Link
+        href="/funding/learn"
+        className="mt-6 flex items-center gap-4 rounded-xl border border-primary/40 bg-[#f2f7f8] p-5 transition hover:bg-[#e8f1f3]"
+      >
+        <span className="text-2xl" aria-hidden>
+          🧭
+        </span>
+        <span>
+          <span className="block font-bold text-ink">New here? Start with Funding 101</span>
+          <span className="block text-sm text-ink/65">
+            A plain-language walkthrough of the 189-page guide — apply, report, and stay on top of deadlines.
+          </span>
+        </span>
+        <span className="ml-auto font-semibold text-primary">→</span>
+      </Link>
+
       {/* Programs by area */}
       {PROGRAM_AREAS.map((area) => {
         const progs = fundingByArea(area.slug);
