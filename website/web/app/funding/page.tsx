@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { PROGRAM_AREAS, PROGRAM_GUIDE } from '@/lib/constants';
 import { fundingByArea, allDeadlines } from '@skintyee/models';
 import { FundingPrograms } from '@/components/FundingPrograms';
+import { FundingCalendar } from '@/components/FundingCalendar';
 
 export const revalidate = 60;
 export const metadata: Metadata = { title: 'Funding' };
@@ -11,12 +12,16 @@ export const metadata: Metadata = { title: 'Funding' };
 // calendar.
 export default async function FundingPage() {
   const deadlines = allDeadlines();
+  const calendarAreas = PROGRAM_AREAS.filter((a) => deadlines.some((d) => d.area === a.slug)).map(
+    ({ slug, name }) => ({ slug, name }),
+  );
 
   return (
     <>
       <h1 className="text-2xl font-bold">Funding</h1>
       <p className="mt-1 text-ink/70">
-        Federal funding programs the Nation can access, their deadlines, and how the band spends its funding.
+        The Nation&apos;s portal for federal funding programs — find the program for your area, see its
+        deadlines, download the application form, and submit your completed PAW and supporting documents.
       </p>
 
       {/* Intro / key concepts */}
@@ -52,54 +57,28 @@ export default async function FundingPage() {
         <span className="ml-auto font-semibold text-primary">→</span>
       </Link>
 
-      {/* Programs by area */}
+      {/* Programs by area — each area collapses to its heading */}
       {PROGRAM_AREAS.map((area) => {
         const progs = fundingByArea(area.slug);
         if (!progs.length) return null;
         return (
-          <div key={area.slug}>
-            <FundingPrograms
-              programs={progs}
-              showIntro={false}
-              heading={`${area.name}`}
-            />
-            <Link href={`/programs/${area.slug}`} className="text-sm font-semibold text-primary hover:underline">
-              More on {area.name} →
-            </Link>
-          </div>
+          <FundingPrograms
+            key={area.slug}
+            programs={progs}
+            showIntro={false}
+            heading={area.name}
+            collapsible
+            footer={
+              <Link href={`/programs/${area.slug}`} className="text-sm font-semibold text-primary hover:underline">
+                More on {area.name} →
+              </Link>
+            }
+          />
         );
       })}
 
-      {/* Funding calendar */}
-      <section className="mt-12">
-        <h2 className="text-xl font-bold">Funding calendar</h2>
-        <p className="mt-1 text-sm text-ink/60">Application (PAW) and reporting (DCI) deadlines across all programs.</p>
-        <div className="mt-4 overflow-x-auto rounded-xl border border-[var(--line)]">
-          <table className="w-full text-sm">
-            <thead className="bg-[#f2f7f8] text-left text-xs uppercase tracking-wide text-ink/60">
-              <tr>
-                <th className="px-3 py-2 font-bold">Program</th>
-                <th className="px-3 py-2 font-bold">Type</th>
-                <th className="px-3 py-2 font-bold">Item</th>
-                <th className="px-3 py-2 font-bold">Due</th>
-              </tr>
-            </thead>
-            <tbody>
-              {deadlines.map((d, i) => (
-                <tr key={i} className="border-t border-[var(--line)]">
-                  <td className="whitespace-nowrap px-3 py-2 font-semibold text-ink">{d.program}</td>
-                  <td className="whitespace-nowrap px-3 py-2 text-ink/60">{d.kind}</td>
-                  <td className="px-3 py-2 text-ink/75">
-                    {d.ref && <span className="font-mono text-ink/45">{d.ref} </span>}
-                    {d.name}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-2 font-semibold text-ink/80">{d.due ?? '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      {/* Funding calendar — month grid + list views */}
+      <FundingCalendar deadlines={deadlines} areas={calendarAreas} />
     </>
   );
 }

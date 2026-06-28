@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+import { ChevronDown } from 'lucide-react';
 import type { FundingProgram, PawItem, DciItem } from '@skintyee/models';
 import { PROGRAM_GUIDE } from '@/lib/constants';
 import { formUrlFor } from '@/lib/funding-forms';
@@ -5,20 +7,26 @@ import { Acronym } from './Acronym';
 
 // Renders the ISC funding programs for a program area: plain summary, eligibility,
 // requirements, Application (PAW) + Reporting (DCI) deadline tables, contact cards,
-// and a deep-link into the Program Guide.
+// and a deep-link into the Program Guide. When `collapsible`, the whole area collapses
+// to its heading (native <details>) — used on the funding hub to keep the long list of
+// areas scannable; `footer` renders below the cards (e.g. a "More on X" link).
 export function FundingPrograms({
   programs,
   heading = 'Funding programs',
   showIntro = true,
+  collapsible = false,
+  footer,
 }: {
   programs: FundingProgram[];
   heading?: string;
   showIntro?: boolean;
+  collapsible?: boolean;
+  footer?: ReactNode;
 }) {
   if (!programs.length) return null;
-  return (
-    <section className="mt-10">
-      <h2 className="text-xl font-bold">{heading}</h2>
+
+  const body = (
+    <>
       {showIntro && (
         <p className="mt-1 text-sm text-ink/60">
           Federal (Indigenous Services Canada) funding for this area. <strong>PAW</strong> = how you apply;{' '}
@@ -30,6 +38,30 @@ export function FundingPrograms({
           <FundingCard key={p.name} p={p} />
         ))}
       </div>
+      {footer && <div className="mt-3">{footer}</div>}
+    </>
+  );
+
+  if (collapsible) {
+    return (
+      <details className="group mt-6 border-t border-[var(--line)] pt-6">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
+          <h2 className="text-xl font-bold">{heading}</h2>
+          <ChevronDown
+            aria-hidden
+            size={24}
+            className="shrink-0 text-ink/50 transition-transform group-open:rotate-180"
+          />
+        </summary>
+        {body}
+      </details>
+    );
+  }
+
+  return (
+    <section className="mt-10">
+      <h2 className="text-xl font-bold">{heading}</h2>
+      {body}
     </section>
   );
 }
@@ -50,12 +82,11 @@ function FundingCard({ p }: { p: FundingProgram }) {
           </h3>
           <p className="mt-1.5 text-sm text-ink/75">{p.summary}</p>
         </div>
-        <span
+        <ChevronDown
           aria-hidden
-          className="mt-1 shrink-0 text-ink/40 transition-transform group-open:rotate-180"
-        >
-          ▾
-        </span>
+          size={20}
+          className="mt-0.5 shrink-0 text-ink/50 transition-transform group-open:rotate-180"
+        />
       </summary>
 
       {p.eligibility && (
