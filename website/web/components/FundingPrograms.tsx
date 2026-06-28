@@ -1,5 +1,6 @@
 import type { FundingProgram, PawItem, DciItem } from '@skintyee/models';
 import { PROGRAM_GUIDE } from '@/lib/constants';
+import { formUrlFor } from '@/lib/funding-forms';
 import { Acronym } from './Acronym';
 
 // Renders the ISC funding programs for a program area: plain summary, eligibility,
@@ -106,15 +107,28 @@ function DeadlineTable({ title, rows }: { title: string; rows: (PawItem | DciIte
       <div className="bg-[#f2f7f8] px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-ink/60">{title}</div>
       <table className="w-full text-xs">
         <tbody>
-          {rows.map((r, i) => (
-            <tr key={i} className="border-t border-[var(--line)]">
-              <td className="px-3 py-1.5 align-top">
-                {r.no && <span className="font-mono text-ink/45">{r.no} </span>}
-                {r.name}
-              </td>
-              <td className="whitespace-nowrap px-3 py-1.5 text-right align-top font-semibold text-ink/80">{r.due ?? '—'}</td>
-            </tr>
-          ))}
+          {rows.map((r, i) => {
+            const form = formUrlFor(r.no);
+            return (
+              <tr key={i} className="border-t border-[var(--line)]">
+                <td className="px-3 py-1.5 align-top">
+                  {r.no && <span className="font-mono text-ink/45">{r.no} </span>}
+                  {r.name}
+                  {form && (
+                    <a
+                      href={form}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-2 inline-flex items-center gap-0.5 whitespace-nowrap font-semibold text-primary hover:underline"
+                    >
+                      ↓ Download form
+                    </a>
+                  )}
+                </td>
+                <td className="whitespace-nowrap px-3 py-1.5 text-right align-top font-semibold text-ink/80">{r.due ?? '—'}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
