@@ -11,7 +11,6 @@ const NAV: { href: string; label: string; Icon: LucideIcon }[] = [
   { href: '/projects', label: 'Projects', Icon: Building2 },
   { href: '/programs', label: 'Programs', Icon: LayoutGrid },
   { href: '/governance', label: 'Governance', Icon: Landmark },
-  { href: '/funding', label: 'Funding', Icon: Coins },
   { href: '/jobs', label: 'Jobs', Icon: Briefcase },
 ];
 
@@ -47,6 +46,11 @@ export function HeaderNav({
           <Icon size={18} aria-hidden="true" /> {label}
         </Link>
       ))}
+      {signedIn && (
+        <Link href="/funding" onClick={close} className={linkClass}>
+          <Coins size={18} aria-hidden="true" /> Funding
+        </Link>
+      )}
       {signedIn && (
         <Link href={onboardingUrl} onClick={close} className={linkClass}>
           <ClipboardCheck size={18} aria-hidden="true" /> Onboarding
