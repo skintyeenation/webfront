@@ -1,7 +1,5 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { publicApi, safe } from '@/lib/api';
-import { ExpenditureCard } from '@/components/cards';
 import { PROGRAM_AREAS, PROGRAM_GUIDE } from '@/lib/constants';
 import { fundingByArea, allDeadlines } from '@skintyee/models';
 import { FundingPrograms } from '@/components/FundingPrograms';
@@ -9,10 +7,9 @@ import { FundingPrograms } from '@/components/FundingPrograms';
 export const revalidate = 60;
 export const metadata: Metadata = { title: 'Funding' };
 
-// Funding hub: federal (ISC) funding programs you can access (by area), a deadline
-// calendar, and band-expenditure transparency.
+// Funding hub: federal (ISC) funding programs you can access (by area) and a deadline
+// calendar.
 export default async function FundingPage() {
-  const expenditures = await safe(publicApi.transparency.expenditures(), []);
   const deadlines = allDeadlines();
 
   return (
@@ -101,19 +98,6 @@ export default async function FundingPage() {
               ))}
             </tbody>
           </table>
-        </div>
-      </section>
-
-      {/* Transparency — band expenditures */}
-      <section className="mt-12">
-        <h2 className="text-xl font-bold">Transparency — band expenditures</h2>
-        <p className="mt-1 text-sm text-ink/60">How the Nation has spent its funding, by program area.</p>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          {expenditures.length ? (
-            expenditures.map((x) => <ExpenditureCard key={x._id} x={x} />)
-          ) : (
-            <p className="text-ink/60">Financial reports coming soon.</p>
-          )}
         </div>
       </section>
     </>
