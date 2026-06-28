@@ -49,7 +49,18 @@ CourseModule { area, title, intro, lessons[], checklist[] }
    table**, **contact cards**, and a link to the guide section.
 3. **Funding calendar** — every PAW/DCI deadline in one place.
 4. **Document library** — categorized **by type** (guides, application forms, reports,
-   policies, inspection reports, …).
+   policies, inspection reports, …), gated by the `isc-programs-and-funding-docs` group.
+   - **Pre-fetch the ISC PAW/DCI form templates** onto skintyee.ca so staff grab the right
+     form per program (don't bounce them to the federal site). Sources:
+     PAW (application) templates — <https://www.sac-isc.gc.ca/eng/1571829044381/1571829074923> ;
+     DCI (reporting) templates / Reporting Guide — <https://sac-isc.gc.ca/eng/1573764124180/1573764143080>.
+     **Feasible:** the forms are public fillable PDFs served via ISC's DAM
+     (`/DAM/DAM-ISC-SAC/.../texte-text/<id>.pdf`) + a `ForcePDFDownload?url=…` wrapper +
+     gc.ca deep-link IDs (the index pages are JS-rendered, so crawl the raw HTML for the real
+     links — ~dozens of forms). Download the ones matching our programs' **PAW# / DCI#**, host
+     them (WP media / `public/docs/forms` / Blob), and add a `templateUrl` to the `paw[]` /
+     `dci[]` items so each program page shows a **"Download the application form"** /
+     **"Download the report"** button.
 5. **Submissions** — signed-in members/staff submit **funding requests** and **document
    uploads** from a program page. **Forms are authored/collected in WordPress** (forms
    plugin), surfaced on the Next.js frontend.
