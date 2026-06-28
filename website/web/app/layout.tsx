@@ -47,7 +47,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <span className="mt-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-[#5b5b5b]">First Nation</span>
             </span>
           </Link>
-          <HeaderNav signedIn={!!session} authEnabled={authEnabled} onboardingUrl={onboardingUrl()} />
+          <HeaderNav signedIn={!!session} authEnabled={authEnabled} onboardingUrl={onboardingUrl()} user={session?.user} />
           </div>
         </header>
         <main className="container">{children}</main>
