@@ -67,11 +67,19 @@ CourseModule { area, title, intro, lessons[], checklist[] }
    - **Per-chapter markdown breakdown** of the guide in **`docs/funding/chapters/NN-<chapter>.md`**
      — one file per Table-of-Contents chapter, each summarizing that chapter's programs
      (purpose, eligibility, PAW#/DCI# + due dates, contacts).
-5. **Submissions** — signed-in members/staff submit **funding requests** and **document
-   uploads** from a program page, on the **website AND the app**. Per-program submission
-   portal — e.g. submit a **Professional & Institutional Development (P&ID)** application /
-   supporting docs straight from that program's page. **Forms authored/collected in
-   WordPress** (forms plugin), surfaced on the Next.js frontend + the app.
+5. **Submissions → SharePoint (one structure, three surfaces).** Signed-in members/staff
+   submit **funding requests + document uploads** from a program page (website AND app) —
+   e.g. submit a **Professional & Institutional Development (P&ID)** application + supporting
+   docs straight from that program's page. **The submitted PAWs/documents land in SharePoint,
+   filed into the SAME `<area>/<slug>/` folder structure we build locally.** So the same
+   program/area tree exists in three places, kept identical:
+   - **Repo** (`web/public/docs/programs/<area>/<slug>/`) — blank PAW/DCI **templates** + README.
+   - **Website/app** — the **download + submit UI** per program.
+   - **SharePoint** — the **live document store**: each program folder holds the templates +
+     the **received submissions** (`…/<slug>/submissions/…`), gated by `isc-programs-and-funding-docs`.
+   Forms authored/collected in WordPress (forms plugin); the submission handler writes the
+   upload into the matching SharePoint program folder (Microsoft Graph). SharePoint is the
+   canonical store (ties into Phase 2 + the documents-and-onboarding pluggable Blob/SharePoint store).
 6. **Basic user documentation** — short, plain-language help for *frontend website
    users* ("how do I find funding for X", "how to submit a request") — not the federal
    guide, just how to use this part of the site.
