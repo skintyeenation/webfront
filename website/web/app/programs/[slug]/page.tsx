@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { PROGRAM_AREAS } from '@/lib/constants';
+import { fundingByArea } from '@/lib/funding-data';
 import { getPostsByCategory } from '@/lib/wp';
 import { PostTeaser } from '@/components/cards';
+import { FundingPrograms } from '@/components/FundingPrograms';
 import { ProposalWritersCta } from '@/components/ProposalWritersCta';
 import { NeedAssistanceCta } from '@/components/NeedAssistanceCta';
 
@@ -34,6 +36,9 @@ export default async function ProgramPage({ params }: { params: { slug: string }
           <p className="text-ink/60">Updates for {prog.name} will be posted here.</p>
         )}
       </div>
+
+      <FundingPrograms programs={fundingByArea(params.slug)} />
+
       <NeedAssistanceCta />
       <ProposalWritersCta />
     </>
