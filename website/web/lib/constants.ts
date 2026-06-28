@@ -11,6 +11,21 @@ export const PROGRAM_AREAS = [
   { slug: 'health', name: 'Health', desc: 'Community health and wellness programs.' },
 ];
 
+// ISC (Indigenous Services Canada) BC Region Program Guide — the federal program +
+// funding reference, hosted in /public/docs. `page` deep-links each program area to
+// its section in the PDF (via #page=N).
+export const PROGRAM_GUIDE = {
+  title: 'ISC BC Region Program Guide 2024–2025',
+  href: '/docs/2024-2025-bc-region-program-guide.pdf',
+  page: {
+    housing: 37,
+    education: 70,
+    'lands-economic-development': 52,
+    social: 102,
+    'child-family-services': 129,
+  } as Record<string, number>,
+};
+
 // Major Project sectors (same categories as the home Major Projects band). The
 // Projects page lists every sector with its projects (WP category by slug).
 export const MAJOR_PROJECT_SECTORS = [
