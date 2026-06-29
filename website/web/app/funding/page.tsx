@@ -1,16 +1,17 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { PROGRAM_AREAS, PROGRAM_GUIDE } from '@/lib/constants';
-import { fundingByArea, allDeadlines } from '@skintyee/models';
-import { FundingPrograms, FundingScaleLegend } from '@/components/FundingPrograms';
+import { allDeadlines } from '@skintyee/models';
 import { FundingCalendar } from '@/components/FundingCalendar';
+import { ProgramsByArea } from '@/components/ProgramsByArea';
 import { ProgramSubmissionSection } from '@/components/ProgramSubmissionSection';
+import { FundingTabs } from '@/components/FundingTabs';
 
 export const revalidate = 60;
 export const metadata: Metadata = { title: 'Funding' };
 
-// Funding hub: federal (ISC) funding programs you can access (by area) and a deadline
-// calendar.
+// Funding hub: federal (ISC) funding programs (by area), a deadline calendar, and the apply
+// portal — each in its own tab.
 export default async function FundingPage() {
   const deadlines = allDeadlines();
   const calendarAreas = PROGRAM_AREAS.filter((a) => deadlines.some((d) => d.area === a.slug)).map(
@@ -58,35 +59,17 @@ export default async function FundingPage() {
         <span className="ml-auto font-semibold text-primary">→</span>
       </Link>
 
-      {/* Funding calendar — month grid + list views */}
-      <FundingCalendar deadlines={deadlines} areas={calendarAreas} />
-
-      {/* Programs by area — each area collapses to its heading */}
-      <div className="mt-10">
-        <h2 className="text-xl font-bold">Programs by area</h2>
-        <FundingScaleLegend />
-      </div>
-      {PROGRAM_AREAS.map((area) => {
-        const progs = fundingByArea(area.slug);
-        if (!progs.length) return null;
-        return (
-          <FundingPrograms
-            key={area.slug}
-            programs={progs}
-            showIntro={false}
-            heading={area.name}
-            collapsible
-            footer={
-              <Link href={`/programs/${area.slug}`} className="text-sm font-semibold text-primary hover:underline">
-                More on {area.name} →
-              </Link>
-            }
-          />
-        );
-      })}
-
-      {/* Apply — reusable submission portal, all areas (same component as each program page) */}
-      <ProgramSubmissionSection />
+      <FundingTabs
+        tabs={[
+          { id: 'programs', label: 'Programs by area', content: <ProgramsByArea /> },
+          { id: 'apply', label: 'Apply', content: <ProgramSubmissionSection /> },
+          {
+            id: 'calendar',
+            label: 'Calendar',
+            content: <FundingCalendar deadlines={deadlines} areas={calendarAreas} />,
+          },
+        ]}
+      />
     </>
   );
 }

@@ -1,9 +1,15 @@
 'use client';
 import { useState } from 'react';
+import type { FundingProgram } from '@skintyee/models';
+import { ProgramTitle, ProgramDetail } from './ProgramDetail';
 
 // `area` makes each option self-routing (the funding hub spans every area); `group` is the
-// area display name used to group the dropdown when options come from more than one area.
-export type SubmissionOption = { area: string; slug: string; name: string; acronym?: string; group?: string };
+// area display name used to group the dropdown when options come from more than one area;
+// `program` is the full record so the form can show its details inline once selected.
+export type SubmissionOption = { area: string; group?: string; program: FundingProgram };
+
+const label = (o: SubmissionOption) =>
+  o.program.acronym ? `${o.program.acronym} — ${o.program.name}` : o.program.name;
 
 // Client form for the funding submission portal (Phase 1b). Reused on each program page
 // (one area) and the funding hub (all areas). Posts a completed PAW + supporting documents
@@ -37,8 +43,8 @@ export function ProgramSubmissionForm({
     setMessage('');
     const fd = new FormData();
     fd.set('area', opt.area);
-    fd.set('programName', opt.name);
-    if (opt.acronym) fd.set('acronym', opt.acronym);
+    fd.set('programName', opt.program.name);
+    if (opt.program.acronym) fd.set('acronym', opt.program.acronym);
     fd.set('notes', notes);
     Array.from(files).forEach((f) => fd.append('files', f));
     try {
@@ -84,18 +90,27 @@ export function ProgramSubmissionForm({
                 <optgroup key={group} label={group}>
                   {idxs.map((i) => (
                     <option key={i} value={i}>
-                      {options[i].acronym ? `${options[i].acronym} — ${options[i].name}` : options[i].name}
+                      {label(options[i])}
                     </option>
                   ))}
                 </optgroup>
               ))
             : options.map((o, i) => (
                 <option key={i} value={i}>
-                  {o.acronym ? `${o.acronym} — ${o.name}` : o.name}
+                  {label(o)}
                 </option>
               ))}
         </select>
       </label>
+
+      {/* Details of the selected program, inline (same content as the accordion cards). */}
+      {options[selected] && (
+        <div className="rounded-lg border border-[var(--line)] bg-[#fbfcfc] p-4">
+          <ProgramTitle p={options[selected].program} as="h4" />
+          <p className="mt-1.5 text-sm text-ink/75">{options[selected].program.summary}</p>
+          <ProgramDetail p={options[selected].program} />
+        </div>
+      )}
 
       <label className="block">
         <span className="font-semibold text-ink/70">Documents</span>

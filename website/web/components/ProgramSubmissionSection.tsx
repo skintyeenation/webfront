@@ -1,4 +1,4 @@
-import { fundingByArea, programSlug } from '@skintyee/models';
+import { fundingByArea } from '@skintyee/models';
 import { PROGRAM_AREAS } from '@/lib/constants';
 import { ProgramSubmissionGate } from './ProgramSubmissionGate';
 import type { SubmissionOption } from './ProgramSubmissionForm';
@@ -17,9 +17,7 @@ export function ProgramSubmissionSection({ area, areaName }: { area?: string; ar
     fundingByArea(a.slug).map((p) => ({
       area: a.slug,
       group: allAreas ? a.name : undefined, // group the dropdown by area only on the hub
-      slug: programSlug(p),
-      name: p.name,
-      acronym: p.acronym,
+      program: p,
     })),
   );
   if (!options.length) return null;
