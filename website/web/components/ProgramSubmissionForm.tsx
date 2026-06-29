@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import type { FundingProgram } from '@skintyee/models';
 import { programSlug } from '@skintyee/models';
+import { formUrlFor } from '@/lib/funding-forms';
 import { ProgramTitle, ProgramDetail } from './ProgramDetail';
 
 // `area` makes each option self-routing (the funding hub spans every area); `group` is the
@@ -30,6 +31,7 @@ export function ProgramSubmissionForm({
   const [files, setFiles] = useState<FileList | null>(null);
   const [status, setStatus] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
   const [message, setMessage] = useState('');
+  const [submittedId, setSubmittedId] = useState('');
 
   // Preselect the program + kind from a `#apply=<kind>:<area>/<slug>` deep-link (the cards'
   // "Upload PAW" button and the calendar's "Apply" links). `<kind>:` is optional (defaults paw).
@@ -87,6 +89,7 @@ export function ProgramSubmissionForm({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Submission failed.');
       setShowReview(false);
+      setSubmittedId(data.id || '');
       setStatus('done');
       setMessage('Received. Skin Tyee staff will review your submission.');
       setProject('');
@@ -103,6 +106,11 @@ export function ProgramSubmissionForm({
       <div className="mt-4 rounded-lg bg-[#e8f3ec] p-4 text-sm text-ink/80">
         <p className="font-semibold text-primary">Submission received</p>
         <p className="mt-1">{message}</p>
+        {submittedId && (
+          <p className="mt-1 text-xs text-ink/55">
+            Reference ID: <span className="font-mono">{submittedId}</span>
+          </p>
+        )}
       </div>
     );
   }
@@ -188,6 +196,36 @@ export function ProgramSubmissionForm({
           }
         />
       </label>
+
+      {/* Download the blank template(s) for the selected PAW from our form library. */}
+      {kind === 'paw' &&
+        selectedOpt &&
+        (() => {
+          const templates = (selectedOpt.program.paw ?? [])
+            .map((x) => ({ name: x.name, url: formUrlFor(x.no) }))
+            .filter((t): t is { name: string; url: string } => !!t.url);
+          if (!templates.length) return null;
+          return (
+            <div className="rounded-lg border border-primary/30 bg-[#f2f7f8] p-4">
+              <p className="font-semibold text-ink">Need the blank form? Download the PAW template</p>
+              <ul className="mt-2 space-y-1">
+                {templates.map((t, i) => (
+                  <li key={i}>
+                    <a
+                      href={t.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+                    >
+                      ↓ {t.name}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-xs text-ink/50">Fill it out, then attach it below.</p>
+            </div>
+          );
+        })()}
 
       {/* Details of the selected program, inline (same content as the accordion cards). */}
       {options[selected] && (

@@ -1,5 +1,7 @@
 // Generated from the ISC PAW application form PDFs in public/docs/forms/ (pre-fetched
 // from sac-isc.gc.ca). Keyed by PAW number as it appears in the filename.
+import { FUNDING_PROGRAMS } from '@skintyee/models';
+
 export const FORM_FILES: Record<string, string> = {
   '10138570-bc': '/docs/forms/paw-10138570-bc.pdf',
   '1058111': '/docs/forms/paw-1058111.pdf',
@@ -48,4 +50,41 @@ export function formUrlFor(no?: string): string | undefined {
     if (kk === key || kk.startsWith(key)) return FORM_FILES[k];
   }
   return undefined;
+}
+
+// Authoritative mapping of each PAW/DCI number to WHICH form/program it is in our app —
+// e.g. FORM_INDEX['1775522'] tells you paw-1775522.pdf is the <name> form for <program>
+// (<area>). Built by joining FORM_FILES (the downloaded PDFs) with the funding dataset's
+// paw[]/dci[] items, so it stays in sync with @skintyee/models.
+export type FormInfo = {
+  no: string;
+  file: string;
+  name: string;
+  area: string;
+  program: string;
+  kind: 'paw' | 'dci';
+};
+
+export const FORM_INDEX: Record<string, FormInfo> = (() => {
+  const idx: Record<string, FormInfo> = {};
+  for (const p of FUNDING_PROGRAMS) {
+    const program = p.acronym ?? p.name;
+    for (const [kind, items] of [
+      ['paw', p.paw],
+      ['dci', p.dci],
+    ] as const) {
+      for (const it of items ?? []) {
+        const file = formUrlFor(it.no);
+        if (it.no && file && !idx[it.no]) {
+          idx[it.no] = { no: it.no, file, name: it.name, area: p.area, program, kind };
+        }
+      }
+    }
+  }
+  return idx;
+})();
+
+/** Reverse lookup: given a PAW/DCI number, what form/program is it in our application? */
+export function formInfoFor(no?: string): FormInfo | undefined {
+  return no ? FORM_INDEX[no] : undefined;
 }

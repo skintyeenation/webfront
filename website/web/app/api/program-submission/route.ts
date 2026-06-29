@@ -50,6 +50,7 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     ok: true,
+    id: result.id,
     program: programName,
     path: result.path,
     drivers: result.drivers,

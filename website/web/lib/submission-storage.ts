@@ -1,4 +1,5 @@
 import { writeFile, mkdir } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 
 // Stores a funding submission into the designed folder structure —
@@ -12,7 +13,7 @@ import path from 'node:path';
 
 export type SubmissionKind = 'paw' | 'dci';
 export type FileInput = { name: string; bytes: Buffer; contentType?: string };
-export type StoredSubmission = { path: string; drivers: string[] };
+export type StoredSubmission = { id: string; key: string; path: string; drivers: string[] };
 
 const safeName = (n: string) => n.replace(/[^a-z0-9._-]+/gi, '_');
 
@@ -26,18 +27,20 @@ export async function storeSubmission(opts: {
   notes?: string;
 }): Promise<StoredSubmission> {
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-  // PAW (applications) and DCI (reports) are filed in separate subfolders of the program;
-  // the project name (when given) is folded into the entry folder so staff can identify it.
-  const projectSlug = opts.project
-    ? '_' + opts.project.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40)
-    : '';
-  const rel = `${opts.area}/${opts.slug}/submissions/${opts.kind}/${stamp}${projectSlug}_${safeName(opts.submitter)}`;
+  // A submission has no official ID at intake (the PAW # is the form-template number), so we
+  // assign a unique GUID, plus a friendly key derived from the application title + who +
+  // datetime + a short id. PAW (applications) and DCI (reports) live in separate subfolders.
+  const id = randomUUID();
+  const titleSlug =
+    (opts.project || 'untitled').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) ||
+    'untitled';
+  const key = `${titleSlug}_${safeName(opts.submitter)}_${stamp}_${id.slice(0, 8)}`;
+  const rel = `${opts.area}/${opts.slug}/submissions/${opts.kind}/${key}`;
   const notesBody =
-    opts.project || opts.notes
-      ? `From: ${opts.submitter}\nProgram: ${opts.area}/${opts.slug}\nKind: ${opts.kind.toUpperCase()}\n` +
-        (opts.project ? `Project: ${opts.project}\n` : '') +
-        (opts.notes ? `\n${opts.notes}\n` : '')
-      : undefined;
+    `Submission ID: ${id}\nFrom: ${opts.submitter}\nProgram: ${opts.area}/${opts.slug}\n` +
+    `Kind: ${opts.kind.toUpperCase()}\n` +
+    (opts.project ? `Title: ${opts.project}\n` : '') +
+    (opts.notes ? `\n${opts.notes}\n` : '');
   const drivers: string[] = [];
 
   // 1) Local disk — always (POC store + status badges).
@@ -69,7 +72,7 @@ export async function storeSubmission(opts: {
     }
   }
 
-  return { path: rel, drivers };
+  return { id, key, path: rel, drivers };
 }
 
 async function storeLocal(rel: string, files: FileInput[], notes?: string) {
