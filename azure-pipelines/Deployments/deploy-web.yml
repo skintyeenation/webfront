@@ -24,7 +24,8 @@ trigger:
 pr: none   # don't deploy from PRs — only the merged result
 
 pool:
-  vmImage: ubuntu-latest
+  name: skintyee-pool   # self-hosted agent (azure-agents/) — avoids hosted-minute limits.
+                        # The image only needs the Azure CLI; az acr build runs in ACR.
 
 variables:
   - group: skintyee-prod-azure

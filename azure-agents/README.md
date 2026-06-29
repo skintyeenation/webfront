@@ -110,6 +110,24 @@ pool:
 Next pipeline run dispatches to your self-hosted agent. Hosted-agent
 minutes stop being consumed for that pipeline.
 
+## Pipelines switched to `skintyee-pool`
+
+The Azure DevOps org ran out of hosted free minutes, so the
+Container-App deploys were moved onto this self-hosted agent:
+
+| Pipeline | Pool | Notes |
+|---|---|---|
+| `azure-pipelines/Deployments/deploy-web.yml` | **`skintyee-pool`** | web-prod (headless Next.js site). `az acr build` runs the Docker build in ACR, so the agent only needs the Azure CLI. |
+| `azure-pipelines/Deployments/deploy-api.yml` | **`skintyee-pool`** | api-prod (NestJS). Same `az acr build` pattern. |
+| `azure-pipelines/Deployments/deploy-app-web.yml` | `vmImage: ubuntu-latest` (unchanged) | **Left on hosted** — it builds the Expo app with Node/pnpm, which this agent image doesn't install. |
+| Other `deploy-*.yml` (guacamole, vaultwarden, lookup, …) | `vmImage: ubuntu-latest` (unchanged) | Switch individually if/when they hit the minute limit. |
+
+So a `git push` to `master` touching `website/web/**` or `packages/**`
+now deploys web-prod via the local agent — zero hosted minutes. The
+agent host must be running when the push lands; otherwise the run
+queues until the agent is online (or deploy manually with
+`az acr build` + `az containerapp update`).
+
 ## Manual setup checklist — everything you'll need
 
 Everything that isn't in this repo, and where it lives.
