@@ -39,6 +39,7 @@ export default async function Home() {
       return {
         title: n.title,
         subtitle: n.body,
+        category: n.category,
         gradient: `linear-gradient(135deg, ${color} 0%, color-mix(in srgb, ${color} 62%, #04222a) 100%)`,
       };
     }),
