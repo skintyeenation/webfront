@@ -175,6 +175,7 @@ article img { max-width: 100%; height: auto; }
 .rt-band {
   width: 100vw;
   margin-left: calc(50% - 50vw);
+  margin-top: 4rem; /* separate from the Project Referral CTA above */
   background: linear-gradient(135deg, #00343f 0%, #014e5e 100%);
   color: #fff;
   padding: 2.25rem 0;

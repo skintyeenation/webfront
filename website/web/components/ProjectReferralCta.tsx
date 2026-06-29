@@ -1,33 +1,57 @@
 'use client';
 import { useState } from 'react';
 import { Mail, Phone } from 'lucide-react';
+import { MAJOR_PROJECT_SECTORS } from '@/lib/constants';
 
 // Project-referral CTA (Projects page) — expands inline into a referral form that posts to
 // /api/project-referral. Phone + direct-email remain as alternatives.
 export function ProjectReferralCta() {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', organization: '', details: '' });
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    organization: '',
+    category: MAJOR_PROJECT_SECTORS[0]?.name ?? 'Other',
+    details: '',
+  });
+  const [files, setFiles] = useState<FileList | null>(null);
   const [status, setStatus] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
   const [message, setMessage] = useState('');
 
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-    setForm((f) => ({ ...f, [k]: e.target.value }));
+  const set =
+    (k: keyof typeof form) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
+      setForm((f) => ({ ...f, [k]: e.target.value }));
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.name.trim() || !form.email.trim() || !form.details.trim()) {
+    const missing: string[] = [];
+    if (!form.name.trim()) missing.push('your name');
+    if (!form.email.trim()) missing.push('email');
+    if (!form.details.trim()) missing.push('referral details');
+    if (missing.length) {
       setStatus('error');
-      setMessage('Please fill in your name, email, and the referral details.');
+      setMessage(`Please fill in ${missing.join(', ')}.`);
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      setStatus('error');
+      setMessage('Please enter a valid email address.');
       return;
     }
     setStatus('sending');
     setMessage('');
     try {
-      const res = await fetch('/api/project-referral', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(form),
-      });
+      const fd = new FormData();
+      fd.set('name', form.name);
+      fd.set('email', form.email);
+      fd.set('phone', form.phone);
+      fd.set('organization', form.organization);
+      fd.set('category', form.category);
+      fd.set('details', form.details);
+      if (files) Array.from(files).forEach((f) => fd.append('files', f));
+      const res = await fetch('/api/project-referral', { method: 'POST', body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Submission failed.');
       setStatus('done');
@@ -78,10 +102,25 @@ export function ProjectReferralCta() {
               <span className="font-semibold text-white/80">Email</span>
               <input type="email" value={form.email} onChange={set('email')} className={field} required />
             </label>
+            <label className="block">
+              <span className="font-semibold text-white/80">Phone</span>
+              <input type="tel" value={form.phone} onChange={set('phone')} className={field} />
+            </label>
+            <label className="block">
+              <span className="font-semibold text-white/80">Organization (optional)</span>
+              <input value={form.organization} onChange={set('organization')} className={field} />
+            </label>
           </div>
           <label className="block">
-            <span className="font-semibold text-white/80">Organization (optional)</span>
-            <input value={form.organization} onChange={set('organization')} className={field} />
+            <span className="font-semibold text-white/80">Project category</span>
+            <select value={form.category} onChange={set('category')} className={field}>
+              {MAJOR_PROJECT_SECTORS.map((s) => (
+                <option key={s.slug} value={s.name}>
+                  {s.name}
+                </option>
+              ))}
+              <option value="Other">Other</option>
+            </select>
           </label>
           <label className="block">
             <span className="font-semibold text-white/80">Referral details</span>
@@ -92,6 +131,16 @@ export function ProjectReferralCta() {
               className={field}
               placeholder="What's the project, who's involved, and how it could support the community."
               required
+            />
+          </label>
+          <label className="block">
+            <span className="font-semibold text-white/80">Attach documents (PDF, optional)</span>
+            <input
+              type="file"
+              accept="application/pdf,.pdf"
+              multiple
+              onChange={(e) => setFiles(e.target.files)}
+              className="mt-1 block w-full text-sm text-white/80 file:mr-3 file:rounded-lg file:border-0 file:bg-white file:px-3 file:py-1.5 file:font-semibold file:text-ink"
             />
           </label>
 
