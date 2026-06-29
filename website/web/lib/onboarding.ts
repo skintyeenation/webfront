@@ -97,82 +97,71 @@ export function stepProgress(a: OnboardingAssignment): { done: number; total: nu
   return { done: a.stepStates.filter((s) => s.status === 'completed').length, total: a.flow.steps.length };
 }
 
-// ── Seed flow ───────────────────────────────────────────────────────────────
+// ── Seed flows ──────────────────────────────────────────────────────────────
+const EMPLOYEE_FLOW: OnboardingFlow = {
+  id: 'flow-employee',
+  title: 'Employee Onboarding',
+  description: 'Standard intake for new Skin Tyee employees.',
+  steps: [
+    { id: 'e-agreement', order: 0, title: 'Sign employment agreement', instructions: 'Review and sign your employment agreement.', completion: 'both' },
+    { id: 'e-id', order: 1, title: 'Submit photo ID', instructions: "Driver's licence, status card, or passport.", completion: 'person_uploads' },
+    { id: 'e-deposit', order: 2, title: 'Direct deposit', instructions: 'Void cheque or a bank direct-deposit form.', completion: 'person_uploads' },
+    { id: 'e-td1', order: 3, title: 'Tax forms (TD1)', instructions: 'Federal + BC TD1 personal tax credits return.', completion: 'person_uploads' },
+    { id: 'e-worksafe', order: 4, title: 'WorkSafeBC orientation', instructions: 'Acknowledge the WorkSafeBC orientation for your role.', completion: 'both' },
+    { id: 'e-safety', order: 5, title: 'Safety orientation', instructions: 'Attend the site safety orientation.', completion: 'admin_marks' },
+  ],
+};
+
 const CONTRACTOR_FLOW: OnboardingFlow = {
   id: 'flow-contractor',
   title: 'Contractor Onboarding',
   description: 'Standard intake for contractors and seasonal crew working with Skin Tyee.',
   steps: [
-    { id: 's-agreement', order: 0, title: 'Sign contractor agreement', instructions: 'Review and sign your engagement agreement.', completion: 'both' },
-    { id: 's-id', order: 1, title: 'Submit photo ID', instructions: "Driver's licence, status card, or passport.", completion: 'person_uploads' },
-    { id: 's-deposit', order: 2, title: 'Direct deposit', instructions: 'Void cheque or a bank direct-deposit form.', completion: 'person_uploads' },
-    { id: 's-td1', order: 3, title: 'Tax forms (TD1)', instructions: 'Federal + BC TD1 personal tax credits return.', completion: 'person_uploads' },
-    { id: 's-worksafe', order: 4, title: 'WorkSafeBC clearance', instructions: 'Proof of WorkSafeBC coverage / clearance letter.', completion: 'both' },
-    { id: 's-safety', order: 5, title: 'Safety orientation', instructions: 'Attend the site safety orientation.', completion: 'admin_marks' },
+    { id: 'c-agreement', order: 0, title: 'Sign contractor agreement', instructions: 'Review and sign your engagement agreement.', completion: 'both' },
+    { id: 'c-id', order: 1, title: 'Submit photo ID', instructions: "Driver's licence, status card, or passport.", completion: 'person_uploads' },
+    { id: 'c-insurance', order: 2, title: 'Proof of insurance / WCB', instructions: 'Liability insurance + WorkSafeBC clearance letter.', completion: 'person_uploads' },
+    { id: 'c-deposit', order: 3, title: 'Direct deposit', instructions: 'Void cheque or a bank direct-deposit form.', completion: 'person_uploads' },
+    { id: 'c-safety', order: 4, title: 'Safety orientation', instructions: 'Attend the site safety orientation.', completion: 'admin_marks' },
   ],
 };
 
-const ALL_FLOWS: OnboardingFlow[] = [CONTRACTOR_FLOW];
+const ALL_FLOWS: OnboardingFlow[] = [EMPLOYEE_FLOW, CONTRACTOR_FLOW];
+
+const LUCAS: OnboardingPerson = { id: 'p-lucas', displayName: 'Lucas Lopatka', email: 'lucas.lopatka@skintyee.ca' };
 
 // ── Seed assignments ──────────────────────────────────────────────────────────
-// Helper: build step states for a flow from a partial status map (missing steps → pending).
-function statesFor(flow: OnboardingFlow, map: Record<string, OnboardingStepStatus>): OnboardingStepState[] {
-  return flow.steps.map((s) => ({ stepId: s.id, status: map[s.id] ?? 'pending' }));
+// Helper: build step states for a flow from a partial status map (missing steps → pending),
+// with optional per-step notes (e.g. a rejection reason).
+function statesFor(
+  flow: OnboardingFlow,
+  map: Record<string, OnboardingStepStatus>,
+  notes: Record<string, string> = {},
+): OnboardingStepState[] {
+  return flow.steps.map((s) => ({ stepId: s.id, status: map[s.id] ?? 'pending', notes: notes[s.id] }));
 }
 
 const ALL_ASSIGNMENTS: OnboardingAssignment[] = [
   {
-    id: 'asg-lucas',
-    person: { id: 'p-lucas', displayName: 'Lucas Lopatka', email: 'lucas.lopatka@skintyee.ca' },
-    flow: CONTRACTOR_FLOW,
+    id: 'asg-lucas-employee',
+    person: LUCAS,
+    flow: EMPLOYEE_FLOW,
     startedAt: '2026-06-22T16:00:00.000Z',
     completedAt: null,
-    publicToken: 'tok-lucas-7f3a',
-    stepStates: statesFor(CONTRACTOR_FLOW, {
-      's-agreement': 'completed',
-      's-id': 'completed',
-      's-deposit': 'in_progress',
-      's-td1': 'rejected',
-    }),
+    publicToken: 'tok-lucas-emp-7f3a',
+    stepStates: statesFor(
+      EMPLOYEE_FLOW,
+      { 'e-agreement': 'completed', 'e-id': 'completed', 'e-deposit': 'in_progress', 'e-td1': 'rejected' },
+      { 'e-td1': 'BC TD1 page was missing — please include both the federal and provincial forms.' },
+    ),
   },
   {
-    id: 'asg-marie',
-    person: { id: 'p-marie', displayName: 'Marie Joseph', email: 'marie.joseph@skintyee.ca' },
+    id: 'asg-lucas-contractor',
+    person: LUCAS,
     flow: CONTRACTOR_FLOW,
-    startedAt: '2026-06-25T18:30:00.000Z',
+    startedAt: '2026-06-26T17:15:00.000Z',
     completedAt: null,
-    publicToken: 'tok-marie-2b91',
-    stepStates: statesFor(CONTRACTOR_FLOW, {}),
-  },
-  {
-    id: 'asg-dan',
-    person: { id: 'p-dan', displayName: 'Dan West', email: 'dwest@northforestry.ca' },
-    flow: CONTRACTOR_FLOW,
-    startedAt: '2026-06-18T15:00:00.000Z',
-    completedAt: null,
-    publicToken: 'tok-dan-9c44',
-    stepStates: statesFor(CONTRACTOR_FLOW, {
-      's-agreement': 'completed',
-      's-id': 'completed',
-      's-deposit': 'completed',
-      's-td1': 'in_progress',
-    }),
-  },
-  {
-    id: 'asg-sarah',
-    person: { id: 'p-sarah', displayName: 'Sarah Tom', email: 'sarah.tom@skintyee.ca' },
-    flow: CONTRACTOR_FLOW,
-    startedAt: '2026-05-30T17:00:00.000Z',
-    completedAt: '2026-06-12T19:20:00.000Z',
-    publicToken: 'tok-sarah-1d77',
-    stepStates: statesFor(CONTRACTOR_FLOW, {
-      's-agreement': 'completed',
-      's-id': 'completed',
-      's-deposit': 'completed',
-      's-td1': 'completed',
-      's-worksafe': 'completed',
-      's-safety': 'completed',
-    }),
+    publicToken: 'tok-lucas-con-9b21',
+    stepStates: statesFor(CONTRACTOR_FLOW, { 'c-agreement': 'completed', 'c-id': 'in_progress' }),
   },
 ];
 
