@@ -31,22 +31,31 @@ export async function submissionStatus(): Promise<Record<string, AreaStatus>> {
       continue;
     }
     for (const slug of slugs) {
+      // submissions/<kind>/<stamp_who>/ — count across both kinds (paw + dci).
       const subDir = path.join(root, area, slug, 'submissions');
-      let entries: string[] = [];
+      let kinds: string[] = [];
       try {
-        entries = await readdir(subDir);
+        kinds = await readdir(subDir);
       } catch {
         continue;
       }
       let count = 0;
       let latest: number | undefined;
-      for (const e of entries) {
-        count++;
+      for (const kind of kinds) {
+        let entries: string[] = [];
         try {
-          const t = (await stat(path.join(subDir, e))).mtimeMs;
-          if (latest == null || t > latest) latest = t;
+          entries = await readdir(path.join(subDir, kind));
         } catch {
-          /* ignore */
+          continue;
+        }
+        for (const e of entries) {
+          count++;
+          try {
+            const t = (await stat(path.join(subDir, kind, e))).mtimeMs;
+            if (latest == null || t > latest) latest = t;
+          } catch {
+            /* ignore */
+          }
         }
       }
       if (count > 0) {

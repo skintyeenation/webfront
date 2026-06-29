@@ -217,10 +217,10 @@ export function FundingCalendar({
                       </span>
                     </span>
                     <a
-                      href={`#apply=${h.row.area}/${programSlug({ name: h.row.program })}`}
+                      href={`#apply=${isPaw(h.row) ? 'paw' : 'dci'}:${h.row.area}/${programSlug({ name: h.row.program })}`}
                       className="shrink-0 whitespace-nowrap text-xs font-semibold text-primary hover:underline"
                     >
-                      Apply ↗
+                      {isPaw(h.row) ? 'Apply ↗' : 'Report ↗'}
                     </a>
                   </li>
                 ))}
@@ -243,10 +243,10 @@ export function FundingCalendar({
                       <span className="text-ink/45">({r.due})</span>
                     </span>
                     <a
-                      href={`#apply=${r.area}/${programSlug({ name: r.program })}`}
+                      href={`#apply=${isPaw(r) ? 'paw' : 'dci'}:${r.area}/${programSlug({ name: r.program })}`}
                       className="shrink-0 whitespace-nowrap text-xs font-semibold text-primary hover:underline"
                     >
-                      Apply ↗
+                      {isPaw(r) ? 'Apply ↗' : 'Report ↗'}
                     </a>
                   </li>
                 ))}
@@ -289,10 +289,10 @@ export function FundingCalendar({
                   <td className="whitespace-nowrap px-3 py-2 font-semibold text-ink/80">{d.due ?? '—'}</td>
                   <td className="whitespace-nowrap px-3 py-2 text-right">
                     <a
-                      href={`#apply=${d.area}/${programSlug({ name: d.program })}`}
+                      href={`#apply=${isPaw(d) ? 'paw' : 'dci'}:${d.area}/${programSlug({ name: d.program })}`}
                       className="text-xs font-semibold text-primary hover:underline"
                     >
-                      Apply ↗
+                      {isPaw(d) ? 'Apply ↗' : 'Report ↗'}
                     </a>
                   </td>
                 </tr>

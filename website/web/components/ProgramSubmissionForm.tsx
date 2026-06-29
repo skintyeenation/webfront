@@ -24,17 +24,20 @@ export function ProgramSubmissionForm({
   userEmail?: string;
 }) {
   const [selected, setSelected] = useState(0);
+  const [kind, setKind] = useState<'paw' | 'dci'>('paw');
   const [notes, setNotes] = useState('');
   const [files, setFiles] = useState<FileList | null>(null);
   const [status, setStatus] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
   const [message, setMessage] = useState('');
 
-  // Preselect the program from a `#apply=<area>/<slug>` deep-link (the cards' "Upload PAW" button).
+  // Preselect the program + kind from a `#apply=<kind>:<area>/<slug>` deep-link (the cards'
+  // "Upload PAW" button and the calendar's "Apply" links). `<kind>:` is optional (defaults paw).
   useEffect(() => {
     const sync = () => {
-      const m = window.location.hash.match(/^#apply=([^/]+)\/(.+)$/);
+      const m = window.location.hash.match(/^#apply=(?:(paw|dci):)?([^/]+)\/(.+)$/);
       if (!m) return;
-      const [, area, slug] = m;
+      const [, k, area, slug] = m;
+      if (k === 'paw' || k === 'dci') setKind(k);
       const i = options.findIndex((o) => o.area === area && programSlug(o.program) === slug);
       if (i >= 0) setSelected(i);
     };
@@ -60,6 +63,7 @@ export function ProgramSubmissionForm({
     fd.set('area', opt.area);
     fd.set('programName', opt.program.name);
     if (opt.program.acronym) fd.set('acronym', opt.program.acronym);
+    fd.set('kind', kind);
     fd.set('notes', notes);
     Array.from(files).forEach((f) => fd.append('files', f));
     try {
@@ -117,6 +121,34 @@ export function ProgramSubmissionForm({
               ))}
         </select>
       </label>
+
+      <div>
+        <span className="font-semibold text-ink/70">Submission type</span>
+        <div className="mt-1 inline-flex rounded-lg border border-[var(--line)] p-0.5">
+          {(
+            [
+              { k: 'paw', label: 'Application (PAW)' },
+              { k: 'dci', label: 'Report (DCI)' },
+            ] as const
+          ).map((opt) => (
+            <button
+              key={opt.k}
+              type="button"
+              onClick={() => setKind(opt.k)}
+              className={`rounded-md px-3 py-1 font-semibold transition ${
+                kind === opt.k ? 'bg-primary text-white' : 'text-ink/60 hover:text-primary'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <span className="mt-1 block text-xs text-ink/50">
+          {kind === 'paw'
+            ? 'Submitting a funding application (PAW) — a proposal / work plan to request funding.'
+            : 'Submitting a report (DCI) — the data collection instrument due back to ISC.'}
+        </span>
+      </div>
 
       {/* Details of the selected program, inline (same content as the accordion cards). */}
       {options[selected] && (

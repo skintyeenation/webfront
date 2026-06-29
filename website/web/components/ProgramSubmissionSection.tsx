@@ -24,9 +24,10 @@ export function ProgramSubmissionSection({ area, areaName }: { area?: string; ar
 
   return (
     <section className="mt-10 rounded-2xl border border-[var(--line)] bg-white p-5">
-      <h2 className="text-lg font-bold text-ink">Submit a funding application</h2>
+      <h2 className="text-lg font-bold text-ink">Submit to a program</h2>
       <p className="mt-1 text-sm text-ink/70">
-        Members and staff can submit a completed PAW application and supporting documents for{' '}
+        Members and staff can submit a funding <strong>application (PAW)</strong> or a{' '}
+        <strong>report (DCI)</strong> with supporting documents for{' '}
         {allAreas ? 'any Skin Tyee funding program' : `a ${areaName} program`}. Submissions are filed
         securely for Skin Tyee staff review.
       </p>

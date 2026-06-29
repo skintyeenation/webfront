@@ -131,7 +131,7 @@ function FundingCard({
   // Deep-link into the Apply tab with this program preselected (works on the hub and on the
   // program subpage — both have an Apply tab listening for this hash). Omitted when the
   // Nation's size disqualifies the program.
-  const applyHref = disqualified ? undefined : `#apply=${p.area}/${programSlug(p)}`;
+  const applyHref = disqualified ? undefined : `#apply=paw:${p.area}/${programSlug(p)}`;
 
   if (!collapsible) {
     return (

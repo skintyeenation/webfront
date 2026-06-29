@@ -10,6 +10,7 @@ import path from 'node:path';
 // Blob + SharePoint use their REST APIs directly (no SDK dependency), so the build stays
 // dependency-free and the cloud writes simply no-op until their env is provided.
 
+export type SubmissionKind = 'paw' | 'dci';
 export type FileInput = { name: string; bytes: Buffer; contentType?: string };
 export type StoredSubmission = { path: string; drivers: string[] };
 
@@ -18,14 +19,16 @@ const safeName = (n: string) => n.replace(/[^a-z0-9._-]+/gi, '_');
 export async function storeSubmission(opts: {
   area: string;
   slug: string;
+  kind: SubmissionKind;
   submitter: string;
   files: FileInput[];
   notes?: string;
 }): Promise<StoredSubmission> {
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const rel = `${opts.area}/${opts.slug}/submissions/${stamp}_${safeName(opts.submitter)}`;
+  // PAW (applications) and DCI (reports) are filed in separate subfolders of the program.
+  const rel = `${opts.area}/${opts.slug}/submissions/${opts.kind}/${stamp}_${safeName(opts.submitter)}`;
   const notesBody = opts.notes
-    ? `From: ${opts.submitter}\nProgram: ${opts.area}/${opts.slug}\n\n${opts.notes}\n`
+    ? `From: ${opts.submitter}\nProgram: ${opts.area}/${opts.slug}\nKind: ${opts.kind.toUpperCase()}\n\n${opts.notes}\n`
     : undefined;
   const drivers: string[] = [];
 
