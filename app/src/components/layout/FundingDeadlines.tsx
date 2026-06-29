@@ -55,10 +55,9 @@ function DeadlineEntry({ r, program }: { r: DeadlineRowX; program?: FundingProgr
   const color = isApply ? APPLY_COLOR : REPORT_COLOR;
   const status = dueStatus(r.date);
   return (
-    <View style={{ borderBottomWidth: 1, borderBottomColor: theme.colors.secondary, paddingVertical: 8 }}>
+    <View style={{ borderBottomWidth: 1, borderBottomColor: theme.colors.secondary, borderLeftWidth: 3, borderLeftColor: color, paddingLeft: 10, paddingVertical: 8 }}>
       <TouchableOpacity onPress={() => setOpen((o) => !o)} activeOpacity={0.7}>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-          <View style={{ width: 8, height: 8, borderRadius: 4, marginTop: 5, marginRight: 8, backgroundColor: color }} />
           <View style={{ flex: 1 }}>
             <Text style={{ color: theme.colors.text, fontSize: 13 }}>
               {r.program} · <Text style={{ color: theme.colors.textDarker }}>{r.name}</Text>
@@ -182,13 +181,13 @@ export function FundingDeadlines() {
             {split ? (
               <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
                 <View style={{ flex: 1, marginRight: 16 }}>
-                  <MonthCalendar marks={marks} selected={selected} onSelect={setSelected} initialMonth={selected} />
+                  <MonthCalendar marks={marks} selected={selected} onSelect={setSelected} initialMonth={selected} showCount />
                 </View>
-                <View style={{ flex: 2 }}>{dayList}</View>
+                <View style={{ flex: 1 }}>{dayList}</View>
               </View>
             ) : (
               <>
-                <MonthCalendar marks={marks} selected={selected} onSelect={setSelected} initialMonth={selected} />
+                <MonthCalendar marks={marks} selected={selected} onSelect={setSelected} initialMonth={selected} showCount />
                 <View style={{ marginTop: 12 }}>{dayList}</View>
               </>
             )}

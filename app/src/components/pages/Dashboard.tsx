@@ -440,9 +440,6 @@ export default function Dashboard({ navigation }: any) {
   return (
     <PageContainer>
       <PageContent>
-        {/* Governance funding calendar — PAW/DCI deadlines; renders only for
-            council / finance / system-admin / band-manager / admin. */}
-        <GovernanceFundingDeadlines />
         {/* Pinned alert: open onboarding work. Dismissable in-session;
             reloading the app re-fires the fetch + shows it again until
             the underlying assignments are completed server-side. */}
@@ -564,6 +561,10 @@ export default function Dashboard({ navigation }: any) {
             onOpen={() => navigation.navigate('More', { screen: 'timekeeping', initial: false })}
           />
         ) : null}
+
+        {/* Governance funding calendar — PAW/DCI deadlines; after the time-keeping
+            row. Renders only for council / finance / system-admin / band-manager / admin. */}
+        <GovernanceFundingDeadlines />
 
         {/* ── 2. MY PROJECTS — Planner plans as project bars ────────────── */}
         {showPlannerWidgets ? (

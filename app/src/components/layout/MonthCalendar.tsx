@@ -10,6 +10,8 @@ export interface MonthCalendarProps {
   selected?: string;
   onSelect: (dateKey: string) => void;
   initialMonth?: string; // 'YYYY-MM-DD' to anchor the displayed month
+  // Show the item count as a numbered badge on the day (instead of a plain dot).
+  showCount?: boolean;
 }
 
 const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
@@ -18,7 +20,7 @@ const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
  * Lightweight month calendar built from plain Views — no calendar library.
  * Days with items show a dot; tap a day to select it. Renders on web + native.
  */
-export function MonthCalendar({ marks, selected, onSelect, initialMonth }: MonthCalendarProps) {
+export function MonthCalendar({ marks, selected, onSelect, initialMonth, showCount }: MonthCalendarProps) {
   const [cursor, setCursor] = useState(() => moment(initialMonth || undefined).startOf('month'));
 
   const todayKey = moment().format('YYYY-MM-DD');
@@ -75,9 +77,29 @@ export function MonthCalendar({ marks, selected, onSelect, initialMonth }: Month
                 }}
               >
                 <Text style={{ color: isSelected ? '#000' : count > 0 ? theme.colors.text : theme.colors.textDarker, fontSize: 13 }}>{m.date()}</Text>
+                {showCount && count > 0 ? (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      top: -4,
+                      right: -7,
+                      minWidth: 17,
+                      height: 17,
+                      borderRadius: 9,
+                      paddingHorizontal: 3,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: theme.colors.accent,
+                      borderWidth: 1.5,
+                      borderColor: theme.colors.darkDefault,
+                    }}
+                  >
+                    <Text style={{ color: '#000', fontSize: 10, fontWeight: '700' }}>{count}</Text>
+                  </View>
+                ) : null}
               </View>
               <View style={{ height: 6, marginTop: 2 }}>
-                {count > 0 ? <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: isSelected ? theme.colors.text : theme.colors.accent }} /> : null}
+                {!showCount && count > 0 ? <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: isSelected ? theme.colors.text : theme.colors.accent }} /> : null}
               </View>
             </TouchableOpacity>
           );
