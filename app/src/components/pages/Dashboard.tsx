@@ -635,7 +635,9 @@ export default function Dashboard({ navigation }: any) {
         {!loaded && loading ? (
           <NoContent loading message="Loading your tasks…" />
         ) : taskItems.length === 0 ? (
-          <NoContent message="No Planner tasks due this week. Clear slate." />
+          <View style={{ borderWidth: 1, borderColor: theme.colors.secondary, borderRadius: 12, paddingVertical: 6 }}>
+            <NoContent message="No Planner tasks due this week. Clear slate." />
+          </View>
         ) : (
           renderTaskDays()
         )}
@@ -724,14 +726,18 @@ function AdminTimekeepingCard({ pendingApprovals, hoursLogged, cutoffDate, daysR
         {(() => {
           const statEntries = (
             <View style={wide ? { marginRight: 28 } : { flex: 1 }}>
-              <Text style={{ color: pendingApprovals > 0 ? theme.colors.accent : theme.colors.success, fontSize: 22 }}>{pendingApprovals}</Text>
-              <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Entries to approve</Text>
+              <View style={{ height: 28, justifyContent: 'center' }}>
+                <Text style={{ color: pendingApprovals > 0 ? theme.colors.accent : theme.colors.success, fontSize: 22 }}>{pendingApprovals}</Text>
+              </View>
+              <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginTop: 2 }}>Entries to approve</Text>
             </View>
           );
           const statHours = (
             <View style={wide ? { marginRight: 28 } : { flex: 1 }}>
-              <Text style={{ color: theme.colors.primary, fontSize: 22 }}>{hoursLogged}</Text>
-              <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>Hours · all workers</Text>
+              <View style={{ height: 28, justifyContent: 'center' }}>
+                <Text style={{ color: theme.colors.primary, fontSize: 22 }}>{hoursLogged}</Text>
+              </View>
+              <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginTop: 2 }}>Hours · all workers</Text>
             </View>
           );
           const button = (
@@ -740,7 +746,7 @@ function AdminTimekeepingCard({ pendingApprovals, hoursLogged, cutoffDate, daysR
               compact icon="clock-outline"
               buttonColor={pendingApprovals > 0 ? theme.colors.accent : undefined}
               textColor={pendingApprovals > 0 ? '#000' : theme.colors.primary}
-              style={wide ? undefined : { marginTop: 12, alignSelf: 'flex-start' }}
+              style={wide ? { alignSelf: 'center' } : { marginTop: 12, alignSelf: 'flex-start' }}
               onPress={onOpen}
             >
               {pendingApprovals > 0 ? 'Review timesheets' : 'Open time keeping'}
@@ -749,7 +755,7 @@ function AdminTimekeepingCard({ pendingApprovals, hoursLogged, cutoffDate, daysR
           // Desktop: stats + cut-off + CTA on one row (no stacked footer).
           if (wide) {
             return (
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
                 {statEntries}
                 {statHours}
                 <CutoffFooter cutoffDate={cutoffDate} daysRemaining={daysRemaining} inline />
@@ -859,18 +865,19 @@ function MyTimekeepingCard({
 function CutoffFooter({ cutoffDate, daysRemaining, inline }: { cutoffDate: moment.Moment; daysRemaining: number; inline?: boolean }) {
   return (
     <View style={{ alignItems: 'flex-start', ...(inline ? {} : { marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: theme.colors.secondary }) }}>
-      <Chip compact
-        style={{ alignSelf: 'flex-start', backgroundColor: daysRemaining <= 2 ? theme.colors.accent : theme.colors.secondary }}
-        textStyle={{ color: daysRemaining <= 2 ? '#000' : theme.colors.text, fontSize: 10 }}>
-        {daysRemaining === 0 ? 'Due today' : daysRemaining === 1 ? '1 day left' : `${daysRemaining} days left`}
-      </Chip>
-      {/* Cut-off date sits below the days-left badge. */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-        <MaterialCommunityIcons name="calendar-clock" size={14} color={theme.colors.textDarker} style={{ marginRight: 4 }} />
-        <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>
-          Cut-off {cutoffDate.format('ddd, MMM D')}
-        </Text>
+      {/* Badge row — calendar icon beside the days-left badge. Fixed height 28 so the
+          cut-off line below lines up with the stat labels (Entries to approve / Hours). */}
+      <View style={{ height: 28, flexDirection: 'row', alignItems: 'center' }}>
+        <MaterialCommunityIcons name="calendar-clock" size={16} color={theme.colors.textDarker} style={{ marginRight: 6 }} />
+        <Chip compact
+          style={{ backgroundColor: daysRemaining <= 2 ? theme.colors.accent : theme.colors.secondary }}
+          textStyle={{ color: daysRemaining <= 2 ? '#000' : theme.colors.text, fontSize: 12 }}>
+          {daysRemaining === 0 ? 'Due today' : daysRemaining === 1 ? '1 day left' : `${daysRemaining} days left`}
+        </Chip>
       </View>
+      <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginTop: 2 }}>
+        Cut-off {cutoffDate.format('ddd, MMM D')}
+      </Text>
     </View>
   );
 }
