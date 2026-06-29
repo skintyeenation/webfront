@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import './globals.css';
 import { getSession, onboardingUrl } from '@/lib/session';
-import { assignmentsFor, isOnboardingAdmin, overallStatus } from '@/lib/onboarding';
+import { onboardingSummary } from '@/lib/onboarding-data';
 import { FEATURES } from '@/lib/featureFlags';
 import { AccessGate } from '@/components/AccessGate';
 import { ResourceLinks } from '@/components/ResourceLinks';
@@ -34,11 +34,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     );
   }
   // The signed-in user's onboarding drives the nav + user-menu section: admins always keep the
-  // item (it's their console); a worker's item hides once their onboarding is complete.
+  // item (it's their console); a worker's item hides once their onboarding is complete. Read
+  // live from the api/ (degrades gracefully when signed out or the api is unreachable).
   const email = session?.user?.email;
-  const onboardingAdmin = isOnboardingAdmin(email);
-  const mine = assignmentsFor(email);
-  const onboardingStatus = mine.length ? overallStatus(mine[0]) : undefined;
+  const { admin: onboardingAdmin, status: onboardingStatus } = email
+    ? await onboardingSummary(email)
+    : { admin: false, status: undefined };
   return (
     <html lang="en">
       <body>

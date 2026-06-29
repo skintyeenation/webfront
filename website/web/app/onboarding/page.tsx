@@ -1,11 +1,7 @@
 import type { Metadata } from 'next';
 import { getSession } from '@/lib/session';
-import {
-  assignmentsFor,
-  inProgressAssignments,
-  isOnboardingAdmin,
-  ONBOARDING_APP_URL,
-} from '@/lib/onboarding';
+import { ONBOARDING_APP_URL } from '@/lib/onboarding';
+import { onboardingForPage } from '@/lib/onboarding-data';
 import { OnboardingAdminList } from '@/components/onboarding/OnboardingAdminList';
 import { OnboardingAssignmentView } from '@/components/onboarding/OnboardingAssignmentView';
 import { SignInButton } from '@/components/SignInButton';
@@ -33,8 +29,7 @@ export default async function OnboardingPage() {
     );
   }
 
-  const admin = isOnboardingAdmin(email);
-  const mine = assignmentsFor(email);
+  const { admin, mine, inProgress } = await onboardingForPage(email);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -47,7 +42,7 @@ export default async function OnboardingPage() {
         </p>
       </div>
 
-      {admin && <OnboardingAdminList assignments={inProgressAssignments()} />}
+      {admin && <OnboardingAdminList assignments={inProgress} />}
 
       {mine.length > 0 && (
         <div className="space-y-4">
