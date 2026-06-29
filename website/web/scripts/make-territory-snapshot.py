@@ -9,9 +9,30 @@ Renders TWO maps (each: full-res original for design + a downscaled web JPEG):
             -> docs/land/territory-snapshot-mobile-hires.jpg,
                public/territory-snapshot-mobile.jpg
 
-Repeatable: `pnpm --filter @skintyee/website-web snapshot:territory`
-Requires: Python 3 + Pillow  (`pip install -r scripts/requirements.txt`)
-Coords mirror website/web/lib/territory.ts + docs/land/territory.md — keep in sync.
+Run it:
+    pnpm --filter @skintyee/website-web snapshot:territory     # from the repo root
+    # or, from website/web:
+    npm run snapshot:territory
+    # or directly:
+    python3 scripts/make-territory-snapshot.py
+Requires: Python 3 + Pillow  (`pip install -r scripts/requirements.txt`). Network access to
+the Esri ArcGIS Online tile servers (no API key). Takes ~1-2 min (it fetches + stitches tiles).
+
+Outputs (committed assets — re-run + commit when the framing/markers change):
+    public/territory-snapshot.jpg          desktop hero bg (PageHero / .page-hero in globals.css)
+    public/territory-snapshot-mobile.jpg   mobile hero bg
+    docs/land/territory-snapshot-hires.jpg (+ -mobile-hires.jpg)  full-res originals for design
+
+How the framing works — tune the DESKTOP / MOBILE dicts below:
+    bbox = (minlat, maxlat, minlon, maxlon)   the geographic rectangle captured (WGS84 degrees)
+    z    = tile zoom (higher = more detail + more tiles + slower)
+  To shift the view WEST (move the map "left"), subtract from BOTH lon values; EAST, add to both.
+  To shift NORTH, add to both lat values; SOUTH, subtract. Keep the bbox aspect close to the
+  hero's so `background-size: cover` doesn't over-crop. The hero itself can also nudge the image
+  via `background-position` in globals.css (cheap) — prefer re-framing here for quality.
+
+TERRITORY polygon + MARKERS + bbox mirror website/web/lib/territory.ts + docs/land/territory.md
+— keep all three in sync. See docs/land/territory.md → "Regenerating the hero snapshots".
 """
 import math, io, os, time, urllib.request
 from PIL import Image, ImageDraw, ImageFont

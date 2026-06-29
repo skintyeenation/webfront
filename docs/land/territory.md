@@ -60,6 +60,38 @@ Clockwise from the NW corner — `[lat, lng]`:
 
 (Used by the website's interactive territory hero — `website/web/lib/territory.ts`.)
 
+## Regenerating the hero snapshots
+
+The home-page hero background (the panning satellite map) is a **pre-rendered image**, not a
+live map — generated from free Esri ArcGIS Online tiles by
+[`website/web/scripts/make-territory-snapshot.py`](../../website/web/scripts/make-territory-snapshot.py).
+
+```bash
+# from the repo root
+pnpm --filter @skintyee/website-web snapshot:territory
+# or from website/web:  npm run snapshot:territory
+# requires: python3 + Pillow  (pip install -r website/web/scripts/requirements.txt)
+```
+
+It writes four committed assets (commit them after a re-run):
+
+| File | Use |
+|---|---|
+| `website/web/public/territory-snapshot.jpg` | desktop hero bg (`.page-hero` in `globals.css`) |
+| `website/web/public/territory-snapshot-mobile.jpg` | mobile hero bg (portrait framing) |
+| `docs/land/territory-snapshot-hires.jpg` (+ `-mobile-hires.jpg`) | full-res originals for design |
+
+**Adjusting the framing** — edit the `DESKTOP` / `MOBILE` dicts in the script:
+
+- `bbox = (minlat, maxlat, minlon, maxlon)` — the rectangle captured. Shift the view **west**
+  (move the map "left") by subtracting from **both** lon values; **east** by adding to both;
+  north/south by adjusting both lat values. ~10% of the lon span (≈ 0.5°) ≈ a 10% shift.
+- `z` — tile zoom (more detail, more tiles, slower).
+
+The hero can also nudge the image cheaply via `background-position` in `globals.css`, but
+re-framing in the script gives a sharper result. The `TERRITORY` polygon + `MARKERS` in the
+script mirror the boundary polygon above and `website/web/lib/territory.ts` — keep them in sync.
+
 ## Key features inside the territory
 
 - **Towns:** Houston, Burns Lake, Fraser Lake, Vanderhoof (E edge).

@@ -56,11 +56,11 @@ export function PageHero({ title, subtitle }: { title: string; subtitle?: ReactN
               alt="Skin Tyee Nation"
               width={160}
               height={142}
-              className="mb-6 mx-auto block h-24 w-auto md:mb-12 md:h-44"
+              className="mb-6 mx-auto block h-24 w-auto md:mb-12 md:mt-6 md:h-44 2xl:mt-0"
               style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.85)) drop-shadow(0 0 5px rgba(0,0,0,0.6))' }}
             />
             <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-white/80 md:text-base">Welcome to</p>
-            <h1 className="text-3xl font-bold text-white drop-shadow-md md:text-6xl">{title}</h1>
+            <h1 className="text-[1.6rem] font-bold text-white drop-shadow-md md:text-[3.19rem]">{title}</h1>
             {subtitle && <p className="mt-6 text-base text-white/90 drop-shadow md:mt-10 md:text-lg">{subtitle}</p>}
             <button
               type="button"
