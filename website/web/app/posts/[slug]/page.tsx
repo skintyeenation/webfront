@@ -24,7 +24,7 @@ export default async function PostPage({ params }: { params: { slug: string } })
   const post = await getPostBySlug(params.slug);
   if (!post) notFound();
 
-  const [{ category, related }, notifications] = await Promise.all([
+  const [{ category, related, author }, notifications] = await Promise.all([
     getPostExtras(params.slug, 3),
     safe(publicApi.notifications.list(), []),
   ]);
@@ -63,9 +63,11 @@ export default async function PostPage({ params }: { params: { slug: string } })
             className="text-3xl font-bold leading-tight text-ink"
             dangerouslySetInnerHTML={{ __html: post.title.rendered }}
           />
-          <time dateTime={post.date} className="mt-2 block text-sm text-ink/50">
-            {fmtDate(post.date)}
-          </time>
+          <p className="mt-2 text-sm text-ink/50">
+            {author && <span className="font-medium text-ink/70">{author}</span>}
+            {author && <span className="px-1.5">·</span>}
+            <time dateTime={post.date}>{fmtDate(post.date)}</time>
+          </p>
         </header>
 
         <div className="prose prose-lg mt-6 max-w-none prose-headings:text-ink prose-a:text-primary prose-img:rounded-lg">

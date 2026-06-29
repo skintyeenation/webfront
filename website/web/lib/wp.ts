@@ -66,19 +66,26 @@ export async function getPostsByCategory(categorySlug: string, limit = 12): Prom
 export async function getPostExtras(
   slug: string,
   relatedLimit = 3,
-): Promise<{ category: WPCategory | null; related: WPEntry[] }> {
-  const [self] = await wpFetch<{ id: number; categories: number[] }[]>(
-    `/posts?slug=${encodeURIComponent(slug)}&_fields=id,categories`,
+): Promise<{ category: WPCategory | null; related: WPEntry[]; author: string | null }> {
+  const [self] = await wpFetch<{ id: number; categories: number[]; author: number }[]>(
+    `/posts?slug=${encodeURIComponent(slug)}&_fields=id,categories,author`,
     [],
   );
-  const catIds = self?.categories ?? [];
-  if (!catIds.length) return { category: null, related: [] };
+  if (!self) return { category: null, related: [], author: null };
+
+  const [authorRec] = self.author
+    ? await wpFetch<{ id: number; name: string }[]>(`/users?include=${self.author}&_fields=id,name`, [])
+    : [];
+  const author = authorRec?.name ?? null;
+
+  const catIds = self.categories ?? [];
+  if (!catIds.length) return { category: null, related: [], author };
   const [category] = await wpFetch<WPCategory[]>(`/categories?include=${catIds[0]}&_fields=id,slug,name`, []);
   const related = await wpFetch<WPEntry[]>(
     `/posts?categories=${catIds.join(',')}&exclude=${self.id}&per_page=${relatedLimit}&_fields=id,slug,date,title,excerpt`,
     [],
   );
-  return { category: category ?? null, related };
+  return { category: category ?? null, related, author };
 }
 
 const NAMED_ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
