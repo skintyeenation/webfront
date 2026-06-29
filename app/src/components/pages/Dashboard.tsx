@@ -570,17 +570,18 @@ export default function Dashboard({ navigation }: any) {
         {showPlannerWidgets ? (
           <View style={twoCol ? { flexDirection: 'row', alignItems: 'flex-start' } : undefined}>
           <View style={twoCol ? { flex: 1, marginRight: 8 } : undefined}>
+          {/* Heading is bare (outside the card) so it lines up with the My tasks heading. */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+            <MaterialCommunityIcons name="folder-multiple-outline" size={18} color={theme.colors.primary} style={{ marginRight: 6 }} />
+            <Text style={{ color: theme.colors.text, fontSize: 16, flex: 1 }}>My projects</Text>
+            {rollup ? (
+              <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>
+                {rollup.byProgramArea.length} plan{rollup.byProgramArea.length === 1 ? '' : 's'}
+              </Text>
+            ) : null}
+          </View>
           <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 16 }}>
             <Card.Content>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-                <MaterialCommunityIcons name="folder-multiple-outline" size={18} color={theme.colors.primary} style={{ marginRight: 6 }} />
-                <Text style={{ color: theme.colors.text, fontSize: 15, flex: 1 }}>My projects</Text>
-                {rollup ? (
-                  <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>
-                    {rollup.byProgramArea.length} plan{rollup.byProgramArea.length === 1 ? '' : 's'}
-                  </Text>
-                ) : null}
-              </View>
               {!rollup ? (
                 <NoContent loading message="Loading Planner data…" />
               ) : rollup.byProgramArea.length === 0 ? (
@@ -871,11 +872,20 @@ function CutoffFooter({ cutoffDate, daysRemaining, inline }: { cutoffDate: momen
           cut-off line below lines up with the stat labels (Entries to approve / Hours). */}
       <View style={{ height: 28, flexDirection: 'row', alignItems: 'center' }}>
         <MaterialCommunityIcons name="calendar-clock" size={16} color={theme.colors.textDarker} style={{ marginRight: 6 }} />
-        <Chip compact
-          style={{ height: 24, justifyContent: 'center', backgroundColor: daysRemaining <= 2 ? theme.colors.accent : theme.colors.secondary }}
-          textStyle={{ color: daysRemaining <= 2 ? '#000' : theme.colors.text, fontSize: 12, marginVertical: 0, lineHeight: 16 }}>
-          {daysRemaining === 0 ? 'Due today' : daysRemaining === 1 ? '1 day left' : `${daysRemaining} days left`}
-        </Chip>
+        <View
+          style={{
+            height: 22,
+            paddingHorizontal: 10,
+            borderRadius: 11,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: daysRemaining <= 2 ? theme.colors.accent : theme.colors.secondary,
+          }}
+        >
+          <Text style={{ color: daysRemaining <= 2 ? '#000' : theme.colors.text, fontSize: 12, lineHeight: 14 }}>
+            {daysRemaining === 0 ? 'Due today' : daysRemaining === 1 ? '1 day left' : `${daysRemaining} days left`}
+          </Text>
+        </View>
       </View>
       <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginTop: 2 }}>
         Cut-off {cutoffDate.format('ddd, MMM D')}
