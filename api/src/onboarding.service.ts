@@ -696,6 +696,16 @@ export class OnboardingService implements OnApplicationBootstrap {
     return a;
   }
 
+  // Unassign — remove an assignment (and its step states cascade via the schema).
+  async deleteAssignment(id: string): Promise<boolean> {
+    if (this.prisma.isAvailable) {
+      await this.prisma.onboardingAssignment.delete({ where: { id } }).catch(() => null);
+    } else {
+      this.memAssignments.delete(id);
+    }
+    return true;
+  }
+
   async listAssignments(opts?: { flowId?: string; personId?: string }): Promise<AssignmentRecord[]> {
     if (this.prisma.isAvailable) {
       const where: any = {};

@@ -418,6 +418,8 @@ export interface ApiService {
     myAssignments(): Promise<OnboardingAssignmentDto[]>;
     getAssignment(id: string): Promise<OnboardingAssignmentDto>;
     createAssignment(input: { flowId: string; personId: string }): Promise<OnboardingAssignmentDto>;
+    /** Unassign — remove an assignment from a person. */
+    deleteAssignment(id: string): Promise<void>;
     rotateToken(id: string): Promise<{ publicToken: string }>;
     approveStep(assignmentId: string, stepId: string, notes?: string): Promise<OnboardingStepStateDto>;
     rejectStep(assignmentId: string, stepId: string, notes?: string): Promise<OnboardingStepStateDto>;

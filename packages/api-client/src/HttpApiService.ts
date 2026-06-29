@@ -467,6 +467,7 @@ function buildHttpApiService(baseUrl: string, ctx: AuthCtxGetters): ApiService {
         myAssignments:     () => get<OnboardingAssignmentDto[]>('/onboarding/my-assignments'),
         getAssignment:     (id: string) => get<OnboardingAssignmentDto>(`/onboarding/assignments/${encodeURIComponent(id)}`),
         createAssignment:  (input: any) => post<OnboardingAssignmentDto>('/onboarding/assignments', input),
+        deleteAssignment:  (id: string) => del(`/onboarding/assignments/${encodeURIComponent(id)}`),
         rotateToken:       (id: string) => post<{ publicToken: string }>(`/onboarding/assignments/${encodeURIComponent(id)}/rotate-token`, {}),
         approveStep:       (assignmentId: string, stepId: string, notes?: string) =>
           post<OnboardingStepStateDto>(`/onboarding/assignments/${encodeURIComponent(assignmentId)}/steps/${encodeURIComponent(stepId)}/complete`, { notes }),

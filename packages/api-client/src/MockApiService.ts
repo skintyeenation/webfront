@@ -286,6 +286,7 @@ export const mockApiService: ApiService = {
     myAssignments:    () => delay([]),
     getAssignment:    () => delay({} as any),
     createAssignment: () => delay({} as any),
+    deleteAssignment: () => delay(undefined as any),
     rotateToken:      () => delay({ publicToken: '' }),
     approveStep:      () => delay({} as any),
     rejectStep:       () => delay({} as any),

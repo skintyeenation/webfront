@@ -260,6 +260,11 @@ export class OnboardingController {
     return this.svc.createAssignment(b.flowId, b.personId);
   }
 
+  // Unassign — admin removes an assignment from a person.
+  @Delete('assignments/:id') @Roles('admin') @HttpCode(204) async deleteAssignment(@Param('id') id: string) {
+    await this.svc.deleteAssignment(id);
+  }
+
   @Post('assignments/:id/rotate-token') @Roles('admin') async rotateToken(@Param('id') id: string) {
     const tok = await this.svc.rotateToken(id);
     if (!tok) throw new NotFoundException();

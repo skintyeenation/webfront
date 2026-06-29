@@ -238,6 +238,15 @@ export default function OnboardingFlows({ navigation }: any) {
                         </Chip>
                       ) : null}
                       <View style={{ flex: 1 }} />
+                      <IconButton icon="account-remove" size={18} iconColor={theme.colors.textDarker}
+                        onPress={() => confirm({
+                          title: 'Unassign onboarding?',
+                          message: `Remove "${flow?.title ?? 'this flow'}" from ${person?.displayName ?? 'this person'}? Their progress and uploaded files will be deleted.`,
+                          confirmLabel: 'Unassign',
+                          destructive: true,
+                          onConfirm: async () => { await apiFactory().onboarding.deleteAssignment(a.id); showToast('Onboarding unassigned'); load(); },
+                        })}
+                      />
                       <Button compact mode="text" icon="arrow-right" textColor={theme.colors.primary}
                         onPress={() => navigation.navigate('onboardingAssignment', { id: a.id })}>
                         Open
