@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { Linking, Platform, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { Badge, Button, Card, Chip, IconButton, ProgressBar, Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import moment from 'moment';
 import { GovernanceFundingDeadlines, NoContent, PageContainer, PageContent, colorAt } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { loadFeed } from 'skintyee/store/modules/feed';
-import { loadRollup } from 'skintyee/store/modules/planner';
+import { loadRollup, loadPlans } from 'skintyee/store/modules/planner';
 import { loadTimeEntries } from 'skintyee/store/modules/timekeeping';
 import { apiFactory } from 'skintyee/store/apis';
 import { FeedItem, Role } from 'skintyee/models';
@@ -67,6 +67,20 @@ function formatRange(items: FeedItem[]): string {
   const last = timeOf(items[items.length - 1]);
   if (!first || !last) return '';
   return `${moment(first).format('MMM D')} – ${moment(last).format('MMM D')}`;
+}
+
+// Microsoft Planner web deep-link for a program area — matched to a plan by title (program
+// areas come from task category labels, which usually match a plan title). Falls back to the
+// Planner home when there's no match, so the button always opens Planner.
+function plannerUrlForArea(area: string, plans: { id: string; title: string; groupId: string }[]): string {
+  const a = area.trim().toLowerCase();
+  const plan =
+    plans.find((p) => p.title.toLowerCase() === a) ??
+    plans.find((p) => p.title.toLowerCase().includes(a) || a.includes(p.title.toLowerCase()));
+  if (plan) {
+    return `https://tasks.office.com/Home/Planner/#/plantaskboard?groupId=${encodeURIComponent(plan.groupId)}&planId=${encodeURIComponent(plan.id)}`;
+  }
+  return 'https://tasks.office.com/';
 }
 
 // ---- Calendar (scheduled-stuff) card ---------------------------------------
@@ -281,8 +295,9 @@ export default function Dashboard({ navigation }: any) {
   const showPlannerWidgets = isStaffOrAdmin && (hasM365 || !FEATURES.hideM365WidgetsForExternals);
   const { items, loading, loaded } = useAppSelector((s) => s.feed);
 
-  // Planner rollup + time entries — admin-tools section below the feed
+  // Planner rollup + plan list (for deep-linking each project to its Planner board) + time entries
   const rollup = useAppSelector((s) => s.planner.rollup);
+  const plans = useAppSelector((s) => s.planner.plans);
   const timeEntries = useAppSelector((s) => s.timekeeping.entities);
   const pendingApprovals = timeEntries.filter((t) => !t.approved).length;
   const hoursLogged = timeEntries.reduce((s, t) => s + t.hours, 0);
@@ -323,7 +338,10 @@ export default function Dashboard({ navigation }: any) {
       // loadRollup pulls Microsoft Planner data — skip for externals
       // when the feature flag is on. loadTimeEntries is Postgres-
       // backed and works for everyone.
-      if (showPlannerWidgets) dispatch(loadRollup());
+      if (showPlannerWidgets) {
+        dispatch(loadRollup());
+        dispatch(loadPlans()); // plan ids/groupIds for the per-project Planner links
+      }
       dispatch(loadTimeEntries());
     }
   }, [dispatch, role, isStaffOrAdmin, showPlannerWidgets]);
@@ -593,14 +611,22 @@ export default function Dashboard({ navigation }: any) {
                   const pct = total > 0 ? row.completed / total : 0;
                   const last = idx === rollup.byProgramArea.length - 1;
                   return (
-                    <View key={row.programArea} style={{ marginBottom: last ? 0 : 12 }}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                        <Text style={{ color: theme.colors.text, fontSize: 13 }}>{row.programArea}</Text>
-                        <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>
+                    <View key={row.programArea} style={{ marginBottom: last ? 0 : 22 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                        {/* Tap the title (or the icon) to open this plan's board in Planner web. */}
+                        <TouchableOpacity
+                          onPress={() => Linking.openURL(plannerUrlForArea(row.programArea, plans))}
+                          activeOpacity={0.7}
+                          style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1 }}
+                        >
+                          <Text style={{ color: theme.colors.primary, fontSize: 13 }} numberOfLines={1}>{row.programArea}</Text>
+                          <MaterialCommunityIcons name="open-in-new" size={13} color={theme.colors.primary} style={{ marginLeft: 4 }} />
+                        </TouchableOpacity>
+                        <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginLeft: 8 }}>
                           {row.open} open · {row.completed} done
                         </Text>
                       </View>
-                      <ProgressBar progress={pct} color={colorAt(idx)} style={{ height: 6, borderRadius: 3, backgroundColor: theme.colors.secondary }} />
+                      <ProgressBar progress={pct} color={colorAt(idx)} style={{ height: 8, borderRadius: 4, backgroundColor: theme.colors.secondary }} />
                     </View>
                   );
                 })}
