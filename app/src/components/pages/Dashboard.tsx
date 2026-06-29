@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Linking, Platform, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from 'react-native';
-import { Badge, Button, Card, Chip, IconButton, ProgressBar, Text } from 'react-native-paper';
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { Badge, Button, Card, Chip, IconButton, ProgressBar, Text, Tooltip } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import moment from 'moment';
 import { GovernanceFundingDeadlines, NoContent, PageContainer, PageContent, colorAt } from 'skintyee/components/layout';
@@ -597,6 +597,13 @@ export default function Dashboard({ navigation }: any) {
                 {rollup.byProgramArea.length} plan{rollup.byProgramArea.length === 1 ? '' : 's'}
               </Text>
             ) : null}
+            <IconButton
+              icon="refresh"
+              size={18}
+              iconColor={theme.colors.textDarker}
+              style={{ margin: 0, marginLeft: 4 }}
+              onPress={() => { dispatch(loadRollup()); dispatch(loadPlans()); }}
+            />
           </View>
           {/* All projects wrapped in one outline — always bordered (empty or populated). */}
           <View style={{ borderWidth: 1, borderColor: theme.colors.secondary, borderRadius: 12, padding: 12, marginBottom: 16 }}>
@@ -610,24 +617,32 @@ export default function Dashboard({ navigation }: any) {
                   const total = row.open + row.completed;
                   const pct = total > 0 ? row.completed / total : 0;
                   const last = idx === rollup.byProgramArea.length - 1;
+                  // Whole project is tappable → opens this plan's board in Planner; Pressable adds a web hover glow.
                   return (
-                    <View key={row.programArea} style={{ marginBottom: last ? 0 : 22 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                        {/* Tap the title (or the icon) to open this plan's board in Planner web. */}
-                        <TouchableOpacity
-                          onPress={() => Linking.openURL(plannerUrlForArea(row.programArea, plans))}
-                          activeOpacity={0.7}
-                          style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1 }}
-                        >
-                          <Text style={{ color: theme.colors.primary, fontSize: 13 }} numberOfLines={1}>{row.programArea}</Text>
-                          <MaterialCommunityIcons name="open-in-new" size={13} color={theme.colors.primary} style={{ marginLeft: 4 }} />
-                        </TouchableOpacity>
-                        <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginLeft: 8 }}>
-                          {row.open} open · {row.completed} done
-                        </Text>
-                      </View>
-                      <ProgressBar progress={pct} color={colorAt(idx)} style={{ height: 8, borderRadius: 4, backgroundColor: theme.colors.secondary }} />
-                    </View>
+                    <Tooltip key={row.programArea} title="Open in Planner">
+                      <Pressable
+                        onPress={() => Linking.openURL(plannerUrlForArea(row.programArea, plans))}
+                        style={(state) => ({
+                          marginBottom: last ? 0 : 8,
+                          marginHorizontal: -6,
+                          paddingHorizontal: 6,
+                          paddingVertical: 8,
+                          borderRadius: 8,
+                          backgroundColor: (state as { hovered?: boolean }).hovered || state.pressed ? 'rgba(255,255,255,0.06)' : 'transparent',
+                        })}
+                      >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                          <Text style={{ color: theme.colors.text, fontSize: 13, flexShrink: 1 }} numberOfLines={1}>{row.programArea}</Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8 }}>
+                            <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>
+                              {row.open} open · {row.completed} done
+                            </Text>
+                            <MaterialCommunityIcons name="pencil" size={16} color={theme.colors.primary} style={{ marginLeft: 8 }} />
+                          </View>
+                        </View>
+                        <ProgressBar progress={pct} color={colorAt(idx)} style={{ height: 8, borderRadius: 4, backgroundColor: theme.colors.secondary }} />
+                      </Pressable>
+                    </Tooltip>
                   );
                 })}
                 <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginTop: 8 }}>
@@ -657,6 +672,13 @@ export default function Dashboard({ navigation }: any) {
               Show calendar
             </Button>
           ) : null}
+          <IconButton
+            icon="refresh"
+            size={18}
+            iconColor={theme.colors.textDarker}
+            style={{ margin: 0, marginLeft: 4 }}
+            onPress={() => dispatch(loadFeed({ role, from: moment().startOf('day').toISOString(), to: moment().add(7, 'days').endOf('day').toISOString() }))}
+          />
         </View>
 
         {/* All tasks wrapped in one outline — always bordered (empty or populated). */}

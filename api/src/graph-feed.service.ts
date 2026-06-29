@@ -506,7 +506,11 @@ export class GraphFeedService {
         const t = it.startAt ?? it.dueAt;
         if (!t) return false;
         const ts = new Date(t).getTime();
-        if (opts.from && ts < opts.from.getTime()) return false;
+        // Overdue, still-open Planner tasks stay regardless of the `from` lower bound — they're
+        // pending work the caller still needs to see (the dashboard My Tasks list relies on this,
+        // otherwise a past-due task wrongly reads as "clear slate").
+        const overduePlannerTask = it.source === 'planner-task' && it.dueAt != null && ts < Date.now();
+        if (opts.from && ts < opts.from.getTime() && !overduePlannerTask) return false;
         if (opts.to && ts > opts.to.getTime()) return false;
         return true;
       })
