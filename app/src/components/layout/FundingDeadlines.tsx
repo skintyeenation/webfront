@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, TouchableOpacity, Linking } from 'react-native';
+import { View, TouchableOpacity, Linking, useWindowDimensions } from 'react-native';
 import { Card, Chip, Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import moment from 'moment';
-import { allDeadlines } from '@skintyee/models';
+import { allDeadlines, FUNDING_PROGRAMS } from '@skintyee/models';
 import { MonthCalendar } from './MonthCalendar';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { loadDirectory } from 'skintyee/store/modules/directory';
@@ -30,6 +30,74 @@ const REPORT_COLOR = '#EC6A37'; // DCI — report
 // The app is read-only for funding — applying / reporting happens on the website,
 // which has the full programs + apply portal (same @skintyee/models data behind it).
 const FUNDING_WEB_URL = 'https://skintyee.ca/funding';
+
+type DeadlineRowX = ReturnType<typeof allDeadlines>[number] & { date?: moment.Moment | null };
+type FundingProgramX = (typeof FUNDING_PROGRAMS)[number];
+
+// Relative-due status — the per-entry "status" chip (urgency), mirroring how the website
+// surfaces deadline state.
+function dueStatus(date?: moment.Moment | null): { label: string; color: string } {
+  if (!date) return { label: 'Ongoing', color: '#9AA0A6' };
+  const days = date.clone().startOf('day').diff(moment().startOf('day'), 'days');
+  if (days < 0) return { label: 'Past', color: '#9AA0A6' };
+  if (days === 0) return { label: 'Due today', color: REPORT_COLOR };
+  if (days === 1) return { label: 'Due tomorrow', color: REPORT_COLOR };
+  if (days <= 30) return { label: `Due in ${days} days`, color: REPORT_COLOR };
+  return { label: `Due in ${days} days`, color: APPLY_COLOR };
+}
+
+// One funding deadline in the day/ongoing list — like a website entry: program + name, a
+// kind (PAW/DCI) chip + a status chip, and (tap to expand) the full details + an apply link
+// to the website (the app is read-only).
+function DeadlineEntry({ r, program }: { r: DeadlineRowX; program?: FundingProgramX }) {
+  const [open, setOpen] = useState(false);
+  const isApply = r.kind.startsWith('Application');
+  const color = isApply ? APPLY_COLOR : REPORT_COLOR;
+  const status = dueStatus(r.date);
+  return (
+    <View style={{ borderBottomWidth: 1, borderBottomColor: theme.colors.secondary, paddingVertical: 8 }}>
+      <TouchableOpacity onPress={() => setOpen((o) => !o)} activeOpacity={0.7}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+          <View style={{ width: 8, height: 8, borderRadius: 4, marginTop: 5, marginRight: 8, backgroundColor: color }} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: theme.colors.text, fontSize: 13 }}>
+              {r.program} · <Text style={{ color: theme.colors.textDarker }}>{r.name}</Text>
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginTop: 4 }}>
+              <Chip compact style={{ backgroundColor: `${color}22`, marginRight: 4, height: 22 }} textStyle={{ fontSize: 9, color, marginVertical: 0 }}>
+                {isApply ? 'Apply (PAW)' : 'Report (DCI)'}
+              </Chip>
+              <Chip compact style={{ backgroundColor: `${status.color}22`, marginRight: 6, height: 22 }} textStyle={{ fontSize: 9, color: status.color, marginVertical: 0 }}>
+                {status.label}
+              </Chip>
+              <Text style={{ color: theme.colors.textDarker, fontSize: 10 }}>
+                {r.ref ? `#${r.ref} ` : ''}{r.due ? `· ${r.due}` : ''}
+              </Text>
+            </View>
+          </View>
+          <MaterialCommunityIcons name={open ? 'chevron-up' : 'chevron-down'} size={18} color={theme.colors.textDarker} style={{ marginTop: 2 }} />
+        </View>
+      </TouchableOpacity>
+
+      {open ? (
+        <View style={{ marginLeft: 16, marginTop: 6 }}>
+          {program?.summary ? (
+            <Text style={{ color: theme.colors.textDarker, fontSize: 12, marginBottom: 6 }}>{program.summary}</Text>
+          ) : null}
+          {program?.eligibility ? (
+            <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginBottom: 8 }}>
+              <Text style={{ color: theme.colors.text }}>Eligibility: </Text>{program.eligibility}
+            </Text>
+          ) : null}
+          <TouchableOpacity onPress={() => Linking.openURL(FUNDING_WEB_URL)} activeOpacity={0.7} style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <MaterialCommunityIcons name="open-in-new" size={14} color={theme.colors.primary} style={{ marginRight: 6 }} />
+            <Text style={{ color: theme.colors.primary, fontSize: 12 }}>{isApply ? 'Apply' : 'Report'} on skintyee.ca</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+    </View>
+  );
+}
 
 // Governance "Funding deadlines" calendar — PAW (apply) + DCI (report) due dates
 // for the band's ISC funding, sourced from @skintyee/models. Gated to council /
@@ -62,22 +130,31 @@ export function FundingDeadlines() {
 
   const selectedRows = dated.filter((r) => r.date!.format('YYYY-MM-DD') === selected);
 
-  const row = (r: (typeof rows)[number], i: number) => {
-    const isApply = r.kind.startsWith('Application');
-    return (
-      <View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 6 }}>
-        <View style={{ width: 8, height: 8, borderRadius: 4, marginTop: 5, marginRight: 8, backgroundColor: isApply ? APPLY_COLOR : REPORT_COLOR }} />
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: theme.colors.text, fontSize: 13 }}>
-            {r.program} · <Text style={{ color: theme.colors.textDarker }}>{r.name}</Text>
-          </Text>
-          <Text style={{ color: isApply ? APPLY_COLOR : REPORT_COLOR, fontSize: 11 }}>
-            {isApply ? 'Apply (PAW)' : 'Report (DCI)'}{r.ref ? ` · ${r.ref}` : ''}{r.due ? ` · due ${r.due}` : ''}
-          </Text>
+  const { width } = useWindowDimensions();
+  const split = width >= 768; // calendar left · list right on tablet/desktop, stacked on phone
+
+  // Full program (summary / eligibility) for an entry, keyed like allDeadlines (acronym ?? name).
+  const programByKey = useMemo(() => new Map(FUNDING_PROGRAMS.map((p) => [p.acronym ?? p.name, p])), []);
+  const progFor = (r: DeadlineRowX) => programByKey.get(r.program);
+
+  const dayList = (
+    <View>
+      <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginBottom: 4 }}>
+        {moment(selected).format('dddd, MMMM D').toUpperCase()}
+      </Text>
+      {selectedRows.length ? (
+        selectedRows.map((r, i) => <DeadlineEntry key={`s${i}`} r={r} program={progFor(r)} />)
+      ) : (
+        <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>No funding deadlines on this day.</Text>
+      )}
+      {undated.length ? (
+        <View style={{ marginTop: 14, borderTopWidth: 1, borderTopColor: theme.colors.secondary, paddingTop: 10 }}>
+          <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginBottom: 4 }}>ONGOING / NO FIXED DATE</Text>
+          {undated.map((r, i) => <DeadlineEntry key={`u${i}`} r={r} program={progFor(r)} />)}
         </View>
-      </View>
-    );
-  };
+      ) : null}
+    </View>
+  );
 
   return (
     <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 16, borderLeftWidth: 3, borderLeftColor: theme.colors.primary }}>
@@ -102,34 +179,28 @@ export function FundingDeadlines() {
               <Chip compact icon="circle" style={{ backgroundColor: 'transparent' }} textStyle={{ fontSize: 10, color: REPORT_COLOR }}>Report</Chip>
             </View>
 
-            <MonthCalendar marks={marks} selected={selected} onSelect={setSelected} initialMonth={selected} />
-
-            <View style={{ marginTop: 12 }}>
-              <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginBottom: 4 }}>
-                {moment(selected).format('dddd, MMMM D').toUpperCase()}
-              </Text>
-              {selectedRows.length ? selectedRows.map(row) : (
-                <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>No funding deadlines on this day.</Text>
-              )}
-            </View>
-
-            {undated.length ? (
-              <View style={{ marginTop: 14, borderTopWidth: 1, borderTopColor: theme.colors.secondary, paddingTop: 10 }}>
-                <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginBottom: 4 }}>
-                  ONGOING / NO FIXED DATE
-                </Text>
-                {undated.map(row)}
+            {split ? (
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                <View style={{ flex: 1, marginRight: 16 }}>
+                  <MonthCalendar marks={marks} selected={selected} onSelect={setSelected} initialMonth={selected} />
+                </View>
+                <View style={{ flex: 2 }}>{dayList}</View>
               </View>
-            ) : null}
+            ) : (
+              <>
+                <MonthCalendar marks={marks} selected={selected} onSelect={setSelected} initialMonth={selected} />
+                <View style={{ marginTop: 12 }}>{dayList}</View>
+              </>
+            )}
 
-            {/* App is read-only — apply / report on the website. */}
+            {/* App is read-only — browse all programs / apply on the website. */}
             <TouchableOpacity
               onPress={() => Linking.openURL(FUNDING_WEB_URL)}
               activeOpacity={0.7}
               style={{ flexDirection: 'row', alignItems: 'center', marginTop: 14, borderTopWidth: 1, borderTopColor: theme.colors.secondary, paddingTop: 12 }}
             >
               <MaterialCommunityIcons name="open-in-new" size={16} color={theme.colors.primary} style={{ marginRight: 6 }} />
-              <Text style={{ color: theme.colors.primary, fontSize: 13 }}>Apply &amp; report on skintyee.ca</Text>
+              <Text style={{ color: theme.colors.primary, fontSize: 13 }}>All funding programs on skintyee.ca</Text>
             </TouchableOpacity>
           </>
         ) : null}

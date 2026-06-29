@@ -76,8 +76,8 @@ export function MonthCalendar({ marks, selected, onSelect, initialMonth }: Month
               >
                 <Text style={{ color: isSelected ? '#000' : count > 0 ? theme.colors.text : theme.colors.textDarker, fontSize: 13 }}>{m.date()}</Text>
               </View>
-              <View style={{ height: 5, marginTop: 2 }}>
-                {count > 0 && !isSelected ? <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: theme.colors.accent }} /> : null}
+              <View style={{ height: 6, marginTop: 2 }}>
+                {count > 0 ? <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: isSelected ? theme.colors.text : theme.colors.accent }} /> : null}
               </View>
             </TouchableOpacity>
           );
