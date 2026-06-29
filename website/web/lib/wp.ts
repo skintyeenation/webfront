@@ -61,6 +61,26 @@ export async function getPostsByCategory(categorySlug: string, limit = 12): Prom
   );
 }
 
+// A post's primary category + related posts (same category, excluding itself) — one place so
+// the post page can show breadcrumbs/back-link and a "related" scroller from a single lookup.
+export async function getPostExtras(
+  slug: string,
+  relatedLimit = 3,
+): Promise<{ category: WPCategory | null; related: WPEntry[] }> {
+  const [self] = await wpFetch<{ id: number; categories: number[] }[]>(
+    `/posts?slug=${encodeURIComponent(slug)}&_fields=id,categories`,
+    [],
+  );
+  const catIds = self?.categories ?? [];
+  if (!catIds.length) return { category: null, related: [] };
+  const [category] = await wpFetch<WPCategory[]>(`/categories?include=${catIds[0]}&_fields=id,slug,name`, []);
+  const related = await wpFetch<WPEntry[]>(
+    `/posts?categories=${catIds.join(',')}&exclude=${self.id}&per_page=${relatedLimit}&_fields=id,slug,date,title,excerpt`,
+    [],
+  );
+  return { category: category ?? null, related };
+}
+
 const NAMED_ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
 
 // Strip tags AND decode HTML entities — WordPress returns texturized content
