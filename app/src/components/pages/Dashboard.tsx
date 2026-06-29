@@ -858,16 +858,19 @@ function MyTimekeepingCard({
 // the days-remaining chip.
 function CutoffFooter({ cutoffDate, daysRemaining, inline }: { cutoffDate: moment.Moment; daysRemaining: number; inline?: boolean }) {
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', ...(inline ? {} : { marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: theme.colors.secondary }) }}>
-      <MaterialCommunityIcons name="calendar-clock" size={16} color={theme.colors.textDarker} style={{ marginRight: 6 }} />
-      <Text style={{ color: theme.colors.textDarker, fontSize: 12, ...(inline ? { marginRight: 8 } : { flex: 1 }) }}>
-        Cut-off {cutoffDate.format('ddd, MMM D')}
-      </Text>
+    <View style={{ alignItems: 'flex-start', ...(inline ? {} : { marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: theme.colors.secondary }) }}>
       <Chip compact
-        style={{ backgroundColor: daysRemaining <= 2 ? theme.colors.accent : theme.colors.secondary }}
+        style={{ alignSelf: 'flex-start', backgroundColor: daysRemaining <= 2 ? theme.colors.accent : theme.colors.secondary }}
         textStyle={{ color: daysRemaining <= 2 ? '#000' : theme.colors.text, fontSize: 10 }}>
         {daysRemaining === 0 ? 'Due today' : daysRemaining === 1 ? '1 day left' : `${daysRemaining} days left`}
       </Chip>
+      {/* Cut-off date sits below the days-left badge. */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+        <MaterialCommunityIcons name="calendar-clock" size={14} color={theme.colors.textDarker} style={{ marginRight: 4 }} />
+        <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>
+          Cut-off {cutoffDate.format('ddd, MMM D')}
+        </Text>
+      </View>
     </View>
   );
 }
