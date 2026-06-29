@@ -119,7 +119,8 @@ Container-App deploys were moved onto this self-hosted agent:
 |---|---|---|
 | `azure-pipelines/Deployments/deploy-web.yml` | **`skintyee-pool`** | web-prod (headless Next.js site). `az acr build` runs the Docker build in ACR, so the agent only needs the Azure CLI. |
 | `azure-pipelines/Deployments/deploy-api.yml` | **`skintyee-pool`** | api-prod (NestJS). Same `az acr build` pattern. |
-| `azure-pipelines/Deployments/deploy-app-web.yml` | `vmImage: ubuntu-latest` (unchanged) | **Left on hosted** — it builds the Expo app with Node/pnpm, which this agent image doesn't install. |
+| `azure-pipelines/Deployments/deploy-app-web.yml` | `vmImage: ubuntu-latest` (unchanged) | **Left on hosted** — it builds the Expo app with Node/pnpm, which this agent image doesn't install. (Out of minutes → deploy `app.skintyee.ca` manually: `cd app && npx expo export:web` then `swa deploy app/web-build`.) |
+| `azure-pipelines/Builds/build-desktop.yml` | `vmImage` win/linux/macOS (unchanged) | **Blocked on hosted minutes.** To build on this agent it needs the Electron toolchain (Node + `libfuse2`/`fakeroot` for Linux, `wine64`+`mono` for the Windows `.exe`); macOS `.dmg` can only build on a Mac. Plan in [`app/docs/desktop-electron.md`](../app/docs/desktop-electron.md#building-without-microsoft-hosted-minutes-self-hosted-agent). |
 | Other `deploy-*.yml` (guacamole, vaultwarden, lookup, …) | `vmImage: ubuntu-latest` (unchanged) | Switch individually if/when they hit the minute limit. |
 
 So a `git push` to `master` touching `website/web/**` or `packages/**`

@@ -83,6 +83,53 @@ AZURE_TENANT_ID=… AZURE_CLIENT_ID=… AZURE_CLIENT_SECRET=… \
 bash scripts/publish-desktop-to-sharepoint.sh
 ```
 
+## Building without Microsoft-hosted minutes (self-hosted agent)
+
+**Current blocker (2026-06).** The org's **Microsoft-hosted parallelism is
+exhausted** — triggering `build-desktop` (pipeline id 6) fails *immediately* on
+every job:
+
+> Your organization has no free minutes remaining. Add a hosted pipeline to run
+> more builds or releases.
+
+This is the same wall that moved the web/api deploys onto the **self-hosted
+agent** (`azure-agents/`, pool `skintyee-pool` — see `azure-agents/README.md`).
+So desktop has to build there too, but desktop is OS-bound:
+
+| Target | Buildable on the self-hosted **Linux** agent? | How |
+|---|---|---|
+| **Linux** (`.AppImage`, `.deb`) | ✅ yes | native electron-builder |
+| **Windows** (NSIS `.exe`) | ✅ yes | electron-builder via **Wine** (`wine64` + `mono`) |
+| **macOS** (`.dmg`) | ❌ **no** | Apple toolchain → must build on a **Mac** |
+
+> "Hosted builds for all I can do" therefore = **Linux + Windows on the
+> self-hosted agent**, and **macOS built locally on a Mac** (e.g. this dev
+> machine — it has Docker but **no Wine**, so it covers mac natively and can do
+> Linux via Docker; Windows from mac would also need Wine).
+
+### Plan to enable it
+
+1. **Extend the agent image** (`azure-agents/Dockerfile`, currently
+   `ubuntu:24.04` + Azure CLI + docker-cli, **no Node**) with the desktop
+   toolchain:
+   - Node 22 + `corepack`/`pnpm` (the Expo web export step needs them),
+   - electron-builder system deps: **`libfuse2`** (AppImage), `fakeroot` +
+     `dpkg` (`.deb`), and **`wine64` + `mono`** (Windows NSIS),
+   - keep the Azure CLI (the publish stage's `AzureCLI@2` + WIF token mint runs
+     on the agent).
+2. **Repoint the jobs** in `build-desktop.yml`: Linux + Windows jobs →
+   `pool: name: skintyee-pool` (drop `vmImage`). Leave the macOS job **opt-in
+   and off** (`buildMac: false`) until there's a macOS pool; build `.dmg`
+   locally with `pnpm --filter @skintyee/app desktop:build:mac` and publish with
+   the script + client creds.
+3. **Publish stage** keeps the `sharepoint-docs-sc` WIF service connection +
+   `sharepoint-docs` variable group — unchanged; it just runs on `skintyee-pool`.
+
+Trade-offs: Wine-built Windows installers are **unsigned** (SmartScreen) and the
+loopback-port sign-in caveat below still applies. macOS stays a manual,
+on-a-Mac step until a macOS agent exists (or hosted minutes are topped up, which
+would let the original 3-OS matrix run as-is).
+
 ## Known caveats / follow-ups
 
 - **Microsoft sign-in (MSAL/Entra) — wired.** Interactive Entra sign-in builds
