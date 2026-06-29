@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, TouchableOpacity, View } from 'react-native';
 import { Avatar, Button, Card, Chip, Divider, HelperText, Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { PageContainer, PageContent, NoContent, useConfirm } from 'skintyee/components/layout';
+import { PageContainer, PageContent, NoContent, useConfirm, useToast } from 'skintyee/components/layout';
 import { useAppDispatch, useAppSelector } from 'skintyee/store';
 import { loadDirectory, loadMember, removeMember } from 'skintyee/store/modules/directory';
 import { MailboxAccess } from 'skintyee/services/api/ApiService';
@@ -93,6 +93,16 @@ export default function MemberDetail({ route, navigation }: any) {
   const canSeeContact = role !== 'public';
   const isAdmin = role === 'admin';
   const { confirm, ConfirmHost } = useConfirm();
+  const { showToast, toastNode } = useToast();
+
+  // Flash a toast when we arrive here after a save (EditMember passes `flash`).
+  const flash = route?.params?.flash;
+  useEffect(() => {
+    if (flash) {
+      showToast(flash);
+      navigation.setParams({ flash: undefined }); // clear so it doesn't re-fire on re-render
+    }
+  }, [flash]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // For shared-inbox detail pages (admin only): real-time EXO access list.
   // Populated from /v1/admin/shared-mailboxes/:upn/access. Reloads when
@@ -184,9 +194,18 @@ export default function MemberDetail({ route, navigation }: any) {
   const m365MailsAlreadyShown = new Set(
     bandGroupSlugs.map((s) => M365_SLUG_TO_MAIL[s]).filter(Boolean)
   );
+  // Every M365 group is also a shared mailbox, but being a member/owner of an M365 group is a
+  // *group membership* — not delegate shared-mailbox access (which is the only thing EditMember
+  // manages here). So exclude ALL M365-group mails from this card, not just the ones that happen
+  // to also be in bandGroups; otherwise a stale council@/management@ membership wrongly shows as
+  // "Shared mailbox access" while EditMember shows none.
+  const m365GroupMails = new Set(
+    Object.values(M365_SLUG_TO_MAIL).map((mail) => mail.toLowerCase())
+  );
   const memberships: ParsedMembership[] = (m.mailboxMemberships ?? [])
     .map(parseMembership)
-    .filter((p: ParsedMembership) => !m365MailsAlreadyShown.has(p.mail.toLowerCase()));
+    .filter((p: ParsedMembership) => !m365MailsAlreadyShown.has(p.mail.toLowerCase()))
+    .filter((p: ParsedMembership) => !m365GroupMails.has(p.mail.toLowerCase()));
   const ownedGroups   = memberships.filter((x) => x.rel === 'owner');
   const memberGroups  = memberships.filter((x) => x.rel === 'member');
   const manualEntries = memberships.filter((x) => x.rel === 'manual');
@@ -613,6 +632,7 @@ export default function MemberDetail({ route, navigation }: any) {
           </Button>
         ) : null}
         <ConfirmHost />
+        {toastNode}
       </PageContent>
     </PageContainer>
   );

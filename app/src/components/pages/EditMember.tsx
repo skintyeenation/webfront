@@ -325,7 +325,8 @@ export default function EditMember({ route, navigation }: any) {
       }
       setSaving(false);
     }
-    navigation.goBack();
+    // Go back to the member's detail page and flash a "saved" toast there.
+    navigation.navigate({ name: 'memberDetail', params: { id: member._id, flash: 'Member saved' }, merge: true });
   };
 
   const renderSection = (title: string, items: SecurityGroup[]) => (
