@@ -205,6 +205,20 @@ Consistent with the app theme and the Vaultwarden skin already shipped.
   library / onboarding flow is wired (ties to `docs/features/documents-and-onboarding.md`).
 - **Entra app registration(s)** — one or two (frontend NextAuth vs wp-admin OIDC);
   redirect URIs per the SSO research.
+- **TODO: automated backups** — today backups are partly manual.
+  - _Covered automatically:_ source code (Azure DevOps remote), managed DB
+    `skintyee-prod-mysql` (automated backups, 35-day point-in-time restore).
+  - _Manual / not yet automated:_ the offline full-repo git bundle
+    (`../skintyee-webfront-<stamp>.bundle`, re-created by hand); funding submissions +
+    referral uploads + documents in Blob `skintyeeproddocs` (LRS only — no geo-redundancy,
+    no lifecycle/retention policy); no scheduled archive of wp-content / DB logical dumps to
+    a separate location.
+  - _To automate:_ (1) a scheduled job (cron/ADO pipeline/Azure Function) that runs
+    `git bundle --all` + a `wp db export` / `pg_dump` and uploads to Blob with a retention
+    lifecycle; (2) decide on Blob geo-redundancy (GRS) or cross-region replication for
+    submissions/docs; (3) optionally enable DB geo-redundant backups (set at server
+    creation — would need a restore-to-new-server). Ties to the NGO "easy backups +
+    auditability over cost" priority (`docs/hosting-costs.md`).
 
 ---
 
