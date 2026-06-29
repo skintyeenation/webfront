@@ -2,10 +2,9 @@
 import { useEffect, useState } from 'react';
 import type { FundingProgram } from '@skintyee/models';
 import { programSlug } from '@skintyee/models';
-import { formUrlFor, viewUrlFor } from '@/lib/funding-forms';
+import { formUrlFor } from '@/lib/funding-forms';
 import { PROGRAM_GUIDE } from '@/lib/constants';
 import { ProgramTitle, ProgramDetail } from './ProgramDetail';
-import { PdfViewerModal } from './PdfViewerModal';
 
 // `area` makes each option self-routing (the funding hub spans every area); `group` is the
 // area display name used to group the dropdown when options come from more than one area;
@@ -34,7 +33,6 @@ export function ProgramSubmissionForm({
   const [status, setStatus] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [submittedId, setSubmittedId] = useState('');
-  const [viewer, setViewer] = useState<{ url: string; downloadUrl: string; title: string } | null>(null);
   // Pre-generated submission GUID (shown as a preview + sent so the stored id matches).
   // Generated on the client to avoid an SSR/hydration mismatch.
   const [sid, setSid] = useState('');
@@ -223,8 +221,8 @@ export function ProgramSubmissionForm({
         selectedOpt &&
         (() => {
           const templates = (selectedOpt.program.paw ?? [])
-            .map((x) => ({ name: x.name, no: x.no, url: formUrlFor(x.no) }))
-            .filter((t) => !!t.url) as { name: string; no?: string; url: string }[];
+            .map((x) => ({ name: x.name, url: formUrlFor(x.no) }))
+            .filter((t) => !!t.url) as { name: string; url: string }[];
           return (
             <div className="rounded-lg border border-primary/30 bg-[#f2f7f8] p-4">
               <p className="font-semibold text-ink">Need the blank form? View or download the PAW template</p>
@@ -234,15 +232,6 @@ export function ProgramSubmissionForm({
                     {templates.map((t, i) => (
                       <li key={i} className="flex flex-wrap items-center gap-3 text-sm">
                         <span className="text-ink/80">{t.name}</span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setViewer({ url: viewUrlFor(t.no) || t.url, downloadUrl: t.url, title: t.name })
-                          }
-                          className="font-semibold text-primary hover:underline"
-                        >
-                          👁 View
-                        </button>
                         <a
                           href={t.url}
                           target="_blank"
@@ -413,15 +402,6 @@ export function ProgramSubmissionForm({
           </div>
         </div>
       </div>
-    )}
-
-    {viewer && (
-      <PdfViewerModal
-        url={viewer.url}
-        downloadUrl={viewer.downloadUrl}
-        title={viewer.title}
-        onClose={() => setViewer(null)}
-      />
     )}
     </>
   );
