@@ -30,16 +30,30 @@ const imageFor = (slug: string) => IMAGES[slug] ?? pic(slug);
 const fmt = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' });
 const catColor = (c: string) => NOTIFICATION_COLORS[c] ?? '#5C6BC0';
 
-export async function NewsSection() {
-  const posts = await getPostsByCategory('news', 13);
+export async function NewsSection({
+  category = 'news',
+  heading = 'News',
+  subtitle = 'Latest from the Nation.',
+  categoryLabel = 'News',
+  imageFor: imageForProp = imageFor,
+  moreHref = '/news',
+}: {
+  category?: string;
+  heading?: string;
+  subtitle?: string;
+  categoryLabel?: string;
+  imageFor?: (slug: string) => string;
+  moreHref?: string;
+} = {}) {
+  const posts = await getPostsByCategory(category, 13);
   if (!posts.length) return null;
 
   const articles: NewsArticle[] = posts.map((p) => ({
     title: stripHtml(p.title.rendered),
     excerpt: stripHtml(p.excerpt.rendered),
     date: p.date,
-    category: 'News',
-    image: imageFor(p.slug),
+    category: categoryLabel,
+    image: imageForProp(p.slug),
     href: `/posts/${p.slug}`,
   }));
   const primary = articles.slice(0, 10);
@@ -47,8 +61,8 @@ export async function NewsSection() {
 
   return (
     <section>
-      <h2 className="text-xl font-bold">News</h2>
-      <p className="mt-1 text-ink/70">Latest from the Nation.</p>
+      <h2 className="text-xl font-bold">{heading}</h2>
+      <p className="mt-1 text-ink/70">{subtitle}</p>
 
       {/* Primary — full-width mini-hero slider rotating 10 articles */}
       <div className="mt-5">
@@ -79,9 +93,11 @@ export async function NewsSection() {
         </div>
       )}
 
-      <Link href="/news" className="mt-5 inline-block font-semibold text-primary hover:underline">
-        More news →
-      </Link>
+      {moreHref && (
+        <Link href={moreHref} className="mt-5 inline-block font-semibold text-primary hover:underline">
+          More news →
+        </Link>
+      )}
     </section>
   );
 }

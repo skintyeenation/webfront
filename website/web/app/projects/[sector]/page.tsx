@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { MAJOR_PROJECT_SECTORS } from '@/lib/constants';
-import { getPostsByCategory } from '@/lib/wp';
-import { PostTeaser } from '@/components/cards';
+import { NewsSection } from '@/components/NewsSection';
 import { projectImage } from '@/lib/projectImages';
 import { ProjectReferralCta } from '@/components/ProjectReferralCta';
 
@@ -17,23 +16,28 @@ export async function generateMetadata({ params }: { params: { sector: string } 
   return { title: s ? s.name : 'Projects' };
 }
 
-// Major-project sector page — all projects filed under this sector.
+// Major-project sector page — projects filed under this sector, presented as a
+// homepage-style news slider filtered to this sector.
 export default async function SectorPage({ params }: { params: { sector: string } }) {
   const sector = MAJOR_PROJECT_SECTORS.find((s) => s.slug === params.sector);
   if (!sector) notFound();
 
-  const posts = await getPostsByCategory(params.sector, 100);
   return (
     <>
       <h1 className="text-2xl font-bold">{sector.name}</h1>
-      <p className="mt-1 text-ink/70">Projects in {sector.name}.</p>
-      <div className="mt-6 grid gap-4 md:grid-cols-2">
-        {posts.length ? (
-          posts.map((p) => <PostTeaser key={p.id} p={p} image={projectImage(p.slug)} />)
-        ) : (
-          <p className="text-ink/60">Projects will be posted here.</p>
-        )}
+      <p className="mt-1 text-ink/70">Projects and updates in {sector.name}.</p>
+
+      <div className="mt-6">
+        <NewsSection
+          category={params.sector}
+          heading={`${sector.name} projects`}
+          subtitle={`Latest in ${sector.name}.`}
+          categoryLabel={sector.name}
+          imageFor={projectImage}
+          moreHref=""
+        />
       </div>
+
       <ProjectReferralCta />
     </>
   );

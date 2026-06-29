@@ -42,6 +42,10 @@ COPY --from=builder /repo/website/web/.next/standalone ./
 COPY --from=builder /repo/website/web/.next/static ./website/web/.next/static
 COPY --from=builder /repo/website/web/public ./website/web/public
 
+# The ISR/prerender cache must be writable by the runtime user — otherwise every
+# `revalidate` page (e.g. /posts/[slug]) 500s with EACCES on .next/cache mkdir.
+RUN mkdir -p website/web/.next/cache && chown -R nextjs:nodejs website/web/.next
+
 USER nextjs
 EXPOSE 3000
 CMD ["node", "website/web/server.js"]

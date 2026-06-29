@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import typography from '@tailwindcss/typography';
 
 // Skin Tyee palette — logo colours (cyan, orange) + green (added), per docs/plan.md.
 const config: Config = {
@@ -17,7 +18,7 @@ const config: Config = {
       },
     },
   },
-  plugins: [],
+  plugins: [typography],
 };
 
 export default config;
