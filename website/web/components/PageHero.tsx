@@ -47,7 +47,7 @@ export function PageHero({ title, subtitle }: { title: string; subtitle?: ReactN
   return (
     <section className={`page-hero${dismissed ? ' page-hero--dismissed' : ''}`} aria-hidden={dismissed}>
       <div className="page-hero-inner">
-        <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
+        <div className="flex flex-col items-center gap-8 text-center">
           <div className="max-w-2xl text-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -69,7 +69,7 @@ export function PageHero({ title, subtitle }: { title: string; subtitle?: ReactN
               Let&apos;s go
             </button>
           </div>
-          <address className="shrink-0 not-italic text-sm leading-relaxed text-white/90 drop-shadow md:text-right">
+          <address className="not-italic text-center text-sm leading-relaxed text-white/90 drop-shadow">
             <span className="block text-xs font-bold uppercase tracking-wide text-white/70">Contact</span>
             <span className="mt-2 block font-semibold text-white">Skin Tyee First Nation</span>
             <span className="block">P.O. Box 131, Southbank, BC V0J 2P0</span>
