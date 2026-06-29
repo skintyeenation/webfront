@@ -57,7 +57,7 @@ MARKERS = [
 ]
 
 # minlat, maxlat, minlon, maxlon
-DESKTOP = dict(z=10, bbox=(53.00, 54.95, -128.85, -123.70), overlays=[ROADS, PLACES], labels=True,
+DESKTOP = dict(z=10, bbox=(53.00, 54.95, -128.335, -123.185), overlays=[ROADS, PLACES], labels=True,  # lon shifted +0.515 east (~10% of the span) → map content sits 10% left in the hero
                web_width=3200, hires=P("..", "..", "..", "docs", "land", "territory-snapshot-hires.jpg"),
                web=P("..", "public", "territory-snapshot.jpg"))
 MOBILE = dict(z=10, bbox=(52.85, 54.85, -126.85, -124.40), overlays=[], labels=False,
