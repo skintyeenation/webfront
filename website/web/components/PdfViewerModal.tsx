@@ -1,12 +1,12 @@
 'use client';
 import { useState } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
-import 'react-pdf/dist/Page/AnnotationLayer.css';
-import 'react-pdf/dist/Page/TextLayer.css';
+import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
+import 'react-pdf/dist/esm/Page/TextLayer.css';
 
-// PDF.js worker (matched to the installed pdfjs-dist). XFA rendering is enabled so the ISC
+// PDF.js worker (matched to the installed pdfjs-dist v3). XFA rendering is enabled so the ISC
 // dynamic (LiveCycle) forms render their actual fields instead of the "Please wait…" stub.
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 const DOC_OPTIONS = { enableXfa: true };
 
 export function PdfViewerModal({ url, title, onClose }: { url: string; title: string; onClose: () => void }) {
