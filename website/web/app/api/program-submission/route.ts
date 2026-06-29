@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
   const programName = String(form.get('programName') || '').trim();
   const acronym = String(form.get('acronym') || '').trim() || undefined;
   const kind = String(form.get('kind') || 'paw').trim() === 'dci' ? 'dci' : 'paw';
+  const project = String(form.get('project') || '').trim() || undefined;
   const notes = String(form.get('notes') || '').trim();
   const files = form.getAll('files').filter((f): f is File => f instanceof File && f.size > 0);
 
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
     })),
   );
 
-  const result = await storeSubmission({ area, slug, kind, submitter, files: fileInputs, notes });
+  const result = await storeSubmission({ area, slug, kind, project, submitter, files: fileInputs, notes });
 
   return NextResponse.json({
     ok: true,

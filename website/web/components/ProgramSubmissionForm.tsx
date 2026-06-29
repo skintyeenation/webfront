@@ -25,6 +25,7 @@ export function ProgramSubmissionForm({
 }) {
   const [selected, setSelected] = useState(0);
   const [kind, setKind] = useState<'paw' | 'dci'>('paw');
+  const [project, setProject] = useState('');
   const [notes, setNotes] = useState('');
   const [files, setFiles] = useState<FileList | null>(null);
   const [status, setStatus] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
@@ -52,6 +53,11 @@ export function ProgramSubmissionForm({
   // Submit button → validate, then open the review modal (no POST yet).
   function review(e: React.FormEvent) {
     e.preventDefault();
+    if (kind === 'paw' && !project.trim()) {
+      setStatus('error');
+      setMessage('Enter the application title (the PAW’s “Application title”).');
+      return;
+    }
     if (!files || !files.length) {
       setStatus('error');
       setMessage('Attach at least one document.');
@@ -73,6 +79,7 @@ export function ProgramSubmissionForm({
     fd.set('programName', opt.program.name);
     if (opt.program.acronym) fd.set('acronym', opt.program.acronym);
     fd.set('kind', kind);
+    if (project.trim()) fd.set('project', project.trim());
     fd.set('notes', notes);
     Array.from(files).forEach((f) => fd.append('files', f));
     try {
@@ -82,6 +89,7 @@ export function ProgramSubmissionForm({
       setShowReview(false);
       setStatus('done');
       setMessage('Received. Skin Tyee staff will review your submission.');
+      setProject('');
       setNotes('');
       setFiles(null);
     } catch (err) {
@@ -163,6 +171,24 @@ export function ProgramSubmissionForm({
         </span>
       </div>
 
+      <label className="block">
+        <span className="font-semibold text-ink/70">
+          {kind === 'paw' ? 'Application title' : 'Report title / period'}
+          {kind === 'paw' && <span className="text-red-600"> *</span>}
+        </span>
+        <input
+          type="text"
+          value={project}
+          onChange={(e) => setProject(e.target.value)}
+          className="mt-1 w-full rounded-lg border border-[var(--line)] px-3 py-2"
+          placeholder={
+            kind === 'paw'
+              ? 'The “Application title” from your PAW (e.g. the project name)'
+              : 'e.g. 2024-25 year-end report'
+          }
+        />
+      </label>
+
       {/* Details of the selected program, inline (same content as the accordion cards). */}
       {options[selected] && (
         <div className="rounded-lg border border-[var(--line)] bg-[#fbfcfc] p-4">
@@ -234,6 +260,14 @@ export function ProgramSubmissionForm({
               <dt className="w-28 shrink-0 font-semibold text-ink/55">Type</dt>
               <dd className="text-ink">{kind === 'paw' ? 'Application (PAW)' : 'Report (DCI)'}</dd>
             </div>
+            {project.trim() && (
+              <div className="flex gap-2">
+                <dt className="w-28 shrink-0 font-semibold text-ink/55">
+                  {kind === 'paw' ? 'Title' : 'Report'}
+                </dt>
+                <dd className="text-ink">{project.trim()}</dd>
+              </div>
+            )}
             <div className="flex gap-2">
               <dt className="w-28 shrink-0 font-semibold text-ink/55">Documents</dt>
               <dd className="text-ink">

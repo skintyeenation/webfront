@@ -20,16 +20,24 @@ export async function storeSubmission(opts: {
   area: string;
   slug: string;
   kind: SubmissionKind;
+  project?: string;
   submitter: string;
   files: FileInput[];
   notes?: string;
 }): Promise<StoredSubmission> {
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-  // PAW (applications) and DCI (reports) are filed in separate subfolders of the program.
-  const rel = `${opts.area}/${opts.slug}/submissions/${opts.kind}/${stamp}_${safeName(opts.submitter)}`;
-  const notesBody = opts.notes
-    ? `From: ${opts.submitter}\nProgram: ${opts.area}/${opts.slug}\nKind: ${opts.kind.toUpperCase()}\n\n${opts.notes}\n`
-    : undefined;
+  // PAW (applications) and DCI (reports) are filed in separate subfolders of the program;
+  // the project name (when given) is folded into the entry folder so staff can identify it.
+  const projectSlug = opts.project
+    ? '_' + opts.project.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40)
+    : '';
+  const rel = `${opts.area}/${opts.slug}/submissions/${opts.kind}/${stamp}${projectSlug}_${safeName(opts.submitter)}`;
+  const notesBody =
+    opts.project || opts.notes
+      ? `From: ${opts.submitter}\nProgram: ${opts.area}/${opts.slug}\nKind: ${opts.kind.toUpperCase()}\n` +
+        (opts.project ? `Project: ${opts.project}\n` : '') +
+        (opts.notes ? `\n${opts.notes}\n` : '')
+      : undefined;
   const drivers: string[] = [];
 
   // 1) Local disk — always (POC store + status badges).
