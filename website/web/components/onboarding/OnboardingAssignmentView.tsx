@@ -1,4 +1,4 @@
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, Eye, Download, FileCheck2 } from 'lucide-react';
 import {
   ONBOARDING_APP_URL,
   STEP_COMPLETION_LABEL,
@@ -7,9 +7,11 @@ import {
   type OnboardingAssignment,
 } from '@/lib/onboarding';
 import { OnboardingStatusBadge, StepStatusBadge } from './OnboardingStatusBadge';
+import { StepUploader } from './StepUploader';
 
-// Worker view of one assignment — the flow's steps with their statuses, read-only. Completion
-// (uploads, signing) happens in the app, so each card hands off to app.skintyee.ca.
+// Worker view of one assignment — the flow's steps with their statuses. Attached documents can
+// be viewed/downloaded, and uploadable steps have an inline uploader (posts to the api/ as the
+// caller). Admin design / approvals still happen in the app.
 export function OnboardingAssignmentView({ assignment }: { assignment: OnboardingAssignment }) {
   const { done, total } = stepProgress(assignment);
   const steps = [...assignment.flow.steps].sort((a, b) => a.order - b.order);
@@ -34,6 +36,7 @@ export function OnboardingAssignmentView({ assignment }: { assignment: Onboardin
         {steps.map((step, i) => {
           const st = stateByStep.get(step.id);
           const status = st?.status ?? 'pending';
+          const canUpload = step.completion !== 'admin_marks' && status !== 'completed';
           return (
             <li key={step.id} className="rounded-xl border border-[var(--line)] p-4">
               <div className="flex items-start justify-between gap-3">
@@ -51,6 +54,46 @@ export function OnboardingAssignmentView({ assignment }: { assignment: Onboardin
                 </div>
                 <StepStatusBadge status={status} />
               </div>
+
+              {/* Attached documents — view inline (PDF/image) or download. */}
+              {step.documents && step.documents.length > 0 && (
+                <ul className="mt-3 space-y-1.5">
+                  {step.documents.map((doc) => (
+                    <li key={doc.documentId} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                      <span className="text-ink/70">{doc.title}</span>
+                      {doc.viewable && (
+                        <a
+                          href={`/api/onboarding/document/${doc.documentId}?download=0`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+                        >
+                          <Eye size={14} aria-hidden="true" /> View
+                        </a>
+                      )}
+                      <a
+                        href={`/api/onboarding/document/${doc.documentId}?download=1`}
+                        className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+                      >
+                        <Download size={14} aria-hidden="true" /> Download
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {/* The worker's own uploaded file, if any. */}
+              {st?.personFileName && (
+                <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-ink/70">
+                  <FileCheck2 size={14} className="text-success" aria-hidden="true" />
+                  Your file: <span className="font-medium text-ink">{st.personFileName}</span>
+                </p>
+              )}
+
+              {/* Uploadable steps — upload / replace your file. */}
+              {canUpload && (
+                <StepUploader assignmentId={assignment.id} stepId={step.id} hasUpload={!!st?.personFileName} />
+              )}
             </li>
           );
         })}
@@ -60,9 +103,9 @@ export function OnboardingAssignmentView({ assignment }: { assignment: Onboardin
         href={ONBOARDING_APP_URL}
         target="_blank"
         rel="noopener noreferrer"
-        className="mt-5 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90"
+        className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
       >
-        Complete in the app <ArrowUpRight size={16} aria-hidden="true" />
+        Open in the app <ArrowUpRight size={16} aria-hidden="true" />
       </a>
     </section>
   );

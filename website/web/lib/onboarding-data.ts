@@ -5,6 +5,7 @@ import {
   type OnboardingFlow,
   type OnboardingOverall,
   type OnboardingPerson,
+  type StepDoc,
 } from './onboarding';
 
 // Server-only onboarding data layer — reads the live api/ (the Skin Tyee band app api + db),
@@ -16,7 +17,22 @@ type AssignmentDto = Awaited<ReturnType<Api['onboarding']['listAssignments']>>[n
 type FlowDto = Awaited<ReturnType<Api['onboarding']['listFlows']>>[number];
 type PersonDto = Awaited<ReturnType<Api['onboarding']['listPeople']>>[number];
 
-function toFlow(d: FlowDto): OnboardingFlow {
+const viewable = (m?: string | null) => !!m && (/pdf/i.test(m) || /^image\//i.test(m));
+
+// Resolve a step's attached document refs into displayable docs. Falls back to skipping a doc
+// the caller can't read (the api gates docs by audience — members may 403 on admin-only forms).
+async function resolveDocs(api: Api, refs?: { documentId: string }[]): Promise<StepDoc[]> {
+  const out: StepDoc[] = [];
+  for (const ref of refs ?? []) {
+    const doc = await safe(api.documents.get(ref.documentId), null as Awaited<ReturnType<Api['documents']['get']>> | null);
+    if (doc) out.push({ documentId: doc.id, title: doc.title, mimeType: doc.mimeType ?? undefined, viewable: viewable(doc.mimeType) });
+  }
+  return out;
+}
+
+// Lite flow — steps + titles only (no doc resolution). For the admin list, where we only need
+// the title + step count.
+function toFlowLite(d: FlowDto): OnboardingFlow {
   return {
     id: d.id,
     title: d.title,
@@ -29,6 +45,22 @@ function toFlow(d: FlowDto): OnboardingFlow {
       completion: s.completion,
     })),
   };
+}
+
+// Full flow — resolves each step's attached documents. For the rendered assignment timeline.
+async function toFlowFull(api: Api, d: FlowDto): Promise<OnboardingFlow> {
+  const steps = [];
+  for (const s of d.steps ?? []) {
+    steps.push({
+      id: s.id,
+      order: s.order,
+      title: s.title,
+      instructions: s.instructions ?? undefined,
+      completion: s.completion,
+      documents: await resolveDocs(api, s.documents),
+    });
+  }
+  return { id: d.id, title: d.title, description: d.description ?? undefined, steps };
 }
 
 function toAssignment(d: AssignmentDto, flow: OnboardingFlow, person: OnboardingPerson): OnboardingAssignment {
@@ -44,6 +76,8 @@ function toAssignment(d: AssignmentDto, flow: OnboardingFlow, person: Onboarding
       status: s.status,
       notes: s.notes ?? undefined,
       completedAt: s.completedAt ?? undefined,
+      personFileName: s.personFileName ?? undefined,
+      personFileUrl: s.personFileUrl ?? undefined,
     })),
   };
 }
@@ -74,14 +108,14 @@ export async function onboardingForPage(email: string): Promise<{
   const admin = role === 'admin';
   const api = userApi(role, email);
 
-  // The caller's own assignments — resolve each flow (getFlow is open to signed-in members).
+  // The caller's own assignments — resolve each flow (with docs) once; getFlow is open to members.
   const myDtos = await safe(api.onboarding.myAssignments(), [] as AssignmentDto[]);
   const flowCache = new Map<string, OnboardingFlow>();
   async function flowFor(id: string): Promise<OnboardingFlow> {
     const hit = flowCache.get(id);
     if (hit) return hit;
     const dto = await safe(api.onboarding.getFlow(id), null as FlowDto | null);
-    const f: OnboardingFlow = dto ? toFlow(dto) : { id, title: 'Onboarding', steps: [] };
+    const f: OnboardingFlow = dto ? await toFlowFull(api, dto) : { id, title: 'Onboarding', steps: [] };
     flowCache.set(id, f);
     return f;
   }
@@ -89,7 +123,7 @@ export async function onboardingForPage(email: string): Promise<{
   const mine: OnboardingAssignment[] = [];
   for (const d of myDtos) mine.push(toAssignment(d, await flowFor(d.flowId), self));
 
-  // Admin cross-person list — join assignments with flow titles + person names.
+  // Admin cross-person list — join assignments with flow titles + person names (lite flows).
   let inProgress: OnboardingAssignment[] = [];
   if (admin) {
     const [assignments, flows, people] = await Promise.all([
@@ -97,7 +131,7 @@ export async function onboardingForPage(email: string): Promise<{
       safe(api.onboarding.listFlows(), [] as FlowDto[]),
       safe(api.onboarding.listPeople(), [] as PersonDto[]),
     ]);
-    const flowById = new Map(flows.map((f) => [f.id, toFlow(f)]));
+    const flowById = new Map(flows.map((f) => [f.id, toFlowLite(f)]));
     const personById = new Map(people.map((p) => [p.id, p]));
     inProgress = assignments
       .map((d) => {

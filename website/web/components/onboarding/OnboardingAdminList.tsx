@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowUpRight, Users } from 'lucide-react';
+import { ArrowUpRight, Users, ChevronDown } from 'lucide-react';
 import {
   ONBOARDING_APP_URL,
   overallStatus,
@@ -19,9 +19,14 @@ export function OnboardingAdminList({
   appUrl?: string;
 }) {
   return (
-    <section className="rounded-2xl border border-[var(--line)] p-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <details className="group rounded-2xl border border-[var(--line)] p-5">
+      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
         <div className="flex items-center gap-2">
+          <ChevronDown
+            size={18}
+            className="text-ink/50 transition-transform group-open:rotate-180"
+            aria-hidden="true"
+          />
           <Users size={18} className="text-primary" aria-hidden="true" />
           <h2 className="text-lg font-bold text-ink">Onboarding in progress</h2>
           <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
@@ -36,7 +41,7 @@ export function OnboardingAdminList({
         >
           Manage in the app <ArrowUpRight size={16} aria-hidden="true" />
         </a>
-      </div>
+      </summary>
 
       {assignments.length === 0 ? (
         <p className="mt-4 text-sm text-ink/60">No onboardings are currently in progress.</p>
@@ -79,6 +84,6 @@ export function OnboardingAdminList({
         </Link>
         .
       </p>
-    </section>
+    </details>
   );
 }

@@ -7,12 +7,22 @@ export type StepCompletion = 'admin_marks' | 'person_uploads' | 'both';
 export type OnboardingStepStatus = 'pending' | 'in_progress' | 'completed' | 'rejected';
 export type OnboardingOverall = 'pending' | 'in_progress' | 'completed';
 
+// A document attached to a step (resolved from the api/ documents store). `viewable` means it
+// can be opened inline (PDF/image) vs download-only.
+export interface StepDoc {
+  documentId: string;
+  title: string;
+  mimeType?: string;
+  viewable: boolean;
+}
+
 export interface OnboardingStep {
   id: string;
   order: number;
   title: string;
   instructions?: string;
   completion: StepCompletion;
+  documents?: StepDoc[];
 }
 
 export interface OnboardingFlow {
@@ -27,6 +37,8 @@ export interface OnboardingStepState {
   status: OnboardingStepStatus;
   notes?: string;
   completedAt?: string | null;
+  personFileName?: string;
+  personFileUrl?: string;
 }
 
 export interface OnboardingPerson {

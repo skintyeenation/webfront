@@ -38,8 +38,14 @@ export default async function OnboardingPage() {
         <p className="mt-1 text-ink/70">
           {admin
             ? 'Track onboardings across the band. Design flows and approve steps in the app.'
-            : 'Track your onboarding steps. Uploads and signing happen in the app.'}
+            : 'Track your onboarding steps and upload your documents.'}
         </p>
+        {admin && (
+          <p className="mt-1 text-xs text-ink/50">
+            You&apos;re seeing the band-wide view because your Microsoft 365 account is in an admin group
+            (Skin Tyee Admins, System Admin, Chief, or Council).
+          </p>
+        )}
       </div>
 
       {admin && <OnboardingAdminList assignments={inProgress} />}
