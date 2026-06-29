@@ -42,19 +42,32 @@ export async function storeSubmission(opts: {
     `Kind: ${opts.kind.toUpperCase()}\n` +
     (opts.project ? `Title: ${opts.project}\n` : '') +
     (opts.notes ? `\n${opts.notes}\n` : '');
+  const drivers = await storeFiles(rel, opts.files, notesBody);
+  return { id, key, path: rel, drivers };
+}
+
+// Reusable "one structure, three surfaces" writer — writes the given files under `rel`
+// to local disk (always) plus Azure Blob and SharePoint when their env is configured.
+// Funding submissions and contractor onboarding both build their own `rel` and share this.
+export async function storeFiles(rel: string, files: FileInput[], notes?: string): Promise<string[]> {
   const drivers: string[] = [];
 
-  // 1) Local disk — always (POC store + status badges).
-  await storeLocal(rel, opts.files, notesBody);
-  drivers.push('local');
+  // 1) Local disk — POC store + status reads. Best-effort: the standalone prod container's
+  // /app isn't writable by the runtime user, so a failure here must not block the cloud writes.
+  try {
+    await storeLocal(rel, files, notes);
+    drivers.push('local');
+  } catch (e) {
+    console.error('[store] local write failed (non-fatal):', e);
+  }
 
   // 2) Azure Blob — primary cloud store, when configured.
   if (process.env.AZURE_STORAGE_SUBMISSIONS_ACCOUNT && process.env.AZURE_STORAGE_SUBMISSIONS_SAS) {
     try {
-      await storeBlob(rel, opts.files, notesBody);
+      await storeBlob(rel, files, notes);
       drivers.push('blob');
     } catch (e) {
-      console.error('[submission] Azure Blob upload failed:', e);
+      console.error('[store] Azure Blob upload failed:', e);
     }
   }
 
@@ -66,14 +79,14 @@ export async function storeSubmission(opts: {
     process.env.SHAREPOINT_SITE_ID
   ) {
     try {
-      await storeSharePoint(rel, opts.files, notesBody);
+      await storeSharePoint(rel, files, notes);
       drivers.push('sharepoint');
     } catch (e) {
-      console.error('[submission] SharePoint mirror failed:', e);
+      console.error('[store] SharePoint mirror failed:', e);
     }
   }
 
-  return { id, key, path: rel, drivers };
+  return drivers;
 }
 
 async function storeLocal(rel: string, files: FileInput[], notes?: string) {

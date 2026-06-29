@@ -6,6 +6,8 @@ import { signOut } from 'next-auth/react';
 import { Building2, LayoutGrid, Landmark, Coins, Briefcase, ClipboardCheck, LogOut, type LucideIcon } from 'lucide-react';
 import { SignInButton } from './SignInButton';
 import { UserMenu } from './UserMenu';
+import { OnboardingStatusBadge } from './onboarding/OnboardingStatusBadge';
+import type { OnboardingStatus } from '@/lib/onboarding';
 
 const NAV: { href: string; label: string; Icon: LucideIcon }[] = [
   { href: '/projects', label: 'Projects', Icon: Building2 },
@@ -20,11 +22,13 @@ export function HeaderNav({
   signedIn,
   authEnabled,
   onboardingUrl,
+  onboardingStatus,
   user,
 }: {
   signedIn: boolean;
   authEnabled: boolean;
   onboardingUrl: string;
+  onboardingStatus?: OnboardingStatus;
   user?: { name?: string; email?: string };
 }) {
   const [open, setOpen] = useState(false);
@@ -51,7 +55,8 @@ export function HeaderNav({
           <Coins size={18} aria-hidden="true" /> Funding
         </Link>
       )}
-      {signedIn && (
+      {/* Once approved, Onboarding moves under the user menu (and off the main nav). */}
+      {signedIn && onboardingStatus !== 'approved' && (
         <Link href={onboardingUrl} onClick={close} className={linkClass}>
           <ClipboardCheck size={18} aria-hidden="true" /> Onboarding
         </Link>
@@ -66,7 +71,7 @@ export function HeaderNav({
       <nav className="hidden items-center gap-4 text-sm md:flex">
         {navLinks}
         {signedIn ? (
-          <UserMenu name={user?.name} email={user?.email} />
+          <UserMenu name={user?.name} email={user?.email} onboardingUrl={onboardingUrl} onboardingStatus={onboardingStatus} />
         ) : authEnabled ? (
           <SignInButton signedIn={false} />
         ) : null}
@@ -101,6 +106,10 @@ export function HeaderNav({
                   {user?.email && <p className="truncate text-sm text-ink/60">{user.email}</p>}
                 </div>
               </div>
+              <Link href={onboardingUrl} onClick={close} className="mt-5 flex items-center gap-2 text-ink/70 hover:text-primary">
+                <ClipboardCheck size={20} aria-hidden="true" /> Onboarding
+                {onboardingStatus && <OnboardingStatusBadge status={onboardingStatus} />}
+              </Link>
               <button
                 type="button"
                 onClick={() => signOut({ callbackUrl: '/' })}

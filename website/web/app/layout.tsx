@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import './globals.css';
 import { getSession, onboardingUrl } from '@/lib/session';
+import { getOnboardingState } from '@/lib/onboarding-store';
 import { FEATURES } from '@/lib/featureFlags';
 import { AccessGate } from '@/components/AccessGate';
 import { ResourceLinks } from '@/components/ResourceLinks';
@@ -32,6 +33,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </html>
     );
   }
+  // The signed-in user's onboarding status drives the nav (hide the item once approved) and
+  // the user-menu section. Cheap local read; degrades to undefined when signed out.
+  const onboardingStatus = session?.user?.email
+    ? (await getOnboardingState(session.user.email)).status
+    : undefined;
   return (
     <html lang="en">
       <body>
@@ -47,7 +53,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <span className="mt-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-[#5b5b5b]">First Nation</span>
             </span>
           </Link>
-          <HeaderNav signedIn={!!session} authEnabled={authEnabled} onboardingUrl={onboardingUrl()} user={session?.user} />
+          <HeaderNav signedIn={!!session} authEnabled={authEnabled} onboardingUrl={onboardingUrl()} onboardingStatus={onboardingStatus} user={session?.user} />
           </div>
         </header>
         <main className="container">{children}</main>

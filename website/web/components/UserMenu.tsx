@@ -1,12 +1,25 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { signOut } from 'next-auth/react';
-import { ChevronDown, LogOut } from 'lucide-react';
+import { ChevronDown, LogOut, ClipboardCheck } from 'lucide-react';
+import { OnboardingStatusBadge } from './onboarding/OnboardingStatusBadge';
+import type { OnboardingStatus } from '@/lib/onboarding';
 
-// Desktop account menu — avatar + name button opening a dropdown with the
-// signed-in identity and a Sign out action. Closes on outside-click / Escape.
-export function UserMenu({ name, email }: { name?: string; email?: string }) {
+// Desktop account menu — avatar + name button opening a dropdown with the signed-in identity,
+// the user's onboarding status, and a Sign out action. Closes on outside-click / Escape.
+export function UserMenu({
+  name,
+  email,
+  onboardingUrl = '/onboarding',
+  onboardingStatus,
+}: {
+  name?: string;
+  email?: string;
+  onboardingUrl?: string;
+  onboardingStatus?: OnboardingStatus;
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const label = name ?? email ?? 'Account';
@@ -52,6 +65,21 @@ export function UserMenu({ name, email }: { name?: string; email?: string }) {
             <p className="truncate text-sm font-semibold text-ink">{name ?? 'Signed in'}</p>
             {email && <p className="truncate text-xs text-ink/60">{email}</p>}
           </div>
+
+          {/* Onboarding — your own status. (When approved, this is where it lives; the main
+              nav item is hidden.) */}
+          <Link
+            href={onboardingUrl}
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className="flex items-center justify-between gap-2 border-b border-[var(--line)] px-4 py-3 text-sm text-ink/80 hover:bg-[#f2f7f8]"
+          >
+            <span className="flex items-center gap-2.5">
+              <ClipboardCheck size={16} aria-hidden="true" /> Onboarding
+            </span>
+            {onboardingStatus && <OnboardingStatusBadge status={onboardingStatus} />}
+          </Link>
+
           <button
             type="button"
             role="menuitem"
