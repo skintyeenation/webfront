@@ -88,3 +88,53 @@ export const FORM_INDEX: Record<string, FormInfo> = (() => {
 export function formInfoFor(no?: string): FormInfo | undefined {
   return no ? FORM_INDEX[no] : undefined;
 }
+
+// Browser-viewable second set: the ISC forms are mostly dynamic Adobe (XFA) PDFs that show
+// only a "Please wait…" stub in any browser viewer, so we generate a read-only HTML preview
+// for each (public/docs/forms/view/<key>.html). The 4 forms that are already normal PDFs
+// have no entry here — they view fine as-is. Originals stay at FORM_FILES for download.
+export const FORM_VIEW_FILES: Record<string, string> = {
+  '10138570-bc': '/docs/forms/view/10138570-bc.html',
+  '1058111': '/docs/forms/view/1058111.html',
+  '1071595': '/docs/forms/view/1071595.html',
+  '1213680': '/docs/forms/view/1213680.html',
+  '1268917': '/docs/forms/view/1268917.html',
+  '1271719': '/docs/forms/view/1271719.html',
+  '1296545': '/docs/forms/view/1296545.html',
+  '1296953': '/docs/forms/view/1296953.html',
+  '1307063': '/docs/forms/view/1307063.html',
+  '1323247': '/docs/forms/view/1323247.html',
+  '1327498': '/docs/forms/view/1327498.html',
+  '3845614': '/docs/forms/view/3845614.html',
+  '3869162': '/docs/forms/view/3869162.html',
+  '41802': '/docs/forms/view/41802.html',
+  '41814': '/docs/forms/view/41814.html',
+  '493710-bc': '/docs/forms/view/493710-bc.html',
+  '493738-bc': '/docs/forms/view/493738-bc.html',
+  '5664860': '/docs/forms/view/5664860.html',
+  '5677670': '/docs/forms/view/5677670.html',
+  '5740523': '/docs/forms/view/5740523.html',
+  '5814375': '/docs/forms/view/5814375.html',
+  '6161886': '/docs/forms/view/6161886.html',
+  '638262': '/docs/forms/view/638262.html',
+  '6735961': '/docs/forms/view/6735961.html',
+  '6978371': '/docs/forms/view/6978371.html',
+  '6978382': '/docs/forms/view/6978382.html',
+  '7638775': '/docs/forms/view/7638775.html',
+  '84458230': '/docs/forms/view/84458230.html',
+  '9359624-bc': '/docs/forms/view/9359624-bc.html',
+  '9701986': '/docs/forms/view/9701986.html',
+  '9744235': '/docs/forms/view/9744235.html',
+};
+
+// Browser-viewable URL for a PAW/DCI number: the HTML preview for XFA forms, else the PDF
+// itself (the 4 normal PDFs render fine in-browser). undefined when we have no form at all.
+export function viewUrlFor(no?: string): string | undefined {
+  if (!no) return undefined;
+  const key = no.toLowerCase().replace(/[^a-z0-9]/g, '');
+  for (const k of Object.keys(FORM_VIEW_FILES)) {
+    const kk = k.replace(/[^a-z0-9]/g, '');
+    if (kk === key || kk.startsWith(key)) return FORM_VIEW_FILES[k];
+  }
+  return formUrlFor(no); // normal PDF — viewable as-is
+}
