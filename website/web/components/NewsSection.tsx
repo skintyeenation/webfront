@@ -71,14 +71,15 @@ export async function NewsSection({
         <NewsSlider articles={primary} />
       </div>
 
-      {/* Two static news cards below the slider */}
+      {/* Sub-news cards — 3-up on desktop, side-to-side swipe scroll on mobile
+          (matches the Major Projects scroller). */}
       {cards.length > 0 && (
-        <div className="mt-5 grid gap-5 sm:grid-cols-3">
+        <div className="mt-5 flex snap-x snap-mandatory gap-5 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {cards.map((a) => (
             <Link
               key={a.href}
               href={a.href}
-              className="group overflow-hidden rounded-xl border border-[var(--line)] transition hover:shadow-md"
+              className="group w-[82%] shrink-0 snap-start overflow-hidden rounded-xl border border-[var(--line)] transition hover:shadow-md sm:w-[calc((100%-2.5rem)/3)]"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={a.image} alt="" className="h-44 w-full object-cover" />
