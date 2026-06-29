@@ -47,12 +47,6 @@ export default async function ProgramPage({ params }: { params: { slug: string }
       {hasFunding && (
         <FundingTabs
           tabs={[
-            { id: 'programs', label: 'Programs', content: <ProgramsByArea area={params.slug} /> },
-            {
-              id: 'apply',
-              label: 'Apply',
-              content: <ProgramSubmissionSection area={params.slug} areaName={prog.name} />,
-            },
             ...(deadlines.length
               ? [
                   {
@@ -64,6 +58,12 @@ export default async function ProgramPage({ params }: { params: { slug: string }
                   },
                 ]
               : []),
+            { id: 'programs', label: 'Programs', content: <ProgramsByArea area={params.slug} /> },
+            {
+              id: 'apply',
+              label: 'Apply',
+              content: <ProgramSubmissionSection area={params.slug} areaName={prog.name} />,
+            },
           ]}
         />
       )}

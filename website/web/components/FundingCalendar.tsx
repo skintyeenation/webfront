@@ -1,6 +1,6 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { expandAcronym, type DeadlineRow } from '@skintyee/models';
+import { useState } from 'react';
+import { expandAcronym, programSlug, type DeadlineRow } from '@skintyee/models';
 
 // Funding deadline calendar with two views: a real month grid (PAW/DCI deadlines plotted
 // on day cells, prev/next month nav) and the flat list/table. ISC deadlines recur on a
@@ -51,17 +51,16 @@ export function FundingCalendar({
   const filtered = areaFilter.length ? deadlines.filter((d) => areaFilter.includes(d.area)) : deadlines;
   const { dated, rolling } = partition(filtered);
 
-  // Click a deadline in the calendar → jump to its row in the list view and flag it.
+  // Click a deadline chip in the grid → scroll to (and highlight) its entry in the month
+  // list directly below the calendar.
   const [highlight, setHighlight] = useState<number | null>(null);
-  const showInList = (row: DeadlineRow) => {
-    setHighlight(filtered.indexOf(row));
-    setView('list');
+  const goToAgenda = (i: number) => {
+    if (i < 0) return;
+    setHighlight(i);
+    requestAnimationFrame(() =>
+      document.getElementById(`cal-item-${i}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
+    );
   };
-  useEffect(() => {
-    if (view === 'list' && highlight != null) {
-      document.getElementById(`dl-${highlight}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }, [view, highlight]);
 
   const firstDow = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -169,16 +168,18 @@ export function FundingCalendar({
               </div>
             ))}
             {cells.map((day, i) => {
-              const hits = day ? dated.filter((h) => h.month === month && h.day === day) : [];
+              const dayHits = day
+                ? monthHits.map((h, idx) => ({ h, idx })).filter(({ h }) => h.day === day)
+                : [];
               return (
                 <div key={i} className={`min-h-[64px] p-1.5 ${day ? 'bg-white' : 'bg-[#fafbfb]'}`}>
                   {day && <div className="text-right text-[11px] font-semibold text-ink/40">{day}</div>}
                   <div className="mt-0.5 space-y-0.5">
-                    {hits.map((h, j) => (
+                    {dayHits.map(({ h, idx }) => (
                       <button
-                        key={j}
-                        onClick={() => showInList(h.row)}
-                        title={`${h.row.program}: ${h.row.name} (${h.row.kind}) — click for details`}
+                        key={idx}
+                        onClick={() => goToAgenda(idx)}
+                        title={`${h.row.program}: ${h.row.name} (${h.row.kind}) — show below`}
                         className={`block w-full truncate rounded px-1 py-0.5 text-left text-[10px] font-semibold text-white transition hover:opacity-80 ${
                           isPaw(h.row) ? 'bg-primary' : 'bg-accent'
                         }`}
@@ -196,11 +197,14 @@ export function FundingCalendar({
             {monthHits.length ? (
               <ul className="divide-y divide-[var(--line)] overflow-hidden rounded-xl border border-[var(--line)] text-sm">
                 {monthHits.map((h, i) => (
-                  <li key={i}>
-                    <button
-                      onClick={() => showInList(h.row)}
-                      className="flex w-full items-start gap-3 px-3 py-2 text-left transition hover:bg-[#f2f7f8]"
-                    >
+                  <li
+                    key={i}
+                    id={`cal-item-${i}`}
+                    className={`flex items-start justify-between gap-3 px-3 py-2 transition-colors ${
+                      highlight === i ? 'bg-primary/10' : ''
+                    }`}
+                  >
+                    <span className="flex items-start gap-3">
                       <span className="w-12 shrink-0 font-bold text-ink">
                         {ABBR[month]} {h.day}
                       </span>
@@ -211,7 +215,13 @@ export function FundingCalendar({
                         <span className="font-semibold text-ink">{h.row.program}</span>{' '}
                         <span className="text-ink/60">— {h.row.name}</span>
                       </span>
-                    </button>
+                    </span>
+                    <a
+                      href={`#apply=${h.row.area}/${programSlug({ name: h.row.program })}`}
+                      className="shrink-0 whitespace-nowrap text-xs font-semibold text-primary hover:underline"
+                    >
+                      Apply ↗
+                    </a>
                   </li>
                 ))}
               </ul>
@@ -227,9 +237,17 @@ export function FundingCalendar({
               <p className="text-xs font-bold uppercase tracking-wide text-ink/50">Rolling / no fixed date</p>
               <ul className="mt-1 space-y-1 text-sm text-ink/70">
                 {rolling.map((r, i) => (
-                  <li key={i}>
-                    <span className="font-semibold text-ink">{r.program}</span> — {r.name}{' '}
-                    <span className="text-ink/45">({r.due})</span>
+                  <li key={i} className="flex items-start justify-between gap-3">
+                    <span>
+                      <span className="font-semibold text-ink">{r.program}</span> — {r.name}{' '}
+                      <span className="text-ink/45">({r.due})</span>
+                    </span>
+                    <a
+                      href={`#apply=${r.area}/${programSlug({ name: r.program })}`}
+                      className="shrink-0 whitespace-nowrap text-xs font-semibold text-primary hover:underline"
+                    >
+                      Apply ↗
+                    </a>
                   </li>
                 ))}
               </ul>
@@ -245,19 +263,14 @@ export function FundingCalendar({
                 <th className="px-3 py-2 font-bold">Type</th>
                 <th className="px-3 py-2 font-bold">Item</th>
                 <th className="px-3 py-2 font-bold">Due</th>
+                <th className="px-3 py-2 font-bold" />
               </tr>
             </thead>
             <tbody>
               {filtered.map((d, i) => {
                 const full = expandAcronym(d.program);
                 return (
-                <tr
-                  key={i}
-                  id={`dl-${i}`}
-                  className={`border-t border-[var(--line)] transition-colors ${
-                    highlight === i ? 'bg-primary/10' : ''
-                  }`}
-                >
+                <tr key={i} className="border-t border-[var(--line)]">
                   <td className="px-3 py-2">
                     {full ? (
                       <>
@@ -274,6 +287,14 @@ export function FundingCalendar({
                     {d.name}
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 font-semibold text-ink/80">{d.due ?? '—'}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-right">
+                    <a
+                      href={`#apply=${d.area}/${programSlug({ name: d.program })}`}
+                      className="text-xs font-semibold text-primary hover:underline"
+                    >
+                      Apply ↗
+                    </a>
+                  </td>
                 </tr>
                 );
               })}

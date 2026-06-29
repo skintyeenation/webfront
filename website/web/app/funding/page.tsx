@@ -61,13 +61,13 @@ export default async function FundingPage() {
 
       <FundingTabs
         tabs={[
-          { id: 'programs', label: 'Programs by area', content: <ProgramsByArea /> },
-          { id: 'apply', label: 'Apply', content: <ProgramSubmissionSection /> },
           {
             id: 'calendar',
             label: 'Calendar',
             content: <FundingCalendar deadlines={deadlines} areas={calendarAreas} />,
           },
+          { id: 'programs', label: 'Programs by area', content: <ProgramsByArea /> },
+          { id: 'apply', label: 'Apply', content: <ProgramSubmissionSection /> },
         ]}
       />
     </>
