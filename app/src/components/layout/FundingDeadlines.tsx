@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View } from 'react-native';
+import { View, TouchableOpacity, Linking } from 'react-native';
 import { Card, Chip, Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import moment from 'moment';
@@ -26,6 +26,10 @@ function parseDue(due?: string): moment.Moment | null {
 
 const APPLY_COLOR = '#00B8EC'; // PAW — apply
 const REPORT_COLOR = '#EC6A37'; // DCI — report
+
+// The app is read-only for funding — applying / reporting happens on the website,
+// which has the full programs + apply portal (same @skintyee/models data behind it).
+const FUNDING_WEB_URL = 'https://skintyee.ca/funding';
 
 // Governance "Funding deadlines" calendar — PAW (apply) + DCI (report) due dates
 // for the band's ISC funding, sourced from @skintyee/models. Gated to council /
@@ -54,6 +58,7 @@ export function FundingDeadlines() {
   const [selected, setSelected] = useState(
     (firstUpcoming ?? dated[0])?.date?.format('YYYY-MM-DD') ?? moment().format('YYYY-MM-DD'),
   );
+  const [open, setOpen] = useState(false); // collapsed by default
 
   const selectedRows = dated.filter((r) => r.date!.format('YYYY-MM-DD') === selected);
 
@@ -77,34 +82,56 @@ export function FundingDeadlines() {
   return (
     <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 16, borderLeftWidth: 3, borderLeftColor: theme.colors.primary }}>
       <Card.Content>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-          <MaterialCommunityIcons name="cash-clock" size={20} color={theme.colors.primary} style={{ marginRight: 8 }} />
-          <Text style={{ color: theme.colors.text, fontSize: 16, flex: 1 }}>Funding deadlines</Text>
-          <Chip compact style={{ backgroundColor: theme.colors.secondary }} textStyle={{ fontSize: 10 }}>Governance</Chip>
-        </View>
-        <View style={{ flexDirection: 'row', marginBottom: 10 }}>
-          <Chip compact icon="circle" style={{ marginRight: 6, backgroundColor: 'transparent' }} textStyle={{ fontSize: 10, color: APPLY_COLOR }}>Apply</Chip>
-          <Chip compact icon="circle" style={{ backgroundColor: 'transparent' }} textStyle={{ fontSize: 10, color: REPORT_COLOR }}>Report</Chip>
-        </View>
-
-        <MonthCalendar marks={marks} selected={selected} onSelect={setSelected} initialMonth={selected} />
-
-        <View style={{ marginTop: 12 }}>
-          <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginBottom: 4 }}>
-            {moment(selected).format('dddd, MMMM D').toUpperCase()}
-          </Text>
-          {selectedRows.length ? selectedRows.map(row) : (
-            <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>No funding deadlines on this day.</Text>
-          )}
-        </View>
-
-        {undated.length ? (
-          <View style={{ marginTop: 14, borderTopWidth: 1, borderTopColor: theme.colors.secondary, paddingTop: 10 }}>
-            <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginBottom: 4 }}>
-              ONGOING / NO FIXED DATE
-            </Text>
-            {undated.map(row)}
+        <TouchableOpacity onPress={() => setOpen((o) => !o)} activeOpacity={0.7}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={{ color: theme.colors.text, fontSize: 16, flex: 1 }}>Funding deadlines</Text>
+            <Chip compact style={{ backgroundColor: theme.colors.secondary }} textStyle={{ fontSize: 10 }}>Governance</Chip>
+            <MaterialCommunityIcons
+              name={open ? 'chevron-up' : 'chevron-down'}
+              size={22}
+              color={theme.colors.textDarker}
+              style={{ marginLeft: 6 }}
+            />
           </View>
+        </TouchableOpacity>
+
+        {open ? (
+          <>
+            <View style={{ flexDirection: 'row', marginTop: 10, marginBottom: 10 }}>
+              <Chip compact icon="circle" style={{ marginRight: 6, backgroundColor: 'transparent' }} textStyle={{ fontSize: 10, color: APPLY_COLOR }}>Apply</Chip>
+              <Chip compact icon="circle" style={{ backgroundColor: 'transparent' }} textStyle={{ fontSize: 10, color: REPORT_COLOR }}>Report</Chip>
+            </View>
+
+            <MonthCalendar marks={marks} selected={selected} onSelect={setSelected} initialMonth={selected} />
+
+            <View style={{ marginTop: 12 }}>
+              <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginBottom: 4 }}>
+                {moment(selected).format('dddd, MMMM D').toUpperCase()}
+              </Text>
+              {selectedRows.length ? selectedRows.map(row) : (
+                <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>No funding deadlines on this day.</Text>
+              )}
+            </View>
+
+            {undated.length ? (
+              <View style={{ marginTop: 14, borderTopWidth: 1, borderTopColor: theme.colors.secondary, paddingTop: 10 }}>
+                <Text style={{ color: theme.colors.textDarker, fontSize: 11, letterSpacing: 1, marginBottom: 4 }}>
+                  ONGOING / NO FIXED DATE
+                </Text>
+                {undated.map(row)}
+              </View>
+            ) : null}
+
+            {/* App is read-only — apply / report on the website. */}
+            <TouchableOpacity
+              onPress={() => Linking.openURL(FUNDING_WEB_URL)}
+              activeOpacity={0.7}
+              style={{ flexDirection: 'row', alignItems: 'center', marginTop: 14, borderTopWidth: 1, borderTopColor: theme.colors.secondary, paddingTop: 12 }}
+            >
+              <MaterialCommunityIcons name="open-in-new" size={16} color={theme.colors.primary} style={{ marginRight: 6 }} />
+              <Text style={{ color: theme.colors.primary, fontSize: 13 }}>Apply &amp; report on skintyee.ca</Text>
+            </TouchableOpacity>
+          </>
         ) : null}
       </Card.Content>
     </Card>
