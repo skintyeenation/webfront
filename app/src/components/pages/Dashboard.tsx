@@ -637,7 +637,7 @@ export default function Dashboard({ navigation }: any) {
                             <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>
                               {row.open} open · {row.completed} done
                             </Text>
-                            <MaterialCommunityIcons name="pencil" size={16} color={theme.colors.primary} style={{ marginLeft: 8 }} />
+                            <MaterialCommunityIcons name="open-in-new" size={16} color={theme.colors.primary} style={{ marginLeft: 8 }} />
                           </View>
                         </View>
                         <ProgressBar progress={pct} color={colorAt(idx)} style={{ height: 8, borderRadius: 4, backgroundColor: theme.colors.secondary }} />
