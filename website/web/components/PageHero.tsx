@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { Phone, Mail } from 'lucide-react';
 
 // Full-viewport intro: a static satellite-hybrid snapshot of the Skin Tyee
 // territory (/territory-snapshot.jpg) that slowly pans for a parallax feel. Not
@@ -69,16 +70,20 @@ export function PageHero({ title, subtitle }: { title: string; subtitle?: ReactN
               Let&apos;s go
             </button>
           </div>
-          <address className="not-italic text-center text-sm leading-relaxed text-white/90 drop-shadow">
-            <span className="block text-xs font-bold uppercase tracking-wide text-white/70">Contact</span>
-            <span className="mt-2 block font-semibold text-white">Skin Tyee First Nation</span>
-            <span className="block">P.O. Box 131, Southbank, BC V0J 2P0</span>
-            <span className="block">
-              📞 <a href="tel:+12502513085" className="underline hover:text-white">250-251-3085</a>
-            </span>
-            <span className="block">
-              ✉️ <a href="mailto:STFN_BandManager@outlook.com" className="underline hover:text-white">STFN_BandManager@outlook.com</a>
-            </span>
+          {/* Two rows, two columns — address on the left, contact (phone/email) on the right. */}
+          <address className="not-italic text-sm leading-relaxed text-white/90 drop-shadow">
+            <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-left">
+              <span className="font-semibold text-white">Skin Tyee First Nation</span>
+              <span className="inline-flex items-center gap-1.5">
+                <Phone size={14} aria-hidden="true" />
+                <a href="tel:+12502513085" className="underline hover:text-white">250-251-3085</a>
+              </span>
+              <span>P.O. Box 131, Southbank, BC V0J 2P0</span>
+              <span className="inline-flex items-center gap-1.5">
+                <Mail size={14} aria-hidden="true" />
+                <a href="mailto:STFN_BandManager@outlook.com" className="underline hover:text-white">STFN_BandManager@outlook.com</a>
+              </span>
+            </div>
           </address>
         </div>
       </div>
