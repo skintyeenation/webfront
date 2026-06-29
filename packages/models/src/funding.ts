@@ -39,6 +39,16 @@ export interface FundingProgram {
    * $$$$ = major capital or core transfer (e.g. infrastructure, income assistance, CFS).
    */
   scale?: 1 | 2 | 3 | 4;
+  /**
+   * Concrete funding floor (minimum / smallest tier / lowest per-unit rate) and limit
+   * (maximum / highest tier / cap) when the Program Guide states them — e.g. TCF's
+   * $200K–$500K tiers, or a per-student rate range. Unlike `scale` (relative size) these
+   * are real figures from the guide, shown only when a card is expanded. Most programs are
+   * single-rate or open formulas, so these are often absent; final amounts still come from
+   * the funding agreement.
+   */
+  floor?: string;
+  limit?: string;
 }
 
 export const FUNDING_PROGRAMS: FundingProgram[] = [
@@ -634,6 +644,23 @@ const SCALE_BY_KEY: Record<string, 1 | 2 | 3 | 4> = {
 for (const p of FUNDING_PROGRAMS) {
   const s = (p.acronym && SCALE_BY_KEY[p.acronym]) ?? SCALE_BY_KEY[p.name];
   if (s) p.scale = s;
+}
+
+// Concrete funding floor/limit, keyed by acronym (preferred) or name. Only programs whose
+// guide entry gives a real minimum/maximum (a tier band, per-unit rate range, or cap) — the
+// figures are quoted from the 2024-2025 BC Region Program Guide chapter summaries.
+const RANGE_BY_KEY: Record<string, { floor?: string; limit?: string }> = {
+  TCF: { floor: '$200,000 (Tier 1)', limit: '$500,000 (Tier 3)' },
+  'Student Accommodation Services': { floor: '$8,211 / student (5-day non-remote)', limit: '$14,562 / student (remote/isolated)' },
+  'Public & Independent School Tuition': { floor: '~$12,362 / student (lowest district)', limit: '~$44,360 / student (highest district)' },
+  'Elementary/Secondary student supports': { floor: '$221 / student / yr (additional)', limit: '$287 / student / yr (supplementary)' },
+};
+for (const p of FUNDING_PROGRAMS) {
+  const r = (p.acronym && RANGE_BY_KEY[p.acronym]) ?? RANGE_BY_KEY[p.name];
+  if (r) {
+    if (r.floor) p.floor = r.floor;
+    if (r.limit) p.limit = r.limit;
+  }
 }
 
 // Program-level view of the ISC Chart of Accounts (guide pp. 172-188): the major

@@ -120,6 +120,23 @@ function FundingCard({ p, collapsible = true }: { p: FundingProgram; collapsible
 
   const detail = (
     <>
+      {(p.floor || p.limit) && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {p.floor && (
+            <span className="rounded-lg bg-[#f2f7f8] px-3 py-1.5 text-sm">
+              <span className="text-ink/55">Funding floor: </span>
+              <span className="font-semibold text-ink">{p.floor}</span>
+            </span>
+          )}
+          {p.limit && (
+            <span className="rounded-lg bg-[#f2f7f8] px-3 py-1.5 text-sm">
+              <span className="text-ink/55">Funding limit: </span>
+              <span className="font-semibold text-ink">{p.limit}</span>
+            </span>
+          )}
+        </div>
+      )}
+
       {p.eligibility && (
         <p className="mt-2 text-sm">
           <span className="font-semibold text-ink">Who&apos;s eligible: </span>
