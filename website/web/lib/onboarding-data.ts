@@ -88,14 +88,19 @@ function overallFromDto(d: AssignmentDto): OnboardingOverall {
   return (d.stepStates ?? []).some((s) => s.status !== 'pending') ? 'in_progress' : 'pending';
 }
 
-// Lightweight summary for the header nav: is the caller an admin, and their own overall status.
+// Lightweight summary for the header nav: is the caller an admin, their own overall status, and
+// the number of outstanding (not-completed) steps across their assignments — for the nav badge.
 export async function onboardingSummary(
   email: string,
-): Promise<{ admin: boolean; status?: OnboardingOverall }> {
+): Promise<{ admin: boolean; status?: OnboardingOverall; outstanding: number }> {
   const role = await resolveRole(email);
   const api = userApi(role, email);
   const mine = await safe(api.onboarding.myAssignments(), [] as AssignmentDto[]);
-  return { admin: role === 'admin', status: mine.length ? overallFromDto(mine[0]) : undefined };
+  const outstanding = mine.reduce(
+    (n, a) => n + (a.stepStates ?? []).filter((s) => s.status !== 'completed').length,
+    0,
+  );
+  return { admin: role === 'admin', status: mine.length ? overallFromDto(mine[0]) : undefined, outstanding };
 }
 
 // Full page data: the caller's own assignments + (for admins) the cross-person in-progress list.

@@ -37,9 +37,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // item (it's their console); a worker's item hides once their onboarding is complete. Read
   // live from the api/ (degrades gracefully when signed out or the api is unreachable).
   const email = session?.user?.email;
-  const { admin: onboardingAdmin, status: onboardingStatus } = email
+  const { admin: onboardingAdmin, status: onboardingStatus, outstanding: onboardingCount } = email
     ? await onboardingSummary(email)
-    : { admin: false, status: undefined };
+    : { admin: false, status: undefined, outstanding: 0 };
   return (
     <html lang="en">
       <body>
@@ -55,7 +55,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <span className="mt-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-[#5b5b5b]">First Nation</span>
             </span>
           </Link>
-          <HeaderNav signedIn={!!session} authEnabled={authEnabled} onboardingUrl={onboardingUrl()} onboardingStatus={onboardingStatus} onboardingAdmin={onboardingAdmin} user={session?.user} />
+          <HeaderNav signedIn={!!session} authEnabled={authEnabled} onboardingUrl={onboardingUrl()} onboardingStatus={onboardingStatus} onboardingAdmin={onboardingAdmin} onboardingCount={onboardingCount} user={session?.user} />
           </div>
         </header>
         <main className="container">{children}</main>

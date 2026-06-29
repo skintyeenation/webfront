@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';
-import { Building2, LayoutGrid, Landmark, Coins, Briefcase, ClipboardCheck, LogOut, type LucideIcon } from 'lucide-react';
+import { Building2, LayoutGrid, Landmark, Coins, Briefcase, ClipboardCheck, ShieldCheck, LogOut, type LucideIcon } from 'lucide-react';
 import { SignInButton } from './SignInButton';
 import { UserMenu } from './UserMenu';
 import { OnboardingStatusBadge } from './onboarding/OnboardingStatusBadge';
@@ -24,6 +24,7 @@ export function HeaderNav({
   onboardingUrl,
   onboardingStatus,
   onboardingAdmin = false,
+  onboardingCount = 0,
   user,
 }: {
   signedIn: boolean;
@@ -31,6 +32,7 @@ export function HeaderNav({
   onboardingUrl: string;
   onboardingStatus?: OnboardingOverall;
   onboardingAdmin?: boolean;
+  onboardingCount?: number;
   user?: { name?: string; email?: string };
 }) {
   // Hide the main-nav Onboarding item only for a worker whose onboarding is complete — it then
@@ -47,7 +49,7 @@ export function HeaderNav({
     if (el) setHeaderH(el.getBoundingClientRect().height);
   }, [open]);
 
-  const linkClass = 'flex items-center gap-2 text-ink/70 hover:text-primary';
+  const linkClass = 'relative flex items-center gap-2 text-ink/70 hover:text-primary';
   const navLinks = (
     <>
       {NAV.map(({ href, label, Icon }) => (
@@ -55,15 +57,30 @@ export function HeaderNav({
           <Icon size={18} aria-hidden="true" /> {label}
         </Link>
       ))}
-      {signedIn && (
+      {/* Funding is an admin field — admin-only, marked with a shield badge. */}
+      {onboardingAdmin && (
         <Link href="/funding" onClick={close} className={linkClass}>
           <Coins size={18} aria-hidden="true" /> Funding
+          <span
+            className="absolute -right-2.5 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-white"
+            title="Admin only"
+          >
+            <ShieldCheck size={11} aria-hidden="true" />
+          </span>
         </Link>
       )}
       {/* Once a worker's onboarding is complete, it moves under the user menu (off the main nav). */}
       {signedIn && !hideOnboardingNav && (
         <Link href={onboardingUrl} onClick={close} className={linkClass}>
           <ClipboardCheck size={18} aria-hidden="true" /> Onboarding
+          {onboardingCount > 0 && (
+            <span
+              className="absolute -right-2.5 -top-2 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[#EC6A37] px-1 text-[10px] font-bold leading-none text-white"
+              aria-label={`${onboardingCount} onboarding steps outstanding`}
+            >
+              {onboardingCount}
+            </span>
+          )}
         </Link>
       )}
     </>
