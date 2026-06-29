@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { signOut } from 'next-auth/react';
 import { ChevronDown, LogOut, ClipboardCheck } from 'lucide-react';
 import { OnboardingStatusBadge } from './onboarding/OnboardingStatusBadge';
-import type { OnboardingStatus } from '@/lib/onboarding';
+import type { OnboardingOverall } from '@/lib/onboarding';
 
 // Desktop account menu — avatar + name button opening a dropdown with the signed-in identity,
 // the user's onboarding status, and a Sign out action. Closes on outside-click / Escape.
@@ -18,7 +18,7 @@ export function UserMenu({
   name?: string;
   email?: string;
   onboardingUrl?: string;
-  onboardingStatus?: OnboardingStatus;
+  onboardingStatus?: OnboardingOverall;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);

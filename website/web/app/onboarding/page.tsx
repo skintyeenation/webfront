@@ -1,18 +1,20 @@
 import type { Metadata } from 'next';
 import { getSession } from '@/lib/session';
-import { getOnboardingState } from '@/lib/onboarding-store';
-import { ONBOARDING_STATUS_META } from '@/lib/onboarding';
-import { OnboardingChecklist } from '@/components/onboarding/OnboardingChecklist';
-import { OnboardingStatusBadge } from '@/components/onboarding/OnboardingStatusBadge';
+import {
+  assignmentsFor,
+  inProgressAssignments,
+  isOnboardingAdmin,
+  ONBOARDING_APP_URL,
+} from '@/lib/onboarding';
+import { OnboardingAdminList } from '@/components/onboarding/OnboardingAdminList';
+import { OnboardingAssignmentView } from '@/components/onboarding/OnboardingAssignmentView';
 import { SignInButton } from '@/components/SignInButton';
 
 export const metadata: Metadata = { title: 'Onboarding' };
 export const dynamic = 'force-dynamic'; // per-user view — never cache
 
-// Staff / contractor onboarding — mirrors the @skintyee/app documents-&-onboarding flow, but
-// driven from the website. You upload your documents and see your own status. Approval is set
-// out-of-band (no WordPress approval); when approved we show it and the nav item moves under
-// the user menu.
+// Onboarding surface — mirrors the @skintyee/app flow. System admins see the cross-person
+// in-progress list; an assigned person sees their own steps. Completion happens in the app.
 export default async function OnboardingPage() {
   const session = await getSession();
   const email = session?.user?.email;
@@ -22,7 +24,7 @@ export default async function OnboardingPage() {
       <div className="mx-auto max-w-2xl">
         <h1 className="text-2xl font-bold">Onboarding</h1>
         <p className="mt-2 text-ink/70">
-          Sign in with your Microsoft account to access your onboarding documents and status.
+          Sign in with your Microsoft account to view your onboarding status.
         </p>
         <div className="mt-4">
           <SignInButton signedIn={false} />
@@ -31,27 +33,42 @@ export default async function OnboardingPage() {
     );
   }
 
-  const state = await getOnboardingState(email);
-  const meta = ONBOARDING_STATUS_META[state.status];
+  const admin = isOnboardingAdmin(email);
+  const mine = assignmentsFor(email);
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <h1 className="text-2xl font-bold">Onboarding</h1>
-      <p className="mt-1 text-ink/70">Upload your onboarding documents and track your status.</p>
-
-      <div className="mt-5 flex flex-wrap items-center gap-3 rounded-xl border border-[var(--line)] bg-[#f8fbfc] p-4">
-        <OnboardingStatusBadge status={state.status} />
-        <p className="text-sm text-ink/70">{meta.description}</p>
+    <div className="mx-auto max-w-3xl space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Onboarding</h1>
+        <p className="mt-1 text-ink/70">
+          {admin
+            ? 'Track onboardings across the band. Design flows and approve steps in the app.'
+            : 'Track your onboarding steps. Uploads and signing happen in the app.'}
+        </p>
       </div>
 
-      {state.approved ? (
-        <div className="mt-6 rounded-xl border border-success/40 bg-success/5 p-6">
-          <p className="font-semibold text-success">Your onboarding is approved.</p>
-          <p className="mt-1 text-sm text-ink/70">No further action needed — your documents are on file.</p>
+      {admin && <OnboardingAdminList assignments={inProgressAssignments()} />}
+
+      {mine.length > 0 && (
+        <div className="space-y-4">
+          {admin && <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">Your onboarding</h2>}
+          {mine.map((a) => (
+            <OnboardingAssignmentView key={a.id} assignment={a} />
+          ))}
         </div>
-      ) : (
-        <div className="mt-6">
-          <OnboardingChecklist initialUploaded={state.uploaded} approved={state.approved} />
+      )}
+
+      {!admin && mine.length === 0 && (
+        <div className="rounded-xl border border-[var(--line)] bg-[#f8fbfc] p-6">
+          <p className="font-medium text-ink">No onboarding assigned.</p>
+          <p className="mt-1 text-sm text-ink/70">
+            You don&apos;t have an onboarding flow assigned yet. If you&apos;re expecting one, contact the band
+            office or open the{' '}
+            <a href={ONBOARDING_APP_URL} className="font-medium text-primary hover:underline">
+              app
+            </a>
+            .
+          </p>
         </div>
       )}
     </div>

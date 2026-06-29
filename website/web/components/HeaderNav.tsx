@@ -7,7 +7,7 @@ import { Building2, LayoutGrid, Landmark, Coins, Briefcase, ClipboardCheck, LogO
 import { SignInButton } from './SignInButton';
 import { UserMenu } from './UserMenu';
 import { OnboardingStatusBadge } from './onboarding/OnboardingStatusBadge';
-import type { OnboardingStatus } from '@/lib/onboarding';
+import type { OnboardingOverall } from '@/lib/onboarding';
 
 const NAV: { href: string; label: string; Icon: LucideIcon }[] = [
   { href: '/projects', label: 'Projects', Icon: Building2 },
@@ -23,14 +23,19 @@ export function HeaderNav({
   authEnabled,
   onboardingUrl,
   onboardingStatus,
+  onboardingAdmin = false,
   user,
 }: {
   signedIn: boolean;
   authEnabled: boolean;
   onboardingUrl: string;
-  onboardingStatus?: OnboardingStatus;
+  onboardingStatus?: OnboardingOverall;
+  onboardingAdmin?: boolean;
   user?: { name?: string; email?: string };
 }) {
+  // Hide the main-nav Onboarding item only for a worker whose onboarding is complete — it then
+  // lives under the user menu. Admins always keep it (their console).
+  const hideOnboardingNav = !onboardingAdmin && onboardingStatus === 'completed';
   const [open, setOpen] = useState(false);
   const [headerH, setHeaderH] = useState(0);
   const close = () => setOpen(false);
@@ -55,8 +60,8 @@ export function HeaderNav({
           <Coins size={18} aria-hidden="true" /> Funding
         </Link>
       )}
-      {/* Once approved, Onboarding moves under the user menu (and off the main nav). */}
-      {signedIn && onboardingStatus !== 'approved' && (
+      {/* Once a worker's onboarding is complete, it moves under the user menu (off the main nav). */}
+      {signedIn && !hideOnboardingNav && (
         <Link href={onboardingUrl} onClick={close} className={linkClass}>
           <ClipboardCheck size={18} aria-hidden="true" /> Onboarding
         </Link>

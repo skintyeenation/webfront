@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import './globals.css';
 import { getSession, onboardingUrl } from '@/lib/session';
-import { getOnboardingState } from '@/lib/onboarding-store';
+import { assignmentsFor, isOnboardingAdmin, overallStatus } from '@/lib/onboarding';
 import { FEATURES } from '@/lib/featureFlags';
 import { AccessGate } from '@/components/AccessGate';
 import { ResourceLinks } from '@/components/ResourceLinks';
@@ -33,11 +33,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </html>
     );
   }
-  // The signed-in user's onboarding status drives the nav (hide the item once approved) and
-  // the user-menu section. Cheap local read; degrades to undefined when signed out.
-  const onboardingStatus = session?.user?.email
-    ? (await getOnboardingState(session.user.email)).status
-    : undefined;
+  // The signed-in user's onboarding drives the nav + user-menu section: admins always keep the
+  // item (it's their console); a worker's item hides once their onboarding is complete.
+  const email = session?.user?.email;
+  const onboardingAdmin = isOnboardingAdmin(email);
+  const mine = assignmentsFor(email);
+  const onboardingStatus = mine.length ? overallStatus(mine[0]) : undefined;
   return (
     <html lang="en">
       <body>
@@ -53,7 +54,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <span className="mt-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-[#5b5b5b]">First Nation</span>
             </span>
           </Link>
-          <HeaderNav signedIn={!!session} authEnabled={authEnabled} onboardingUrl={onboardingUrl()} onboardingStatus={onboardingStatus} user={session?.user} />
+          <HeaderNav signedIn={!!session} authEnabled={authEnabled} onboardingUrl={onboardingUrl()} onboardingStatus={onboardingStatus} onboardingAdmin={onboardingAdmin} user={session?.user} />
           </div>
         </header>
         <main className="container">{children}</main>
