@@ -29,3 +29,10 @@ const PROJECT_IMAGES: Record<string, string> = {
 };
 
 export const projectImage = (slug: string): string | undefined => PROJECT_IMAGES[slug];
+
+// Large variant for the full-width sector carousel — the 200px thumbnails look blurry when
+// upscaled into a 400px hero, so request the SAME curated photo at 1000×600 (Picsum fallback
+// by slug). Same image, just not scaled down — so it stays relevant to the project.
+export const projectImageLarge = (slug: string): string =>
+  PROJECT_IMAGES[slug]?.replace('w=200&h=200', 'w=1000&h=600') ??
+  `https://picsum.photos/seed/${slug}/1000/600`;

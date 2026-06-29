@@ -57,7 +57,9 @@ export async function NewsSection({
     href: `/posts/${p.slug}`,
   }));
   const primary = articles.slice(0, 10);
-  const cards = articles.slice(10, 13);
+  // Overflow cards on the homepage (11–13); on a smaller set (e.g. a sector with 3 posts)
+  // show all of them as cards under the carousel so the "items underneath" still render.
+  const cards = articles.length > 10 ? articles.slice(10) : articles;
 
   return (
     <section>

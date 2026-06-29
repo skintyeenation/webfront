@@ -11,11 +11,9 @@ import { FundingTabs } from '@/components/FundingTabs';
 import { ProposalWritersCta } from '@/components/ProposalWritersCta';
 import { NeedAssistanceCta } from '@/components/NeedAssistanceCta';
 
+// On-demand ISR (no generateStaticParams) — the root layout reads the session (headers),
+// which conflicts with static prerendering. See app/posts/[slug]/page.tsx.
 export const revalidate = 60;
-
-export function generateStaticParams() {
-  return PROGRAM_AREAS.map((p) => ({ slug: p.slug }));
-}
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const prog = PROGRAM_AREAS.find((p) => p.slug === params.slug);

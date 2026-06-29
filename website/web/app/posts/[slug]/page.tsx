@@ -1,14 +1,12 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getPostBySlug, getPostSlugs, stripHtml } from '@/lib/wp';
+import { getPostBySlug, stripHtml } from '@/lib/wp';
 
+// No generateStaticParams: the root layout reads the session (cookies), so a statically
+// prerendered page hits "static→dynamic at runtime, reason: headers" and 500s. Render
+// on-demand with ISR (revalidate) instead — same pattern as the working home page.
 export const revalidate = 60;
-
-export async function generateStaticParams() {
-  const slugs = await getPostSlugs();
-  return slugs.map((s) => ({ slug: s.slug }));
-}
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const post = await getPostBySlug(params.slug);

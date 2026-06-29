@@ -6,9 +6,9 @@ import { LEARN_MODULES, learnModule, AREA_INTRO } from '@/lib/funding-learn';
 import { FundingPrograms } from '@/components/FundingPrograms';
 import { Acronym } from '@/components/Acronym';
 
-export function generateStaticParams() {
-  return LEARN_MODULES.map((m) => ({ module: m.slug }));
-}
+// On-demand render (no generateStaticParams) — the root layout reads the session (headers),
+// which conflicts with static prerendering. See app/posts/[slug]/page.tsx.
+export const revalidate = 60;
 
 export function generateMetadata({ params }: { params: { module: string } }): Metadata {
   const m = learnModule(params.module);
