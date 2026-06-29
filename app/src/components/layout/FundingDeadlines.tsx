@@ -160,6 +160,9 @@ export function FundingDeadlines() {
       <Card.Content>
         <TouchableOpacity onPress={() => setOpen((o) => !o)} activeOpacity={0.7}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {/* calendar-clock is in the bundled icon set (used in the timekeeping card) — unlike
+                cash-clock, which rendered as a '?'. */}
+            <MaterialCommunityIcons name="calendar-clock" size={18} color={theme.colors.primary} style={{ marginRight: 6 }} />
             <Text style={{ color: theme.colors.text, fontSize: 16, flex: 1 }}>Funding deadlines</Text>
             <Chip compact style={{ backgroundColor: theme.colors.secondary }} textStyle={{ fontSize: 10 }}>Governance</Chip>
             <MaterialCommunityIcons

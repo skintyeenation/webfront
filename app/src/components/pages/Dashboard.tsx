@@ -571,8 +571,8 @@ export default function Dashboard({ navigation }: any) {
           <View style={twoCol ? { flexDirection: 'row', alignItems: 'flex-start' } : undefined}>
           <View style={twoCol ? { flex: 1, marginRight: 8 } : undefined}>
           {/* Heading is bare (outside the card) so it lines up with the My tasks heading. */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-            <MaterialCommunityIcons name="folder-multiple-outline" size={18} color={theme.colors.primary} style={{ marginRight: 6 }} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12, marginBottom: 14 }}>
+            <MaterialCommunityIcons name="folder-multiple-outline" size={18} color={theme.colors.text} style={{ marginRight: 6 }} />
             <Text style={{ color: theme.colors.text, fontSize: 16, flex: 1 }}>My projects</Text>
             {rollup ? (
               <Text style={{ color: theme.colors.textDarker, fontSize: 11 }}>
@@ -617,7 +617,7 @@ export default function Dashboard({ navigation }: any) {
             Gated on showPlannerWidgets — externals (staff-auth, no
             Entra) don't have Planner tasks to surface. See features.ts. */}
         {showPlannerWidgets ? <>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12, marginBottom: 14 }}>
           <MaterialCommunityIcons name="checkbox-marked-outline" size={18} color={theme.colors.text} style={{ marginRight: 6 }} />
           <Text style={{ color: theme.colors.text, fontSize: 16, flex: 1 }}>
             My tasks {formatRange(taskItems) ? `· ${formatRange(taskItems)}` : ''}
