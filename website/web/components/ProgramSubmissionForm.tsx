@@ -47,16 +47,25 @@ export function ProgramSubmissionForm({
   }, [options]);
 
   const grouped = options.some((o) => o.group);
+  const [showReview, setShowReview] = useState(false);
 
-  async function submit(e: React.FormEvent) {
+  // Submit button → validate, then open the review modal (no POST yet).
+  function review(e: React.FormEvent) {
     e.preventDefault();
-    const opt = options[selected];
-    if (!opt) return;
     if (!files || !files.length) {
       setStatus('error');
       setMessage('Attach at least one document.');
       return;
     }
+    setStatus('idle');
+    setMessage('');
+    setShowReview(true);
+  }
+
+  // Confirmed in the modal → actually POST.
+  async function doSubmit() {
+    const opt = options[selected];
+    if (!opt || !files || !files.length) return;
     setStatus('sending');
     setMessage('');
     const fd = new FormData();
@@ -70,6 +79,7 @@ export function ProgramSubmissionForm({
       const res = await fetch('/api/program-submission', { method: 'POST', body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Submission failed.');
+      setShowReview(false);
       setStatus('done');
       setMessage('Received. Skin Tyee staff will review your submission.');
       setNotes('');
@@ -89,8 +99,11 @@ export function ProgramSubmissionForm({
     );
   }
 
+  const selectedOpt = options[selected];
+
   return (
-    <form onSubmit={submit} className="mt-4 space-y-3 text-sm">
+    <>
+    <form onSubmit={review} className="mt-4 space-y-3 text-sm">
       <label className="block">
         <span className="font-semibold text-ink/70">Program / application</span>
         <select
@@ -123,7 +136,7 @@ export function ProgramSubmissionForm({
       </label>
 
       <div>
-        <span className="font-semibold text-ink/70">Submission type</span>
+        <span className="block font-semibold text-ink/70">Submission type</span>
         <div className="mt-1 inline-flex rounded-lg border border-[var(--line)] p-0.5">
           {(
             [
@@ -188,13 +201,89 @@ export function ProgramSubmissionForm({
       <div className="flex items-center gap-3">
         <button
           type="submit"
-          disabled={status === 'sending'}
-          className="rounded-lg bg-primary px-4 py-2 font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
+          className="rounded-lg bg-primary px-4 py-2 font-semibold text-white transition hover:opacity-90"
         >
-          {status === 'sending' ? 'Submitting…' : 'Submit application'}
+          Review &amp; submit
         </button>
         {userEmail && <span className="text-xs text-ink/50">Submitting as {userEmail}</span>}
       </div>
     </form>
+
+    {showReview && selectedOpt && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+        role="dialog"
+        aria-modal="true"
+        onClick={() => status !== 'sending' && setShowReview(false)}
+      >
+        <div
+          className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h3 className="text-lg font-bold text-ink">Review your submission</h3>
+          <p className="mt-2 rounded-lg bg-primary/10 px-3 py-2 text-sm font-semibold text-primary">
+            You are submitting {kind === 'paw' ? 'a funding application (PAW)' : 'a report (DCI)'} for{' '}
+            {label(selectedOpt)}.
+          </p>
+          <dl className="mt-4 space-y-2 text-sm">
+            <div className="flex gap-2">
+              <dt className="w-28 shrink-0 font-semibold text-ink/55">Program</dt>
+              <dd className="text-ink">{label(selectedOpt)}</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="w-28 shrink-0 font-semibold text-ink/55">Type</dt>
+              <dd className="text-ink">{kind === 'paw' ? 'Application (PAW)' : 'Report (DCI)'}</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="w-28 shrink-0 font-semibold text-ink/55">Documents</dt>
+              <dd className="text-ink">
+                <ul className="list-disc pl-4">
+                  {files && Array.from(files).map((f, i) => <li key={i}>{f.name}</li>)}
+                </ul>
+              </dd>
+            </div>
+            {notes && (
+              <div className="flex gap-2">
+                <dt className="w-28 shrink-0 font-semibold text-ink/55">Notes</dt>
+                <dd className="whitespace-pre-wrap text-ink/80">{notes}</dd>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <dt className="w-28 shrink-0 font-semibold text-ink/55">Filed to</dt>
+              <dd className="font-mono text-xs text-ink/55">
+                {selectedOpt.area}/…/submissions/{kind}/
+              </dd>
+            </div>
+          </dl>
+
+          {!files?.length && (
+            <p className="mt-3 text-sm font-semibold text-red-600">
+              Attach at least one document before submitting.
+            </p>
+          )}
+          {status === 'error' && <p className="mt-3 text-sm font-semibold text-red-600">{message}</p>}
+
+          <div className="mt-6 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setShowReview(false)}
+              disabled={status === 'sending'}
+              className="rounded-lg border border-[var(--line)] px-4 py-2 text-sm font-semibold text-ink/70 transition hover:bg-[#f2f7f8] disabled:opacity-60"
+            >
+              Back
+            </button>
+            <button
+              type="button"
+              onClick={doSubmit}
+              disabled={status === 'sending' || !files?.length}
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
+            >
+              {status === 'sending' ? 'Submitting…' : 'Confirm & submit'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
