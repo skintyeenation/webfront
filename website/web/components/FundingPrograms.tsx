@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ChevronDown, FileUp } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import type { FundingProgram } from '@skintyee/models';
 import { programSlug } from '@skintyee/models';
 import { relativeTime, type SubmissionStat } from '@/lib/submissions';
@@ -129,15 +129,9 @@ function FundingCard({
   const summaryText = `mt-1.5 text-sm ${disqualified ? 'text-ink/50' : 'text-ink/75'}`;
 
   // Deep-link into the Apply tab with this program preselected (works on the hub and on the
-  // program subpage — both have an Apply tab listening for this hash).
-  const applyLink = !disqualified && (
-    <a
-      href={`#apply=${p.area}/${programSlug(p)}`}
-      className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-white transition hover:opacity-90"
-    >
-      <FileUp size={16} aria-hidden /> Upload PAW / apply
-    </a>
-  );
+  // program subpage — both have an Apply tab listening for this hash). Omitted when the
+  // Nation's size disqualifies the program.
+  const applyHref = disqualified ? undefined : `#apply=${p.area}/${programSlug(p)}`;
 
   if (!collapsible) {
     return (
@@ -147,8 +141,7 @@ function FundingCard({
           <SubmissionBadge s={status} />
         </div>
         <p className={summaryText}>{p.summary}</p>
-        <ProgramDetail p={p} />
-        {applyLink}
+        <ProgramDetail p={p} applyHref={applyHref} />
       </article>
     );
   }
@@ -169,8 +162,7 @@ function FundingCard({
           className="mt-0.5 shrink-0 text-ink/50 transition-transform group-open:rotate-180"
         />
       </summary>
-      <ProgramDetail p={p} />
-      {applyLink}
+      <ProgramDetail p={p} applyHref={applyHref} />
     </details>
   );
 }

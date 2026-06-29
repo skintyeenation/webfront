@@ -1,3 +1,4 @@
+import { FileUp } from 'lucide-react';
 import type { FundingProgram, PawItem, DciItem } from '@skintyee/models';
 import { fundingForNation, SKIN_TYEE_PROFILE } from '@skintyee/models';
 import { PROGRAM_GUIDE } from '@/lib/constants';
@@ -61,7 +62,7 @@ export function ProgramTitle({ p, as = 'h3' }: { p: FundingProgram; as?: 'h3' | 
 
 // Program detail body: size-resolved funding (or static floor/limit), eligibility,
 // application requirements, PAW/DCI deadline tables with form downloads, contacts, guide link.
-export function ProgramDetail({ p }: { p: FundingProgram }) {
+export function ProgramDetail({ p, applyHref }: { p: FundingProgram; applyHref?: string }) {
   const href = p.pdfPage ? `${PROGRAM_GUIDE.href}#page=${p.pdfPage}` : PROGRAM_GUIDE.href;
   const nation = fundingForNation(p, SKIN_TYEE_PROFILE);
 
@@ -149,14 +150,24 @@ export function ProgramDetail({ p }: { p: FundingProgram }) {
         </div>
       )}
 
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-3 inline-block text-sm font-semibold text-primary hover:underline"
-      >
-        Details in the Program Guide →
-      </a>
+      <div className="mt-4 flex flex-wrap items-center gap-4">
+        {applyHref && (
+          <a
+            href={applyHref}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-white transition hover:opacity-90"
+          >
+            <FileUp size={16} aria-hidden /> Upload PAW / apply
+          </a>
+        )}
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm font-semibold text-primary hover:underline"
+        >
+          Details in the Program Guide →
+        </a>
+      </div>
     </>
   );
 }
