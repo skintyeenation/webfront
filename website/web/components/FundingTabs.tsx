@@ -1,10 +1,11 @@
 'use client';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 
 // Tabbed funding layout. Each tab's content is rendered (server components passed in as
 // ReactNode) and toggled with `hidden` so it stays in the DOM / SSR output. Used on the
 // funding hub (and subpages) to give the programs accordion, apply form, and calendar each
-// their own tab.
+// their own tab. Honors a `#<tabId>...` URL hash (e.g. the cards' `#apply=<area>/<slug>`
+// deep-link) by switching to that tab.
 export function FundingTabs({
   tabs,
   initial,
@@ -13,6 +14,18 @@ export function FundingTabs({
   initial?: string;
 }) {
   const [active, setActive] = useState(initial ?? tabs[0]?.id);
+
+  useEffect(() => {
+    const ids = new Set(tabs.map((t) => t.id));
+    const sync = () => {
+      const id = window.location.hash.replace(/^#/, '').split('=')[0];
+      if (id && ids.has(id)) setActive(id);
+    };
+    sync();
+    window.addEventListener('hashchange', sync);
+    return () => window.removeEventListener('hashchange', sync);
+  }, [tabs]);
+
   return (
     <div className="mt-8">
       <div role="tablist" className="flex flex-wrap gap-1 border-b border-[var(--line)]">

@@ -1,24 +1,30 @@
 import type { ReactNode } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, FileUp } from 'lucide-react';
 import type { FundingProgram } from '@skintyee/models';
+import { programSlug } from '@skintyee/models';
+import { relativeTime, type SubmissionStat } from '@/lib/submissions';
 import { ProgramTitle, ProgramDetail, isDisqualified } from './ProgramDetail';
 
-// Renders the ISC funding programs for a program area: title, summary, and the shared
-// ProgramDetail (eligibility, requirements, PAW/DCI tables, contacts, guide link). When
-// `collapsible`, the whole area collapses to its heading (native <details>) — used on the
-// funding hub to keep the long list of areas scannable; `footer` renders below the cards.
+// Renders the ISC funding programs for a program area: title, summary, submission status,
+// the shared ProgramDetail, and an "Upload PAW" deep-link into the Apply tab. When
+// `collapsible`, the whole area collapses to its heading (native <details>) with a roll-up
+// submission badge; `footer` renders below the cards.
 export function FundingPrograms({
   programs,
   heading = 'Funding programs',
   showIntro = true,
   collapsible = false,
   footer,
+  areaStatus,
+  programStatus,
 }: {
   programs: FundingProgram[];
   heading?: string;
   showIntro?: boolean;
   collapsible?: boolean;
   footer?: ReactNode;
+  areaStatus?: SubmissionStat;
+  programStatus?: Record<string, SubmissionStat>;
 }) {
   if (!programs.length) return null;
 
@@ -35,7 +41,7 @@ export function FundingPrograms({
           // Inside an area accordion (hub) the area is the collapse level, so cards render
           // open — otherwise expanding an area would just reveal a second layer of collapsed
           // cards (no details, no forms). On a program page each card collapses on its own.
-          <FundingCard key={p.name} p={p} collapsible={!collapsible} />
+          <FundingCard key={p.name} p={p} collapsible={!collapsible} status={programStatus?.[programSlug(p)]} />
         ))}
       </div>
       {footer && <div className="mt-3">{footer}</div>}
@@ -46,7 +52,10 @@ export function FundingPrograms({
     return (
       <details className="group mt-6 border-t border-[var(--line)] pt-6">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
-          <h2 className="text-xl font-bold">{heading}</h2>
+          <span className="flex flex-wrap items-center gap-3">
+            <h2 className="text-xl font-bold">{heading}</h2>
+            <SubmissionBadge s={areaStatus} />
+          </span>
           <ChevronDown
             aria-hidden
             size={24}
@@ -63,6 +72,29 @@ export function FundingPrograms({
       <h2 className="text-xl font-bold">{heading}</h2>
       {body}
     </section>
+  );
+}
+
+// Submission status pill — green when there's at least one filed submission, grey otherwise.
+function SubmissionBadge({ s }: { s?: SubmissionStat }) {
+  if (s?.count) {
+    const rel = relativeTime(s.latest);
+    return (
+      <span
+        title={`${s.count} submission${s.count > 1 ? 's' : ''}${rel ? ` · latest ${rel}` : ''}`}
+        className="inline-flex items-center gap-1.5 rounded-full bg-[#e8f3ec] px-2 py-0.5 text-xs font-semibold text-[#1d7a4d]"
+      >
+        <span className="h-1.5 w-1.5 rounded-full bg-[#1d7a4d]" />
+        Submitted{rel ? ` ${rel}` : ''}
+        {s.count > 1 ? ` (${s.count})` : ''}
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-ink/5 px-2 py-0.5 text-xs font-semibold text-ink/45">
+      <span className="h-1.5 w-1.5 rounded-full bg-ink/25" />
+      No submissions yet
+    </span>
   );
 }
 
@@ -83,17 +115,40 @@ export function FundingScaleLegend() {
   );
 }
 
-function FundingCard({ p, collapsible = true }: { p: FundingProgram; collapsible?: boolean }) {
+function FundingCard({
+  p,
+  collapsible = true,
+  status,
+}: {
+  p: FundingProgram;
+  collapsible?: boolean;
+  status?: SubmissionStat;
+}) {
   const disqualified = isDisqualified(p);
   const shell = `rounded-xl border border-[var(--line)] p-5${disqualified ? ' bg-[#fafbfb] opacity-70' : ''}`;
   const summaryText = `mt-1.5 text-sm ${disqualified ? 'text-ink/50' : 'text-ink/75'}`;
 
+  // Deep-link into the Apply tab with this program preselected (works on the hub and on the
+  // program subpage — both have an Apply tab listening for this hash).
+  const applyLink = !disqualified && (
+    <a
+      href={`#apply=${p.area}/${programSlug(p)}`}
+      className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-white transition hover:opacity-90"
+    >
+      <FileUp size={16} aria-hidden /> Upload PAW / apply
+    </a>
+  );
+
   if (!collapsible) {
     return (
       <article className={shell}>
-        <ProgramTitle p={p} />
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <ProgramTitle p={p} />
+          <SubmissionBadge s={status} />
+        </div>
         <p className={summaryText}>{p.summary}</p>
         <ProgramDetail p={p} />
+        {applyLink}
       </article>
     );
   }
@@ -102,7 +157,10 @@ function FundingCard({ p, collapsible = true }: { p: FundingProgram; collapsible
     <details className={`group ${shell}`}>
       <summary className="flex cursor-pointer list-none items-start justify-between gap-3 [&::-webkit-details-marker]:hidden">
         <div>
-          <ProgramTitle p={p} />
+          <div className="flex flex-wrap items-center gap-2">
+            <ProgramTitle p={p} />
+            <SubmissionBadge s={status} />
+          </div>
           <p className={summaryText}>{p.summary}</p>
         </div>
         <ChevronDown
@@ -112,6 +170,7 @@ function FundingCard({ p, collapsible = true }: { p: FundingProgram; collapsible
         />
       </summary>
       <ProgramDetail p={p} />
+      {applyLink}
     </details>
   );
 }

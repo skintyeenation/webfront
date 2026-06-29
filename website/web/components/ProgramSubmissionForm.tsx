@@ -1,6 +1,7 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FundingProgram } from '@skintyee/models';
+import { programSlug } from '@skintyee/models';
 import { ProgramTitle, ProgramDetail } from './ProgramDetail';
 
 // `area` makes each option self-routing (the funding hub spans every area); `group` is the
@@ -27,6 +28,20 @@ export function ProgramSubmissionForm({
   const [files, setFiles] = useState<FileList | null>(null);
   const [status, setStatus] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
   const [message, setMessage] = useState('');
+
+  // Preselect the program from a `#apply=<area>/<slug>` deep-link (the cards' "Upload PAW" button).
+  useEffect(() => {
+    const sync = () => {
+      const m = window.location.hash.match(/^#apply=([^/]+)\/(.+)$/);
+      if (!m) return;
+      const [, area, slug] = m;
+      const i = options.findIndex((o) => o.area === area && programSlug(o.program) === slug);
+      if (i >= 0) setSelected(i);
+    };
+    sync();
+    window.addEventListener('hashchange', sync);
+    return () => window.removeEventListener('hashchange', sync);
+  }, [options]);
 
   const grouped = options.some((o) => o.group);
 
