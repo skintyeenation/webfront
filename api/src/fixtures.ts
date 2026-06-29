@@ -55,3 +55,38 @@ export const notifications = [
   { _id: 'n3', title: 'Community Salmon BBQ', body: 'Join us at the Community Hall this weekend.', category: 'Events', createdAt: daysFromNow(-1), read: false },
   { _id: 'n4', title: 'Council in-camera notes', body: 'Internal council session summary.', category: 'Council', createdAt: daysFromNow(-1), read: false },
 ];
+
+// Nation size/demographic profile. Mirrors SKIN_TYEE_PROFILE in @skintyee/models (kept in
+// sync by hand for the POC — the api builds with tsc/rootDir and can't import the raw-TS
+// shared package; Phase 2 shares it via the Prisma seed). Drives size-based funding tiers
+// (e.g. TCF). Population is approximate (~200); most other fields are not yet confirmed.
+export const communityProfile = {
+  name: 'Skin Tyee First Nation',
+  totalMembers: 200,
+  onReservePopulation: null as number | null,
+  registeredMembers: null as number | null,
+  nominalRollStudents: null as number | null,
+  firstNationsServed: 1,
+  ongoingIscPrograms: null as number | null,
+  asOf: 'FY2024-2025',
+  notes:
+    'Population is approximate (~200 members). On-reserve resident count, registered (status) members, Nominal Roll enrolment, and the number of ongoing ISC programs are not yet confirmed — funding figures that depend on them cannot be resolved until they are.',
+};
+
+// ISC Chart of Accounts for Transfer Payments (guide pp. 172-188). Mirrors
+// CHART_OF_ACCOUNTS in @skintyee/models (see note above). Reference data for coding
+// incoming ISC funding (EFTs) to the right Cost Centre / funding type in Sage 300.
+export const chartOfAccounts = [
+  { costCentre: 'A09020 (378)', description: 'Financial Transfer Agreement — Block core funding (governance/IGS, education, income assistance, assisted living, water/sewer & education O&M, housing, LEDSP core)', fundingType: 'Block' },
+  { costCentre: 'A09020 (476-479)', description: 'New Fiscal Relationship — NFR Grant core + escalator (band support, employee benefits, water, education, housing, income assistance, assisted living, lands & econ dev)', fundingType: 'NFR Grant' },
+  { costCentre: 'A0902D / A0902E', description: 'Self-government, claims & inter-sector (CIRNAC coding) — governance capacity, treaty/BCTC, FNIH health, family violence, urban programming, climate, MMIWG', fundingType: 'Fixed/Flex/Set' },
+  { costCentre: 'A0903A', description: 'Emergency Management Assistance Program (EMAP) — capacity building, preparedness/mitigation, FireSmart, response, recovery', fundingType: 'Fixed/Flex/Set' },
+  { costCentre: 'A0903B', description: 'Education — elementary/secondary (FN school formula, tuition, student supports), post-secondary (PSSSP/PSPP), cultural centres, youth employment', fundingType: 'Fixed/Flex/Set' },
+  { costCentre: 'A0903D', description: 'Social development — Income Assistance (basic/special needs, service delivery, pre-employment), Assisted Living, Family Violence, Urban Programming, ICSF', fundingType: 'Fixed/Flex/Grant/Set' },
+  { costCentre: 'A09040 / A0904A-F', description: 'Lands & Economic Development — LEDSP core/targeted, CORP, RLEMP, FN Land Management, Contaminated Sites (FCSAP/CSOR)', fundingType: 'Fixed/Flex/Set' },
+  { costCentre: 'A0906B-E', description: 'Community infrastructure & housing — water/wastewater, O&M of assets, housing construction/reno, fire protection, FN Infrastructure Fund, Gas Tax, Building Canada Fund', fundingType: 'Fixed/Flex/Set' },
+  { costCentre: 'A0907A-D', description: 'Governance & individual affairs — community safety, estates, registration & treaty annuities, Band Employee Benefits, Prof & Inst Dev, Tribal Council Funding, Band Support Funding', fundingType: 'Fixed/Set · Grant (BSF)' },
+  { costCentre: 'A0908A', description: 'First Nation Child & Family Services — maintenance, operations, prevention, FN representative services, post-majority care', fundingType: 'Fixed/Flex/Set' },
+  { costCentre: 'A0908B', description: "Jordan's Principle and Inuit — health, education, social, child/life necessities, service coordination, major capital (CHRT 41)", fundingType: 'Fixed/Flex/Set' },
+  { costCentre: 'A0908C', description: 'Child & Family Services Reform (Bill C-92) — cost capacity-building, governance engagement, coordination-agreement discussions', fundingType: 'Fixed/Flex/Set' },
+];

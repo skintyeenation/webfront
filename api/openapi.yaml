@@ -291,6 +291,54 @@ paths:
                 items: { $ref: '#/components/schemas/FinancialRecord' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
+  /community/profile:
+    get:
+      tags: [Community]
+      summary: Nation size / demographic profile
+      description: >
+        Tracked size profile of the Nation. Drives size-based funding tiers (e.g. Tribal
+        Council Funding). Population is approximate (~200); most other fields are not yet
+        confirmed (null) and are filled in over time.
+      security: []
+      responses:
+        '200':
+          description: Community profile.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CommunityProfile' }
+    patch:
+      tags: [Community]
+      summary: Update the Nation profile (fill in confirmed figures)
+      description: 'Requires role: admin.'
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CommunityProfile' }
+      responses:
+        '200':
+          description: Updated community profile.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CommunityProfile' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /funding/chart-of-accounts:
+    get:
+      tags: [Funding]
+      summary: ISC Chart of Accounts for Transfer Payments
+      description: >
+        Reference data (guide pp. 172-188) for coding incoming ISC funding (EFTs) to the
+        right Cost Centre / funding type in Sage 300.
+      security: []
+      responses:
+        '200':
+          description: Chart of accounts rows.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ChartOfAccountsRow' }
+
   /timekeeping/entries:
     get:
       tags: [Time Keeping]
@@ -630,6 +678,34 @@ components:
         category: { type: string, enum: [Budget, Statement, Grant, Expense] }
         amount: { type: number }
         notes: { type: string, nullable: true }
+
+    CommunityProfile:
+      type: object
+      required: [name]
+      description: >
+        Nation size / demographic profile. Mirrors SKIN_TYEE_PROFILE in @skintyee/models.
+        Null fields are not yet confirmed; funding figures that depend on them cannot be
+        resolved until they are.
+      properties:
+        name: { type: string }
+        totalMembers: { type: integer, nullable: true, description: Total registered members (on- and off-reserve); approximate. }
+        onReservePopulation: { type: integer, nullable: true, description: On-reserve resident population — the figure most ISC tiers key on. }
+        registeredMembers: { type: integer, nullable: true, description: Registered (status) members — used by per-capita formulas. }
+        nominalRollStudents: { type: integer, nullable: true, description: Nominal Roll enrolment — drives per-student education funding. }
+        firstNationsServed: { type: integer, nullable: true, description: Number of First Nations served (1 = serves only itself). Gates Tribal Council Funding. }
+        ongoingIscPrograms: { type: integer, nullable: true, description: Count of ongoing ISC programs delivered — a TCF tier input. }
+        asOf: { type: string, nullable: true }
+        notes: { type: string, nullable: true }
+
+    ChartOfAccountsRow:
+      type: object
+      required: [costCentre, description]
+      description: ISC Chart of Accounts row (guide pp. 172-188).
+      properties:
+        costCentre: { type: string }
+        baFa: { type: string, nullable: true }
+        description: { type: string }
+        fundingType: { type: string, nullable: true }
 
     TimeEntry:
       type: object

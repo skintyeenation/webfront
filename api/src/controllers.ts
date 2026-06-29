@@ -1271,6 +1271,29 @@ export class FinancialsController {
   @Get() @Roles('admin') list() { return this.data.financials; }
 }
 
+// ---- Community profile ----------------------------------------------------
+// Tracked Nation size/demographic profile. Drives size-based funding tiers (e.g. TCF).
+// Population is ~200; most other fields are still unknown (null). Admin can PATCH to fill
+// them in as they're confirmed.
+@Controller('community')
+export class CommunityController {
+  constructor(private data: DataService) {}
+  @Get('profile') profile() { return this.data.communityProfile; }
+  @Patch('profile') @Roles('admin') update(@Body() b: any) {
+    this.data.communityProfile = { ...this.data.communityProfile, ...b };
+    return this.data.communityProfile;
+  }
+}
+
+// ---- Funding reference data ------------------------------------------------
+// ISC Chart of Accounts for Transfer Payments — reference data for coding incoming ISC
+// funding (EFTs) to the right Cost Centre / funding type.
+@Controller('funding')
+export class FundingController {
+  constructor(private data: DataService) {}
+  @Get('chart-of-accounts') chartOfAccounts() { return this.data.chartOfAccounts; }
+}
+
 // ---- Time Keeping ---------------------------------------------------------
 //
 // Bi-weekly pay-period timesheets backed by Postgres (Timesheet +
@@ -2162,6 +2185,8 @@ export const CONTROLLERS = [
   MeetingsController,
   TransparencyController,
   FinancialsController,
+  CommunityController,
+  FundingController,
   TimeKeepingController,
   PollsController,
   NotificationsController,

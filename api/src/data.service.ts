@@ -19,6 +19,8 @@ export class DataService {
   timeEntries: any[] = clone(seed.timeEntries);
   polls: any[] = clone(seed.polls);
   notifications: any[] = clone(seed.notifications);
+  communityProfile: any = clone(seed.communityProfile);
+  chartOfAccounts: any[] = clone(seed.chartOfAccounts);
 
   id(prefix: string): string {
     return `${prefix}${Date.now().toString(36)}${Math.floor(Math.random() * 1000)}`;
