@@ -52,10 +52,12 @@ export const CAD = (n: number) =>
 
 // "Rights & Title" resource links — rendered site-wide (footer) and reusable as
 // a section/CTA. URLs are best-effort official sources; verify/adjust as needed.
+// Logos are the official org marks from skintyeefirstnation.org's R&T section + the BC
+// government logo for the gov.bc.ca link; self-hosted under public/img/rights-title/.
 export const RESOURCE_LINKS = [
-  { label: 'Aboriginal Rights & Title', url: 'https://www2.gov.bc.ca/gov/content/governments/indigenous-people' },
-  { label: 'DRIPA — BC Declaration Act', url: 'https://www.declaration.gov.bc.ca/' },
-  { label: 'UNDRIP', url: 'https://www.un.org/development/desa/indigenouspeoples/declaration-on-the-rights-of-indigenous-peoples.html' },
-  { label: 'TRC: Calls to Action', url: 'https://nctr.ca/about/history/calls-to-action/' },
-  { label: 'Regional District of Fraser-Fort George', url: 'https://www.rdffg.bc.ca/' },
+  { label: 'Aboriginal Rights & Title', url: 'https://www2.gov.bc.ca/gov/content/governments/indigenous-people', logo: '/img/rights-title/bc.png' },
+  { label: 'DRIPA — BC Declaration Act', url: 'https://www.declaration.gov.bc.ca/', logo: '/img/rights-title/dripa.png' },
+  { label: 'UNDRIP', url: 'https://www.un.org/development/desa/indigenouspeoples/declaration-on-the-rights-of-indigenous-peoples.html', logo: '/img/rights-title/undrip.png' },
+  { label: 'TRC: Calls to Action', url: 'https://nctr.ca/about/history/calls-to-action/', logo: '/img/rights-title/trc.png' },
+  { label: 'Regional District of Fraser-Fort George', url: 'https://www.rdffg.bc.ca/', logo: '/img/rights-title/rdffg.jpg' },
 ];

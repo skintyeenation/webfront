@@ -10,3 +10,6 @@ next-env.d.ts
 
 # Local funding submission intake (Phase 1b) — replaced by SharePoint in Phase 2.
 /submissions
+
+# Local project-referral intake (POC) — replaced by mail/CRM later.
+/referrals
