@@ -582,9 +582,11 @@ export default function Dashboard({ navigation }: any) {
                 ) : null}
               </View>
               {!rollup ? (
-                <Text style={{ color: theme.colors.textDarker }}>Loading Planner data…</Text>
+                <NoContent loading message="Loading Planner data…" />
               ) : rollup.byProgramArea.length === 0 ? (
-                <Text style={{ color: theme.colors.textDarker }}>No active Planner plans.</Text>
+                <View style={{ borderWidth: 1, borderColor: theme.colors.secondary, borderRadius: 12, paddingVertical: 6 }}>
+                  <NoContent message="No active Planner plans." />
+                </View>
               ) : (
                 <>
                   {rollup.byProgramArea.map((row, idx) => {
@@ -870,8 +872,8 @@ function CutoffFooter({ cutoffDate, daysRemaining, inline }: { cutoffDate: momen
       <View style={{ height: 28, flexDirection: 'row', alignItems: 'center' }}>
         <MaterialCommunityIcons name="calendar-clock" size={16} color={theme.colors.textDarker} style={{ marginRight: 6 }} />
         <Chip compact
-          style={{ backgroundColor: daysRemaining <= 2 ? theme.colors.accent : theme.colors.secondary }}
-          textStyle={{ color: daysRemaining <= 2 ? '#000' : theme.colors.text, fontSize: 12 }}>
+          style={{ height: 24, justifyContent: 'center', backgroundColor: daysRemaining <= 2 ? theme.colors.accent : theme.colors.secondary }}
+          textStyle={{ color: daysRemaining <= 2 ? '#000' : theme.colors.text, fontSize: 12, marginVertical: 0, lineHeight: 16 }}>
           {daysRemaining === 0 ? 'Due today' : daysRemaining === 1 ? '1 day left' : `${daysRemaining} days left`}
         </Chip>
       </View>
