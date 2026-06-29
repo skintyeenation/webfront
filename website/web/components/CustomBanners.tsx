@@ -20,8 +20,15 @@ function BannerCard({ b }: { b: Banner }) {
   const inner = (
     <article className="flex h-full flex-col overflow-hidden rounded-xl border border-[var(--line)] transition hover:border-primary">
       {b.image ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={b.image} alt={b.title} loading="lazy" className="h-44 w-full object-cover object-top" />
+        <div className="h-44 w-full" style={b.bg ? { background: b.bg } : undefined}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={b.image}
+            alt={b.title}
+            loading="lazy"
+            className={`h-full w-full ${b.fit === 'contain' ? 'object-contain p-3' : 'object-cover object-center'}`}
+          />
+        </div>
       ) : (
         <div className="flex h-44 items-center justify-center bg-[#f2f7f8] text-6xl" aria-hidden>
           {b.icon ?? '◆'}
@@ -34,12 +41,17 @@ function BannerCard({ b }: { b: Banner }) {
         </div>
         {b.subheading && <p className="text-sm font-semibold text-primary">{b.subheading}</p>}
         <p className="mt-1.5 text-sm text-ink/70">{b.description}</p>
+        {b.href && (
+          <span className="mt-3 inline-block text-sm font-semibold text-primary group-hover:underline">
+            Read more ↗
+          </span>
+        )}
       </div>
     </article>
   );
 
   return b.href ? (
-    <a href={b.href} target="_blank" rel="noopener noreferrer" className="block h-full">
+    <a href={b.href} target="_blank" rel="noopener noreferrer" className="group block h-full">
       {inner}
     </a>
   ) : (
