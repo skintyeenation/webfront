@@ -580,38 +580,36 @@ export default function Dashboard({ navigation }: any) {
               </Text>
             ) : null}
           </View>
-          <Card style={{ backgroundColor: theme.colors.darkDefault, marginBottom: 16 }}>
-            <Card.Content>
-              {!rollup ? (
-                <NoContent loading message="Loading Planner data…" />
-              ) : rollup.byProgramArea.length === 0 ? (
-                <View style={{ borderWidth: 1, borderColor: theme.colors.secondary, borderRadius: 12, paddingVertical: 6 }}>
-                  <NoContent message="No active Planner plans." />
-                </View>
-              ) : (
-                <>
-                  {rollup.byProgramArea.map((row, idx) => {
-                    const total = row.open + row.completed;
-                    const pct = total > 0 ? row.completed / total : 0;
-                    return (
-                      <View key={row.programArea} style={{ marginBottom: 10 }}>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 }}>
-                          <Text style={{ color: theme.colors.text, fontSize: 13 }}>{row.programArea}</Text>
-                          <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>
-                            {row.open} open · {row.completed} done
-                          </Text>
-                        </View>
-                        <ProgressBar progress={pct} color={colorAt(idx)} style={{ height: 6, backgroundColor: theme.colors.secondary }} />
+          {/* All projects wrapped in one outline — always bordered (empty or populated). */}
+          <View style={{ borderWidth: 1, borderColor: theme.colors.secondary, borderRadius: 12, padding: 12, marginBottom: 16 }}>
+            {!rollup ? (
+              <NoContent loading message="Loading Planner data…" />
+            ) : rollup.byProgramArea.length === 0 ? (
+              <NoContent message="No active Planner plans." />
+            ) : (
+              <>
+                {rollup.byProgramArea.map((row, idx) => {
+                  const total = row.open + row.completed;
+                  const pct = total > 0 ? row.completed / total : 0;
+                  const last = idx === rollup.byProgramArea.length - 1;
+                  return (
+                    <View key={row.programArea} style={{ marginBottom: last ? 0 : 12 }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <Text style={{ color: theme.colors.text, fontSize: 13 }}>{row.programArea}</Text>
+                        <Text style={{ color: theme.colors.textDarker, fontSize: 12 }}>
+                          {row.open} open · {row.completed} done
+                        </Text>
                       </View>
-                    );
-                  })}
-                  <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginTop: 6 }}>
-                    From Microsoft Planner · refreshed {new Date(rollup.generatedAt).toLocaleTimeString()}
-                  </Text>
-                </>
-              )}
-            </Card.Content>
-          </Card>
+                      <ProgressBar progress={pct} color={colorAt(idx)} style={{ height: 6, borderRadius: 3, backgroundColor: theme.colors.secondary }} />
+                    </View>
+                  );
+                })}
+                <Text style={{ color: theme.colors.textDarker, fontSize: 11, marginTop: 8 }}>
+                  From Microsoft Planner · refreshed {new Date(rollup.generatedAt).toLocaleTimeString()}
+                </Text>
+              </>
+            )}
+          </View>
           </View>
           <View style={twoCol ? { flex: 1, marginLeft: 8 } : undefined}>
 
@@ -635,15 +633,16 @@ export default function Dashboard({ navigation }: any) {
           ) : null}
         </View>
 
-        {!loaded && loading ? (
-          <NoContent loading message="Loading your tasks…" />
-        ) : taskItems.length === 0 ? (
-          <View style={{ borderWidth: 1, borderColor: theme.colors.secondary, borderRadius: 12, paddingVertical: 6 }}>
+        {/* All tasks wrapped in one outline — always bordered (empty or populated). */}
+        <View style={{ borderWidth: 1, borderColor: theme.colors.secondary, borderRadius: 12, padding: 12, marginBottom: 16 }}>
+          {!loaded && loading ? (
+            <NoContent loading message="Loading your tasks…" />
+          ) : taskItems.length === 0 ? (
             <NoContent message="No Planner tasks due this week. Clear slate." />
-          </View>
-        ) : (
-          renderTaskDays()
-        )}
+          ) : (
+            renderTaskDays()
+          )}
+        </View>
         </> : null}
           </View>
           </View>
