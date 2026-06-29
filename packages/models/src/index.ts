@@ -391,3 +391,6 @@ export interface FeedItem {
 
 // ISC funding programs (shared so the website pages AND the app calendar can use them).
 export * from './funding';
+
+// Nation size/demographic profile + size-driven funding resolution.
+export * from './nation';

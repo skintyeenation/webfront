@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { ChevronDown } from 'lucide-react';
 import type { FundingProgram, PawItem, DciItem } from '@skintyee/models';
+import { fundingForNation, SKIN_TYEE_PROFILE } from '@skintyee/models';
 import { PROGRAM_GUIDE } from '@/lib/constants';
 import { formUrlFor } from '@/lib/funding-forms';
 import { Acronym } from './Acronym';
@@ -106,36 +107,77 @@ export function FundingScaleLegend() {
 function FundingCard({ p, collapsible = true }: { p: FundingProgram; collapsible?: boolean }) {
   const href = p.pdfPage ? `${PROGRAM_GUIDE.href}#page=${p.pdfPage}` : PROGRAM_GUIDE.href;
 
+  // Resolve this program against the Nation's size. null = not size-sensitive (show normally);
+  // eligible:false = disqualified at our size → grey the card out; eligible+amount = size-adjusted figure.
+  const nation = fundingForNation(p, SKIN_TYEE_PROFILE);
+  const disqualified = !!nation && !nation.eligible;
+
   const title = (
-    <h3 className="font-bold text-ink">
+    <h3 className={`font-bold ${disqualified ? 'text-ink/50' : 'text-ink'}`}>
       {p.name}
       {p.acronym && (
-        <span className="ml-2 text-sm font-semibold text-accent">
+        <span className={`ml-2 text-sm font-semibold ${disqualified ? 'text-ink/40' : 'text-accent'}`}>
           <Acronym>{p.acronym}</Acronym>
         </span>
       )}
       <ScaleBadge scale={p.scale} />
+      {disqualified && (
+        <span className="ml-2 inline-block rounded-full bg-ink/10 px-2 py-0.5 align-middle text-xs font-semibold text-ink/55">
+          Not available at current size
+        </span>
+      )}
+      {nation?.eligible && nation.tier && (
+        <span className="ml-2 inline-block rounded-full bg-primary/10 px-2 py-0.5 align-middle text-xs font-semibold text-primary">
+          {nation.tier}
+        </span>
+      )}
     </h3>
+  );
+
+  // Funding figures: a size-resolved verdict (when the program is size-sensitive) takes
+  // precedence over the static floor/limit range.
+  const fundingBlock = nation ? (
+    nation.eligible ? (
+      <div className="mt-3 rounded-lg bg-primary/5 px-3 py-2 text-sm">
+        <span className="font-semibold text-primary">
+          For {SKIN_TYEE_PROFILE.name} (~{SKIN_TYEE_PROFILE.totalMembers} members):{' '}
+        </span>
+        <span className="font-semibold text-ink">
+          {nation.tier ? `${nation.tier} — ` : ''}
+          {nation.amount}
+        </span>{' '}
+        <span className="text-ink/55">({nation.basis})</span>
+      </div>
+    ) : (
+      <div className="mt-3 rounded-lg border border-dashed border-[var(--line)] bg-[#f7f8f8] px-3 py-2 text-sm text-ink/60">
+        <span className="font-semibold text-ink/70">
+          Not available at {SKIN_TYEE_PROFILE.name}&apos;s current size.{' '}
+        </span>
+        {nation.basis}
+      </div>
+    )
+  ) : (
+    (p.floor || p.limit) && (
+      <div className="mt-3 flex flex-wrap gap-2">
+        {p.floor && (
+          <span className="rounded-lg bg-[#f2f7f8] px-3 py-1.5 text-sm">
+            <span className="text-ink/55">Funding floor: </span>
+            <span className="font-semibold text-ink">{p.floor}</span>
+          </span>
+        )}
+        {p.limit && (
+          <span className="rounded-lg bg-[#f2f7f8] px-3 py-1.5 text-sm">
+            <span className="text-ink/55">Funding limit: </span>
+            <span className="font-semibold text-ink">{p.limit}</span>
+          </span>
+        )}
+      </div>
+    )
   );
 
   const detail = (
     <>
-      {(p.floor || p.limit) && (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {p.floor && (
-            <span className="rounded-lg bg-[#f2f7f8] px-3 py-1.5 text-sm">
-              <span className="text-ink/55">Funding floor: </span>
-              <span className="font-semibold text-ink">{p.floor}</span>
-            </span>
-          )}
-          {p.limit && (
-            <span className="rounded-lg bg-[#f2f7f8] px-3 py-1.5 text-sm">
-              <span className="text-ink/55">Funding limit: </span>
-              <span className="font-semibold text-ink">{p.limit}</span>
-            </span>
-          )}
-        </div>
-      )}
+      {fundingBlock}
 
       {p.eligibility && (
         <p className="mt-2 text-sm">
@@ -189,22 +231,25 @@ function FundingCard({ p, collapsible = true }: { p: FundingProgram; collapsible
     </>
   );
 
+  const shell = `rounded-xl border border-[var(--line)] p-5${disqualified ? ' bg-[#fafbfb] opacity-70' : ''}`;
+  const summaryText = `mt-1.5 text-sm ${disqualified ? 'text-ink/50' : 'text-ink/75'}`;
+
   if (!collapsible) {
     return (
-      <article className="rounded-xl border border-[var(--line)] p-5">
+      <article className={shell}>
         {title}
-        <p className="mt-1.5 text-sm text-ink/75">{p.summary}</p>
+        <p className={summaryText}>{p.summary}</p>
         {detail}
       </article>
     );
   }
 
   return (
-    <details className="group rounded-xl border border-[var(--line)] p-5">
+    <details className={`group ${shell}`}>
       <summary className="flex cursor-pointer list-none items-start justify-between gap-3 [&::-webkit-details-marker]:hidden">
         <div>
           {title}
-          <p className="mt-1.5 text-sm text-ink/75">{p.summary}</p>
+          <p className={summaryText}>{p.summary}</p>
         </div>
         <ChevronDown
           aria-hidden

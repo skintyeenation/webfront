@@ -1,16 +1,15 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { signIn } from 'next-auth/react';
-import { ProgramSubmissionForm } from './ProgramSubmissionForm';
+import { ProgramSubmissionForm, type SubmissionOption } from './ProgramSubmissionForm';
 
-type Opt = { slug: string; name: string; acronym?: string };
 type Session = { user?: { email?: string | null } } | null;
 
 // Client-side Entra sign-in gate for the submission portal. Checks the session per-user
 // (so the parent page can stay statically cached / ISR) and shows either the sign-in
 // prompt or the upload form. The /api/program-submission route re-enforces auth server-side,
 // so this gate is UX, not the security boundary.
-export function ProgramSubmissionGate({ area, options }: { area: string; options: Opt[] }) {
+export function ProgramSubmissionGate({ options }: { options: SubmissionOption[] }) {
   const [session, setSession] = useState<Session | undefined>(undefined);
 
   useEffect(() => {
@@ -29,7 +28,7 @@ export function ProgramSubmissionGate({ area, options }: { area: string; options
   }
 
   if (session?.user) {
-    return <ProgramSubmissionForm area={area} options={options} userEmail={session.user.email ?? undefined} />;
+    return <ProgramSubmissionForm options={options} userEmail={session.user.email ?? undefined} />;
   }
 
   return (

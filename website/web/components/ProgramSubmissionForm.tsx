@@ -1,29 +1,32 @@
 'use client';
 import { useState } from 'react';
 
-type Opt = { slug: string; name: string; acronym?: string };
+// `area` makes each option self-routing (the funding hub spans every area); `group` is the
+// area display name used to group the dropdown when options come from more than one area.
+export type SubmissionOption = { area: string; slug: string; name: string; acronym?: string; group?: string };
 
-// Client form for the per-program funding submission portal (Phase 1b). Posts a
-// completed PAW + supporting documents to /api/program-submission, which files them
-// into the program's <area>/<slug>/ folder (repo / SharePoint mirror).
+// Client form for the funding submission portal (Phase 1b). Reused on each program page
+// (one area) and the funding hub (all areas). Posts a completed PAW + supporting documents
+// to /api/program-submission, which files them into the selected program's <area>/<slug>/
+// folder (repo / SharePoint mirror).
 export function ProgramSubmissionForm({
-  area,
   options,
   userEmail,
 }: {
-  area: string;
-  options: Opt[];
+  options: SubmissionOption[];
   userEmail?: string;
 }) {
-  const [selected, setSelected] = useState(options[0]?.slug ?? '');
+  const [selected, setSelected] = useState(0);
   const [notes, setNotes] = useState('');
   const [files, setFiles] = useState<FileList | null>(null);
   const [status, setStatus] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
   const [message, setMessage] = useState('');
 
+  const grouped = options.some((o) => o.group);
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const opt = options.find((o) => o.slug === selected);
+    const opt = options[selected];
     if (!opt) return;
     if (!files || !files.length) {
       setStatus('error');
@@ -33,7 +36,7 @@ export function ProgramSubmissionForm({
     setStatus('sending');
     setMessage('');
     const fd = new FormData();
-    fd.set('area', area);
+    fd.set('area', opt.area);
     fd.set('programName', opt.name);
     if (opt.acronym) fd.set('acronym', opt.acronym);
     fd.set('notes', notes);
@@ -67,14 +70,30 @@ export function ProgramSubmissionForm({
         <span className="font-semibold text-ink/70">Program / application</span>
         <select
           value={selected}
-          onChange={(e) => setSelected(e.target.value)}
+          onChange={(e) => setSelected(Number(e.target.value))}
           className="mt-1 w-full rounded-lg border border-[var(--line)] px-3 py-2"
         >
-          {options.map((o) => (
-            <option key={o.slug} value={o.slug}>
-              {o.acronym ? `${o.acronym} — ${o.name}` : o.name}
-            </option>
-          ))}
+          {grouped
+            ? Object.entries(
+                options.reduce<Record<string, number[]>>((acc, o, i) => {
+                  const g = o.group || 'Other';
+                  (acc[g] ||= []).push(i);
+                  return acc;
+                }, {}),
+              ).map(([group, idxs]) => (
+                <optgroup key={group} label={group}>
+                  {idxs.map((i) => (
+                    <option key={i} value={i}>
+                      {options[i].acronym ? `${options[i].acronym} — ${options[i].name}` : options[i].name}
+                    </option>
+                  ))}
+                </optgroup>
+              ))
+            : options.map((o, i) => (
+                <option key={i} value={i}>
+                  {o.acronym ? `${o.acronym} — ${o.name}` : o.name}
+                </option>
+              ))}
         </select>
       </label>
 

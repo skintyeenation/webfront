@@ -1,24 +1,38 @@
 import { fundingByArea, programSlug } from '@skintyee/models';
+import { PROGRAM_AREAS } from '@/lib/constants';
 import { ProgramSubmissionGate } from './ProgramSubmissionGate';
+import type { SubmissionOption } from './ProgramSubmissionForm';
 
-// Per-program funding submission portal (Phase 1b, website-first). Server component:
-// computes the program options for this area (so the full funding dataset is NOT shipped
-// to the client) and hands them to a client gate that checks the Entra session per-user.
-// Uploads are filed into the program's <area>/<slug>/ folder (repo / SharePoint mirror —
-// docs/funding/PLAN.md §5). Renders nothing for areas with no funding programs.
-export function ProgramSubmissionSection({ area, areaName }: { area: string; areaName: string }) {
-  const programs = fundingByArea(area);
-  if (!programs.length) return null;
-  const options = programs.map((p) => ({ slug: programSlug(p), name: p.name, acronym: p.acronym }));
+// Funding submission portal (Phase 1b, website-first). Reusable: pass an `area` for a single
+// program area (a program page), or omit it for ALL areas (the funding hub) — options are then
+// grouped by area and each carries its own area so uploads still land in the right
+// <area>/<slug>/ folder (repo / SharePoint mirror — docs/funding/PLAN.md §5). Server component:
+// builds the options server-side so the full funding dataset isn't shipped to the client, then
+// hands them to a client gate that checks the Entra session per-user. Renders nothing if empty.
+export function ProgramSubmissionSection({ area, areaName }: { area?: string; areaName?: string }) {
+  const areas = area ? PROGRAM_AREAS.filter((a) => a.slug === area) : PROGRAM_AREAS;
+  const allAreas = !area;
+
+  const options: SubmissionOption[] = areas.flatMap((a) =>
+    fundingByArea(a.slug).map((p) => ({
+      area: a.slug,
+      group: allAreas ? a.name : undefined, // group the dropdown by area only on the hub
+      slug: programSlug(p),
+      name: p.name,
+      acronym: p.acronym,
+    })),
+  );
+  if (!options.length) return null;
 
   return (
     <section className="mt-10 rounded-2xl border border-[var(--line)] bg-white p-5">
       <h2 className="text-lg font-bold text-ink">Submit a funding application</h2>
       <p className="mt-1 text-sm text-ink/70">
-        Members and staff can submit a completed PAW application and supporting documents for a{' '}
-        {areaName} program. Submissions are filed securely for Skin Tyee staff review.
+        Members and staff can submit a completed PAW application and supporting documents for{' '}
+        {allAreas ? 'any Skin Tyee funding program' : `a ${areaName} program`}. Submissions are filed
+        securely for Skin Tyee staff review.
       </p>
-      <ProgramSubmissionGate area={area} options={options} />
+      <ProgramSubmissionGate options={options} />
     </section>
   );
 }

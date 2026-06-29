@@ -4,6 +4,7 @@ import { PROGRAM_AREAS, PROGRAM_GUIDE } from '@/lib/constants';
 import { fundingByArea, allDeadlines } from '@skintyee/models';
 import { FundingPrograms, FundingScaleLegend } from '@/components/FundingPrograms';
 import { FundingCalendar } from '@/components/FundingCalendar';
+import { ProgramSubmissionSection } from '@/components/ProgramSubmissionSection';
 
 export const revalidate = 60;
 export const metadata: Metadata = { title: 'Funding' };
@@ -83,6 +84,9 @@ export default async function FundingPage() {
           />
         );
       })}
+
+      {/* Apply — reusable submission portal, all areas (same component as each program page) */}
+      <ProgramSubmissionSection />
     </>
   );
 }
