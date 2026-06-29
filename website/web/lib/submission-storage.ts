@@ -25,12 +25,13 @@ export async function storeSubmission(opts: {
   submitter: string;
   files: FileInput[];
   notes?: string;
+  id?: string; // client-supplied GUID (shown in the form preview) — falls back to a fresh one
 }): Promise<StoredSubmission> {
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   // A submission has no official ID at intake (the PAW # is the form-template number), so we
   // assign a unique GUID, plus a friendly key derived from the application title + who +
   // datetime + a short id. PAW (applications) and DCI (reports) live in separate subfolders.
-  const id = randomUUID();
+  const id = opts.id || randomUUID();
   const titleSlug =
     (opts.project || 'untitled').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) ||
     'untitled';

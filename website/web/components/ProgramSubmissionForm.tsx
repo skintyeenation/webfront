@@ -3,7 +3,14 @@ import { useEffect, useState } from 'react';
 import type { FundingProgram } from '@skintyee/models';
 import { programSlug } from '@skintyee/models';
 import { formUrlFor } from '@/lib/funding-forms';
+import dynamic from 'next/dynamic';
+import { PROGRAM_GUIDE } from '@/lib/constants';
 import { ProgramTitle, ProgramDetail } from './ProgramDetail';
+
+// react-pdf touches browser-only APIs — load the viewer client-side only.
+const PdfViewerModal = dynamic(() => import('./PdfViewerModal').then((m) => m.PdfViewerModal), {
+  ssr: false,
+});
 
 // `area` makes each option self-routing (the funding hub spans every area); `group` is the
 // area display name used to group the dropdown when options come from more than one area;
@@ -32,6 +39,18 @@ export function ProgramSubmissionForm({
   const [status, setStatus] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [submittedId, setSubmittedId] = useState('');
+  const [viewer, setViewer] = useState<{ url: string; title: string } | null>(null);
+  // Pre-generated submission GUID (shown as a preview + sent so the stored id matches).
+  // Generated on the client to avoid an SSR/hydration mismatch.
+  const [sid, setSid] = useState('');
+  useEffect(() => {
+    setSid(typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : '');
+  }, []);
+  const whoSlug = (userEmail || 'member').split('@')[0].toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  const titleSlug =
+    (project || 'untitled').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) ||
+    'untitled';
+  const uid = sid ? `${titleSlug}_${whoSlug}_${sid.slice(0, 8)}` : '';
 
   // Preselect the program + kind from a `#apply=<kind>:<area>/<slug>` deep-link (the cards'
   // "Upload PAW" button and the calendar's "Apply" links). `<kind>:` is optional (defaults paw).
@@ -82,6 +101,7 @@ export function ProgramSubmissionForm({
     if (opt.program.acronym) fd.set('acronym', opt.program.acronym);
     fd.set('kind', kind);
     if (project.trim()) fd.set('project', project.trim());
+    if (sid) fd.set('id', sid);
     fd.set('notes', notes);
     Array.from(files).forEach((f) => fd.append('files', f));
     try {
@@ -95,6 +115,7 @@ export function ProgramSubmissionForm({
       setProject('');
       setNotes('');
       setFiles(null);
+      setSid(typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : '');
     } catch (err) {
       setStatus('error');
       setMessage(err instanceof Error ? err.message : 'Submission failed.');
@@ -195,34 +216,63 @@ export function ProgramSubmissionForm({
               : 'e.g. 2024-25 year-end report'
           }
         />
+        {sid && (
+          <span className="mt-1 block text-xs text-ink/40">
+            ID: <span className="font-mono">{sid}</span> · UID: <span className="font-mono">{uid}</span>
+          </span>
+        )}
       </label>
 
-      {/* Download the blank template(s) for the selected PAW from our form library. */}
+      {/* View / download the blank template(s) for the selected PAW from our form library. */}
       {kind === 'paw' &&
         selectedOpt &&
         (() => {
           const templates = (selectedOpt.program.paw ?? [])
             .map((x) => ({ name: x.name, url: formUrlFor(x.no) }))
             .filter((t): t is { name: string; url: string } => !!t.url);
-          if (!templates.length) return null;
           return (
             <div className="rounded-lg border border-primary/30 bg-[#f2f7f8] p-4">
-              <p className="font-semibold text-ink">Need the blank form? Download the PAW template</p>
-              <ul className="mt-2 space-y-1">
-                {templates.map((t, i) => (
-                  <li key={i}>
-                    <a
-                      href={t.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
-                    >
-                      ↓ {t.name}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-2 text-xs text-ink/50">Fill it out, then attach it below.</p>
+              <p className="font-semibold text-ink">Need the blank form? View or download the PAW template</p>
+              {templates.length ? (
+                <>
+                  <ul className="mt-2 space-y-1.5">
+                    {templates.map((t, i) => (
+                      <li key={i} className="flex flex-wrap items-center gap-3 text-sm">
+                        <span className="text-ink/80">{t.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => setViewer({ url: t.url, title: t.name })}
+                          className="font-semibold text-primary hover:underline"
+                        >
+                          👁 View
+                        </button>
+                        <a
+                          href={t.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-semibold text-primary hover:underline"
+                        >
+                          ↓ Download
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-2 text-xs text-ink/50">Fill it out, then attach it below.</p>
+                </>
+              ) : (
+                <p className="mt-1 text-sm text-ink/60">
+                  No blank template is on file for this program yet — see the{' '}
+                  <a
+                    href={PROGRAM_GUIDE.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-primary hover:underline"
+                  >
+                    Program Guide
+                  </a>{' '}
+                  or contact Skin Tyee staff.
+                </p>
+              )}
             </div>
           );
         })()}
@@ -356,6 +406,8 @@ export function ProgramSubmissionForm({
         </div>
       </div>
     )}
+
+    {viewer && <PdfViewerModal url={viewer.url} title={viewer.title} onClose={() => setViewer(null)} />}
     </>
   );
 }

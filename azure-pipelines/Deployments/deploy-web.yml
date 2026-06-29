@@ -87,11 +87,20 @@ jobs:
             }
             wait_for_idle
 
+            # Funding submission storage env (idempotent — reasserted every deploy):
+            #   • Azure Blob: account + container are non-secret; the SAS is kept as the
+            #     container-app secret 'submissions-sas' (set once via az, not in source).
+            #   • SharePoint mirror (SHAREPOINT_*) is set separately only when its app
+            #     registration is configured; absent envs make the mirror no-op safely.
             for attempt in 1 2 3; do
               if az containerapp update \
                 --name "$AZURE_CONTAINERAPP" --resource-group "$AZURE_RG" \
                 --image "$FULL_IMAGE" \
                 --revision-suffix "sha-$(echo $IMAGE_TAG | cut -c1-7)" \
+                --set-env-vars \
+                  AZURE_STORAGE_SUBMISSIONS_ACCOUNT=skintyeeproddocs \
+                  AZURE_STORAGE_SUBMISSIONS_CONTAINER=funding-submissions \
+                  AZURE_STORAGE_SUBMISSIONS_SAS=secretref:submissions-sas \
                 --output none 2> /tmp/cau-err; then
                 break
               fi

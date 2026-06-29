@@ -24,6 +24,11 @@ const nextConfig = {
       { protocol: 'https', hostname: 'cms.skintyee.ca' },
     ],
   },
+  // react-pdf / pdf.js: stub the optional Node 'canvas' dep so it doesn't break the bundle.
+  webpack: (config) => {
+    config.resolve.alias = { ...config.resolve.alias, canvas: false };
+    return config;
+  },
 };
 
 export default nextConfig;
